@@ -1,3 +1,4 @@
+import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 
 class PesquisaCondominiosScreen extends StatefulWidget {
@@ -10,46 +11,161 @@ class PesquisaCondominiosScreen extends StatefulWidget {
 class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
   String? _ufSelecionada;
   String? _cidadeSelecionada;
-  String _statusSelecionado = 'Ativos';
+  String? _statusSelecionado;
+  
+  // Listas dinâmicas carregadas do banco de dados
+  List<String> _ufs = [];
+  List<String> _cidades = [];
+  bool _isLoadingUfs = true;
+  bool _isLoadingCidades = false;
+  
+  // Dados reais dos condomínios e representantes
+  List<Map<String, dynamic>> _condominios = [];
+  List<Map<String, dynamic>> _condominiosComRepresentantes = [];
+  bool _isLoadingPesquisa = false;
+  double _totalValor = 0.0;
 
-  final List<String> _ufs = [
-    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _carregarUfs();
+    _realizarPesquisa(); // Carrega todos os condomínios inicialmente
+  }
 
-  final List<String> _cidades = [
-    'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Salvador',
-    'Brasília', 'Fortaleza', 'Curitiba', 'Recife', 'Porto Alegre'
-  ];
+  /// Carrega as UFs únicas dos representantes
+  Future<void> _carregarUfs() async {
+    try {
+      setState(() {
+        _isLoadingUfs = true;
+      });
+      
+      final ufs = await SupabaseService.getUfsFromCondominios();
+      
+      setState(() {
+        _ufs = ufs;
+        _isLoadingUfs = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingUfs = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar UFs: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
-  // Dados mockados dos condomínios
-  final List<Map<String, dynamic>> _condominiosMock = [
-    {
-      'nome': 'Cond. Palmeiras',
-      'cnpj': '19.666.555/0001-66',
-      'mensalidade': 300.00,
-      'sindico': 'José da Silva Viana'
-    },
-    {
-      'nome': 'Cond. Duetto',
-      'cnpj': '19.666.555/0001-66',
-      'mensalidade': 450.00,
-      'sindico': 'Maria Santos'
-    },
-    {
-      'nome': 'Cond. Córdoba',
-      'cnpj': '19.666.555/0001-66',
-      'mensalidade': 380.00,
-      'sindico': 'João Oliveira'
-    },
-    {
-      'nome': 'Cond. Arara',
-      'cnpj': '19.666.555/0001-66',
-      'mensalidade': 520.00,
-      'sindico': 'Ana Costa'
-    },
-  ];
+  /// Carrega as cidades únicas dos representantes filtradas por UF
+  Future<void> _carregarCidades(String? uf) async {
+    try {
+      setState(() {
+        _isLoadingCidades = true;
+        _cidades = [];
+        _cidadeSelecionada = null;
+      });
+      
+      if (uf != null && uf.isNotEmpty) {
+        final cidades = await SupabaseService.getCidadesFromCondominios(uf: uf);
+        
+        setState(() {
+          _cidades = cidades;
+          _isLoadingCidades = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingCidades = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingCidades = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar cidades: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Realiza a pesquisa de condomínios com dados reais
+  Future<void> _realizarPesquisa() async {
+    try {
+      setState(() {
+        _isLoadingPesquisa = true;
+        _condominios = [];
+        _condominiosComRepresentantes = [];
+        _totalValor = 0.0;
+      });
+      
+      // Converte status selecionado para boolean
+      bool? ativo;
+      if (_statusSelecionado == 'Ativos') {
+        ativo = true;
+      } else if (_statusSelecionado == 'Desativados') {
+        ativo = false;
+      }
+      
+      // Busca condomínios com os filtros (permite pesquisa sem filtros)
+      final condominios = await SupabaseService.pesquisarCondominios(
+        uf: (_ufSelecionada?.isEmpty == true || _ufSelecionada == 'Selecione') ? null : _ufSelecionada,
+        cidade: (_cidadeSelecionada?.isEmpty == true || _cidadeSelecionada == 'Selecione') ? null : _cidadeSelecionada,
+        ativo: ativo,
+      );
+      
+      // Calcula o total pela coluna valor (apenas condomínios ativos)
+      double total = 0.0;
+      for (final condominio in condominios) {
+        final valor = condominio['valor'];
+        final isAtivo = condominio['ativo'] ?? true;
+        if (valor != null && isAtivo) {
+          total += (valor is int) ? valor.toDouble() : (valor as double? ?? 0.0);
+        }
+      }
+      
+      // Para cada condomínio, busca os representantes associados e agrupa
+      List<Map<String, dynamic>> condominiosComReps = [];
+      
+      for (final condominio in condominios) {
+        final representantes = await SupabaseService.getRepresentantesByCondominio(
+          condominio['id'].toString()
+        );
+        
+        // Cria uma única entrada por condomínio com todos os representantes
+        final condominioCompleto = Map<String, dynamic>.from(condominio);
+        condominioCompleto['representantes'] = representantes;
+        condominiosComReps.add(condominioCompleto);
+      }
+      
+      setState(() {
+        _condominios = condominios;
+        _condominiosComRepresentantes = condominiosComReps;
+        _totalValor = total;
+        _isLoadingPesquisa = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pesquisa realizada! Encontrados ${condominios.length} condomínios.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoadingPesquisa = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao realizar pesquisa: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,23 +293,36 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _ufSelecionada,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    suffixIcon: _isLoadingUfs 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
                   ),
                   hint: const Text('Selecione'),
                   isExpanded: true,
-                  items: _ufs.map((uf) {
-                    return DropdownMenuItem(
-                      value: uf,
-                      child: Text(uf),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _ufSelecionada = value;
-                    });
-                  },
+                  items: _isLoadingUfs 
+                      ? []
+                      : _ufs.map((uf) {
+                          return DropdownMenuItem(
+                            value: uf,
+                            child: Text(uf),
+                          );
+                        }).toList(),
+                  onChanged: _isLoadingUfs 
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _ufSelecionada = value;
+                          });
+                          // Carrega cidades da UF selecionada
+                          _carregarCidades(value);
+                        },
                 ),
               ),
             ],
@@ -220,23 +349,38 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _cidadeSelecionada,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    suffixIcon: _isLoadingCidades 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
                   ),
-                  hint: const Text('Selecione'),
+                  hint: Text(_ufSelecionada == null 
+                      ? 'Selecione uma UF primeiro' 
+                      : _isLoadingCidades 
+                          ? 'Carregando...' 
+                          : 'Selecione'),
                   isExpanded: true,
-                  items: _cidades.map((cidade) {
-                    return DropdownMenuItem(
-                      value: cidade,
-                      child: Text(cidade),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _cidadeSelecionada = value;
-                    });
-                  },
+                  items: (_isLoadingCidades || _ufSelecionada == null) 
+                      ? []
+                      : _cidades.map((cidade) {
+                          return DropdownMenuItem(
+                            value: cidade,
+                            child: Text(cidade),
+                          );
+                        }).toList(),
+                  onChanged: (_isLoadingCidades || _ufSelecionada == null) 
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _cidadeSelecionada = value;
+                          });
+                        },
                 ),
               ),
             ],
@@ -278,19 +422,20 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
     return Align(
       alignment: Alignment.centerRight,
       child: ElevatedButton.icon(
-        onPressed: () {
-          // Implementar lógica de pesquisa
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Pesquisa realizada com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        },
-        icon: const Icon(Icons.search, color: Colors.white),
-        label: const Text(
-          'Pesquisar',
-          style: TextStyle(color: Colors.white),
+        onPressed: _isLoadingPesquisa ? null : _realizarPesquisa,
+        icon: _isLoadingPesquisa 
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.search, color: Colors.white),
+        label: Text(
+          _isLoadingPesquisa ? 'Pesquisando...' : 'Pesquisar',
+          style: const TextStyle(color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
@@ -301,7 +446,6 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
   }
 
   Widget _buildTotal() {
-    double total = _condominiosMock.fold(0.0, (sum, condo) => sum + condo['mensalidade']);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -312,7 +456,7 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
       ),
       child: Center(
         child: Text(
-          'TOTAL: R\$ ${total.toStringAsFixed(2).replaceAll('.', ',')}',
+          'TOTAL: R\$ ${_totalValor.toStringAsFixed(2).replaceAll('.', ',')}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -324,99 +468,140 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
   }
 
   Widget _buildCondominiosList() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!, width: 1),
-      ),
-      child: Column(
-        children: _condominiosMock.asMap().entries.map((entry) {
-          int index = entry.key;
-          Map<String, dynamic> condo = entry.value;
-          bool isLast = index == _condominiosMock.length - 1;
-          return _buildCondominioCard(condo, isLast);
-        }).toList(),
-      ),
+    if (_isLoadingPesquisa) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    if (_condominiosComRepresentantes.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text(
+            'Nenhum condomínio encontrado. Realize uma pesquisa.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _condominiosComRepresentantes.length,
+      itemBuilder: (context, index) {
+        return _buildCondominioCard(_condominiosComRepresentantes[index]);
+      },
     );
   }
 
-  Widget _buildCondominioCard(Map<String, dynamic> condominio, [bool isLast = false]) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: isLast ? null : Border(
-          bottom: BorderSide(
-            color: Colors.grey[300]!,
-            width: 0.5,
+  Widget _buildCondominioCard(Map<String, dynamic> condominio) {
+    final valor = condominio['valor'];
+    final valorFormatado = valor != null 
+        ? (valor is int ? valor.toDouble() : (valor as double? ?? 0.0))
+            .toStringAsFixed(2).replaceAll('.', ',')
+        : '0,00';
+    
+    // Verifica se o condomínio está ativo
+    final bool isAtivo = condominio['ativo'] ?? true;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      color: isAtivo ? null : Colors.red[50], // Cor vermelha mais bonita para inativos
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ExpansionTile(
+        title: Text(
+          condominio['nome_condominio'] ?? 'Nome não informado',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      condominio['nome'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'CNPJ: ${condominio['cnpj']}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.keyboard_arrow_down),
-            ],
+        subtitle: Text(
+          'CNPJ: ${condominio['cnpj'] ?? 'Não informado'}',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue[200],
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Card azul da mensalidade (valor do condomínio)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[300]!, width: 1),
                   ),
                   child: Text(
-                     'Mensalidade R\$ ${condominio['mensalidade'].toStringAsFixed(2).replaceAll('.', ',')}',
-                   ),
+                    'Mensalidade R\$ $valorFormatado',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue[200],
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                const SizedBox(height: 8),
+                // Cards dos representantes
+                if (condominio['representantes'] != null && (condominio['representantes'] as List).isNotEmpty)
+                  ...((condominio['representantes'] as List).map<Widget>((representante) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue[300]!, width: 1),
+                      ),
+                      child: Text(
+                        'Representante: ${representante['nome_completo'] ?? 'Nome não informado'}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }).toList())
+                else
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!, width: 1),
+                    ),
+                    child: const Text(
+                      'Nenhum representante cadastrado',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  child: Text(
-                    'Cadastro Síndico(a) ${condominio['sindico']}',
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
