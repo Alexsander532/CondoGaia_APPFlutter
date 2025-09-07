@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'login_screen.dart';
+import '../../services/auth_service.dart';
+import '../login_screen.dart';
 import 'cadastro_condominio_screen.dart';
 import 'cadastro_representante_screen.dart';
 import 'pesquisa_condominios_screen.dart';

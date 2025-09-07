@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
-import '../services/supabase_service.dart';
+import '../../services/supabase_service.dart';
 
 class CadastroCondominioScreen extends StatefulWidget {
   const CadastroCondominioScreen({super.key});
