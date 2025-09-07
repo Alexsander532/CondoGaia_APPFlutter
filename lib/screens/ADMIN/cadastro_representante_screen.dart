@@ -141,14 +141,15 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
     });
 
     try {
-      final condominios = await SupabaseService.getCondominios();
+      // Carrega apenas condomínios que ainda não possuem representante
+      final condominios = await SupabaseService.getCondominiosDisponiveis();
       setState(() {
         _condominios = condominios;
         _condominiosLoading = false;
       });
     } catch (e) {
       setState(() {
-        _condominiosError = 'Erro ao carregar condomínios: $e';
+        _condominiosError = 'Erro ao carregar condomínios disponíveis: $e';
         _condominiosLoading = false;
       });
     }
@@ -1780,6 +1781,9 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
       
       // Salvar no Supabase
       await SupabaseService.saveRepresentante(representanteData);
+      
+      // Recarregar lista de condomínios disponíveis
+      await _loadCondominios();
       
       // Mostrar mensagem de sucesso
       _showSuccessMessage('Representante cadastrado com sucesso!');

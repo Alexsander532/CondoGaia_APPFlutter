@@ -92,6 +92,139 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
     }
   }
 
+  /// Alterna o status ativo/inativo de um condomínio
+  Future<void> _alternarStatusCondominio(Map<String, dynamic> condominio) async {
+    try {
+      final condominioId = condominio['id'].toString();
+      final statusAtual = condominio['ativo'] ?? true;
+      final novoStatus = !statusAtual;
+      
+      // Atualiza no banco de dados
+      await SupabaseService.updateCondominio(condominioId, {'ativo': novoStatus});
+      
+      // Recarrega a pesquisa para atualizar a interface
+      await _realizarPesquisa();
+      
+      // Mostra mensagem de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            novoStatus 
+                ? 'Condomínio ativado com sucesso!' 
+                : 'Condomínio desativado com sucesso!'
+          ),
+          backgroundColor: novoStatus ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao alterar status do condomínio: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Exclui um condomínio após confirmação do usuário
+  Future<void> _excluirCondominio(Map<String, dynamic> condominio) async {
+    final bool? confirmacao = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Confirmar Exclusão',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tem certeza que deseja excluir este condomínio?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Condomínio: ${condominio['nome_condominio'] ?? 'Nome não informado'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'CNPJ: ${condominio['cnpj'] ?? 'Não informado'}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '⚠️ Esta ação não pode ser desfeita!',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmacao == true) {
+      try {
+        final condominioId = condominio['id'].toString();
+        
+        // Exclui do banco de dados
+        await SupabaseService.deleteCondominio(condominioId);
+        
+        // Recarrega a pesquisa para atualizar a interface
+        await _realizarPesquisa();
+        
+        // Mostra mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Condomínio excluído com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir condomínio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   /// Realiza a pesquisa de condomínios com dados reais
   Future<void> _realizarPesquisa() async {
     try {
@@ -600,6 +733,58 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                const SizedBox(height: 16),
+                // Botão de ativar/desativar
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _alternarStatusCondominio(condominio),
+                    icon: Icon(
+                      isAtivo ? Icons.block : Icons.check_circle,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      isAtivo ? 'Desativar Condomínio' : 'Ativar Condomínio',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isAtivo ? Colors.red : Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Botão de excluir condomínio
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _excluirCondominio(condominio),
+                    icon: const Icon(
+                      Icons.delete_forever,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Excluir Condomínio',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[700],
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

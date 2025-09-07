@@ -423,6 +423,43 @@ class SupabaseService {
     }
   }
 
+  /// Busca condomínios que ainda não possuem representante associado
+  static Future<List<Map<String, dynamic>>> getCondominiosDisponiveis() async {
+    try {
+      // Busca todos os condomínios
+      final todosCondominios = await client
+          .from('condominios')
+          .select('*')
+          .order('nome_condominio');
+      
+      // Busca todos os representantes com seus condomínios selecionados
+      final representantes = await client
+          .from('representantes')
+          .select('condominios_selecionados');
+      
+      // Cria um Set com todos os IDs de condomínios que já possuem representante
+      final condominiosComRepresentante = <String>{};
+      
+      for (final representante in representantes) {
+        final condominiosSelecionados = representante['condominios_selecionados'] as List<dynamic>? ?? [];
+        for (final condominioId in condominiosSelecionados) {
+          condominiosComRepresentante.add(condominioId.toString());
+        }
+      }
+      
+      // Filtra condomínios que não possuem representante
+      final condominiosDisponiveis = todosCondominios.where((condominio) {
+        final condominioId = condominio['id'].toString();
+        return !condominiosComRepresentante.contains(condominioId);
+      }).toList();
+      
+      return condominiosDisponiveis;
+    } catch (e) {
+      print('Erro ao buscar condomínios disponíveis: $e');
+      rethrow;
+    }
+  }
+
 
 
   static bool _contemTexto(Map<String, dynamic> item, String texto) {
