@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'documentos_screen.dart';
 import 'agenda_screen.dart';
+import 'reservas_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -230,7 +231,12 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Reservas.png',
                       title: 'Reservas',
                       onTap: () {
-                        // TODO: Implementar navegação para Reservas
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ReservasScreen(),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
