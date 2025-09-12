@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'ADMIN/home_screen.dart';
 import 'upload_foto_perfil_screen.dart';
-import 'REPRESENTANTE/representante_home_screen.dart';
+import 'representante_home_screen.dart';
 import 'representante_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {

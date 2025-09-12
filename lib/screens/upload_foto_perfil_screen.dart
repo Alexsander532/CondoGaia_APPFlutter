@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/representante.dart';
 import '../services/supabase_service.dart';
-import 'REPRESENTANTE/representante_home_screen.dart';
+import 'representante_home_screen.dart';
 
 // Conditional import for File (only for mobile/desktop)
 import 'dart:io' if (dart.library.html) 'dart:html' as io;
