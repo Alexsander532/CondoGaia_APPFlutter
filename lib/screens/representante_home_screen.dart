@@ -4,6 +4,7 @@ import '../models/representante.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'documentos_screen.dart';
+import 'agenda_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -196,9 +197,11 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
                       title: 'Diário/Agenda',
                       onTap: () {
-                        // TODO: Implementar navegação para Diário/Agenda
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Diário/Agenda em desenvolvimento')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AgendaScreen(),
+                          ),
                         );
                       },
                     ),
