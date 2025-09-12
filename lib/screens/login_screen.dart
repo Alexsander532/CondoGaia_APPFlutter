@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'ADMIN/home_screen.dart';
+import 'upload_foto_perfil_screen.dart';
+import 'REPRESENTANTE/representante_home_screen.dart';
+import 'representante_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,9 +47,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         if (result.success) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
+          // Redirecionar conforme o tipo de usuário
+          if (result.userType == UserType.administrator) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          } else if (result.userType == UserType.representante) {
+            // Verificar se representante tem foto de perfil
+            if (result.representante?.fotoPerfil == null || result.representante!.fotoPerfil!.isEmpty) {
+              // Primeira vez - ir para upload de foto
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => UploadFotoPerfilScreen(representante: result.representante!)),
+              );
+            } else {
+              // Já tem foto - ir direto para dashboard
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
+                  representante: result.representante!,
+                )),
+              );
+            }
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

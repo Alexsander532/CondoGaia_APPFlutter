@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
@@ -136,6 +139,56 @@ class SupabaseService {
       return response;
     } catch (e) {
       print('Erro ao buscar representante por ID: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca um representante por CPF
+  static Future<Map<String, dynamic>?> getRepresentanteByCpf(String cpf) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .select()
+          .eq('cpf', cpf)
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao buscar representante por CPF: $e');
+      rethrow;
+    }
+  }
+
+  /// Autentica um representante usando CPF e senha
+  static Future<Map<String, dynamic>?> authenticateRepresentante(String cpf, String senha) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .select()
+          .eq('cpf', cpf)
+          .eq('senha_acesso', senha)
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao autenticar representante: $e');
+      return null; // Retorna null se não encontrar ou houver erro
+    }
+  }
+
+  /// Atualiza a senha de um representante
+  static Future<Map<String, dynamic>?> updateRepresentanteSenha(String id, String novaSenha) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .update({'senha_acesso': novaSenha})
+          .eq('id', id)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar senha do representante: $e');
       rethrow;
     }
   }
@@ -292,8 +345,19 @@ class SupabaseService {
     String? textoPesquisa,
   }) async {
     try {
-      // Busca representantes com filtros
-      var query = client.from('representantes').select();
+      // Busca representantes com seus condomínios usando JOIN
+      var query = client
+          .from('representantes')
+          .select('''
+            *,
+            condominios!condominios_representante_id_fkey(
+              id,
+              nome_condominio,
+              cnpj,
+              cidade,
+              estado
+            )
+          ''');
       
       if (uf != null && uf.isNotEmpty) {
         query = query.eq('uf', uf);
@@ -310,26 +374,18 @@ class SupabaseService {
         );
       }
       
-      final representantesResponse = await query.order('created_at', ascending: false);
+      final response = await query.order('created_at', ascending: false);
       
-      // Busca todos os condomínios
-      final condominiosResponse = await client.from('condominios').select();
-      
-      // Cria um mapa de condomínios para acesso rápido usando ID
-      final condominiosMap = <String, Map<String, dynamic>>{};
-      for (final condominio in condominiosResponse) {
-        condominiosMap[condominio['id'].toString()] = condominio;
-      }
-      
-      // Combina os dados
+      // Processa os resultados para criar uma linha por condomínio
       final resultados = <Map<String, dynamic>>[];
       
-      for (final representante in representantesResponse) {
-        final condominiosSelecionados = representante['condominios_selecionados'] as List<dynamic>? ?? [];
+      for (final representante in response) {
+        final condominios = representante['condominios'] as List<dynamic>? ?? [];
         
-        if (condominiosSelecionados.isEmpty) {
+        if (condominios.isEmpty) {
           // Representante sem condomínios
           final resultado = Map<String, dynamic>.from(representante);
+          resultado.remove('condominios'); // Remove a chave condominios
           resultado['nome_condominio'] = 'Sem condomínio';
           resultado['cnpj'] = 'N/A';
           resultado['condominio_cidade'] = 'N/A';
@@ -341,22 +397,15 @@ class SupabaseService {
             resultados.add(resultado);
           }
         } else {
-          // Para cada condomínio selecionado usando IDs
-          for (final condominioId in condominiosSelecionados) {
-            final condominio = condominiosMap[condominioId];
-            
+          // Para cada condomínio associado
+          for (final condominio in condominios) {
             final resultado = Map<String, dynamic>.from(representante);
-            if (condominio != null) {
-              resultado['nome_condominio'] = condominio['nome_condominio'];
-              resultado['cnpj'] = condominio['cnpj'];
-              resultado['condominio_cidade'] = condominio['cidade'];
-              resultado['condominio_estado'] = condominio['estado'];
-            } else {
-              resultado['nome_condominio'] = nomeCondominio;
-              resultado['cnpj'] = 'N/A';
-              resultado['condominio_cidade'] = 'N/A';
-              resultado['condominio_estado'] = 'N/A';
-            }
+            resultado.remove('condominios'); // Remove a chave condominios
+            
+            resultado['nome_condominio'] = condominio['nome_condominio'];
+            resultado['cnpj'] = condominio['cnpj'];
+            resultado['condominio_cidade'] = condominio['cidade'];
+            resultado['condominio_estado'] = condominio['estado'];
             
             // Aplica filtro de texto se necessário
             if (textoPesquisa == null || textoPesquisa.isEmpty || 
@@ -366,10 +415,6 @@ class SupabaseService {
           }
         }
       }
-      
-      // Ordena por data de criação
-      resultados.sort((a, b) => 
-        DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at'])));
       
       return resultados;
     } catch (e) {
@@ -411,12 +456,22 @@ class SupabaseService {
   /// Busca representantes associados a um condomínio específico
   static Future<List<Map<String, dynamic>>> getRepresentantesByCondominio(String condominioId) async {
     try {
-      final response = await client
-          .from('representantes')
-          .select('*')
-          .contains('condominios_selecionados', [condominioId]);
+      // Busca o condomínio e seu representante associado
+      final condominioResponse = await client
+          .from('condominios')
+          .select('''
+            *,
+            representantes!condominios_representante_id_fkey(*)
+          ''')
+          .eq('id', condominioId)
+          .single();
       
-      return List<Map<String, dynamic>>.from(response);
+      final representante = condominioResponse['representantes'];
+      if (representante != null) {
+        return [representante];
+      } else {
+        return [];
+      }
     } catch (e) {
       print('Erro ao buscar representantes do condomínio: $e');
       rethrow;
@@ -426,41 +481,154 @@ class SupabaseService {
   /// Busca condomínios que ainda não possuem representante associado
   static Future<List<Map<String, dynamic>>> getCondominiosDisponiveis() async {
     try {
-      // Busca todos os condomínios
-      final todosCondominios = await client
+      // Busca condomínios que não possuem representante_id definido
+      final response = await client
           .from('condominios')
           .select('*')
+          .filter('representante_id', 'is', null)
           .order('nome_condominio');
       
-      // Busca todos os representantes com seus condomínios selecionados
-      final representantes = await client
-          .from('representantes')
-          .select('condominios_selecionados');
-      
-      // Cria um Set com todos os IDs de condomínios que já possuem representante
-      final condominiosComRepresentante = <String>{};
-      
-      for (final representante in representantes) {
-        final condominiosSelecionados = representante['condominios_selecionados'] as List<dynamic>? ?? [];
-        for (final condominioId in condominiosSelecionados) {
-          condominiosComRepresentante.add(condominioId.toString());
-        }
-      }
-      
-      // Filtra condomínios que não possuem representante
-      final condominiosDisponiveis = todosCondominios.where((condominio) {
-        final condominioId = condominio['id'].toString();
-        return !condominiosComRepresentante.contains(condominioId);
-      }).toList();
-      
-      return condominiosDisponiveis;
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Erro ao buscar condomínios disponíveis: $e');
       rethrow;
     }
   }
 
+  /// Associa um representante a um condomínio
+  static Future<Map<String, dynamic>?> associarRepresentanteCondominio(String condominioId, String representanteId) async {
+    try {
+      final response = await client
+          .from('condominios')
+          .update({'representante_id': representanteId})
+          .eq('id', condominioId)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao associar representante ao condomínio: $e');
+      rethrow;
+    }
+  }
 
+  /// Desassocia um representante de um condomínio
+  static Future<Map<String, dynamic>?> desassociarRepresentanteCondominio(String condominioId) async {
+    try {
+      final response = await client
+          .from('condominios')
+          .update({'representante_id': null})
+          .eq('id', condominioId)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao desassociar representante do condomínio: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca condomínios associados a um representante específico
+  static Future<List<Map<String, dynamic>>> getCondominiosByRepresentante(String representanteId) async {
+    try {
+      final response = await client
+          .from('condominios')
+          .select('*')
+          .eq('representante_id', representanteId)
+          .order('nome_condominio');
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar condomínios do representante: $e');
+      rethrow;
+    }
+  }
+
+  /// Transfere todos os condomínios de um representante para outro
+  static Future<List<Map<String, dynamic>>> transferirCondominios(String representanteOrigemId, String representanteDestinoId) async {
+    try {
+      final response = await client
+          .from('condominios')
+          .update({'representante_id': representanteDestinoId})
+          .eq('representante_id', representanteOrigemId)
+          .select();
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao transferir condomínios: $e');
+      rethrow;
+    }
+  }
+
+  /// Faz upload de uma imagem para o storage do Supabase
+  static Future<String?> uploadImage(File imageFile, String bucket, String fileName) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      
+      final response = await client.storage
+          .from(bucket)
+          .uploadBinary(fileName, bytes);
+      
+      if (response.isNotEmpty) {
+        // Retorna a URL pública da imagem
+        final publicUrl = client.storage
+            .from(bucket)
+            .getPublicUrl(fileName);
+        return publicUrl;
+      }
+      
+      return null;
+    } catch (e) {
+      print('Erro ao fazer upload da imagem: $e');
+      rethrow;
+    }
+  }
+
+  /// Converte uma imagem para base64
+  static Future<String> imageToBase64(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      return base64Encode(bytes);
+    } catch (e) {
+      print('Erro ao converter imagem para base64: $e');
+      rethrow;
+    }
+  }
+
+  /// Atualiza a foto de perfil de um representante
+  static Future<Map<String, dynamic>?> updateRepresentanteFotoPerfil(String representanteId, String fotoBase64) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .update({'foto_perfil': fotoBase64})
+          .eq('id', representanteId)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar foto de perfil do representante: $e');
+      rethrow;
+    }
+  }
+
+  /// Remove a foto de perfil de um representante
+  static Future<Map<String, dynamic>?> removeRepresentanteFotoPerfil(String representanteId) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .update({'foto_perfil': null})
+          .eq('id', representanteId)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao remover foto de perfil do representante: $e');
+      rethrow;
+    }
+  }
 
   static bool _contemTexto(Map<String, dynamic> item, String texto) {
     final textoLower = texto.toLowerCase();

@@ -1075,7 +1075,7 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
       return 'Erro ao carregar';
     }
     if (_condominiosSelecionados.isEmpty) {
-      return 'Selecionar Condomínios';
+      return 'Selecionar Condomínios (opcional)';
     }
     return '${_condominiosSelecionados.length} condomínio(s) selecionado(s)';
   }
@@ -1728,10 +1728,7 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
       return;
     }
     
-    if (_condominiosSelecionados.isEmpty) {
-      _showErrorMessage('Selecione pelo menos um condomínio');
-      return;
-    }
+    // Validação removida - condomínios podem ser associados posteriormente
     
     try {
       // Preparar dados do representante
@@ -1744,7 +1741,7 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
         'endereco': _enderecoController.text.trim(),
         'uf': _ufSelecionada,
         'cidade': _cidadeController.text.trim(),
-        'condominios_selecionados': _condominiosSelecionados,
+        // Campo condominios_selecionados removido - relacionamento agora é 1:N
         
         // Checkboxes de seções principais
         'todos_marcado': _todosMarcado,
@@ -1779,8 +1776,22 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
         'desp_receita_marcado': _despReceitaMarcado,
       };
       
-      // Salvar no Supabase
-      await SupabaseService.saveRepresentante(representanteData);
+      // Salvar representante no Supabase
+      final representanteSalvo = await SupabaseService.saveRepresentante(representanteData);
+      
+      // Associar condomínios selecionados ao representante
+      if (representanteSalvo != null && _condominiosSelecionados.isNotEmpty) {
+        final representanteId = representanteSalvo['id'];
+        
+        for (final condominioId in _condominiosSelecionados) {
+          try {
+            await SupabaseService.associarRepresentanteCondominio(condominioId, representanteId);
+            print('Condomínio $condominioId associado ao representante $representanteId');
+          } catch (e) {
+            print('Erro ao associar condomínio $condominioId: $e');
+          }
+        }
+      }
       
       // Recarregar lista de condomínios disponíveis
       await _loadCondominios();
