@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
+import '../models/documento.dart';
+import '../models/balancete.dart';
+import '../services/documento_service.dart';
 
 class DocumentosScreen extends StatefulWidget {
-  const DocumentosScreen({super.key});
+  final String? condominioId;
+  final String? representanteId;
+  
+  const DocumentosScreen({
+    super.key,
+    this.condominioId,
+    this.representanteId,
+  });
 
   @override
   State<DocumentosScreen> createState() => _DocumentosScreenState();
@@ -12,17 +22,16 @@ class DocumentosScreen extends StatefulWidget {
 class _DocumentosScreenState extends State<DocumentosScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> pastas = [
-    'Atas',
-    'Convenção',
-    'Regimento Interno',
-  ];
   
-  final List<String> arquivosBalancete = [
-    'Intimacao 28-8-22.pdf',
-    'Parecer adv. 28-8-21.pdf',
-    'Parecer Juiz 28-8-20.pdf',
-  ];
+  // Dados dinâmicos
+  List<Documento> pastas = [];
+  List<Balancete> balancetes = [];
+  bool isLoading = false;
+  String? errorMessage;
+  
+  // IDs para operações
+  String get condominioId => widget.condominioId ?? 'demo-condominio-id';
+  String get representanteId => widget.representanteId ?? 'demo-representante-id';
   
   String selectedMonth = 'Janeiro';
   String selectedYear = '2024';
@@ -33,6 +42,45 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _carregarDados();
+  }
+  
+  Future<void> _carregarDados() async {
+    await Future.wait([
+      _carregarPastas(),
+      _carregarBalancetes(),
+    ]);
+  }
+  
+  Future<void> _carregarPastas() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    
+    try {
+      final pastasCarregadas = await DocumentoService.getPastas(condominioId);
+      setState(() {
+        pastas = pastasCarregadas;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Erro ao carregar pastas: $e';
+        isLoading = false;
+      });
+    }
+  }
+  
+  Future<void> _carregarBalancetes() async {
+    try {
+      final balancetesCarregados = await DocumentoService.getBalancetes(condominioId);
+      setState(() {
+        balancetes = balancetesCarregados;
+      });
+    } catch (e) {
+      print('Erro ao carregar balancetes: $e');
+    }
   }
   
   @override
@@ -42,7 +90,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     super.dispose();
   }
 
-  Widget _buildPastaItem(String nome) {
+  Widget _buildPastaItem(Documento pasta) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -53,22 +101,54 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       ),
       child: Row(
         children: [
+          Icon(
+            Icons.folder,
+            color: pasta.privado ? Colors.red : Colors.blue,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              nome,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pasta.nome,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (pasta.descricao != null && pasta.descricao!.isNotEmpty)
+                  Text(
+                    pasta.descricao!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
             ),
           ),
+          Text(
+            pasta.privado ? 'Privado' : 'Público',
+            style: TextStyle(
+              fontSize: 12,
+              color: pasta.privado ? Colors.red : Colors.green,
+            ),
+          ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EditarDocumentosScreen(nomePasta: nome),
+                  builder: (context) => EditarDocumentosScreen(
+                    pasta: pasta,
+                    condominioId: condominioId,
+                    representanteId: representanteId,
+                    onPastaAtualizada: _carregarPastas,
+                  ),
                 ),
               );
             },
@@ -213,64 +293,101 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
-          // Lista de pastas
-          Expanded(
-            child: ListView(
-              children: [
-                ...pastas.map((pasta) => _buildPastaItem(pasta)),
-                const SizedBox(height: 20),
-        
-                // Botão Adicionar Nova Pasta
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const NovaPastaScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.blue[200]!),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.blue,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Adicionar',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Text(
-                          'Nova Pasta',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+          
+          if (errorMessage != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[300]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.red[700]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage!,
+                      style: TextStyle(color: Colors.red[700]),
                     ),
                   ),
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _carregarPastas,
+                  ),
+                ],
+              ),
             ),
+          
+          // Lista de pastas
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    children: [
+                      ...pastas.map((pasta) => _buildPastaItem(pasta)),
+                      const SizedBox(height: 20),
+              
+                      // Botão Adicionar Nova Pasta
+                      GestureDetector(
+                        onTap: () async {
+                          final resultado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NovaPastaScreen(
+                                condominioId: condominioId,
+                                representanteId: representanteId,
+                              ),
+                            ),
+                          );
+                          
+                          if (resultado == true) {
+                            _carregarPastas();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.blue[200]!),
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.blue,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Adicionar',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Text(
+                                'Nova Pasta',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -510,50 +627,125 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           ),
           const SizedBox(height: 15),
           
-          ...arquivosBalancete.map((arquivo) {
-            int index = arquivosBalancete.indexOf(arquivo);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      arquivo,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
+          if (balancetes.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: const Center(
+                child: Text(
+                  'Nenhum balancete encontrado',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Implementar deletar arquivo
-                      setState(() {
-                        arquivosBalancete.removeAt(index);
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Arquivo removido')),
-                      );
-                    },
-                    child: const Icon(
-                      Icons.delete_outline,
+                ),
+              ),
+            )
+          else
+            ...balancetes.map((balancete) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.picture_as_pdf,
                       color: Colors.red,
                       size: 20,
                     ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            balancete.nomeArquivo,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${balancete.mes}/${balancete.ano}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (balancete.url != null)
+                      GestureDetector(
+                        onTap: () {
+                          // TODO: Abrir arquivo
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Abrir arquivo em desenvolvimento')),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.open_in_new,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final confirmar = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Confirmar'),
+                            content: const Text('Deseja realmente deletar este balancete?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancelar'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Deletar'),
+                              ),
+                            ],
+                          ),
+                        );
+                        
+                        if (confirmar == true) {
+                          try {
+                            await DocumentoService.deletarBalancete(balancete.id);
+                            _carregarBalancetes();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Balancete removido com sucesso')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro ao remover balancete: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ],
         ),
       ),

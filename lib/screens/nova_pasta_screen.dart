@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import '../services/documento_service.dart';
 
 class NovaPastaScreen extends StatefulWidget {
-  const NovaPastaScreen({super.key});
+  final String condominioId;
+  final String representanteId;
+  
+  const NovaPastaScreen({
+    super.key,
+    required this.condominioId,
+    required this.representanteId,
+  });
 
   @override
   State<NovaPastaScreen> createState() => _NovaPastaScreenState();
@@ -12,12 +20,49 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
   final TextEditingController _linkController = TextEditingController();
   String _privacidade = 'Público';
   List<String> _arquivos = [];
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _nomePastaController.dispose();
     _linkController.dispose();
     super.dispose();
+  }
+
+  Future<void> _criarPasta() async {
+    if (_nomePastaController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Nome da pasta é obrigatório';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await DocumentoService.criarPasta(
+        nome: _nomePastaController.text.trim(),
+        privado: _privacidade == 'Privado',
+        condominioId: widget.condominioId,
+        representanteId: widget.representanteId,
+      );
+      
+      if (mounted) {
+        Navigator.pop(context, true); // Retorna true para indicar sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pasta criada com sucesso!')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro ao criar pasta: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -307,17 +352,35 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    // Botão Adicionar arquivo
+                    
+                    // Mensagem de erro
+                    if (_errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[300]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error, color: Colors.red[700]),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(color: Colors.red[700]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
+                    // Botão Criar Pasta
                     Center(
                       child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Implementar adicionar arquivo
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Adicionar arquivo em desenvolvimento'),
-                            ),
-                          );
-                        },
+                        onPressed: _isLoading ? null : _criarPasta,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
                           foregroundColor: Colors.white,
@@ -329,13 +392,22 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        child: const Text(
-                          'Adicionar arquivo',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Criar Pasta',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 32),

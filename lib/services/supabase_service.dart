@@ -637,4 +637,306 @@ class SupabaseService {
            (item['cnpj']?.toString().toLowerCase().contains(textoLower) ?? false) ||
            (item['cpf']?.toString().toLowerCase().contains(textoLower) ?? false);
   }
+
+  // ===========================================
+  // MÉTODOS PARA GERENCIAMENTO DE DOCUMENTOS
+  // ===========================================
+
+  /// Criar uma nova pasta de documentos
+  static Future<Map<String, dynamic>?> criarPastaDocumento({
+    required String nome,
+    String? descricao,
+    required bool privado,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .insert({
+            'nome': nome,
+            'descricao': descricao,
+            'tipo': 'pasta',
+            'privado': privado,
+            'condominio_id': condominioId,
+            'representante_id': representanteId,
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao criar pasta de documento: $e');
+      rethrow;
+    }
+  }
+
+  /// Adicionar um arquivo a uma pasta
+  static Future<Map<String, dynamic>?> adicionarArquivoDocumento({
+    required String nome,
+    String? descricao,
+    String? url,
+    String? linkExterno,
+    required bool privado,
+    required String pastaId,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .insert({
+            'nome': nome,
+            'descricao': descricao,
+            'tipo': 'arquivo',
+            'url': url,
+            'link_externo': linkExterno,
+            'privado': privado,
+            'pasta_id': pastaId,
+            'condominio_id': condominioId,
+            'representante_id': representanteId,
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao adicionar arquivo ao documento: $e');
+      rethrow;
+    }
+  }
+
+  /// Buscar pastas de documentos de um condomínio
+  static Future<List<Map<String, dynamic>>> getPastasDocumentos(String condominioId) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('tipo', 'pasta')
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar pastas de documentos: $e');
+      rethrow;
+    }
+  }
+
+  /// Buscar arquivos de uma pasta específica
+  static Future<List<Map<String, dynamic>>> getArquivosPasta(String pastaId) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .select()
+          .eq('pasta_id', pastaId)
+          .eq('tipo', 'arquivo')
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar arquivos da pasta: $e');
+      rethrow;
+    }
+  }
+
+  /// Atualizar uma pasta de documentos
+  static Future<Map<String, dynamic>?> atualizarPastaDocumento(
+    String pastaId,
+    Map<String, dynamic> dados,
+  ) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .update(dados)
+          .eq('id', pastaId)
+          .eq('tipo', 'pasta')
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar pasta de documento: $e');
+      rethrow;
+    }
+  }
+
+  /// Deletar uma pasta e todos os seus arquivos
+  static Future<void> deletarPastaDocumento(String pastaId) async {
+    try {
+      // O CASCADE DELETE irá remover automaticamente os arquivos da pasta
+      await client
+          .from('documentos')
+          .delete()
+          .eq('id', pastaId)
+          .eq('tipo', 'pasta');
+    } catch (e) {
+      print('Erro ao deletar pasta de documento: $e');
+      rethrow;
+    }
+  }
+
+  /// Deletar um arquivo específico
+  static Future<void> deletarArquivoDocumento(String arquivoId) async {
+    try {
+      await client
+          .from('documentos')
+          .delete()
+          .eq('id', arquivoId)
+          .eq('tipo', 'arquivo');
+    } catch (e) {
+      print('Erro ao deletar arquivo de documento: $e');
+      rethrow;
+    }
+  }
+
+  /// Upload de arquivo para o storage do Supabase
+  static Future<String?> uploadArquivoDocumento(
+    File arquivo,
+    String nomeArquivo,
+    String condominioId,
+  ) async {
+    try {
+      final bytes = await arquivo.readAsBytes();
+      final fileName = '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$nomeArquivo';
+      
+      final response = await client.storage
+          .from('documentos')
+          .uploadBinary(fileName, bytes);
+      
+      if (response.isNotEmpty) {
+        // Retorna a URL pública do arquivo
+        final publicUrl = client.storage
+            .from('documentos')
+            .getPublicUrl(fileName);
+        return publicUrl;
+      }
+      
+      return null;
+    } catch (e) {
+      print('Erro ao fazer upload do arquivo: $e');
+      rethrow;
+    }
+  }
+
+  // ===========================================
+  // MÉTODOS PARA GERENCIAMENTO DE BALANCETES
+  // ===========================================
+
+  /// Adicionar um balancete
+  static Future<Map<String, dynamic>?> adicionarBalancete({
+    required String nomeArquivo,
+    String? url,
+    String? linkExterno,
+    required String mes,
+    required String ano,
+    required bool privado,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    try {
+      final response = await client
+          .from('balancetes')
+          .insert({
+            'nome_arquivo': nomeArquivo,
+            'url': url,
+            'link_externo': linkExterno,
+            'mes': mes,
+            'ano': ano,
+            'privado': privado,
+            'condominio_id': condominioId,
+            'representante_id': representanteId,
+          })
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao adicionar balancete: $e');
+      rethrow;
+    }
+  }
+
+  /// Buscar balancetes de um condomínio
+  static Future<List<Map<String, dynamic>>> getBalancetes(String condominioId) async {
+    try {
+      final response = await client
+          .from('balancetes')
+          .select()
+          .eq('condominio_id', condominioId)
+          .order('ano', ascending: false)
+          .order('mes', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar balancetes: $e');
+      rethrow;
+    }
+  }
+
+  /// Buscar balancetes por mês e ano
+  static Future<List<Map<String, dynamic>>> getBalancetesPorPeriodo(
+    String condominioId,
+    String mes,
+    String ano,
+  ) async {
+    try {
+      final response = await client
+          .from('balancetes')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('mes', mes)
+          .eq('ano', ano)
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar balancetes por período: $e');
+      rethrow;
+    }
+  }
+
+  /// Deletar um balancete
+  static Future<void> deletarBalancete(String balanceteId) async {
+    try {
+      await client
+          .from('balancetes')
+          .delete()
+          .eq('id', balanceteId);
+    } catch (e) {
+      print('Erro ao deletar balancete: $e');
+      rethrow;
+    }
+  }
+
+  /// Upload de balancete para o storage
+  static Future<String?> uploadBalancete(
+    File arquivo,
+    String nomeArquivo,
+    String condominioId,
+    String mes,
+    String ano,
+  ) async {
+    try {
+      final bytes = await arquivo.readAsBytes();
+      final fileName = '${condominioId}/balancetes/${ano}_${mes}_${DateTime.now().millisecondsSinceEpoch}_$nomeArquivo';
+      
+      final response = await client.storage
+          .from('documentos')
+          .uploadBinary(fileName, bytes);
+      
+      if (response.isNotEmpty) {
+        // Retorna a URL pública do arquivo
+        final publicUrl = client.storage
+            .from('documentos')
+            .getPublicUrl(fileName);
+        return publicUrl;
+      }
+      
+      return null;
+    } catch (e) {
+      print('Erro ao fazer upload do balancete: $e');
+      rethrow;
+    }
+  }
 }

@@ -4,7 +4,9 @@ import '../models/representante.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'documentos_screen.dart';
+import 'documentos_inquilino_screen.dart';
 import 'agenda_screen.dart';
+import 'agenda_inquilino_screen.dart';
 import 'reservas_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
@@ -166,9 +168,14 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_chat.png',
                       title: 'Chat',
                       onTap: () {
-                        // TODO: Implementar navegação para Chat
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Chat em desenvolvimento')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DocumentosInquilinoScreen(
+                              condominioId: widget.condominioId,
+                              inquilinoId: 'demo-inquilino-id',
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -176,9 +183,14 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Classificados.png',
                       title: 'Classificados',
                       onTap: () {
-                        // TODO: Implementar navegação para Classificados
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Classificados em desenvolvimento')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AgendaInquilinoScreen(
+                              condominioId: widget.condominioId,
+                              inquilinoId: 'demo-inquilino-id',
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -189,7 +201,10 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const DocumentosScreen(),
+                            builder: (context) => DocumentosScreen(
+                              condominioId: widget.condominioId,
+                              representanteId: widget.representante.id,
+                            ),
                           ),
                         );
                       },
