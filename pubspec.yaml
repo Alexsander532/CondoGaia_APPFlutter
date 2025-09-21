@@ -52,6 +52,18 @@ dependencies:
   # Para seleção de imagens da galeria e câmera
   image_picker: ^1.0.7
   intl: ^0.19.0
+  
+  # Para seleção de arquivos (PDF, etc.)
+  file_picker: ^8.0.0+1
+  
+  # Para gerenciamento de caminhos e diretórios
+  path_provider: ^2.1.4
+  
+  # Para download de arquivos
+  dio: ^5.4.3+1
+  
+  # Para permissões de acesso a arquivos
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

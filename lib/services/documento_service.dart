@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/documento.dart';
 import '../models/balancete.dart';
 import 'supabase_service.dart';
@@ -127,6 +131,24 @@ class DocumentoService {
     return response.map((json) => Documento.fromJson(json)).toList();
   }
   
+  /// Atualizar um arquivo/documento
+  static Future<Documento> atualizarDocumento(
+    String arquivoId,
+    {String? nome, String? descricao}
+  ) async {
+    final dados = <String, dynamic>{};
+    if (nome != null) dados['nome'] = nome;
+    if (descricao != null) dados['descricao'] = descricao;
+    
+    final response = await SupabaseService.atualizarArquivoDocumento(arquivoId, dados);
+    
+    if (response != null) {
+      return Documento.fromJson(response);
+    }
+    
+    throw Exception('Erro ao atualizar documento');
+  }
+
   /// Deletar um arquivo
   static Future<void> deletarArquivo(String arquivoId) async {
     await SupabaseService.deletarArquivoDocumento(arquivoId);
@@ -138,7 +160,221 @@ class DocumentoService {
     return response.map((json) => Balancete.fromJson(json)).toList();
   }
   
-  /// Deletar um balancete
+  /// Buscar balancetes por período específico
+  static Future<List<Balancete>> getBalancetesPorPeriodo(
+    String condominioId,
+    int mes,
+    int ano,
+  ) async {
+    final response = await SupabaseService.getBalancetesPorPeriodo(
+      condominioId,
+      mes.toString(),
+      ano.toString(),
+    );
+    return response.map((json) => Balancete.fromJson(json)).toList();
+  }
+  
+  /// Adicionar balancete com link
+  static Future<Balancete> adicionarBalancete({
+    required String nomeArquivo,
+    String? linkExterno,
+    required String mes,
+    required String ano,
+    required bool privado,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    final response = await SupabaseService.adicionarBalancete(
+      nomeArquivo: nomeArquivo,
+      linkExterno: linkExterno,
+      mes: mes,
+      ano: ano,
+      privado: privado,
+      condominioId: condominioId,
+      representanteId: representanteId,
+    );
+    
+    if (response != null) {
+      return Balancete.fromJson(response);
+    }
+    
+    throw Exception('Erro ao adicionar balancete');
+  }
+
+  /// Download de arquivo para o dispositivo (apenas fotos)
+  static Future<String?> downloadArquivo(String url, String nomeArquivo) async {
+    try {
+      // Verificar se é uma imagem
+      if (!_isImageFile(nomeArquivo)) {
+        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP)');
+      }
+
+      // Solicitar permissão de armazenamento
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception('Permissão de armazenamento negada');
+      }
+
+      // Obter diretório de downloads
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!await downloadsDir.exists()) {
+          downloadsDir = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (downloadsDir == null) {
+        throw Exception('Não foi possível acessar o diretório de downloads');
+      }
+
+      // Criar nome único para o arquivo se já existir
+      String fileName = nomeArquivo;
+      String filePath = '${downloadsDir.path}/$fileName';
+      int counter = 1;
+      
+      while (await File(filePath).exists()) {
+        final extension = fileName.split('.').last;
+        final nameWithoutExtension = fileName.replaceAll('.$extension', '');
+        fileName = '${nameWithoutExtension}_$counter.$extension';
+        filePath = '${downloadsDir.path}/$fileName';
+        counter++;
+      }
+
+      // Fazer download usando Dio
+      final dio = Dio();
+      await dio.download(url, filePath);
+
+      return filePath;
+    } catch (e) {
+      print('Erro ao fazer download do arquivo: $e');
+      rethrow;
+    }
+  }
+
+  /// Download de arquivo usando Supabase Storage (apenas fotos)
+  static Future<String?> downloadArquivoSupabase(String url, String nomeArquivo) async {
+    try {
+      // Verificar se é uma imagem
+      if (!_isImageFile(nomeArquivo)) {
+        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP)');
+      }
+
+      // Solicitar permissão de armazenamento
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception('Permissão de armazenamento negada');
+      }
+
+      // Fazer download dos bytes do arquivo
+      final bytes = await SupabaseService.downloadArquivo(url);
+      if (bytes == null) {
+        throw Exception('Erro ao baixar arquivo do Supabase');
+      }
+
+      // Obter diretório de downloads
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!await downloadsDir.exists()) {
+          downloadsDir = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (downloadsDir == null) {
+        throw Exception('Não foi possível acessar o diretório de downloads');
+      }
+
+      // Criar nome único para o arquivo se já existir
+      String fileName = nomeArquivo;
+      String filePath = '${downloadsDir.path}/$fileName';
+      int counter = 1;
+      
+      while (await File(filePath).exists()) {
+        final extension = fileName.split('.').last;
+        final nameWithoutExtension = fileName.replaceAll('.$extension', '');
+        fileName = '${nameWithoutExtension}_$counter.$extension';
+        filePath = '${downloadsDir.path}/$fileName';
+        counter++;
+      }
+
+      // Salvar arquivo no dispositivo
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      return filePath;
+    } catch (e) {
+      print('Erro ao fazer download do arquivo: $e');
+      rethrow;
+    }
+  }
+
+  /// Adicionar balancete com upload de arquivo
+  static Future<Balancete> adicionarBalanceteComUpload({
+    required File arquivo,
+    required String nomeArquivo,
+    required String mes,
+    required String ano,
+    required bool privado,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    // Primeiro fazer upload do arquivo
+    final url = await SupabaseService.uploadBalancete(
+      arquivo,
+      nomeArquivo,
+      condominioId,
+      mes,
+      ano,
+    );
+    
+    if (url == null) {
+      throw Exception('Erro ao fazer upload do arquivo');
+    }
+    
+    // Depois adicionar o balancete com a URL
+    final response = await SupabaseService.adicionarBalancete(
+      nomeArquivo: nomeArquivo,
+      url: url,
+      mes: mes,
+      ano: ano,
+      privado: privado,
+      condominioId: condominioId,
+      representanteId: representanteId,
+    );
+    
+    if (response != null) {
+      return Balancete.fromJson(response);
+    }
+    
+    throw Exception('Erro ao adicionar balancete');
+  }
+  
+  /// Atualizar balancete
+  static Future<Balancete> atualizarBalancete(
+    String balanceteId, {
+    String? nomeArquivo,
+  }) async {
+    final dados = <String, dynamic>{};
+    
+    if (nomeArquivo != null) {
+      dados['nome_arquivo'] = nomeArquivo;
+    }
+    
+    final response = await SupabaseService.atualizarBalancete(balanceteId, dados);
+    
+    if (response != null) {
+      return Balancete.fromJson(response);
+    }
+    
+    throw Exception('Erro ao atualizar balancete');
+  }
+
+  /// Deletar balancete
   static Future<void> deletarBalancete(String balanceteId) async {
     await SupabaseService.deletarBalancete(balanceteId);
   }
@@ -161,5 +397,15 @@ class DocumentoService {
     }
     
     return anos.reversed.toList();
+  }
+
+  /// Método auxiliar para verificar se o arquivo é uma imagem
+  static bool _isImageFile(String nomeArquivo) {
+    final extensoesImagem = [
+      '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
+      '.JPG', '.JPEG', '.PNG', '.GIF', '.BMP', '.WEBP'
+    ];
+    
+    return extensoesImagem.any((ext) => nomeArquivo.toLowerCase().endsWith(ext.toLowerCase()));
   }
 }

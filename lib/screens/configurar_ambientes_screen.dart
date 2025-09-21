@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/ambiente.dart';
+import '../services/ambiente_service.dart';
 
 class ConfigurarAmbientesScreen extends StatefulWidget {
   const ConfigurarAmbientesScreen({super.key});
@@ -8,11 +10,39 @@ class ConfigurarAmbientesScreen extends StatefulWidget {
 }
 
 class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
-  // Lista de ambientes - vazia por padrão para mostrar o estado inicial
-  List<Map<String, String>> ambientes = [
-    {'nome': 'Salao de Festa', 'tipo': 'ambiente'},
-    {'nome': 'Churrasqueira 1', 'tipo': 'ambiente'},
-  ];
+  List<Ambiente> ambientes = [];
+  bool isLoading = true;
+  String? errorMessage;
+  
+  // TODO: Obter condominioId do usuário logado
+  final String condominioId = '1'; // Temporário para teste
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarAmbientes();
+  }
+
+  Future<void> _carregarAmbientes() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+      
+      final ambientesCarregados = await AmbienteService.getAmbientes();
+      
+      setState(() {
+        ambientes = ambientesCarregados;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Erro ao carregar ambientes: $e';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +139,56 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
             
             // Conteúdo principal
             Expanded(
-              child: ambientes.isEmpty ? _buildEmptyState() : _buildAmbientesList(),
+              child: _buildContent(),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Gerencia o conteúdo baseado no estado atual
+  Widget _buildContent() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    
+    if (errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              errorMessage!,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _carregarAmbientes,
+              child: const Text('Tentar Novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (ambientes.isEmpty) {
+      return _buildEmptyState();
+    }
+    
+    return _buildAmbientesList();
   }
   
   // Estado vazio - quando não há ambientes cadastrados
@@ -212,13 +286,34 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          ambiente['nome']!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ambiente.titulo,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (ambiente.descricao != null && ambiente.descricao!.isNotEmpty)
+                              Text(
+                                ambiente.descricao!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            Text(
+                              ambiente.valorFormatado,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1E3A8A),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       GestureDetector(
@@ -619,93 +714,6 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Botões de anexar
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Implementar anexar termo
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Anexar termo em desenvolvimento')),
-                              );
-                            },
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFF1E3A8A),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    size: 12,
-                                    color: Color(0xFF1E3A8A),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Anexar termo',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF1E3A8A),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Implementar anexar imagem
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Anexar imagem em desenvolvimento')),
-                              );
-                            },
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFF1E3A8A),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    size: 12,
-                                    color: Color(0xFF1E3A8A),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Anexar Imagem',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF1E3A8A),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -715,15 +723,65 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (tituloController.text.isNotEmpty) {
-                      setState(() {
-                        ambientes.add({
-                          'nome': tituloController.text,
-                          'tipo': 'ambiente',
-                        });
-                      });
-                      Navigator.pop(context);
+                      try {
+                        // Converter valor de string para double
+                        double valor = 0.0;
+                        if (valorController.text.isNotEmpty) {
+                          String valorLimpo = valorController.text
+                              .replaceAll('R\$', '')
+                              .replaceAll(' ', '')
+                              .replaceAll(',', '.');
+                          valor = double.tryParse(valorLimpo) ?? 0.0;
+                        }
+
+                        // Obter valores diretamente como strings
+                        final String? diasBloqueados = diasBloqueadosController.text.trim().isEmpty 
+                            ? null 
+                            : diasBloqueadosController.text.trim();
+                        
+                        final String? limiteTempoDuracao = limiteDuracaoController.text.trim().isEmpty 
+                            ? null 
+                            : limiteDuracaoController.text.trim();
+
+                        // Criar novo ambiente usando o AmbienteService
+                        await AmbienteService.criarAmbiente(
+                          titulo: tituloController.text.trim(),
+                          descricao: descricaoController.text.trim().isEmpty 
+                              ? null 
+                              : descricaoController.text.trim(),
+                          valor: valor,
+                          limiteHorario: limiteHorarioController.text.trim().isEmpty 
+                              ? null 
+                              : limiteHorarioController.text.trim(),
+                          limiteTempoDuracao: limiteTempoDuracao,
+                          diasBloqueados: diasBloqueados,
+                          inadimplentePodemReservar: inadimplentesPodemReservar,
+                          // Removido createdBy temporariamente até implementar autenticação
+                        );
+
+                        // Recarregar a lista de ambientes
+                        await _carregarAmbientes();
+                        
+                        Navigator.pop(context);
+                        
+                        // Mostrar mensagem de sucesso
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Ambiente criado com sucesso!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (e) {
+                        // Mostrar mensagem de erro
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erro ao criar ambiente: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -752,16 +810,28 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
   
   // Modal para editar ambiente existente
   void _showEditAmbienteModal(int index) {
-    final TextEditingController tituloController = TextEditingController(
-      text: ambientes[index]['nome'],
-    );
-    final TextEditingController descricaoController = TextEditingController();
-    final TextEditingController valorController = TextEditingController();
-    final TextEditingController limiteHorarioController = TextEditingController();
-    final TextEditingController limiteDuracaoController = TextEditingController();
-    final TextEditingController diasBloqueadosController = TextEditingController();
+    final ambiente = ambientes[index];
     
-    bool inadimplentesPodemReservar = false;
+    final TextEditingController tituloController = TextEditingController(
+      text: ambiente.titulo,
+    );
+    final TextEditingController descricaoController = TextEditingController(
+      text: ambiente.descricao ?? '',
+    );
+    final TextEditingController valorController = TextEditingController(
+      text: ambiente.valorFormatado,
+    );
+    final TextEditingController limiteHorarioController = TextEditingController(
+      text: ambiente.limiteHorario ?? '',
+    );
+    final TextEditingController limiteDuracaoController = TextEditingController(
+      text: ambiente.limiteTempoDuracao ?? '',
+    );
+    final TextEditingController diasBloqueadosController = TextEditingController(
+      text: ambiente.diasBloqueados ?? '',
+    );
+    
+    bool inadimplentesPodemReservar = ambiente.inadimplentePodemReservar;
     
     showModalBottomSheet(
       context: context,
@@ -796,11 +866,61 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                     const Spacer(),
                     GestureDetector(
                       onTap: () {
-                        // Remover ambiente
-                        setState(() {
-                          ambientes.removeAt(index);
-                        });
-                        Navigator.pop(context);
+                        // Mostrar confirmação antes de deletar
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Confirmar Desativação'),
+                              content: Text('Tem certeza que deseja desativar o ambiente "${ambientes[index].titulo}"?\n\nO ambiente não será excluído permanentemente, apenas ficará inativo.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancelar'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      // Desativar ambiente usando o AmbienteService
+                                      await AmbienteService.desativarAmbiente(
+                                        ambientes[index].id!,
+                                        atualizadoPor: 'user_id_placeholder', // TODO: Obter ID do usuário logado
+                                      );
+                                      
+                                      // Recarregar a lista de ambientes
+                                      await _carregarAmbientes();
+                                      
+                                      Navigator.pop(context); // Fechar dialog
+                                      Navigator.pop(context); // Fechar modal de edição
+                                      
+                                      // Mostrar mensagem de sucesso
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Ambiente desativado com sucesso!'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      Navigator.pop(context); // Fechar dialog
+                                      
+                                      // Mostrar mensagem de erro
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Erro ao desativar ambiente: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Desativar',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       },
                       child: const Icon(
                         Icons.delete_outline,
@@ -1204,99 +1324,6 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
-                        // Botões Anexar
-                        Row(
-                          children: [
-                            // Botão Anexar termo
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  // TODO: Implementar anexar termo
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: const Color(0xFF1E3A8A)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.attach_file,
-                                        color: Color(0xFF1E3A8A),
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Anexar termo',
-                                        style: TextStyle(
-                                          color: Color(0xFF1E3A8A),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Botão Anexar Imagem
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  // TODO: Implementar anexar imagem
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: const Color(0xFF1E3A8A)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.image,
-                                        color: Color(0xFF1E3A8A),
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Anexar Imagem',
-                                        style: TextStyle(
-                                          color: Color(0xFF1E3A8A),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        // Textos dos arquivos anexados (exemplo)
-                        const SizedBox(height: 12),
-                        const Text(
-                          'termo_salaofestas.pdf',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'imagemsalao.jpg',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
                         const SizedBox(height: 32),
                       ],
                     ),
@@ -1307,13 +1334,66 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (tituloController.text.isNotEmpty) {
-                        setState(() {
-                          ambientes[index]['nome'] = tituloController.text;
-                          // Aqui você pode salvar os outros dados também
-                        });
-                        Navigator.pop(context);
+                        try {
+                          // Converter valor de string para double
+                          double valor = 0.0;
+                          if (valorController.text.isNotEmpty) {
+                            String valorLimpo = valorController.text
+                                .replaceAll('R\$', '')
+                                .replaceAll(' ', '')
+                                .replaceAll(',', '.');
+                            valor = double.tryParse(valorLimpo) ?? 0.0;
+                          }
+
+                          // Obter valores diretamente como strings
+                          final String? diasBloqueados = diasBloqueadosController.text.trim().isEmpty 
+                              ? null 
+                              : diasBloqueadosController.text.trim();
+                          
+                          final String? limiteTempoDuracao = limiteDuracaoController.text.trim().isEmpty 
+                              ? null 
+                              : limiteDuracaoController.text.trim();
+
+                          // Atualizar ambiente usando o AmbienteService
+                          await AmbienteService.atualizarAmbiente(
+                            ambientes[index].id!,
+                            titulo: tituloController.text.trim(),
+                            descricao: descricaoController.text.trim().isEmpty 
+                                ? null 
+                                : descricaoController.text.trim(),
+                            valor: valor,
+                            limiteHorario: limiteHorarioController.text.trim().isEmpty 
+                                ? null 
+                                : limiteHorarioController.text.trim(),
+                            limiteTempoDuracao: limiteTempoDuracao,
+                            diasBloqueados: diasBloqueados,
+                            inadimplentePodemReservar: inadimplentesPodemReservar,
+                            // Removido updatedBy temporariamente até implementar autenticação
+                          );
+
+                          // Recarregar a lista de ambientes
+                          await _carregarAmbientes();
+                          
+                          Navigator.pop(context);
+                          
+                          // Mostrar mensagem de sucesso
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Ambiente atualizado com sucesso!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } catch (e) {
+                          // Mostrar mensagem de erro
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao atualizar ambiente: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(

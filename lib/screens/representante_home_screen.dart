@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'documentos_screen.dart';
 import 'documentos_inquilino_screen.dart';
-import 'agenda_screen.dart';
+import 'agenda_screen_backup.dart';
 import 'agenda_inquilino_screen.dart';
 import 'reservas_screen.dart';
 
@@ -213,13 +213,15 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
                       title: 'Diário/Agenda',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AgendaScreen(),
-                          ),
-                        );
-                      },
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AgendaScreen(
+                        representante: widget.representante,
+                      ),
+                    ),
+                  );
+                },
                     ),
                     _buildMenuCard(
                       imagePath: 'assets/images/Representante/HOME/Imagem_Controle.png',

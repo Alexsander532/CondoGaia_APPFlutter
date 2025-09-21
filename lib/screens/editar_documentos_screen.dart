@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
 
@@ -51,15 +57,121 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar arquivos: $e';
-        _isLoading = false;
-      });
+       setState(() {
+         _errorMessage = 'Erro ao carregar arquivos: $e';
+         _isLoading = false;
+       });
+     }
+   }
+
+  // Método para editar nome do arquivo
+  Future<void> _editarNomeArquivo(Documento arquivo) async {
+    final TextEditingController nomeController = TextEditingController(text: arquivo.nome);
+    
+    final novoNome = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Editar Nome do Arquivo'),
+          content: TextField(
+            controller: nomeController,
+            decoration: const InputDecoration(
+              labelText: 'Nome do arquivo',
+              border: OutlineInputBorder(),
+            ),
+            maxLength: 100,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nomeController.text.trim().isNotEmpty) {
+                  Navigator.pop(context, nomeController.text.trim());
+                }
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (novoNome != null && novoNome != arquivo.nome) {
+      try {
+        setState(() => _isLoading = true);
+        
+        // Atualizar o nome do arquivo no banco
+        await DocumentoService.atualizarDocumento(
+          arquivo.id,
+          nome: novoNome,
+        );
+        
+        // Recarregar a lista de arquivos
+        await _carregarArquivos();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nome do arquivo atualizado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao atualizar nome: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
-  @override
-  void dispose() {
+  // Método para copiar link para área de transferência
+  Future<void> _copiarLink(Documento arquivo) async {
+    final link = arquivo.linkExterno ?? arquivo.url;
+    if (link != null) {
+      try {
+        await Clipboard.setData(ClipboardData(text: link));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Link copiado para a área de transferência!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao copiar link: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // Método para verificar se é um link externo
+  bool _isLinkExterno(Documento arquivo) {
+    return arquivo.linkExterno != null && arquivo.linkExterno!.isNotEmpty;
+  }
+
+   @override
+   void dispose() {
     _nomePastaController.dispose();
     _linkController.dispose();
     super.dispose();
@@ -266,9 +378,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Implementar tirar foto
-                      },
+                      onPressed: _isLoading ? null : _tirarFoto,
                       icon: const Icon(Icons.camera_alt_outlined, color: Color(0xFF1E3A8A)),
                       label: const Text(
                         'Tirar foto',
@@ -285,16 +395,14 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Implementar upload PDF
-                      },
-                      icon: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                      onPressed: null, // Desabilitado - funcionalidade removida
+                      icon: const Icon(Icons.cloud_upload_outlined, color: Colors.grey),
                       label: const Text(
                         'Fazer Upload PDF',
-                        style: TextStyle(color: Color(0xFF1E3A8A)),
+                        style: TextStyle(color: Colors.grey),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF1E3A8A)),
+                        side: const BorderSide(color: Colors.grey),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -305,12 +413,10 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Botão Adicionar arquivo
+              // Botão Salvar
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Implementar adicionar arquivo
-                  },
+                  onPressed: _salvarAlteracoes,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A8A),
                     foregroundColor: Colors.white,
@@ -320,7 +426,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                     ),
                   ),
                   child: const Text(
-                    'Adicionar arquivo',
+                    'Salvar',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -407,19 +513,30 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                           ],
                         ),
                       ),
-                      if (arquivo.url != null || arquivo.linkExterno != null)
+                      if (arquivo.url != null || arquivo.linkExterno != null) ...[
+                        // Botão de editar nome (sempre presente)
                         IconButton(
-                          onPressed: () {
-                            // TODO: Abrir arquivo
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Abrir arquivo em desenvolvimento')),
-                            );
-                          },
+                          onPressed: _isLoading ? null : () => _editarNomeArquivo(arquivo),
                           icon: const Icon(
-                            Icons.open_in_new,
+                            Icons.edit,
+                            color: Colors.orange,
+                          ),
+                          tooltip: 'Editar nome',
+                        ),
+                        // Botão de download/copiar baseado no tipo
+                        IconButton(
+                          onPressed: _isLoading 
+                              ? null 
+                              : _isLinkExterno(arquivo)
+                                  ? () => _copiarLink(arquivo)
+                                  : () => _downloadArquivo(arquivo),
+                          icon: Icon(
+                            _isLinkExterno(arquivo) ? Icons.copy : Icons.download,
                             color: Colors.blue,
                           ),
+                          tooltip: _isLinkExterno(arquivo) ? 'Copiar link' : 'Baixar arquivo',
                         ),
+                      ],
                       IconButton(
                         onPressed: () {
                           _deleteArquivo(arquivo);
@@ -485,6 +602,184 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     );
   }
   
+  Future<void> _salvarAlteracoes() async {
+    // Validar se o nome da pasta não está vazio
+    if (_nomePastaController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('O nome da pasta não pode estar vazio')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1. Atualizar informações da pasta (nome e privacidade)
+      await DocumentoService.atualizarPasta(
+        widget.pasta.id,
+        nome: _nomePastaController.text.trim(),
+        privado: _privacidade == 'Privado',
+      );
+
+      // 2. Se há um link para adicionar, criar um novo arquivo
+      if (_linkController.text.trim().isNotEmpty) {
+        await DocumentoService.adicionarArquivoComLink(
+          pastaId: widget.pasta.id,
+          nome: 'Link - ${DateTime.now().millisecondsSinceEpoch}',
+          linkExterno: _linkController.text.trim(),
+          privado: _privacidade == 'Privado',
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+        
+        // Limpar o campo de link após adicionar
+        _linkController.clear();
+      }
+
+      // 3. Recarregar a lista de arquivos para mostrar as mudanças
+      await _carregarArquivos();
+
+      // 4. Notificar que a pasta foi atualizada
+      widget.onPastaAtualizada?.call();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alterações salvas com sucesso!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar alterações: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Método para tirar foto e salvar como PNG
+  Future<void> _tirarFoto() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        // Fazer upload da imagem
+        final arquivo = await DocumentoService.adicionarArquivoComUpload(
+          nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+          arquivo: File(image.path),
+          descricao: 'Foto capturada pela câmera',
+          privado: _privacidade == 'Privado',
+          pastaId: widget.pasta.id,
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+
+        // Recarregar a lista de arquivos
+        await _carregarArquivos();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto adicionada com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao tirar foto: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+
+
+  // Método para download de arquivos
+  Future<void> _downloadArquivo(Documento arquivo) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      String? filePath;
+      String fileName = arquivo.nome;
+
+      if (arquivo.url != null) {
+        // Se for arquivo do Supabase, usar método específico
+        if (arquivo.url!.contains('supabase')) {
+          filePath = await DocumentoService.downloadArquivoSupabase(
+            arquivo.url!,
+            fileName,
+          );
+        } else {
+          // Para outros URLs, usar download direto
+          filePath = await DocumentoService.downloadArquivo(
+            arquivo.url!,
+            fileName,
+          );
+        }
+      } else if (arquivo.linkExterno != null) {
+        // Para links externos, usar download direto
+        filePath = await DocumentoService.downloadArquivo(
+          arquivo.linkExterno!,
+          fileName,
+        );
+      }
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Arquivo baixado: $fileName'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Ver',
+              textColor: Colors.white,
+              onPressed: () {
+                // Aqui poderia abrir o arquivo ou mostrar sua localização
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao baixar arquivo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   void _deleteArquivo(Documento arquivo) async {
     final confirmar = await showDialog<bool>(
       context: context,

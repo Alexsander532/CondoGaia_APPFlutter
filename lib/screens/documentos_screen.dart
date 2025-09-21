@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
 import '../models/documento.dart';
@@ -33,10 +36,18 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   String get condominioId => widget.condominioId ?? 'demo-condominio-id';
   String get representanteId => widget.representanteId ?? 'demo-representante-id';
   
-  String selectedMonth = 'Janeiro';
-  String selectedYear = '2024';
+  // Controle de período para balancetes
+  int _anoSelecionado = 2025;
+  int _mesSelecionado = 9; // Setembro
+  
   String selectedPrivacy = 'Público';
   final TextEditingController _linkController = TextEditingController();
+  
+  // Lista de meses para exibição
+  final List<String> _nomesMeses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
   
   @override
   void initState() {
@@ -74,13 +85,302 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   
   Future<void> _carregarBalancetes() async {
     try {
-      final balancetesCarregados = await DocumentoService.getBalancetes(condominioId);
+      final balancetesCarregados = await DocumentoService.getBalancetesPorPeriodo(
+        condominioId,
+        _mesSelecionado,
+        _anoSelecionado,
+      );
       setState(() {
         balancetes = balancetesCarregados;
       });
     } catch (e) {
       print('Erro ao carregar balancetes: $e');
     }
+  }
+  
+  // Métodos de navegação de período
+  void _navegarMesAnterior() {
+    setState(() {
+      if (_mesSelecionado == 1) {
+        _mesSelecionado = 12;
+        _anoSelecionado--;
+      } else {
+        _mesSelecionado--;
+      }
+    });
+    _carregarBalancetes(); // Recarregar balancetes do novo período
+  }
+  
+  void _navegarProximoMes() {
+    setState(() {
+      if (_mesSelecionado == 12) {
+        _mesSelecionado = 1;
+        _anoSelecionado++;
+      } else {
+        _mesSelecionado++;
+      }
+    });
+    _carregarBalancetes(); // Recarregar balancetes do novo período
+  }
+  
+  String get _periodoAtual => '${_nomesMeses[_mesSelecionado - 1]}/$_anoSelecionado';
+  
+  // Método para tirar foto e salvar como balancete
+  Future<void> _tirarFoto() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        // Adicionar balancete com upload da imagem
+        await DocumentoService.adicionarBalanceteComUpload(
+          arquivo: File(image.path),
+          nomeArquivo: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+          mes: _mesSelecionado.toString(),
+          ano: _anoSelecionado.toString(),
+          privado: selectedPrivacy == 'Privado',
+          condominioId: condominioId,
+          representanteId: representanteId,
+        );
+
+        // Recarregar a lista de balancetes
+        await _carregarBalancetes();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto adicionada com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao tirar foto: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+  
+  // Método para adicionar link como balancete
+  Future<void> _adicionarLink() async {
+    // Validar se o link não está vazio
+    if (_linkController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, insira um link')),
+      );
+      return;
+    }
+
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      // Adicionar balancete com link
+      await DocumentoService.adicionarBalancete(
+        nomeArquivo: 'Link_${DateTime.now().millisecondsSinceEpoch}',
+        linkExterno: _linkController.text.trim(),
+        mes: _mesSelecionado.toString(),
+        ano: _anoSelecionado.toString(),
+        privado: selectedPrivacy == 'Privado',
+        condominioId: condominioId,
+        representanteId: representanteId,
+      );
+
+      // Limpar o campo de link
+      _linkController.clear();
+
+      // Recarregar a lista de balancetes
+      await _carregarBalancetes();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Link adicionado com sucesso!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao adicionar link: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Métodos auxiliares para balancetes
+  Future<void> _editarNomeBalancete(Balancete balancete) async {
+    final TextEditingController nomeController = TextEditingController(text: balancete.nomeArquivo);
+    
+    final novoNome = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Nome'),
+        content: TextField(
+          controller: nomeController,
+          decoration: const InputDecoration(
+            labelText: 'Nome do arquivo',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, nomeController.text.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    
+    if (novoNome != null && novoNome.isNotEmpty && novoNome != balancete.nomeArquivo) {
+      try {
+        await DocumentoService.atualizarBalancete(
+          balancete.id,
+          nomeArquivo: novoNome,
+        );
+        
+        await _carregarBalancetes();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nome atualizado com sucesso!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao atualizar nome: $e')),
+          );
+        }
+      }
+    }
+    
+    nomeController.dispose();
+  }
+
+  Future<void> _copiarLinkBalancete(Balancete balancete) async {
+    try {
+      String? linkParaCopiar;
+      
+      if (balancete.linkExterno != null && balancete.linkExterno!.isNotEmpty) {
+        linkParaCopiar = balancete.linkExterno;
+      } else if (balancete.url != null && balancete.url!.isNotEmpty) {
+        linkParaCopiar = balancete.url;
+      }
+      
+      if (linkParaCopiar != null) {
+        await Clipboard.setData(ClipboardData(text: linkParaCopiar));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Link copiado para a área de transferência!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nenhum link disponível para copiar')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao copiar link: $e')),
+        );
+      }
+    }
+  }
+
+  // Método para baixar balancete
+  Future<void> _baixarBalancete(Balancete balancete) async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      String? filePath;
+      String fileName = balancete.nomeArquivo ?? 'balancete_${balancete.mes}_${balancete.ano}.png';
+
+      if (balancete.url != null) {
+        // Se for arquivo do Supabase, usar método específico
+        if (balancete.url!.contains('supabase')) {
+          filePath = await DocumentoService.downloadArquivoSupabase(
+            balancete.url!,
+            fileName,
+          );
+        } else {
+          // Para outros URLs, usar download direto
+          filePath = await DocumentoService.downloadArquivo(
+            balancete.url!,
+            fileName,
+          );
+        }
+      } else if (balancete.linkExterno != null) {
+        // Para links externos, usar download direto
+        filePath = await DocumentoService.downloadArquivo(
+          balancete.linkExterno!,
+          fileName,
+        );
+      }
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Arquivo baixado: $fileName'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Ver',
+              textColor: Colors.white,
+              onPressed: () {
+                // Aqui poderia abrir o arquivo ou mostrar sua localização
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao baixar arquivo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  bool _isLinkExternoBalancete(Balancete balancete) {
+    return balancete.linkExterno != null && balancete.linkExterno!.isNotEmpty;
   }
   
   @override
@@ -418,27 +718,23 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           Row(
             children: [
               IconButton(
-                onPressed: () {
-                  // TODO: Implementar navegação de mês anterior
-                },
-                icon: const Icon(Icons.chevron_left),
+                onPressed: _navegarMesAnterior,
+                icon: const Icon(Icons.chevron_left, color: Color(0xFF1E3A8A)),
               ),
               Expanded(
                 child: Text(
-                  'Mês/Ano',
+                  _periodoAtual,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E3A8A),
                   ),
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  // TODO: Implementar navegação de próximo mês
-                },
-                icon: const Icon(Icons.chevron_right),
+                onPressed: _navegarProximoMes,
+                icon: const Icon(Icons.chevron_right, color: Color(0xFF1E3A8A)),
               ),
             ],
           ),
@@ -510,91 +806,44 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           ),
           const SizedBox(height: 20),
           
-          // Botões de ação
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Implementar tirar foto
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tirar foto em desenvolvimento')),
-                      );
-                    },
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_outlined,
-                        size: 30,
-                        color: Colors.grey,
-                      ),
+          // Botão de tirar foto
+          Center(
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: isLoading ? null : _tirarFoto,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: isLoading ? Colors.grey[200] : const Color(0xFF1E3A8A).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isLoading ? Colors.grey[300]! : const Color(0xFF1E3A8A)),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      size: 30,
+                      color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tirar foto',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tirar foto',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
                   ),
-                ],
-              ),
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Implementar upload PDF
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Upload PDF em desenvolvimento')),
-                      );
-                    },
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: const Icon(
-                        Icons.upload_file_outlined,
-                        size: 30,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Fazer Upload PDF',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 30),
           
           // Botão Adicionar arquivo
           Center(
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implementar adicionar arquivo
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Adicionar arquivo em desenvolvimento')),
-                );
-              },
+              onPressed: isLoading ? null : _adicionarLink,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E3A8A),
                 foregroundColor: Colors.white,
@@ -683,20 +932,39 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                         ],
                       ),
                     ),
-                    if (balancete.url != null)
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Abrir arquivo
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Abrir arquivo em desenvolvimento')),
-                          );
-                        },
-                        child: const Icon(
-                          Icons.open_in_new,
-                          color: Colors.blue,
-                          size: 20,
-                        ),
+                    // Ícone de editar nome
+                    GestureDetector(
+                      onTap: () => _editarNomeBalancete(balancete),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.blue,
+                        size: 20,
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    
+                    // Ícone de baixar arquivo
+                    GestureDetector(
+                      onTap: () => _baixarBalancete(balancete),
+                      child: const Icon(
+                        Icons.download,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    
+                    // Ícone de copiar link
+                    GestureDetector(
+                      onTap: () => _copiarLinkBalancete(balancete),
+                      child: Icon(
+                        Icons.copy,
+                        color: _isLinkExternoBalancete(balancete) 
+                          ? Colors.orange 
+                          : Colors.blue,
+                        size: 20,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () async {

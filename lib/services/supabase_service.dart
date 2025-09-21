@@ -776,6 +776,27 @@ class SupabaseService {
     }
   }
 
+  /// Atualizar um arquivo de documento
+  static Future<Map<String, dynamic>?> atualizarArquivoDocumento(
+    String arquivoId,
+    Map<String, dynamic> dados,
+  ) async {
+    try {
+      final response = await client
+          .from('documentos')
+          .update(dados)
+          .eq('id', arquivoId)
+          .eq('tipo', 'arquivo')
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar arquivo de documento: $e');
+      rethrow;
+    }
+  }
+
   /// Deletar um arquivo específico
   static Future<void> deletarArquivoDocumento(String arquivoId) async {
     try {
@@ -896,6 +917,26 @@ class SupabaseService {
     }
   }
 
+  /// Atualizar um balancete
+  static Future<Map<String, dynamic>?> atualizarBalancete(
+    String balanceteId,
+    Map<String, dynamic> dados,
+  ) async {
+    try {
+      final response = await client
+          .from('balancetes')
+          .update(dados)
+          .eq('id', balanceteId)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar balancete: $e');
+      rethrow;
+    }
+  }
+
   /// Deletar um balancete
   static Future<void> deletarBalancete(String balanceteId) async {
     try {
@@ -936,6 +977,34 @@ class SupabaseService {
       return null;
     } catch (e) {
       print('Erro ao fazer upload do balancete: $e');
+      rethrow;
+    }
+  }
+
+  /// Download de arquivo do storage
+  static Future<Uint8List?> downloadArquivo(String url) async {
+    try {
+      // Extrair o caminho do arquivo da URL
+      final uri = Uri.parse(url);
+      final pathSegments = uri.pathSegments;
+      
+      // Encontrar o índice do bucket 'documentos'
+      final bucketIndex = pathSegments.indexOf('documentos');
+      if (bucketIndex == -1 || bucketIndex >= pathSegments.length - 1) {
+        throw Exception('URL inválida para download');
+      }
+      
+      // Construir o caminho do arquivo no storage
+      final filePath = pathSegments.sublist(bucketIndex + 1).join('/');
+      
+      // Fazer download do arquivo
+      final response = await client.storage
+          .from('documentos')
+          .download(filePath);
+      
+      return response;
+    } catch (e) {
+      print('Erro ao fazer download do arquivo: $e');
       rethrow;
     }
   }
