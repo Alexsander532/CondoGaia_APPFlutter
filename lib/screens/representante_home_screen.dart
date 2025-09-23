@@ -4,10 +4,10 @@ import '../models/representante.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'documentos_screen.dart';
-import 'documentos_inquilino_screen.dart';
 import 'agenda_screen_backup.dart';
-import 'agenda_inquilino_screen.dart';
 import 'reservas_screen.dart';
+import 'inquilino_home_screen.dart';
+import 'gestao_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -168,30 +168,14 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_chat.png',
                       title: 'Chat',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DocumentosInquilinoScreen(
-                              condominioId: widget.condominioId,
-                              inquilinoId: 'demo-inquilino-id',
-                            ),
-                          ),
-                        );
+                        // TODO: Implementar navegação para chat
                       },
                     ),
                     _buildMenuCard(
                       imagePath: 'assets/images/Representante/HOME/Imagem_Classificados.png',
                       title: 'Classificados',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AgendaInquilinoScreen(
-                              condominioId: widget.condominioId,
-                              inquilinoId: 'demo-inquilino-id',
-                            ),
-                          ),
-                        );
+                        // TODO: Implementar navegação para classificados
                       },
                     ),
                     _buildMenuCard(
@@ -227,7 +211,17 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Controle.png',
                       title: 'Controle',
                       onTap: () {
-                        // TODO: Implementar navegação para Controle
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InquilinoHomeScreen(
+                              condominioId: widget.condominioId,
+                              condominioNome: widget.condominioNome,
+                              condominioCnpj: widget.condominioCnpj,
+                              inquilinoId: 'demo-inquilino-id', // TODO: Usar ID real do inquilino
+                            ),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
@@ -241,7 +235,16 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Gestao.png',
                       title: 'Gestão',
                       onTap: () {
-                        // TODO: Implementar navegação para Gestão
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GestaoScreen(
+                              condominioId: widget.condominioId,
+                              condominioNome: widget.condominioNome,
+                              condominioCnpj: widget.condominioCnpj,
+                            ),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
