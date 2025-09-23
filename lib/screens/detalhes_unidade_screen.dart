@@ -90,6 +90,189 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   String _receberBoletoEmailSelecionado = 'nao';
   String _controleLocacaoSelecionado = 'nao';
 
+  // Estados de loading para os botões de salvar
+  bool _isLoadingUnidade = false;
+  bool _isLoadingProprietario = false;
+  bool _isLoadingInquilino = false;
+  bool _isLoadingImobiliaria = false;
+
+  // Métodos de salvamento para cada seção
+  Future<void> _salvarUnidade() async {
+    setState(() {
+      _isLoadingUnidade = true;
+    });
+
+    try {
+      // Aqui você implementará a lógica de salvamento da unidade
+      // Por exemplo: await _unidadeService.salvar(dados);
+      
+      // Simulando delay de API
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Mostrar feedback de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados da unidade salvos com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Mostrar feedback de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar dados da unidade: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingUnidade = false;
+      });
+    }
+  }
+
+  Future<void> _salvarProprietario() async {
+    setState(() {
+      _isLoadingProprietario = true;
+    });
+
+    try {
+      // Aqui você implementará a lógica de salvamento do proprietário
+      // Por exemplo: await _proprietarioService.salvar(dados);
+      
+      // Simulando delay de API
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Mostrar feedback de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados do proprietário salvos com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Mostrar feedback de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar dados do proprietário: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingProprietario = false;
+      });
+    }
+  }
+
+  Future<void> _salvarInquilino() async {
+    setState(() {
+      _isLoadingInquilino = true;
+    });
+
+    try {
+      // Aqui você implementará a lógica de salvamento do inquilino
+      // Por exemplo: await _inquilinoService.salvar(dados);
+      
+      // Simulando delay de API
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Mostrar feedback de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados do inquilino salvos com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Mostrar feedback de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar dados do inquilino: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingInquilino = false;
+      });
+    }
+  }
+
+  Future<void> _salvarImobiliaria() async {
+    setState(() {
+      _isLoadingImobiliaria = true;
+    });
+
+    try {
+      // Aqui você implementará a lógica de salvamento da imobiliária
+      // Por exemplo: await _imobiliariaService.salvar(dados);
+      
+      // Simulando delay de API
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Mostrar feedback de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados da imobiliária salvos com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Mostrar feedback de erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao salvar dados da imobiliária: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingImobiliaria = false;
+      });
+    }
+  }
+
+  // Widget reutilizável para o botão de salvar
+  Widget _buildSaveButton({
+    required String text,
+    required VoidCallback onPressed,
+    required bool isLoading,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2E3A59),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 2,
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildExpandableSection({
     required String title,
     required bool isExpanded,
@@ -758,6 +941,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ),
           ],
+        ),
+        
+        // Botão de salvar para a seção Unidade
+        _buildSaveButton(
+          text: 'SALVAR UNIDADE',
+          onPressed: _salvarUnidade,
+          isLoading: _isLoadingUnidade,
         ),
       ],
     );
@@ -1835,12 +2025,19 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                ),
              ),
            ],
-         ),
-         
-         const SizedBox(height: 24),
-       ],
-     );
-   }
+       ),
+       
+       const SizedBox(height: 24),
+       
+       // Botão de salvar para a seção Proprietário
+       _buildSaveButton(
+         text: 'SALVAR PROPRIETÁRIO',
+         onPressed: _salvarProprietario,
+         isLoading: _isLoadingProprietario,
+       ),
+     ],
+   );
+ }
 
   Widget _buildInquilinoContent() {
     return Padding(
@@ -2687,6 +2884,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          
+          // Botão de salvar para a seção Inquilino
+          _buildSaveButton(
+            text: 'SALVAR INQUILINO',
+            onPressed: _salvarInquilino,
+            isLoading: _isLoadingInquilino,
+          ),
         ],
       ),
     );
@@ -2912,6 +3116,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ),
           ],
+        ),
+        
+        // Botão de salvar para a seção Imobiliária
+        _buildSaveButton(
+          text: 'SALVAR IMOBILIÁRIA',
+          onPressed: _salvarImobiliaria,
+          isLoading: _isLoadingImobiliaria,
         ),
       ],
     );
