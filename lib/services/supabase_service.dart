@@ -819,7 +819,51 @@ class SupabaseService {
   ) async {
     try {
       final bytes = await arquivo.readAsBytes();
-      final fileName = '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$nomeArquivo';
+      final sanitizedName = _sanitizeFileName(nomeArquivo);
+      final fileName = '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
+      
+      final response = await client.storage
+          .from('documentos')
+          .uploadBinary(fileName, bytes);
+      
+      if (response.isNotEmpty) {
+        // Retorna a URL pública do arquivo
+        final publicUrl = client.storage
+            .from('documentos')
+            .getPublicUrl(fileName);
+        return publicUrl;
+      }
+      
+      return null;
+    } catch (e) {
+      print('Erro ao fazer upload do arquivo: $e');
+      rethrow;
+    }
+  }
+
+  /// Sanitiza o nome do arquivo removendo caracteres especiais e espaços
+  static String _sanitizeFileName(String fileName) {
+    // Remove ou substitui caracteres que podem causar problemas no storage
+    String sanitized = fileName
+        .replaceAll(' ', '_')  // Substitui espaços por underscore
+        .replaceAll(RegExp(r'[^\w\-_\.]'), '')  // Remove caracteres especiais, mantém apenas letras, números, hífen, underscore e ponto
+        .replaceAll(RegExp(r'_{2,}'), '_');  // Substitui múltiplos underscores por um único
+    
+    // Garante que não comece ou termine com underscore
+    sanitized = sanitized.replaceAll(RegExp(r'^_+|_+$'), '');
+    
+    return sanitized;
+  }
+
+  /// Upload de arquivo para o storage do Supabase usando bytes diretamente
+  static Future<String?> uploadArquivoDocumentoBytes(
+    Uint8List bytes,
+    String nomeArquivo,
+    String condominioId,
+  ) async {
+    try {
+      final sanitizedName = _sanitizeFileName(nomeArquivo);
+      final fileName = '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
       
       final response = await client.storage
           .from('documentos')
@@ -960,7 +1004,8 @@ class SupabaseService {
   ) async {
     try {
       final bytes = await arquivo.readAsBytes();
-      final fileName = '${condominioId}/balancetes/${ano}_${mes}_${DateTime.now().millisecondsSinceEpoch}_$nomeArquivo';
+      final sanitizedName = _sanitizeFileName(nomeArquivo);
+      final fileName = '${condominioId}/balancetes/${ano}_${mes}_${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
       
       final response = await client.storage
           .from('documentos')

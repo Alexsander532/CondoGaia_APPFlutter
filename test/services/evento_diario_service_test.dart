@@ -49,8 +49,8 @@ void main() {
         descricao: 'Teste de conversão',
         dataEvento: DateTime(2024, 1, 15),
         status: 'ativo',
-        criadoEm: DateTime(2024, 1, 15, 10, 0),
-        atualizadoEm: DateTime(2024, 1, 15, 10, 0),
+        createdAt: DateTime(2024, 1, 15, 10, 0),
+        updatedAt: DateTime(2024, 1, 15, 10, 0),
       );
 
       final json = evento.toJson();
@@ -70,8 +70,8 @@ void main() {
         'descricao': 'Teste de criação',
         'data_evento': '2024-01-15',
         'status': 'ativo',
-        'criado_em': '2024-01-15T10:00:00Z',
-        'atualizado_em': '2024-01-15T10:00:00Z',
+        'created_at': '2024-01-15T10:00:00Z',
+        'updated_at': '2024-01-15T10:00:00Z',
       };
 
       final evento = EventoDiario.fromJson(json);
@@ -91,8 +91,8 @@ void main() {
         descricao: 'Teste de inserção',
         dataEvento: DateTime(2024, 1, 15),
         status: 'ativo',
-        criadoEm: DateTime.now(),
-        atualizadoEm: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       final insertData = evento.toInsert();
@@ -111,8 +111,8 @@ void main() {
         titulo: 'Teste Data',
         dataEvento: DateTime(2024, 1, 15),
         status: 'ativo',
-        criadoEm: DateTime.now(),
-        atualizadoEm: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       expect(evento.dataEventoFormatada, '15/01/2024');
@@ -126,8 +126,8 @@ void main() {
         titulo: 'Título Original',
         dataEvento: DateTime(2024, 1, 15),
         status: 'ativo',
-        criadoEm: DateTime.now(),
-        atualizadoEm: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       final eventoCopia = evento.copyWith(

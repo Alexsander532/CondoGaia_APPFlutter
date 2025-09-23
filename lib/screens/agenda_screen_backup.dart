@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/evento_agenda.dart';
+import '../models/evento_diario.dart';
 import '../models/representante.dart';
 import '../services/evento_agenda_service.dart';
 import '../services/evento_diario_service.dart';
@@ -94,6 +95,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   
   // Variáveis para gerenciar eventos
   List<EventoAgenda> _eventos = [];
+  List<EventoDiario> _eventosDiarios = [];
   bool _isLoading = false;
   bool _isSaving = false;
   
@@ -147,17 +149,31 @@ class _AgendaScreenState extends State<AgendaScreen> {
       DateTime startDate = DateTime(currentYear, currentMonthIndex + 1, 1);
       DateTime endDate = DateTime(currentYear, currentMonthIndex + 2, 0);
       
+      // Carregar eventos de agenda
       final eventos = await EventoAgendaService.buscarEventosPorPeriodo(
         representanteId: widget.representante.id,
         dataInicio: startDate,
         dataFim: endDate,
       );
       
+      // Carregar eventos diários
+      final eventosDiarios = await EventoDiarioService.buscarEventosPorPeriodo(
+        representanteId: widget.representante.id,
+        dataInicio: startDate,
+        dataFim: endDate,
+      );
+      
       setState(() {
-        _eventos = eventos;
+        _eventos = eventos ?? [];
+        _eventosDiarios = eventosDiarios ?? [];
       });
     } catch (e) {
       print('Erro ao carregar eventos: $e');
+      // Garantir que as listas não sejam null mesmo em caso de erro
+      setState(() {
+        _eventos = [];
+        _eventosDiarios = [];
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao carregar eventos: $e'),
@@ -185,7 +201,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
   
-  int get currentMonthIndex => months.indexOf(currentMonth);
+  int get currentMonthIndex {
+    int index = months.indexOf(currentMonth);
+    if (index == -1) {
+      print('Erro: currentMonth não encontrado na lista: $currentMonth');
+      // Retorna o mês atual como fallback
+      return DateTime.now().month - 1;
+    }
+    return index;
+  }
   
   // Função para verificar se o ano é bissexto
   bool _isLeapYear(int year) {
@@ -258,21 +282,93 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
   
   bool _hasEventsOnDay(int day) {
-    DateTime dayDate = DateTime(currentYear, currentMonthIndex + 1, day);
-    return _eventos.any((evento) => 
-      evento.dataEvento.year == dayDate.year &&
-      evento.dataEvento.month == dayDate.month &&
-      evento.dataEvento.day == dayDate.day
-    );
+    try {
+      // Verificações defensivas
+      if (currentMonthIndex < 0 || currentMonthIndex > 11) {
+        print('Erro: currentMonthIndex inválido: $currentMonthIndex');
+        return false;
+      }
+      
+      if (day < 1 || day > 31) {
+        print('Erro: dia inválido: $day');
+        return false;
+      }
+      
+      DateTime dayDate = DateTime(currentYear, currentMonthIndex + 1, day);
+      
+      // Verificar eventos de agenda (com verificação de null safety)
+      bool hasAgendaEvents = _eventos.isNotEmpty && _eventos.any((evento) => 
+        evento.dataEvento != null &&
+        evento.dataEvento.year == dayDate.year &&
+        evento.dataEvento.month == dayDate.month &&
+        evento.dataEvento.day == dayDate.day
+      );
+      
+      // Verificar eventos diários (com verificação de null safety)
+      bool hasDiaryEvents = _eventosDiarios.isNotEmpty && _eventosDiarios.any((evento) => 
+        evento.dataEvento != null &&
+        evento.dataEvento.year == dayDate.year &&
+        evento.dataEvento.month == dayDate.month &&
+        evento.dataEvento.day == dayDate.day
+      );
+      
+      return hasAgendaEvents || hasDiaryEvents;
+    } catch (e) {
+      print('Erro em _hasEventsOnDay: $e');
+      return false;
+    }
   }
   
   List<EventoAgenda> _getEventsForDay(int day) {
-    DateTime dayDate = DateTime(currentYear, currentMonthIndex + 1, day);
-    return _eventos.where((evento) => 
-      evento.dataEvento.year == dayDate.year &&
-      evento.dataEvento.month == dayDate.month &&
-      evento.dataEvento.day == dayDate.day
-    ).toList();
+    try {
+      // Verificações defensivas
+      if (currentMonthIndex < 0 || currentMonthIndex > 11) {
+        print('Erro: currentMonthIndex inválido em _getEventsForDay: $currentMonthIndex');
+        return [];
+      }
+      
+      if (day < 1 || day > 31) {
+        print('Erro: dia inválido em _getEventsForDay: $day');
+        return [];
+      }
+      
+      DateTime dayDate = DateTime(currentYear, currentMonthIndex + 1, day);
+      return _eventos.where((evento) => 
+        evento.dataEvento != null &&
+        evento.dataEvento.year == dayDate.year &&
+        evento.dataEvento.month == dayDate.month &&
+        evento.dataEvento.day == dayDate.day
+      ).toList();
+    } catch (e) {
+      print('Erro em _getEventsForDay: $e');
+      return [];
+    }
+  }
+
+  List<EventoDiario> _getDiaryEventsForDay(int day) {
+    try {
+      // Verificações defensivas
+      if (currentMonthIndex < 0 || currentMonthIndex > 11) {
+        print('Erro: currentMonthIndex inválido em _getDiaryEventsForDay: $currentMonthIndex');
+        return [];
+      }
+      
+      if (day < 1 || day > 31) {
+        print('Erro: dia inválido em _getDiaryEventsForDay: $day');
+        return [];
+      }
+      
+      DateTime dayDate = DateTime(currentYear, currentMonthIndex + 1, day);
+      return _eventosDiarios.where((evento) => 
+        evento.dataEvento != null &&
+        evento.dataEvento.year == dayDate.year &&
+        evento.dataEvento.month == dayDate.month &&
+        evento.dataEvento.day == dayDate.day
+      ).toList();
+    } catch (e) {
+      print('Erro em _getDiaryEventsForDay: $e');
+      return [];
+    }
   }
 
   Widget _buildCalendarDay(int day, {bool isSelected = false}) {
@@ -1767,8 +1863,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   List<Widget> _buildEventsList() {
     List<EventoAgenda> eventsForDay = _getEventsForDay(selectedDay);
+    List<EventoDiario> diaryEventsForDay = _getDiaryEventsForDay(selectedDay);
     
-    if (eventsForDay.isEmpty) {
+    if (eventsForDay.isEmpty && diaryEventsForDay.isEmpty) {
       return [
         Container(
           width: double.infinity,
@@ -1788,8 +1885,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ),
       ];
     }
+
+    List<Widget> eventWidgets = [];
     
-    return eventsForDay.map((evento) => Container(
+    // Adicionar eventos de agenda
+    eventWidgets.addAll(eventsForDay.map((evento) => Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -1948,7 +2048,137 @@ class _AgendaScreenState extends State<AgendaScreen> {
           ),
         ],
       ),
-    )).toList();
+    )).toList());
+
+    // Adicionar eventos diários
+    eventWidgets.addAll(diaryEventsForDay.map((evento) => Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF059669), // Verde para diferenciar dos eventos de agenda
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  evento.titulo,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Diário',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (evento.descricao?.isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            Text(
+              evento.descricao!,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+          // Botões de ação
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Botão Editar
+              InkWell(
+                onTap: () => _showEditDiaryEventModal(evento),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.white30),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Editar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Botão Excluir
+              InkWell(
+                onTap: () => _showDeleteDiaryEventConfirmation(evento),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Excluir',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    )).toList());
+
+    return eventWidgets;
   }
 
   // Função para formatar horário removendo segundos se existirem
@@ -1962,5 +2192,145 @@ class _AgendaScreenState extends State<AgendaScreen> {
     
     // Se já está no formato HH:MM, retorna como está
     return time;
+  }
+
+  // Método para mostrar modal de edição de evento diário
+  void _showEditDiaryEventModal(EventoDiario evento) {
+    final titleController = TextEditingController(text: evento.titulo);
+    final descriptionController = TextEditingController(text: evento.descricao ?? '');
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Editar Evento Diário'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('O título é obrigatório'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  final eventoAtualizado = evento.copyWith(
+                    titulo: titleController.text.trim(),
+                    descricao: descriptionController.text.trim().isEmpty 
+                        ? null 
+                        : descriptionController.text.trim(),
+                  );
+
+                  await EventoDiarioService.atualizarEvento(
+                    eventoId: evento.id,
+                    titulo: titleController.text.trim(),
+                    descricao: descriptionController.text.trim().isEmpty 
+                        ? null 
+                        : descriptionController.text.trim(),
+                  );
+                  
+                  Navigator.of(context).pop();
+                  _loadEvents(); // Recarregar eventos
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Evento diário atualizado com sucesso!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao atualizar evento: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método para mostrar confirmação de exclusão de evento diário
+  void _showDeleteDiaryEventConfirmation(EventoDiario evento) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: Text('Tem certeza que deseja excluir o evento "${evento.titulo}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await EventoDiarioService.deletarEvento(evento.id);
+                  
+                  Navigator.of(context).pop();
+                  _loadEvents(); // Recarregar eventos
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Evento diário excluído com sucesso!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao excluir evento: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

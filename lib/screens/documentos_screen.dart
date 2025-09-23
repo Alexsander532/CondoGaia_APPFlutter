@@ -382,6 +382,12 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   bool _isLinkExternoBalancete(Balancete balancete) {
     return balancete.linkExterno != null && balancete.linkExterno!.isNotEmpty;
   }
+
+  bool _isImagemBalancete(Balancete balancete) {
+    final extensoesImagem = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    final nomeArquivo = balancete.nomeArquivo ?? '';
+    return extensoesImagem.any((ext) => nomeArquivo.toLowerCase().endsWith(ext));
+  }
   
   @override
   void dispose() {
@@ -943,28 +949,27 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                     ),
                     const SizedBox(width: 8),
                     
-                    // Ícone de baixar arquivo
-                    GestureDetector(
-                      onTap: () => _baixarBalancete(balancete),
-                      child: const Icon(
-                        Icons.download,
-                        color: Colors.green,
-                        size: 20,
+                    // Ações baseadas no tipo de arquivo
+                    if (_isLinkExternoBalancete(balancete))
+                      // Para links externos: apenas copiar
+                      GestureDetector(
+                        onTap: () => _copiarLinkBalancete(balancete),
+                        child: const Icon(
+                          Icons.copy,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
+                      )
+                    else if (_isImagemBalancete(balancete))
+                      // Para imagens: apenas download
+                      GestureDetector(
+                        onTap: () => _baixarBalancete(balancete),
+                        child: const Icon(
+                          Icons.download,
+                          color: Colors.green,
+                          size: 20,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    
-                    // Ícone de copiar link
-                    GestureDetector(
-                      onTap: () => _copiarLinkBalancete(balancete),
-                      child: Icon(
-                        Icons.copy,
-                        color: _isLinkExternoBalancete(balancete) 
-                          ? Colors.orange 
-                          : Colors.blue,
-                        size: 20,
-                      ),
-                    ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () async {

@@ -97,6 +97,43 @@ class DocumentoService {
     
     throw Exception('Erro ao adicionar arquivo');
   }
+
+  /// Adicionar arquivo com upload usando bytes diretamente (compatível com web)
+  static Future<Documento> adicionarArquivoComUploadBytes({
+    required String nome,
+    required Uint8List bytes,
+    String? descricao,
+    required bool privado,
+    required String pastaId,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    final url = await SupabaseService.uploadArquivoDocumentoBytes(
+      bytes,
+      nome,
+      condominioId,
+    );
+    
+    if (url == null) {
+      throw Exception('Erro ao fazer upload do arquivo');
+    }
+    
+    final response = await SupabaseService.adicionarArquivoDocumento(
+      nome: nome,
+      descricao: descricao,
+      url: url,
+      privado: privado,
+      pastaId: pastaId,
+      condominioId: condominioId,
+      representanteId: representanteId,
+    );
+    
+    if (response != null) {
+      return Documento.fromJson(response);
+    }
+    
+    throw Exception('Erro ao adicionar arquivo');
+  }
   
   /// Adicionar arquivo com link externo
   static Future<Documento> adicionarArquivoComLink({
@@ -201,29 +238,45 @@ class DocumentoService {
     throw Exception('Erro ao adicionar balancete');
   }
 
-  /// Download de arquivo para o dispositivo (apenas fotos)
+  /// Download de arquivo para o dispositivo (imagens e PDFs)
   static Future<String?> downloadArquivo(String url, String nomeArquivo) async {
     try {
-      // Verificar se é uma imagem
-      if (!_isImageFile(nomeArquivo)) {
-        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP)');
+      // Verificar se é um arquivo suportado (imagem ou PDF)
+      if (!_isImageFile(nomeArquivo) && !_isPDF(nomeArquivo)) {
+        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP) e PDFs');
       }
 
-      // Solicitar permissão de armazenamento
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        throw Exception('Permissão de armazenamento negada');
-      }
-
-      // Obter diretório de downloads
+      // Obter diretório de downloads baseado na plataforma
       Directory? downloadsDir;
+      
       if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        if (!await downloadsDir.exists()) {
-          downloadsDir = await getExternalStorageDirectory();
+        // Para Android, usar diretório interno da aplicação
+        // Isso evita problemas de permissão em Android 11+
+        downloadsDir = await getApplicationDocumentsDirectory();
+        
+        // Criar subdiretório "Downloads" para organização
+        final downloadSubDir = Directory('${downloadsDir.path}/Downloads');
+        if (!await downloadSubDir.exists()) {
+          await downloadSubDir.create(recursive: true);
         }
+        downloadsDir = downloadSubDir;
+        
       } else if (Platform.isIOS) {
         downloadsDir = await getApplicationDocumentsDirectory();
+        
+        // Criar subdiretório "Downloads" para organização
+        final downloadSubDir = Directory('${downloadsDir.path}/Downloads');
+        if (!await downloadSubDir.exists()) {
+          await downloadSubDir.create(recursive: true);
+        }
+        downloadsDir = downloadSubDir;
+        
+      } else {
+        // Para outras plataformas (Web, Desktop)
+        downloadsDir = await getDownloadsDirectory();
+        if (downloadsDir == null) {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
       }
 
       if (downloadsDir == null) {
@@ -254,18 +307,12 @@ class DocumentoService {
     }
   }
 
-  /// Download de arquivo usando Supabase Storage (apenas fotos)
+  /// Download de arquivo usando Supabase Storage (imagens e PDFs)
   static Future<String?> downloadArquivoSupabase(String url, String nomeArquivo) async {
     try {
-      // Verificar se é uma imagem
-      if (!_isImageFile(nomeArquivo)) {
-        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP)');
-      }
-
-      // Solicitar permissão de armazenamento
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        throw Exception('Permissão de armazenamento negada');
+      // Verificar se é um arquivo suportado (imagem ou PDF)
+      if (!_isImageFile(nomeArquivo) && !_isPDF(nomeArquivo)) {
+        throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP) e PDFs');
       }
 
       // Fazer download dos bytes do arquivo
@@ -274,15 +321,37 @@ class DocumentoService {
         throw Exception('Erro ao baixar arquivo do Supabase');
       }
 
-      // Obter diretório de downloads
+      // Obter diretório de downloads baseado na plataforma
       Directory? downloadsDir;
+      
       if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        if (!await downloadsDir.exists()) {
-          downloadsDir = await getExternalStorageDirectory();
+        // Para Android, usar diretório interno da aplicação
+        // Isso evita problemas de permissão em Android 11+
+        downloadsDir = await getApplicationDocumentsDirectory();
+        
+        // Criar subdiretório "Downloads" para organização
+        final downloadSubDir = Directory('${downloadsDir.path}/Downloads');
+        if (!await downloadSubDir.exists()) {
+          await downloadSubDir.create(recursive: true);
         }
+        downloadsDir = downloadSubDir;
+        
       } else if (Platform.isIOS) {
         downloadsDir = await getApplicationDocumentsDirectory();
+        
+        // Criar subdiretório "Downloads" para organização
+        final downloadSubDir = Directory('${downloadsDir.path}/Downloads');
+        if (!await downloadSubDir.exists()) {
+          await downloadSubDir.create(recursive: true);
+        }
+        downloadsDir = downloadSubDir;
+        
+      } else {
+        // Para outras plataformas (Web, Desktop)
+        downloadsDir = await getDownloadsDirectory();
+        if (downloadsDir == null) {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
       }
 
       if (downloadsDir == null) {
@@ -407,5 +476,10 @@ class DocumentoService {
     ];
     
     return extensoesImagem.any((ext) => nomeArquivo.toLowerCase().endsWith(ext.toLowerCase()));
+  }
+
+  /// Método auxiliar para verificar se o arquivo é um PDF
+  static bool _isPDF(String nomeArquivo) {
+    return nomeArquivo.toLowerCase().endsWith('.pdf');
   }
 }

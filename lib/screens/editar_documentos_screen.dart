@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -168,6 +169,17 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
   // Método para verificar se é um link externo
   bool _isLinkExterno(Documento arquivo) {
     return arquivo.linkExterno != null && arquivo.linkExterno!.isNotEmpty;
+  }
+
+  // Método para verificar se é uma imagem
+  bool _isImagem(Documento arquivo) {
+    final extensoesImagem = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    return extensoesImagem.any((ext) => arquivo.nome.toLowerCase().endsWith(ext));
+  }
+
+  // Método para verificar se é um PDF
+  bool _isPDF(Documento arquivo) {
+    return arquivo.nome.toLowerCase().endsWith('.pdf');
   }
 
    @override
@@ -395,14 +407,14 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: null, // Desabilitado - funcionalidade removida
-                      icon: const Icon(Icons.cloud_upload_outlined, color: Colors.grey),
+                      onPressed: _isLoading ? null : _selecionarPDF,
+                      icon: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
                       label: const Text(
                         'Fazer Upload PDF',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Colors.blue),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.grey),
+                        side: const BorderSide(color: Colors.blue),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -523,19 +535,27 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                           ),
                           tooltip: 'Editar nome',
                         ),
-                        // Botão de download/copiar baseado no tipo
-                        IconButton(
-                          onPressed: _isLoading 
-                              ? null 
-                              : _isLinkExterno(arquivo)
-                                  ? () => _copiarLink(arquivo)
-                                  : () => _downloadArquivo(arquivo),
-                          icon: Icon(
-                            _isLinkExterno(arquivo) ? Icons.copy : Icons.download,
-                            color: Colors.blue,
+                        // Botão de ação baseado no tipo de arquivo
+                        if (_isLinkExterno(arquivo))
+                          // Para links externos: apenas copiar
+                          IconButton(
+                            onPressed: _isLoading ? null : () => _copiarLink(arquivo),
+                            icon: const Icon(
+                              Icons.copy,
+                              color: Colors.blue,
+                            ),
+                            tooltip: 'Copiar link',
+                          )
+                        else if (_isImagem(arquivo) || _isPDF(arquivo))
+                          // Para imagens e PDFs: download
+                          IconButton(
+                            onPressed: _isLoading ? null : () => _downloadArquivo(arquivo),
+                            icon: const Icon(
+                              Icons.download,
+                              color: Colors.blue,
+                            ),
+                            tooltip: _isPDF(arquivo) ? 'Baixar PDF' : 'Baixar imagem',
                           ),
-                          tooltip: _isLinkExterno(arquivo) ? 'Copiar link' : 'Baixar arquivo',
-                        ),
                       ],
                       IconButton(
                         onPressed: () {
@@ -713,7 +733,63 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     }
   }
 
+  // Método para selecionar e fazer upload de PDF do dispositivo
+  Future<void> _selecionarPDF() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
 
+      // Selecionar arquivo PDF do dispositivo
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final bytes = result.files.single.bytes!;
+        String nomeArquivo = result.files.single.name;
+
+        // Validar se é realmente um PDF
+        if (!nomeArquivo.toLowerCase().endsWith('.pdf')) {
+          throw Exception('Apenas arquivos PDF são permitidos');
+        }
+
+        // Fazer upload do arquivo usando bytes
+        final documentoUpload = await DocumentoService.adicionarArquivoComUploadBytes(
+          nome: nomeArquivo,
+          bytes: bytes,
+          descricao: 'Documento PDF enviado do dispositivo',
+          privado: _privacidade == 'Privado',
+          pastaId: widget.pasta.id,
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+
+        // Recarregar a lista de arquivos
+        await _carregarArquivos();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PDF adicionado com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao selecionar PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   // Método para download de arquivos
   Future<void> _downloadArquivo(Documento arquivo) async {

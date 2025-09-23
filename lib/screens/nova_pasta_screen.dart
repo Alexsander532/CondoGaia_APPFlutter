@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../services/documento_service.dart';
 
 class NovaPastaScreen extends StatefulWidget {
@@ -60,6 +62,69 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao criar pasta: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Método para selecionar e fazer upload de PDF do dispositivo
+  Future<void> _selecionarPDF() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Selecionar arquivo PDF do dispositivo
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final bytes = result.files.single.bytes!;
+        String nomeArquivo = result.files.single.name;
+
+        // Validar se é realmente um PDF
+        if (!nomeArquivo.toLowerCase().endsWith('.pdf')) {
+          throw Exception('Apenas arquivos PDF são permitidos');
+        }
+
+        // Primeiro, criar uma pasta temporária se não houver nome definido
+        String nomePasta = _nomePastaController.text.trim();
+        if (nomePasta.isEmpty) {
+          nomePasta = 'Nova Pasta ${DateTime.now().millisecondsSinceEpoch}';
+        }
+
+        // Criar a pasta primeiro
+        final pasta = await DocumentoService.criarPasta(
+          nome: nomePasta,
+          privado: _privacidade == 'Privado',
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+
+        // Fazer upload do arquivo na pasta criada usando bytes
+        await DocumentoService.adicionarArquivoComUploadBytes(
+          nome: nomeArquivo,
+          bytes: bytes,
+          descricao: 'Documento PDF enviado do dispositivo',
+          privado: _privacidade == 'Privado',
+          pastaId: pasta.id,
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+
+        if (mounted) {
+          Navigator.pop(context, true); // Retorna true para indicar sucesso
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pasta criada e PDF adicionado com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro ao selecionar PDF: $e';
         _isLoading = false;
       });
     }
@@ -316,25 +381,18 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
                           child: Column(
                             children: [
                               GestureDetector(
-                                onTap: () {
-                                  // TODO: Implementar upload PDF
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Upload PDF em desenvolvimento'),
-                                    ),
-                                  );
-                                },
+                                onTap: _isLoading ? null : _selecionarPDF,
                                 child: Container(
                                   width: 60,
                                   height: 60,
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[300]!),
+                                    border: Border.all(color: _isLoading ? Colors.grey[300]! : Colors.blue),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.cloud_upload_outlined,
                                     size: 30,
-                                    color: Colors.grey,
+                                    color: _isLoading ? Colors.grey : Colors.blue,
                                   ),
                                 ),
                               ),

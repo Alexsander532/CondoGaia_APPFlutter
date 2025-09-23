@@ -20,12 +20,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
   final TextEditingController _valorController = TextEditingController(text: 'R\$ 100,00');
   final TextEditingController _horaInicioController = TextEditingController();
   final TextEditingController _horaFimController = TextEditingController();
+  final TextEditingController _listaPresentesController = TextEditingController();
   
   // Variáveis para controle do formulário
   String _selectedLocal = 'Salão de Festas';
   bool _isCondominio = true;
   bool _isBlocoUnid = false;
-  bool _termoLocacao = false;
   
   @override
   void initState() {
@@ -42,6 +42,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
     _valorController.dispose();
     _horaInicioController.dispose();
     _horaFimController.dispose();
+    _listaPresentesController.dispose();
     super.dispose();
   }
 
@@ -473,53 +474,20 @@ class _ReservasScreenState extends State<ReservasScreen> {
           const SizedBox(height: 16.0),
           // Lista de presentes
           const Text(
-            'Lista de Presentes',
+            'Lista de Presentes (opcional)',
             style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8.0),
-          Container(
-            height: 80.0,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              children: const [
-                Text('1'),
-                Text('2'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          // Botão de upload
-          Row(
-            children: [
-              const Icon(Icons.visibility, color: Color(0xFF003E7E)),
-              const SizedBox(width: 8.0),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Fazer Upload da Lista',
-                  style: TextStyle(color: Color(0xFF003E7E)),
-                ),
+          TextField(
+            controller: _listaPresentesController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4.0),
               ),
-            ],
-          ),
-          // Termo de locação
-          Row(
-            children: [
-              Checkbox(
-                value: _termoLocacao,
-                onChanged: (value) {
-                  setState(() {
-                    _termoLocacao = value ?? false;
-                  });
-                },
-                activeColor: const Color(0xFF003E7E),
-              ),
-              const Text('Termo de Locação'),
-            ],
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              hintText: 'Digite aqui a lista de presentes desejados (opcional)',
+            ),
           ),
           const SizedBox(height: 16.0),
           // Botão de reservar
