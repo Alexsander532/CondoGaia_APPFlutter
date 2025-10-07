@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 import '../services/documento_service.dart';
 
 class NovaPastaScreen extends StatefulWidget {
@@ -24,6 +22,7 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
   List<String> _arquivos = [];
   bool _isLoading = false;
   String? _errorMessage;
+  bool _linkValido = true;
 
   @override
   void dispose() {
@@ -40,23 +39,49 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
       return;
     }
 
+    // Validar link se fornecido
+    if (_linkController.text.isNotEmpty && !_linkValido) {
+      setState(() {
+        _errorMessage = 'Link inválido. Deve começar com http://, https:// ou www.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      await DocumentoService.criarPasta(
+      // Criar a pasta primeiro
+      final pasta = await DocumentoService.criarPasta(
         nome: _nomePastaController.text.trim(),
         privado: _privacidade == 'Privado',
         condominioId: widget.condominioId,
         representanteId: widget.representanteId,
       );
       
+      // Adicionar link se fornecido
+      if (_linkController.text.isNotEmpty && _linkValido) {
+        await DocumentoService.adicionarArquivoComLink(
+          nome: 'Link - ${_linkController.text.trim()}',
+          linkExterno: _linkController.text.trim(),
+          privado: _privacidade == 'Privado',
+          pastaId: pasta.id,
+          condominioId: widget.condominioId,
+          representanteId: widget.representanteId,
+        );
+      }
+      
       if (mounted) {
         Navigator.pop(context, true); // Retorna true para indicar sucesso
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pasta criada com sucesso!')),
+          SnackBar(
+            content: Text(
+              'Pasta criada com sucesso!' +
+              (_linkController.text.isNotEmpty ? ' Link adicionado.' : '')
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -67,68 +92,19 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
     }
   }
 
-  // Método para selecionar e fazer upload de PDF do dispositivo
-  Future<void> _selecionarPDF() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
 
-      // Selecionar arquivo PDF do dispositivo
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        allowMultiple: false,
-      );
 
-      if (result != null && result.files.single.bytes != null) {
-        final bytes = result.files.single.bytes!;
-        String nomeArquivo = result.files.single.name;
-
-        // Validar se é realmente um PDF
-        if (!nomeArquivo.toLowerCase().endsWith('.pdf')) {
-          throw Exception('Apenas arquivos PDF são permitidos');
-        }
-
-        // Primeiro, criar uma pasta temporária se não houver nome definido
-        String nomePasta = _nomePastaController.text.trim();
-        if (nomePasta.isEmpty) {
-          nomePasta = 'Nova Pasta ${DateTime.now().millisecondsSinceEpoch}';
-        }
-
-        // Criar a pasta primeiro
-        final pasta = await DocumentoService.criarPasta(
-          nome: nomePasta,
-          privado: _privacidade == 'Privado',
-          condominioId: widget.condominioId,
-          representanteId: widget.representanteId,
-        );
-
-        // Fazer upload do arquivo na pasta criada usando bytes
-        await DocumentoService.adicionarArquivoComUploadBytes(
-          nome: nomeArquivo,
-          bytes: bytes,
-          descricao: 'Documento PDF enviado do dispositivo',
-          privado: _privacidade == 'Privado',
-          pastaId: pasta.id,
-          condominioId: widget.condominioId,
-          representanteId: widget.representanteId,
-        );
-
-        if (mounted) {
-          Navigator.pop(context, true); // Retorna true para indicar sucesso
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pasta criada e PDF adicionado com sucesso!')),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao selecionar PDF: $e';
-        _isLoading = false;
-      });
-    }
+  // Método para validar link em tempo real
+  void _validarLink(String link) {
+    setState(() {
+      _linkValido = link.isEmpty || 
+                   link.startsWith('http://') || 
+                   link.startsWith('https://') ||
+                   link.startsWith('www.');
+    });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -294,9 +270,9 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    // Seção Adicionar Arquivos
+                    // Seção Link Externo
                     const Text(
-                      'Adicionar Arquivos',
+                      'Link Externo',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -316,100 +292,57 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _linkController,
+                      onChanged: _validarLink,
                       decoration: InputDecoration(
+                        hintText: 'https://exemplo.com',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(
+                            color: _linkController.text.isNotEmpty && !_linkValido 
+                                ? Colors.red 
+                                : Colors.grey[300]!
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(
+                            color: _linkController.text.isNotEmpty && !_linkValido 
+                                ? Colors.red 
+                                : Colors.grey[300]!
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                          borderSide: BorderSide(
+                            color: _linkController.text.isNotEmpty && !_linkValido 
+                                ? Colors.red 
+                                : const Color(0xFF1E3A8A)
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
                         ),
+                        suffixIcon: _linkController.text.isNotEmpty
+                            ? Icon(
+                                _linkValido ? Icons.check_circle : Icons.error,
+                                color: _linkValido ? Colors.green : Colors.red,
+                              )
+                            : null,
                       ),
                     ),
+                    if (_linkController.text.isNotEmpty && !_linkValido)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Link deve começar com http://, https:// ou www.',
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 24),
-                    // Botões de ação
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  // TODO: Implementar tirar foto
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Tirar foto em desenvolvimento'),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[300]!),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt_outlined,
-                                    size: 30,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Tirar foto',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: _isLoading ? null : _selecionarPDF,
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: _isLoading ? Colors.grey[300]! : Colors.blue),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.cloud_upload_outlined,
-                                    size: 30,
-                                    color: _isLoading ? Colors.grey : Colors.blue,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Fazer Upload PDF',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
                     
                     // Mensagem de erro
                     if (_errorMessage != null)

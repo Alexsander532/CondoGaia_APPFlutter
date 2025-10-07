@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
@@ -42,6 +44,13 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   
   String selectedPrivacy = 'Público';
   final TextEditingController _linkController = TextEditingController();
+  
+  // Controle de arquivos temporários
+  List<File> _imagensTemporarias = [];
+  List<File> _pdfsTemporarios = [];
+  bool _linkValido = false;
+  bool _isUploadingFile = false;
+  final ImagePicker _picker = ImagePicker();
   
   // Lista de meses para exibição
   final List<String> _nomesMeses = [
@@ -387,6 +396,239 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     final extensoesImagem = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
     final nomeArquivo = balancete.nomeArquivo ?? '';
     return extensoesImagem.any((ext) => nomeArquivo.toLowerCase().endsWith(ext));
+  }
+
+  // Novos métodos para funcionalidades aprimoradas
+  
+  // Validação de link em tempo real
+  void _validarLink(String link) {
+    setState(() {
+      _linkValido = link.isNotEmpty && Uri.tryParse(link) != null;
+    });
+  }
+
+  // Método aprimorado para tirar foto com opções
+  Future<void> _selecionarImagem() async {
+    try {
+      // Verificar permissões
+      final cameraStatus = await Permission.camera.request();
+      final storageStatus = await Permission.storage.request();
+      
+      if (cameraStatus.isDenied || storageStatus.isDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permissões necessárias não foram concedidas')),
+          );
+        }
+        return;
+      }
+
+      // Mostrar opções de fonte
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Selecionar Imagem'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Câmera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Galeria'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source != null) {
+        setState(() {
+          _isUploadingFile = true;
+        });
+
+        final XFile? image = await _picker.pickImage(
+          source: source,
+          imageQuality: 85,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        );
+
+        if (image != null) {
+          final File imageFile = File(image.path);
+          setState(() {
+            _imagensTemporarias.add(imageFile);
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Imagem adicionada! Clique em "Salvar" para confirmar.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingFile = false;
+        });
+      }
+    }
+  }
+
+  // Método para selecionar PDF
+  Future<void> _selecionarPDF() async {
+    try {
+      setState(() {
+        _isUploadingFile = true;
+      });
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final File pdfFile = File(result.files.single.path!);
+        setState(() {
+          _pdfsTemporarios.add(pdfFile);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PDF adicionado! Clique em "Salvar" para confirmar.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao selecionar PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingFile = false;
+        });
+      }
+    }
+  }
+
+  // Método para remover arquivo temporário
+  void _removerArquivoTemporario(File arquivo) {
+    setState(() {
+      _imagensTemporarias.remove(arquivo);
+      _pdfsTemporarios.remove(arquivo);
+    });
+  }
+
+  // Método aprimorado para salvar todos os arquivos
+  Future<void> _salvarArquivos() async {
+    // Verificar se há algo para salvar
+    final temLink = _linkController.text.trim().isNotEmpty && _linkValido;
+    final temImagens = _imagensTemporarias.isNotEmpty;
+    final temPDFs = _pdfsTemporarios.isNotEmpty;
+
+    if (!temLink && !temImagens && !temPDFs) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Adicione pelo menos um arquivo ou link antes de salvar')),
+      );
+      return;
+    }
+
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      // Salvar link se existir
+      if (temLink) {
+        await DocumentoService.adicionarBalancete(
+          nomeArquivo: 'Link_${DateTime.now().millisecondsSinceEpoch}',
+          linkExterno: _linkController.text.trim(),
+          mes: _mesSelecionado.toString(),
+          ano: _anoSelecionado.toString(),
+          privado: selectedPrivacy == 'Privado',
+          condominioId: condominioId,
+          representanteId: representanteId,
+        );
+      }
+
+      // Salvar imagens
+      for (File imagem in _imagensTemporarias) {
+        await DocumentoService.adicionarBalanceteComUpload(
+          arquivo: imagem,
+          nomeArquivo: 'Imagem_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          mes: _mesSelecionado.toString(),
+          ano: _anoSelecionado.toString(),
+          privado: selectedPrivacy == 'Privado',
+          condominioId: condominioId,
+          representanteId: representanteId,
+        );
+      }
+
+      // Salvar PDFs
+      for (File pdf in _pdfsTemporarios) {
+        await DocumentoService.adicionarBalanceteComUpload(
+          arquivo: pdf,
+          nomeArquivo: 'PDF_${DateTime.now().millisecondsSinceEpoch}.pdf',
+          mes: _mesSelecionado.toString(),
+          ano: _anoSelecionado.toString(),
+          privado: selectedPrivacy == 'Privado',
+          condominioId: condominioId,
+          representanteId: representanteId,
+        );
+      }
+
+      // Limpar campos e arquivos temporários
+      _linkController.clear();
+      setState(() {
+        _imagensTemporarias.clear();
+        _pdfsTemporarios.clear();
+        _linkValido = false;
+      });
+
+      // Recarregar balancetes
+      await _carregarBalancetes();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Arquivos salvos com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar arquivos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
   
   @override
@@ -812,44 +1054,82 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           ),
           const SizedBox(height: 20),
           
-          // Botão de tirar foto
-          Center(
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: isLoading ? null : _tirarFoto,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: isLoading ? Colors.grey[200] : const Color(0xFF1E3A8A).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isLoading ? Colors.grey[300]! : const Color(0xFF1E3A8A)),
+          // Botões de ação
+          Row(
+            children: [
+              // Botão de tirar foto
+              Expanded(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: isLoading ? null : _tirarFoto,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: isLoading ? Colors.grey[200] : const Color(0xFF1E3A8A).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: isLoading ? Colors.grey[300]! : const Color(0xFF1E3A8A)),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          size: 30,
+                          color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      size: 30,
-                      color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tirar foto',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tirar foto',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isLoading ? Colors.grey : const Color(0xFF1E3A8A),
-                  ),
+              ),
+              const SizedBox(width: 20),
+              // Botão de upload PDF
+              Expanded(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: isLoading ? null : _selecionarPDF,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: isLoading ? Colors.grey[200] : Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: isLoading ? Colors.grey[300]! : Colors.blue),
+                        ),
+                        child: Icon(
+                          Icons.cloud_upload_outlined,
+                          size: 30,
+                          color: isLoading ? Colors.grey : Colors.blue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Upload PDF',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isLoading ? Colors.grey : Colors.blue,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 30),
           
           // Botão Adicionar arquivo
           Center(
             child: ElevatedButton(
-              onPressed: isLoading ? null : _adicionarLink,
+              onPressed: isLoading ? null : _salvarArquivos,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E3A8A),
                 foregroundColor: Colors.white,
@@ -862,7 +1142,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                 ),
               ),
               child: const Text(
-                'Adicionar arquivo',
+                'Salvar',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -871,6 +1151,59 @@ class _DocumentosScreenState extends State<DocumentosScreen>
             ),
           ),
           const SizedBox(height: 30),
+          
+          // Preview de PDFs selecionados
+          if (_pdfsTemporarios.isNotEmpty) ...[
+            const Text(
+              'PDFs Selecionados',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ...(_pdfsTemporarios.map((pdf) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        pdf.path.split('/').last,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _removerArquivoTemporario(pdf),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList()),
+            const SizedBox(height: 20),
+          ],
           
           // Lista de Arquivos
           const Text(
