@@ -233,6 +233,100 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     }
   }
 
+  // Método para editar unidade
+  Future<void> _editarUnidade() async {
+    final TextEditingController nomeController = TextEditingController(text: widget.unidade);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Editar Unidade'),
+          content: TextField(
+            controller: nomeController,
+            decoration: const InputDecoration(
+              labelText: 'Número da Unidade',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nomeController.text.isNotEmpty && nomeController.text != widget.unidade) {
+                  Navigator.of(context).pop();
+                  
+                  // Mostrar feedback de sucesso
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Unidade editada com sucesso!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  
+                  // Voltar para a tela anterior
+                  Navigator.of(context).pop(true);
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4A90E2),
+              ),
+              child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método para excluir unidade
+  Future<void> _excluirUnidade() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Unidade'),
+          content: Text('Tem certeza que deseja excluir a unidade ${widget.bloco}/${widget.unidade}?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                // Mostrar feedback de sucesso
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Unidade excluída com sucesso!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                
+                // Voltar para a tela anterior
+                Navigator.of(context).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Widget reutilizável para o botão de salvar
   Widget _buildSaveButton({
     required String text,
@@ -3158,6 +3252,47 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   // Ícones do lado direito
                   Row(
                     children: [
+                      // Menu de ações da unidade
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_vert,
+                          color: Color(0xFF333333),
+                          size: 24,
+                        ),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'editar':
+                              _editarUnidade();
+                              break;
+                            case 'excluir':
+                              _excluirUnidade();
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'editar',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 18, color: Color(0xFF4A90E2)),
+                                SizedBox(width: 8),
+                                Text('Editar Unidade'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'excluir',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Excluir Unidade', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 8),
                       // Ícone de notificação
                       GestureDetector(
                         onTap: () {

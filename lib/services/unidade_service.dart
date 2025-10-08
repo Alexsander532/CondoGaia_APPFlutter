@@ -249,4 +249,102 @@ class UnidadeService {
       return false;
     }
   }
+
+  /// Edita o nome de um bloco
+  Future<bool> editarBloco(String blocoId, String novoNome) async {
+    try {
+      final response = await _supabase
+          .from('blocos')
+          .update({'nome': novoNome})
+          .eq('id', blocoId);
+
+      return true;
+    } catch (e) {
+      print('Erro ao editar bloco: $e');
+      return false;
+    }
+  }
+
+  /// Edita o nome de uma unidade
+  Future<bool> editarUnidade(String unidadeId, String novoNome) async {
+    try {
+      final response = await _supabase
+          .from('unidades')
+          .update({'nome': novoNome})
+          .eq('id', unidadeId);
+
+      return true;
+    } catch (e) {
+      print('Erro ao editar unidade: $e');
+      return false;
+    }
+  }
+
+  /// Exclui um bloco e todas as suas unidades
+  Future<bool> deletarBloco(String blocoId) async {
+    try {
+      // Primeiro, exclui todas as unidades do bloco
+      await _supabase
+          .from('unidades')
+          .delete()
+          .eq('bloco_id', blocoId);
+
+      // Depois, exclui o bloco
+      await _supabase
+          .from('blocos')
+          .delete()
+          .eq('id', blocoId);
+
+      return true;
+    } catch (e) {
+      print('Erro ao deletar bloco: $e');
+      return false;
+    }
+  }
+
+  /// Exclui uma unidade específica
+  Future<bool> deletarUnidade(String unidadeId) async {
+    try {
+      await _supabase
+          .from('unidades')
+          .delete()
+          .eq('id', unidadeId);
+
+      return true;
+    } catch (e) {
+      print('Erro ao deletar unidade: $e');
+      return false;
+    }
+  }
+
+  /// Verifica se ainda existem unidades no condomínio
+  Future<bool> verificarSeExistemUnidades(String condominioId) async {
+    try {
+      final response = await _supabase
+          .from('unidades')
+          .select('id')
+          .eq('condominio_id', condominioId)
+          .limit(1);
+
+      return response.isNotEmpty;
+    } catch (e) {
+      print('Erro ao verificar unidades: $e');
+      return false;
+    }
+  }
+
+  /// Remove a configuração do condomínio (para reconfiguração)
+  Future<bool> removerConfiguracaoCondominio(String condominioId) async {
+    try {
+      await _supabase
+          .from('configuracao_condominio')
+          .delete()
+          .eq('condominio_id', condominioId);
+
+      return true;
+    } catch (e) {
+      print('Erro ao remover configuração: $e');
+      return false;
+    }
+  }
 }

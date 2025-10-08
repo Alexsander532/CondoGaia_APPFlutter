@@ -4,6 +4,8 @@ import 'configuracao_condominio_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
 import '../models/condominio.dart';
+import '../widgets/editable_text_widget.dart';
+import '../widgets/confirmation_dialog.dart';
 
 class UnidadeMoradorScreen extends StatefulWidget {
   final String? condominioId;
@@ -30,6 +32,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   bool _isLoading = true;
   bool _condominioConfigurado = false;
   String? _errorMessage;
+  
+  // Controle de operações em andamento
+  Set<String> _blocosEditando = {};
+  Set<String> _unidadesEditando = {};
+  Set<String> _blocosExcluindo = {};
+  Set<String> _unidadesExcluindo = {};
 
   @override
   void initState() {
@@ -151,11 +159,237 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     }
   }
 
-  Widget _buildUnidadeButton(String numero, String bloco, {bool temMoradores = false}) {
+  // Métodos para edição de blocos e unidades
+  Future<void> _editarBloco(String blocoId, String novoNome) async {
+    setState(() {
+      _blocosEditando.add(blocoId);
+    });
+
+    try {
+      final sucesso = await _unidadeService.editarBloco(blocoId, novoNome);
+      if (sucesso) {
+        await _carregarDados(); // Recarrega os dados para refletir a mudança
+      } else {
+        throw Exception('Falha ao editar bloco');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao editar bloco: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _blocosEditando.remove(blocoId);
+      });
+    }
+  }
+
+  Future<void> _editarUnidade(String unidadeId, String novoNome) async {
+    setState(() {
+      _unidadesEditando.add(unidadeId);
+    });
+
+    try {
+      final sucesso = await _unidadeService.editarUnidade(unidadeId, novoNome);
+      if (sucesso) {
+        await _carregarDados(); // Recarrega os dados para refletir a mudança
+      } else {
+        throw Exception('Falha ao editar unidade');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao editar unidade: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _unidadesEditando.remove(unidadeId);
+      });
+    }
+  }
+
+  // Métodos para exclusão de blocos e unidades
+  Future<void> _excluirBloco(String blocoId, String nomeBloco, int quantidadeUnidades) async {
+    final confirmado = await ConfirmationDialog.showDeleteBlocoDialog(
+      context: context,
+      nomeBloco: nomeBloco,
+      quantidadeUnidades: quantidadeUnidades,
+    );
+
+    if (!confirmado) return;
+
+    setState(() {
+      _blocosExcluindo.add(blocoId);
+    });
+
+    try {
+      final sucesso = await _unidadeService.deletarBloco(blocoId);
+      if (sucesso) {
+        await _carregarDados();
+        await _verificarSeNecessitaReconfiguracao();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bloco excluído com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Falha ao excluir bloco');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir bloco: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _blocosExcluindo.remove(blocoId);
+      });
+    }
+  }
+
+  Future<void> _excluirUnidade(String unidadeId, String nomeUnidade, String nomeBloco) async {
+    final confirmado = await ConfirmationDialog.showDeleteUnidadeDialog(
+      context: context,
+      nomeUnidade: nomeUnidade,
+      nomeBloco: nomeBloco,
+    );
+
+    if (!confirmado) return;
+
+    setState(() {
+      _unidadesExcluindo.add(unidadeId);
+    });
+
+    try {
+      final sucesso = await _unidadeService.deletarUnidade(unidadeId);
+      if (sucesso) {
+        await _carregarDados();
+        await _verificarSeNecessitaReconfiguracao();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unidade excluída com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Falha ao excluir unidade');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir unidade: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _unidadesExcluindo.remove(unidadeId);
+      });
+    }
+  }
+
+  // Verifica se todas as unidades foram excluídas e oferece reconfiguração
+  Future<void> _verificarSeNecessitaReconfiguracao() async {
+    if (widget.condominioId == null) return;
+
+    try {
+      final existemUnidades = await _unidadeService.verificarSeExistemUnidades(widget.condominioId!);
+      
+      if (!existemUnidades) {
+        final desejaReconfigurar = await ConfirmationDialog.showReconfigurationDialog(
+          context: context,
+        );
+
+        if (desejaReconfigurar) {
+          // Remove a configuração atual
+          await _unidadeService.removerConfiguracaoCondominio(widget.condominioId!);
+          // Recarrega a tela para mostrar a opção de configuração
+          _carregarDados();
+        }
+      }
+    } catch (e) {
+      print('Erro ao verificar necessidade de reconfiguração: $e');
+    }
+  }
+
+  // Mostra diálogo para edição de unidade
+  Future<void> _mostrarDialogoEdicaoUnidade(String unidadeId, String nomeAtual) async {
+    final controller = TextEditingController(text: nomeAtual);
+    
+    final novoNome = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Unidade'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Nome da unidade',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final nome = controller.text.trim();
+              if (nome.isNotEmpty && nome != nomeAtual) {
+                Navigator.of(context).pop(nome);
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+
+    if (novoNome != null) {
+      await _editarUnidade(unidadeId, novoNome);
+    }
+    
+    controller.dispose();
+  }
+
+  Widget _buildUnidadeButton(
+    String numero, 
+    String bloco, 
+    String unidadeId, 
+    String nomeBloco, {
+    bool temMoradores = false
+  }) {
+    final isEditando = _unidadesEditando.contains(unidadeId);
+    final isExcluindo = _unidadesExcluindo.contains(unidadeId);
+
     return Container(
       margin: const EdgeInsets.only(right: 8, bottom: 8),
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: isEditando || isExcluindo ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -172,23 +406,31 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: temMoradores ? const Color(0xFF4A90E2) : const Color(0xFFE0E0E0),
           foregroundColor: temMoradores ? Colors.white : const Color(0xFF757575),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          minimumSize: const Size(80, 52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(26),
           ),
           elevation: 2,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              numero,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            if (isEditando || isExcluindo)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Text(
+                numero,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            if (temMoradores) ...[
+            if (temMoradores && !isEditando && !isExcluindo) ...[
               const SizedBox(width: 4),
               const Icon(Icons.person, size: 16),
             ],
@@ -201,28 +443,54 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   Widget _buildBlocoSection(BlocoComUnidades blocoComUnidades) {
     final bloco = blocoComUnidades.bloco;
     final unidades = blocoComUnidades.unidades;
+    final isEditandoBloco = _blocosEditando.contains(bloco.id);
+    final isExcluindoBloco = _blocosExcluindo.contains(bloco.id);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nome do bloco com estatísticas
-          Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 12),
+          // Cabeçalho do bloco com nome editável e ações
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A90E2).withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
             child: Row(
               children: [
-                Text(
-                  bloco.nome,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2E3A59),
+                Expanded(
+                  child: EditableTextWidget(
+                    initialText: bloco.nome,
+                    onSave: (novoNome) => _editarBloco(bloco.id, novoNome),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2E3A59),
+                    ),
+                    hintText: 'Nome do bloco',
+                    enabled: !isEditandoBloco && !isExcluindoBloco,
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Estatísticas de ocupação
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4A90E2).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -236,16 +504,52 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                // Botões de ação do bloco
+                if (isEditandoBloco || isExcluindoBloco)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: Color(0xFF757575),
+                    ),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'excluir':
+                          _excluirBloco(bloco.id, bloco.nome, unidades.length);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'excluir',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 16, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Excluir Bloco', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
           // Unidades do bloco
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
             child: Wrap(
               children: unidades.map((unidade) => 
                 _buildUnidadeButton(
                   unidade.numero, 
+                  bloco.nome,
+                  unidade.id,
                   bloco.nome,
                   temMoradores: unidade.temMoradores,
                 )
