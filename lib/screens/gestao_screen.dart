@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'unidade_morador_screen.dart';
+import 'portaria_representante_screen.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -192,6 +193,17 @@ class _GestaoScreenState extends State<GestaoScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => UnidadeMoradorScreen(
+                                condominioId: widget.condominioId,
+                                condominioNome: widget.condominioNome,
+                                condominioCnpj: widget.condominioCnpj,
+                              ),
+                            ),
+                          );
+                        } else if (item['title'] == 'Portaria') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PortariaRepresentanteScreen(
                                 condominioId: widget.condominioId,
                                 condominioNome: widget.condominioNome,
                                 condominioCnpj: widget.condominioCnpj,

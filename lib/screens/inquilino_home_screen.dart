@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
+import 'portaria_inquilino_screen.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -217,7 +218,17 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                             imagePath: 'assets/images/HOME_Inquilino/Portaria_icone_Inquilino.png',
                             title: 'Portaria',
                             onTap: () {
-                              // TODO: Implementar navegação para portaria
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PortariaInquilinoScreen(
+                                    condominioId: widget.condominioId,
+                                    condominioNome: widget.condominioNome,
+                                    condominioCnpj: widget.condominioCnpj,
+                                    inquilinoId: widget.inquilinoId,
+                                  ),
+                                ),
+                              );
                             },
                           ),
                    ],
