@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'chat_representante_screen.dart';
 
 class PortariaRepresentanteScreen extends StatefulWidget {
   final String? condominioId;
@@ -43,6 +44,11 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   
   // Estados
   bool _isUnidadeSelecionada = true; // true = Unidade, false = Condomínio
+  
+  // Estados para controlar expansão/retração das seções
+  bool _isVisitanteExpanded = true;
+  bool _isUnidadeCondominioExpanded = true;
+  bool _isVeiculoExpanded = true;
 
   @override
   void initState() {
@@ -141,6 +147,22 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
               height: 1,
               color: const Color(0xFFE0E0E0),
             ),
+
+            // Título da página
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.white, // Cor de fundo branca
+              child: const Text(
+                'Home/Gestão/Portaria',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
             
             // TabBar com scroll horizontal
             Container(
@@ -213,6 +235,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   Widget _buildTabContent(String tabName) {
     if (tabName == 'Adicionar') {
       return _buildAdicionarContent();
+    } else if (tabName == 'Mensagem') {
+      return _buildMensagemTab();
     }
     
     return Container(
@@ -293,134 +317,155 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título da seção
-          Row(
-            children: [
-              const Icon(
-                Icons.person,
-                color: Color(0xFF2E3A59),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Visitante',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+          // Título da seção com funcionalidade de toggle
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isVisitanteExpanded = !_isVisitanteExpanded;
+              });
+            },
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.person,
                   color: Color(0xFF2E3A59),
-                ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.keyboard_arrow_down,
-                color: Color(0xFF666666),
-                size: 24,
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo Nome
-          _buildTextField(
-            label: 'Nome:',
-            controller: _visitanteNomeController,
-            hintText: 'José Marcos da Silva',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo CPF/CNPJ
-          _buildTextField(
-            label: 'CPF/CNPJ:',
-            controller: _visitanteCpfCnpjController,
-            hintText: '88595-946.2',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo Endereço
-          _buildTextField(
-            label: 'Endereço:',
-            controller: _visitanteEnderecoController,
-            hintText: 'Rua Almirante Carlos Guedert',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Linha com Telefone e Celular
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  label: 'Telefone:',
-                  controller: _visitanteTelefoneController,
-                  hintText: '51 3246-5666',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  label: 'Celular:',
-                  controller: _visitanteCelularController,
-                  hintText: '51 9996-32541',
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo Email
-          _buildTextField(
-            label: 'Email:',
-            controller: _visitanteEmailController,
-            hintText: 'josesilva@gmail.com',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo OBS
-          _buildTextField(
-            label: 'OBS:',
-            controller: _visitanteObsController,
-            hintText: '',
-            maxLines: 3,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Botão Anexar foto
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.camera_alt_outlined,
-                  color: Color(0xFF666666),
                   size: 20,
                 ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  // TODO: Implementar anexar foto
-                },
-                child: const Text(
-                  'Anexar foto',
+                const SizedBox(width: 8),
+                const Text(
+                  'Visitante',
                   style: TextStyle(
-                    color: Color(0xFF1976D2),
-                    fontSize: 14,
-                    decoration: TextDecoration.underline,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E3A59),
                   ),
                 ),
-              ),
-            ],
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _isVisitanteExpanded ? 0.0 : -0.5,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF666666),
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Conteúdo expansível da seção
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: _isVisitanteExpanded ? null : 0,
+            child: _isVisitanteExpanded ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                
+                // Campo Nome
+                _buildTextField(
+                  label: 'Nome:',
+                  controller: _visitanteNomeController,
+                  hintText: 'José Marcos da Silva',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo CPF/CNPJ
+                _buildTextField(
+                  label: 'CPF/CNPJ:',
+                  controller: _visitanteCpfCnpjController,
+                  hintText: '88595-946.2',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo Endereço
+                _buildTextField(
+                  label: 'Endereço:',
+                  controller: _visitanteEnderecoController,
+                  hintText: 'Rua Almirante Carlos Guedert',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Linha com Telefone e Celular
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'Telefone:',
+                        controller: _visitanteTelefoneController,
+                        hintText: '51 3246-5666',
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'Celular:',
+                        controller: _visitanteCelularController,
+                        hintText: '51 9996-32541',
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo Email
+                _buildTextField(
+                  label: 'Email:',
+                  controller: _visitanteEmailController,
+                  hintText: 'josesilva@gmail.com',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo OBS
+                _buildTextField(
+                  label: 'OBS:',
+                  controller: _visitanteObsController,
+                  hintText: '',
+                  maxLines: 3,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Botão Anexar foto
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: Color(0xFF666666),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () {
+                        // TODO: Implementar anexar foto
+                      },
+                      child: const Text(
+                        'Anexar foto',
+                        style: TextStyle(
+                          color: Color(0xFF1976D2),
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ) : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -438,147 +483,168 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título da seção com toggle
-          Row(
-            children: [
-              const Icon(
-                Icons.business,
-                color: Color(0xFF2E3A59),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Unidade/Condomínio',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E3A59),
-                ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.keyboard_arrow_down,
-                color: Color(0xFF666666),
-                size: 24,
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Toggle Unidade/Condomínio
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isUnidadeSelecionada = true;
-                  });
-                },
-                child: Row(
-                  children: [
-                    Icon(
-                      _isUnidadeSelecionada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                      color: _isUnidadeSelecionada ? const Color(0xFF1976D2) : const Color(0xFF666666),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Unidade',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _isUnidadeSelecionada ? const Color(0xFF2E3A59) : const Color(0xFF666666),
-                        fontWeight: _isUnidadeSelecionada ? FontWeight.w500 : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isUnidadeSelecionada = false;
-                  });
-                },
-                child: Row(
-                  children: [
-                    Icon(
-                      !_isUnidadeSelecionada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                      color: !_isUnidadeSelecionada ? const Color(0xFF1976D2) : const Color(0xFF666666),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Condomínio',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: !_isUnidadeSelecionada ? const Color(0xFF2E3A59) : const Color(0xFF666666),
-                        fontWeight: !_isUnidadeSelecionada ? FontWeight.w500 : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo de busca
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-            ),
+          // Título da seção com funcionalidade de toggle
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isUnidadeCondominioExpanded = !_isUnidadeCondominioExpanded;
+              });
+            },
             child: Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    'Pesquisar unidade/bloco ou nome',
-                    style: TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 14,
-                    ),
+                const Icon(
+                  Icons.business,
+                  color: Color(0xFF2E3A59),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Unidade/Condomínio',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E3A59),
                   ),
                 ),
-                const Icon(
-                  Icons.search,
-                  color: Color(0xFF666666),
-                  size: 20,
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _isUnidadeCondominioExpanded ? 0.0 : -0.5,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF666666),
+                    size: 24,
+                  ),
                 ),
               ],
             ),
           ),
           
-          const SizedBox(height: 16),
-          
-          // Campo Nome
-          _buildTextField(
-            label: 'Nome:',
-            controller: _unidadeNomeController,
-            hintText: '',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo Bloco/Unid.
-          _buildTextField(
-            label: 'Bloco/Unid.:',
-            controller: _unidadeBlocoController,
-            hintText: '',
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo OBS
-          _buildTextField(
-            label: 'OBS:',
-            controller: _unidadeObsController,
-            hintText: '',
-            maxLines: 3,
+          // Conteúdo expansível da seção
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: _isUnidadeCondominioExpanded ? null : 0,
+            child: _isUnidadeCondominioExpanded ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                
+                // Toggle Unidade/Condomínio
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isUnidadeSelecionada = true;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isUnidadeSelecionada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                            color: _isUnidadeSelecionada ? const Color(0xFF1976D2) : const Color(0xFF666666),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Unidade',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _isUnidadeSelecionada ? const Color(0xFF2E3A59) : const Color(0xFF666666),
+                              fontWeight: _isUnidadeSelecionada ? FontWeight.w500 : FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isUnidadeSelecionada = false;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            !_isUnidadeSelecionada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                            color: !_isUnidadeSelecionada ? const Color(0xFF1976D2) : const Color(0xFF666666),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Condomínio',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: !_isUnidadeSelecionada ? const Color(0xFF2E3A59) : const Color(0xFF666666),
+                              fontWeight: !_isUnidadeSelecionada ? FontWeight.w500 : FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo de busca
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Pesquisar unidade/bloco ou nome',
+                          style: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.search,
+                        color: Color(0xFF666666),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo Nome
+                _buildTextField(
+                  label: 'Nome:',
+                  controller: _unidadeNomeController,
+                  hintText: '',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo Bloco/Unid.
+                _buildTextField(
+                  label: 'Bloco/Unid.:',
+                  controller: _unidadeBlocoController,
+                  hintText: '',
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo OBS
+                _buildTextField(
+                  label: 'OBS:',
+                  controller: _unidadeObsController,
+                  hintText: '',
+                  maxLines: 3,
+                ),
+              ],
+            ) : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -597,85 +663,106 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Título da seção
-          Row(
-            children: [
-              const Icon(
-                Icons.directions_car,
-                color: Color(0xFF2E3A59),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Veículo(s)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isVeiculoExpanded = !_isVeiculoExpanded;
+              });
+            },
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.directions_car,
                   color: Color(0xFF2E3A59),
+                  size: 20,
                 ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.keyboard_arrow_down,
-                color: Color(0xFF666666),
-                size: 24,
-              ),
-            ],
+                const SizedBox(width: 8),
+                const Text(
+                  'Veículo(s)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E3A59),
+                  ),
+                ),
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _isVeiculoExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF666666),
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Linha com Carro/Moto e Marca
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  label: 'Carro/Moto:',
-                  controller: _veiculoCarroMotoController,
-                  hintText: 'Carro',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  label: 'Marca:',
-                  controller: _veiculoMarcaController,
-                  hintText: 'Fiat',
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Linha com Placa e Modelo
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  label: 'Placa:',
-                  controller: _veiculoPlacaController,
-                  hintText: 'ABC1243',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  label: 'Modelo:',
-                  controller: _veiculoModeloController,
-                  hintText: 'Fiat Argo',
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Campo Cor
-          _buildTextField(
-            label: 'Cor:',
-            controller: _veiculoCorController,
-            hintText: 'Preto',
-          ),
+           
+           // Conteúdo expansível da seção
+           AnimatedContainer(
+             duration: const Duration(milliseconds: 300),
+             height: _isVeiculoExpanded ? null : 0,
+             child: _isVeiculoExpanded ? Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 const SizedBox(height: 16),
+                 
+                 // Linha com Carro/Moto e Marca
+                 Row(
+                   children: [
+                     Expanded(
+                       child: _buildTextField(
+                         label: 'Carro/Moto:',
+                         controller: _veiculoCarroMotoController,
+                         hintText: 'Carro',
+                       ),
+                     ),
+                     const SizedBox(width: 16),
+                     Expanded(
+                       child: _buildTextField(
+                         label: 'Marca:',
+                         controller: _veiculoMarcaController,
+                         hintText: 'Fiat',
+                       ),
+                     ),
+                   ],
+                 ),
+                 
+                 const SizedBox(height: 16),
+                 
+                 // Linha com Placa e Modelo
+                 Row(
+                   children: [
+                     Expanded(
+                       child: _buildTextField(
+                         label: 'Placa:',
+                         controller: _veiculoPlacaController,
+                         hintText: 'ABC1243',
+                       ),
+                     ),
+                     const SizedBox(width: 16),
+                     Expanded(
+                       child: _buildTextField(
+                         label: 'Modelo:',
+                         controller: _veiculoModeloController,
+                         hintText: 'Fiat Argo',
+                       ),
+                     ),
+                   ],
+                 ),
+                 
+                 const SizedBox(height: 16),
+                 
+                 // Campo Cor
+                 _buildTextField(
+                   label: 'Cor:',
+                   controller: _veiculoCorController,
+                   hintText: 'Preto',
+                 ),
+               ],
+             ) : const SizedBox.shrink(),
+           ),
         ],
       ),
     );
@@ -752,6 +839,125 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
+    );
+  }
+
+  // Widget para a aba Mensagem
+  Widget _buildMensagemTab() {
+    // Dados mockados de mensagens
+    final List<Map<String, dynamic>> mensagens = [
+      {
+        'nome': 'Luana Sichieri',
+        'apartamento': 'B/501',
+        'data': '25/11/2023 17:20',
+        'icone': Icons.person,
+        'corFundo': const Color(0xFF2C3E50),
+      },
+      {
+        'nome': 'João Moreira',
+        'apartamento': 'A/400',
+        'data': '24/11/2023 07:20',
+        'icone': Icons.person_outline,
+        'corFundo': const Color(0xFF4A90E2),
+      },
+      {
+        'nome': 'Pedro Tebet',
+        'apartamento': 'C/200',
+        'data': '25/10/2023 17:20',
+        'icone': Icons.person_outline,
+        'corFundo': const Color(0xFF4A90E2),
+      },
+      {
+        'nome': 'Rui Guerra',
+        'apartamento': 'D/301',
+        'data': '25/09/2023 17:20',
+        'icone': Icons.person_outline,
+        'corFundo': const Color(0xFF4A90E2),
+      },
+    ];
+
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: mensagens.length,
+        itemBuilder: (context, index) {
+          final mensagem = mensagens[index];
+          return _buildMensagemCard(
+            nome: mensagem['nome'],
+            apartamento: mensagem['apartamento'],
+            data: mensagem['data'],
+            icone: mensagem['icone'],
+            corFundo: mensagem['corFundo'],
+          );
+        },
+      ),
+    );
+  }
+
+  // Widget do card de mensagem
+  Widget _buildMensagemCard({
+    required String nome,
+    required String apartamento,
+    required String data,
+    required IconData icone,
+    required Color corFundo,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: corFundo,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icone,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          '$nome  $apartamento',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
+        subtitle: Text(
+          data,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF7F8C8D),
+          ),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatRepresentanteScreen(
+                nomeContato: nome,
+                apartamento: apartamento,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
