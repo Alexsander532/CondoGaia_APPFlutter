@@ -380,9 +380,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     String numero, 
     String bloco, 
     String unidadeId, 
-    String nomeBloco, {
-    bool temMoradores = false
-  }) {
+    String nomeBloco
+  ) {
     final isEditando = _unidadesEditando.contains(unidadeId);
     final isExcluindo = _unidadesExcluindo.contains(unidadeId);
 
@@ -404,8 +403,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           );
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: temMoradores ? const Color(0xFF4A90E2) : const Color(0xFFE0E0E0),
-          foregroundColor: temMoradores ? Colors.white : const Color(0xFF757575),
+          backgroundColor: const Color(0xFF4A90E2),
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           minimumSize: const Size(80, 52),
           shape: RoundedRectangleBorder(
@@ -430,10 +429,6 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            if (temMoradores && !isEditando && !isExcluindo) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.person, size: 16),
-            ],
           ],
         ),
       ),
@@ -551,7 +546,6 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   bloco.nome,
                   unidade.id,
                   bloco.nome,
-                  temMoradores: unidade.temMoradores,
                 )
               ).toList(),
             ),

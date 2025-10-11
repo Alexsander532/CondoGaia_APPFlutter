@@ -30,11 +30,8 @@ class BlocoComUnidades {
           .map((unidadeData) => Unidade(
                 id: unidadeData['id'] ?? '',
                 condominioId: '', // Será preenchido pelo contexto
-                blocoId: blocoData['id'] ?? '',
                 numero: unidadeData['numero'] ?? '',
-                temProprietario: unidadeData['tem_proprietario'] ?? false,
-                temInquilino: unidadeData['tem_inquilino'] ?? false,
-                temImobiliaria: unidadeData['tem_imobiliaria'] ?? false,
+                bloco: blocoData['nome'] ?? '',
                 ativo: unidadeData['ativo'] ?? true,
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
@@ -45,10 +42,13 @@ class BlocoComUnidades {
 
   // Estatísticas do bloco
   int get totalUnidades => unidades.length;
-  int get unidadesOcupadas => unidades.where((u) => u.temMoradores).length;
+  // Como o novo modelo não tem mais temMoradores, consideramos todas as unidades ativas como potencialmente ocupadas
+  int get unidadesOcupadas => unidades.where((u) => u.ativo).length;
   int get totalUnidadesOcupadas => unidadesOcupadas; // Alias para compatibilidade
-  int get unidadesVazias => unidades.where((u) => !u.temMoradores && !u.temImobiliaria).length;
-  int get unidadesComImobiliaria => unidades.where((u) => u.temImobiliaria).length;
+  // Para unidades vazias, consideramos as inativas ou sem dados preenchidos
+  int get unidadesVazias => unidades.where((u) => !u.ativo || (u.numero.isEmpty)).length;
+  // Como não temos mais temImobiliaria, retornamos 0 por enquanto
+  int get unidadesComImobiliaria => 0;
 
   // Ordenar unidades por número
   List<Unidade> get unidadesOrdenadas {
