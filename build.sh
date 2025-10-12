@@ -1,30 +1,39 @@
 #!/bin/bash
 
-# Script de build para Flutter na Vercel
+# Configurações
+FLUTTER_VERSION="3.35.0"
+FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+
 echo "🚀 Iniciando build do Flutter..."
 
-# Download e instalação do Flutter
-echo "📦 Baixando Flutter 3.27.1..."
-curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.27.1-stable.tar.xz | tar -xJ
+# Baixar e instalar Flutter
+echo "📦 Baixando Flutter ${FLUTTER_VERSION}..."
+cd /tmp
+curl -L -o flutter.tar.xz "$FLUTTER_URL"
+tar -xf flutter.tar.xz
 
-# Configuração do PATH
-export PATH="$PWD/flutter/bin:$PATH"
+# Configurar PATH
+export PATH="/tmp/flutter/bin:$PATH"
 
-# Correção de permissões Git
-git config --global --add safe.directory /vercel/path0/flutter
+# Configurar Git para evitar problemas de permissão
+git config --global --add safe.directory /vercel/path0
+git config --global --add safe.directory /tmp/flutter
 
-# Desabilitar analytics
+# Desabilitar analytics do Flutter
 flutter config --no-analytics
 
-# Verificar versão
+# Verificar versão do Flutter
 echo "✅ Versão do Flutter:"
 flutter --version
+
+# Voltar para o diretório do projeto
+cd /vercel/path0
 
 # Instalar dependências
 echo "📚 Instalando dependências..."
 flutter pub get
 
-# Build para web
+# Fazer build para web
 echo "🔨 Fazendo build para web..."
 flutter build web --release
 
