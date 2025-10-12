@@ -648,7 +648,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                         child: SizedBox(
                           width: 220,
                           child: ElevatedButton(
-                          onPressed: _condominioConfigurado ? null : _navegarParaConfiguracao,
+                          onPressed: _navegarParaConfiguracao,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _condominioConfigurado 
                               ? const Color(0xFF4CAF50) 
@@ -671,7 +671,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  _condominioConfigurado ? Icons.check : Icons.settings,
+                                  _condominioConfigurado ? Icons.edit : Icons.settings,
                                   color: _condominioConfigurado 
                                     ? const Color(0xFF4CAF50) 
                                     : const Color(0xFF007AFF),
@@ -681,7 +681,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 _condominioConfigurado 
-                                  ? 'Condomínio Configurado' 
+                                  ? 'Editar Configuração' 
                                   : 'Configurar Condomínio',
                                 style: const TextStyle(
                                   fontSize: 16,

@@ -79,17 +79,17 @@ class UnidadeService {
 
   /// Obtém estatísticas do condomínio
   /// Usa a função estatisticas_condominio do banco
-  Future<EstatisticasCondominio> obterEstatisticasCondominio(String condominioId) async {
+  Future<Map<String, dynamic>?> obterEstatisticasCondominio(String condominioId) async {
     try {
       final response = await _supabase.rpc('estatisticas_condominio', params: {
         'p_condominio_id': condominioId,
       });
 
       if (response == null) {
-        throw Exception('Erro ao obter estatísticas');
+        return null;
       }
 
-      return EstatisticasCondominio.fromJson(response);
+      return Map<String, dynamic>.from(response);
     } catch (e) {
       throw Exception('Erro ao obter estatísticas: $e');
     }
@@ -345,6 +345,82 @@ class UnidadeService {
     } catch (e) {
       print('Erro ao remover configuração: $e');
       return false;
+    }
+  }
+
+  /// Cria um novo bloco com parâmetros nomeados
+  Future<Bloco> criarBlocoComParametros({
+    required String condominioId,
+    required String nome,
+    required String codigo,
+    required int ordem,
+  }) async {
+    try {
+      final bloco = Bloco.novo(
+        condominioId: condominioId,
+        nome: nome,
+        codigo: codigo,
+        ordem: ordem,
+      );
+
+      final response = await _supabase
+          .from('blocos')
+          .insert(bloco.toJson())
+          .select()
+          .single();
+
+      return Bloco.fromJson(response);
+    } catch (e) {
+      throw Exception('Erro ao criar bloco: $e');
+    }
+  }
+
+  /// Cria uma nova unidade com parâmetros nomeados
+  Future<Unidade> criarUnidadeComParametros({
+    required String condominioId,
+    required String numero,
+    required String bloco,
+    required String tipoUnidade,
+  }) async {
+    try {
+      final unidade = Unidade.nova(
+        condominioId: condominioId,
+        numero: numero,
+        bloco: bloco,
+        tipoUnidade: tipoUnidade,
+      );
+
+      final response = await _supabase
+          .from('unidades')
+          .insert(unidade.toJson())
+          .select()
+          .single();
+
+      return Unidade.fromJson(response);
+    } catch (e) {
+      throw Exception('Erro ao criar unidade: $e');
+    }
+  }
+
+  /// Atualiza a configuração do condomínio
+  Future<void> atualizarConfiguracaoCondominio(
+    String condominioId,
+    int totalBlocos,
+    int unidadesPorBloco,
+    bool usarLetrasBloco,
+  ) async {
+    try {
+      await _supabase
+          .from('configuracao_condominio')
+          .update({
+            'total_blocos': totalBlocos,
+            'unidades_por_bloco': unidadesPorBloco,
+            'usar_letras_blocos': usarLetrasBloco,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('condominio_id', condominioId);
+    } catch (e) {
+      throw Exception('Erro ao atualizar configuração: $e');
     }
   }
 }
