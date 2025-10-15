@@ -84,14 +84,39 @@ class AuthService {
       }
 
       // Se não encontrou admin ou senha incorreta, tentar como representante
+      final emailOriginal = email.trim();
+      print('DEBUG: Tentando login como representante');
+      print('DEBUG: Email original: "$email"');
+      print('DEBUG: Email para busca: "$emailOriginal"');
+      
       final representanteResponse = await _supabase
           .from('representantes')
           .select()
-          .eq('email', email.toLowerCase().trim()) // Buscar representante por email
+          .ilike('email', emailOriginal) // Buscar representante por email (case-insensitive)
           .maybeSingle();
+
+      print('DEBUG: Resposta da busca de representante: $representanteResponse');
+      
+      // Debug: Listar todos os emails de representantes para comparação
+      try {
+        final todosRepresentantes = await _supabase
+            .from('representantes')
+            .select('email, nome_completo')
+            .limit(10);
+        print('DEBUG: Todos os representantes na tabela:');
+        for (var rep in todosRepresentantes) {
+          print('  - Email: "${rep['email']}" | Nome: "${rep['nome_completo']}"');
+        }
+      } catch (e) {
+        print('DEBUG: Erro ao listar representantes: $e');
+      }
 
       if (representanteResponse != null) {
         final representante = Representante.fromJson(representanteResponse);
+        print('DEBUG: Representante encontrado: ${representante.nomeCompleto}');
+        print('DEBUG: Senha armazenada no banco: "${representante.senhaAcesso}"');
+        print('DEBUG: Senha fornecida pelo usuário: "$password"');
+        print('DEBUG: Senhas são iguais? ${representante.senhaAcesso == password}');
         
         // Verificar senha diretamente (representantes usam senha simples)
         if (representante.senhaAcesso == password) {
@@ -184,7 +209,7 @@ class AuthService {
         final response = await _supabase
             .from('representantes')
             .select()
-            .eq('cpf', email)
+            .ilike('email', email)
             .maybeSingle();
 
         if (response == null) {

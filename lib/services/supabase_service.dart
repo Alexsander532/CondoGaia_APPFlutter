@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/password_generator.dart';
 
 class SupabaseService {
   static const String supabaseUrl = 'https://tukpgefrddfchmvtiujp.supabase.co';
@@ -99,11 +100,32 @@ class SupabaseService {
   /// Insere um novo representante na tabela representantes
   static Future<Map<String, dynamic>?> saveRepresentante(Map<String, dynamic> representanteData) async {
     try {
+      // Gerar senha automática baseada no nome do representante
+      final nomeCompleto = representanteData['nome_completo'] as String? ?? '';
+      print('DEBUG: Nome completo para geração de senha: "$nomeCompleto"');
+      
+      final senhaGerada = PasswordGenerator.generatePasswordFromName(nomeCompleto);
+      print('DEBUG: Senha gerada: "$senhaGerada"');
+      
+      // Adicionar a senha gerada aos dados do representante
+      final dadosComSenha = Map<String, dynamic>.from(representanteData);
+      dadosComSenha['senha_acesso'] = senhaGerada;
+      
+      print('DEBUG: Dados que serão inseridos no banco:');
+      print('  - Email: ${dadosComSenha['email']}');
+      print('  - Nome: ${dadosComSenha['nome_completo']}');
+      print('  - Senha: ${dadosComSenha['senha_acesso']}');
+      
       final response = await client
           .from('representantes')
-          .insert(representanteData)
+          .insert(dadosComSenha)
           .select()
           .single();
+      
+      print('DEBUG: Representante criado com sucesso. Resposta do banco:');
+      print('  - ID: ${response['id']}');
+      print('  - Email: ${response['email']}');
+      print('  - Senha salva: ${response['senha_acesso']}');
       
       return response;
     } catch (e) {
@@ -1050,6 +1072,65 @@ class SupabaseService {
       return response;
     } catch (e) {
       print('Erro ao fazer download do arquivo: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca todos os representantes com dados dos condomínios associados para exibição na tela do administrador
+  static Future<List<Map<String, dynamic>>> getRepresentantesComCondominiosParaAdmin() async {
+    try {
+      // Busca representantes com seus condomínios usando JOIN
+      final response = await client
+          .from('representantes')
+          .select('''
+            id,
+            nome_completo,
+            email,
+            senha_acesso,
+            cpf,
+            telefone,
+            celular,
+            cidade,
+            uf,
+            created_at,
+            condominios!condominios_representante_id_fkey(
+              id,
+              nome_condominio,
+              cnpj,
+              cidade,
+              estado
+            )
+          ''')
+          .order('created_at', ascending: false);
+      
+      // Processa os resultados para criar uma estrutura mais amigável
+      final resultados = <Map<String, dynamic>>[];
+      
+      for (final representante in response) {
+        final condominios = representante['condominios'] as List<dynamic>? ?? [];
+        
+        // Cria um mapa com os dados do representante e seus condomínios
+        final representanteData = {
+          'id': representante['id'],
+          'nome_completo': representante['nome_completo'],
+          'email': representante['email'],
+          'senha_acesso': representante['senha_acesso'],
+          'cpf': representante['cpf'],
+          'telefone': representante['telefone'],
+          'celular': representante['celular'],
+          'cidade': representante['cidade'],
+          'uf': representante['uf'],
+          'created_at': representante['created_at'],
+          'condominios': condominios,
+          'total_condominios': condominios.length,
+        };
+        
+        resultados.add(representanteData);
+      }
+      
+      return resultados;
+    } catch (e) {
+      print('Erro ao buscar representantes com condomínios para admin: $e');
       rethrow;
     }
   }

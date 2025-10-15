@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'detalhes_unidade_screen.dart';
-import 'configuracao_condominio_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
-import '../models/condominio.dart';
 import '../widgets/editable_text_widget.dart';
 import '../widgets/confirmation_dialog.dart';
 
@@ -30,7 +28,6 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   List<BlocoComUnidades> _blocosUnidades = [];
   List<BlocoComUnidades> _blocosUnidadesFiltrados = [];
   bool _isLoading = true;
-  bool _condominioConfigurado = false;
   String? _errorMessage;
   
   // Controle de operações em andamento
@@ -68,25 +65,13 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     });
 
     try {
-      // Verifica se o condomínio já foi configurado
-      final jaConfigurado = await _unidadeService.condominioJaConfigurado(widget.condominioId!);
-      
-      if (jaConfigurado) {
-        // Carrega os dados do banco
-        final blocosUnidades = await _unidadeService.listarUnidadesCondominio(widget.condominioId!);
-        setState(() {
-          _blocosUnidades = blocosUnidades;
-          _blocosUnidadesFiltrados = blocosUnidades;
-          _condominioConfigurado = true;
-          _isLoading = false;
-        });
-      } else {
-        // Condomínio não configurado
-        setState(() {
-          _condominioConfigurado = false;
-          _isLoading = false;
-        });
-      }
+      // Carrega os dados do banco
+      final blocosUnidades = await _unidadeService.listarUnidadesCondominio(widget.condominioId!);
+      setState(() {
+        _blocosUnidades = blocosUnidades;
+        _blocosUnidadesFiltrados = blocosUnidades;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao carregar dados: $e';
@@ -120,44 +105,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     });
   }
 
-  Future<void> _navegarParaConfiguracao() async {
-    if (widget.condominioId == null || widget.condominioNome == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dados do condomínio não disponíveis'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
 
-    final condominio = Condominio(
-      id: widget.condominioId!,
-      nomeCondominio: widget.condominioNome!,
-      cnpj: widget.condominioCnpj ?? '',
-      cep: '',
-      endereco: '',
-      numero: '',
-      bairro: '',
-      cidade: '',
-      estado: '',
-      ativo: true,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    final resultado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ConfiguracaoCondominioScreen(condominio: condominio),
-      ),
-    );
-
-    // Se a configuração foi bem-sucedida, recarrega os dados
-    if (resultado == true) {
-      _carregarDados();
-    }
-  }
 
   // Métodos para edição de blocos e unidades
   Future<void> _editarBloco(String blocoId, String novoNome) async {
@@ -641,61 +589,6 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                 color: Colors.white,
                 child: Column(
                   children: [
-                    // Botão de ação principal
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Center(
-                        child: SizedBox(
-                          width: 220,
-                          child: ElevatedButton(
-                          onPressed: _navegarParaConfiguracao,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _condominioConfigurado 
-                              ? const Color(0xFF4CAF50) 
-                              : const Color(0xFF007AFF),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            elevation: 1,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  _condominioConfigurado ? Icons.edit : Icons.settings,
-                                  color: _condominioConfigurado 
-                                    ? const Color(0xFF4CAF50) 
-                                    : const Color(0xFF007AFF),
-                                  size: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _condominioConfigurado 
-                                  ? 'Editar Configuração' 
-                                  : 'Configurar Condomínio',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          ),
-                        ),
-                      ),
-                    ),
-
                     // Campo de pesquisa
                     Container(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -810,48 +703,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
     }
 
-    if (!_condominioConfigurado) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.settings,
-              size: 64,
-              color: Color(0xFF4A90E2),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Condomínio não configurado',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2E3A59),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Configure os blocos e unidades\npara começar a usar o sistema',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _navegarParaConfiguracao,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              ),
-              child: const Text('Configurar Agora'),
-            ),
-          ],
-        ),
-      );
-    }
+
 
     if (_blocosUnidadesFiltrados.isEmpty) {
       return const Center(

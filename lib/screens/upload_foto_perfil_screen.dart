@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:condogaiaapp/screens/representante_home_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/representante.dart';
 import '../services/supabase_service.dart';
-import 'representante_home_screen.dart';
+import 'representante_dashboard_screen.dart';
 
 // Conditional import for File (only for mobile/desktop)
 import 'dart:io' if (dart.library.html) 'dart:html' as io;
@@ -119,13 +118,10 @@ class _UploadFotoPerfilScreenState extends State<UploadFotoPerfilScreen> {
           // Navegar para o dashboard
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => RepresentanteHomeScreen(
+              builder: (context) => RepresentanteDashboardScreen(
                 representante: widget.representante.copyWith(
                   fotoPerfil: _imageBase64,
                 ),
-                condominioId: '', // TODO: Obter do contexto
-                condominioNome: '', // TODO: Obter do contexto
-                condominioCnpj: '', // TODO: Obter do contexto
               ),
             ),
           );
@@ -160,11 +156,8 @@ class _UploadFotoPerfilScreenState extends State<UploadFotoPerfilScreen> {
     // Navegar para o dashboard sem foto
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => RepresentanteHomeScreen(
+        builder: (context) => RepresentanteDashboardScreen(
           representante: widget.representante,
-          condominioId: '', // TODO: Obter do contexto
-          condominioNome: '', // TODO: Obter do contexto
-          condominioCnpj: '', // TODO: Obter do contexto
         ),
       ),
     );

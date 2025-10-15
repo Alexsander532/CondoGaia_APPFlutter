@@ -1731,6 +1731,16 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
     // Validação removida - condomínios podem ser associados posteriormente
     
     try {
+      // Preparar lista de condomínios para salvar no campo condominios_selecionados
+      List<String> condominiosParaSalvar = [];
+      if (_condominiosSelecionados.isNotEmpty) {
+        // Usar condomínios selecionados manualmente
+        condominiosParaSalvar = List<String>.from(_condominiosSelecionados);
+      } else if (_condominios.isNotEmpty) {
+        // Usar primeiro condomínio disponível se nenhum foi selecionado
+        condominiosParaSalvar = [_condominios.first['id']];
+      }
+      
       // Preparar dados do representante
       final representanteData = {
         'nome_completo': _nomeCompletoController.text.trim(),
@@ -1741,7 +1751,8 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
         'endereco': _enderecoController.text.trim(),
         'uf': _ufSelecionada,
         'cidade': _cidadeController.text.trim(),
-        // Campo condominios_selecionados removido - relacionamento agora é 1:N
+        // Adicionar campo condominios_selecionados com os IDs dos condomínios
+        'condominios_selecionados': condominiosParaSalvar,
         
         // Checkboxes de seções principais
         'todos_marcado': _todosMarcado,
@@ -1779,11 +1790,29 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
       // Salvar representante no Supabase
       final representanteSalvo = await SupabaseService.saveRepresentante(representanteData);
       
-      // Associar condomínios selecionados ao representante
-      if (representanteSalvo != null && _condominiosSelecionados.isNotEmpty) {
+      // Associar condomínios ao representante
+      if (representanteSalvo != null) {
         final representanteId = representanteSalvo['id'];
+        List<String> condominiosParaAssociar = [];
+        String mensagemAssociacao = '';
         
-        for (final condominioId in _condominiosSelecionados) {
+        if (_condominiosSelecionados.isNotEmpty) {
+          // Usar condomínios selecionados manualmente
+          condominiosParaAssociar = _condominiosSelecionados;
+          mensagemAssociacao = 'Representante cadastrado e associado aos condomínios selecionados!';
+        } else {
+          // Associar automaticamente ao primeiro condomínio disponível
+          if (_condominios.isNotEmpty) {
+            final primeiroCondominio = _condominios.first;
+            condominiosParaAssociar = [primeiroCondominio['id']];
+            mensagemAssociacao = 'Representante cadastrado e associado automaticamente ao condomínio "${primeiroCondominio['nome_condominio']}"!';
+          } else {
+            mensagemAssociacao = 'Representante cadastrado com sucesso! Nenhum condomínio disponível para associação automática.';
+          }
+        }
+        
+        // Realizar as associações
+        for (final condominioId in condominiosParaAssociar) {
           try {
             await SupabaseService.associarRepresentanteCondominio(condominioId, representanteId);
             print('Condomínio $condominioId associado ao representante $representanteId');
@@ -1791,13 +1820,13 @@ class _CadastroRepresentanteScreenState extends State<CadastroRepresentanteScree
             print('Erro ao associar condomínio $condominioId: $e');
           }
         }
+        
+        // Mostrar mensagem de sucesso personalizada
+        _showSuccessMessage(mensagemAssociacao);
       }
       
       // Recarregar lista de condomínios disponíveis
       await _loadCondominios();
-      
-      // Mostrar mensagem de sucesso
-      _showSuccessMessage('Representante cadastrado com sucesso!');
       
       // Limpar formulário
       _limparFormulario();

@@ -39,8 +39,8 @@ class _ChatInquilinoScreenState extends State<ChatInquilinoScreen> {
         'texto': 'José vai chegar uma encomenda às 17:30, me avisa para eu descer por favor.',
         'isMe': false,
         'timestamp': DateTime.now().subtract(const Duration(minutes: 30)),
-        'remetente': 'Luana Sichieri',
-        'apartamento': 'B/501',
+        'remetente': 'Portaria',
+        'apartamento': '',
       },
       {
         'texto': 'OK senhora Luana, irei avisar sim.',

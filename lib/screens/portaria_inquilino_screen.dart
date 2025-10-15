@@ -740,48 +740,24 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
   // Widget para a aba Mensagem
   Widget _buildMensagemTab() {
-    // Dados mockados de mensagens
-    final List<Map<String, dynamic>> mensagens = [
-      {
-        'nome': 'José da Silva',
-        'data': '25/11/2023 17:20',
-        'icone': Icons.person,
-        'corFundo': const Color(0xFF2C3E50),
-      },
-      {
-        'nome': 'Pedro de Souza',
-        'data': '24/11/2023 07:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-      {
-        'nome': 'Juliana Queiroz',
-        'data': '25/10/2023 17:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-      {
-        'nome': 'Enzo Siqueira',
-        'data': '25/09/2023 17:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-    ];
+    // Contato único da portaria
+    final Map<String, dynamic> contatoPortaria = {
+      'nome': 'Portaria',
+      'data': 'Disponível 24h',
+      'icone': Icons.security,
+      'corFundo': const Color(0xFF2E7D32), // Verde escuro para representar segurança
+    };
 
     return Container(
       color: const Color(0xFFF5F5F5),
-      child: ListView.builder(
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: mensagens.length,
-        itemBuilder: (context, index) {
-          final mensagem = mensagens[index];
-          return _buildMensagemCard(
-            nome: mensagem['nome'],
-            data: mensagem['data'],
-            icone: mensagem['icone'],
-            corFundo: mensagem['corFundo'],
-          );
-        },
+        child: _buildMensagemCard(
+          nome: contatoPortaria['nome'],
+          data: contatoPortaria['data'],
+          icone: contatoPortaria['icone'],
+          corFundo: contatoPortaria['corFundo'],
+        ),
       ),
     );
   }
@@ -842,7 +818,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
             MaterialPageRoute(
               builder: (context) => ChatInquilinoScreen(
                 nomeContato: nome,
-                apartamento: nome == 'José da Silva' ? '' : 'B/501',
+                apartamento: nome == 'Portaria' ? 'Central de Segurança' : 'B/501',
               ),
             ),
           );

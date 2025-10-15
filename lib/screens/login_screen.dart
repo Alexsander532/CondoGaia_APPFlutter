@@ -39,6 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // DEBUG: Log dos dados de entrada
+      print('DEBUG LOGIN SCREEN: Email digitado: "${_emailController.text}"');
+      print('DEBUG LOGIN SCREEN: Senha digitada: "${_passwordController.text}"');
+      print('DEBUG LOGIN SCREEN: Auto login: $_autoLogin');
+      
       final result = await _authService.login(
         _emailController.text,
         _passwordController.text,
