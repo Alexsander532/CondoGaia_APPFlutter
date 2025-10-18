@@ -373,11 +373,7 @@ class SupabaseService {
           .select('''
             *,
             condominios!condominios_representante_id_fkey(
-              id,
-              nome_condominio,
-              cnpj,
-              cidade,
-              estado
+              *
             )
           ''');
       
@@ -424,10 +420,24 @@ class SupabaseService {
             final resultado = Map<String, dynamic>.from(representante);
             resultado.remove('condominios'); // Remove a chave condominios
             
+            // Adiciona todos os campos do condomínio ao resultado
+            resultado['condominio_id'] = condominio['id'];
             resultado['nome_condominio'] = condominio['nome_condominio'];
             resultado['cnpj'] = condominio['cnpj'];
+            resultado['cep'] = condominio['cep'];
+            resultado['endereco'] = condominio['endereco'];
+            resultado['numero'] = condominio['numero'];
+            resultado['bairro'] = condominio['bairro'];
             resultado['condominio_cidade'] = condominio['cidade'];
             resultado['condominio_estado'] = condominio['estado'];
+            resultado['plano_assinatura'] = condominio['plano_assinatura'];
+            resultado['pagamento'] = condominio['pagamento'];
+            resultado['vencimento'] = condominio['vencimento'];
+            resultado['valor'] = condominio['valor'];
+            resultado['instituicao_financeiro_condominio'] = condominio['instituicao_financeiro_condominio'];
+            resultado['token_financeiro_condominio'] = condominio['token_financeiro_condominio'];
+            resultado['instituicao_financeiro_unidade'] = condominio['instituicao_financeiro_unidade'];
+            resultado['token_financeiro_unidade'] = condominio['token_financeiro_unidade'];
             
             // Aplica filtro de texto se necessário
             if (textoPesquisa == null || textoPesquisa.isEmpty || 
@@ -563,6 +573,23 @@ class SupabaseService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('Erro ao buscar condomínios do representante: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca condomínios disponíveis para associação a um representante específico
+  /// Retorna condomínios sem representante + condomínios já associados ao representante atual
+  static Future<List<Map<String, dynamic>>> getCondominiosDisponiveisParaRepresentante(String representanteId) async {
+    try {
+      final response = await client
+          .from('condominios')
+          .select('*')
+          .or('representante_id.is.null,representante_id.eq.$representanteId')
+          .order('nome_condominio');
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Erro ao buscar condomínios disponíveis para representante: $e');
       rethrow;
     }
   }
@@ -1131,6 +1158,77 @@ class SupabaseService {
       return resultados;
     } catch (e) {
       print('Erro ao buscar representantes com condomínios para admin: $e');
+      rethrow;
+    }
+  }
+
+  /// Atualiza um representante completo
+  static Future<Map<String, dynamic>?> updateRepresentante(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await client
+          .from('representantes')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single();
+      
+      return response;
+    } catch (e) {
+      print('Erro ao atualizar representante: $e');
+      rethrow;
+    }
+  }
+
+  /// Exclui um condomínio e atualiza os representantes relacionados
+  static Future<void> deleteCondominioComAtualizacaoRepresentantes(String condominioId) async {
+    try {
+      // Primeiro, busca todos os representantes que têm este condomínio associado
+      final representantesResponse = await client
+          .from('representantes')
+          .select('id, condominios_selecionados')
+          .not('condominios_selecionados', 'is', null);
+
+      // Atualiza a lista de condomínios selecionados de cada representante
+      for (final representante in representantesResponse) {
+        final condominiosSelecionados = representante['condominios_selecionados'] as List<dynamic>? ?? [];
+        final condominiosAtualizados = condominiosSelecionados
+            .where((id) => id.toString() != condominioId)
+            .toList();
+
+        // Atualiza o representante com a nova lista
+        await client
+            .from('representantes')
+            .update({'condominios_selecionados': condominiosAtualizados})
+            .eq('id', representante['id']);
+      }
+
+      // Depois exclui o condomínio
+      await client
+          .from('condominios')
+          .delete()
+          .eq('id', condominioId);
+    } catch (e) {
+      print('Erro ao excluir condomínio e atualizar representantes: $e');
+      rethrow;
+    }
+  }
+
+  /// Exclui um representante e libera os condomínios associados
+  static Future<void> deleteRepresentanteComLiberacaoCondominios(String representanteId) async {
+    try {
+      // Primeiro, libera todos os condomínios associados ao representante
+      await client
+          .from('condominios')
+          .update({'representante_id': null})
+          .eq('representante_id', representanteId);
+
+      // Depois exclui o representante
+      await client
+          .from('representantes')
+          .delete()
+          .eq('id', representanteId);
+    } catch (e) {
+      print('Erro ao excluir representante e liberar condomínios: $e');
       rethrow;
     }
   }

@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:typed_data';
+// Imports condicionais para web
+import 'dart:html' as html show Blob, Url, AnchorElement;
 import 'detalhes_unidade_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
@@ -278,6 +285,114 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       }
     } catch (e) {
       print('Erro ao verificar necessidade de reconfiguração: $e');
+    }
+  }
+
+  // Função para download do template da planilha
+  Future<void> _downloadTemplate() async {
+    try {
+      // Mostra indicador de carregamento
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Text('Preparando download...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Carrega o arquivo template dos assets
+      final ByteData data = await rootBundle.load('Template_Unidade_Morador_Condogaia_V1.xlsx');
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      if (kIsWeb) {
+        // Download para Flutter Web
+        await _downloadForWeb(bytes);
+      } else {
+        // Download para plataformas móveis
+        await _downloadForMobile(bytes);
+      }
+    } catch (e) {
+      // Mostra mensagem de erro
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao baixar template: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  // Método específico para download no Flutter Web
+  Future<void> _downloadForWeb(Uint8List bytes) async {
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'Template_Unidade_Morador_Condogaia_V1.xlsx')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+
+    // Mostra mensagem de sucesso
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Template baixado com sucesso!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  // Método específico para download em plataformas móveis
+  Future<void> _downloadForMobile(Uint8List bytes) async {
+    // Obtém o diretório de downloads
+    Directory? downloadsDirectory;
+    if (Platform.isAndroid) {
+      downloadsDirectory = Directory('/storage/emulated/0/Download');
+    } else if (Platform.isIOS) {
+      downloadsDirectory = await getApplicationDocumentsDirectory();
+    } else {
+      downloadsDirectory = await getDownloadsDirectory();
+    }
+
+    if (downloadsDirectory != null) {
+      // Cria o arquivo no diretório de downloads
+      final String fileName = 'Template_Unidade_Morador_Condogaia_V1.xlsx';
+      final File file = File('${downloadsDirectory.path}/$fileName');
+      
+      await file.writeAsBytes(bytes);
+
+      // Mostra mensagem de sucesso
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Template baixado com sucesso!\nSalvo em: ${file.path}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      }
+    } else {
+      throw Exception('Não foi possível acessar o diretório de downloads');
     }
   }
 
@@ -583,6 +698,31 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
               ),
             ),
 
+            // Botão de download do template
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _downloadTemplate,
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Baixar Template da Planilha'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Conteúdo principal
             Expanded(
               child: Container(
@@ -703,36 +843,125 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
     }
 
+    // Exibir mensagem informativa em vez dos dados dos blocos e unidades
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.apartment,
+                size: 80,
+                color: Color(0xFF4A90E2).withOpacity(0.6),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Gestão de Unidades e Moradores',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3A59),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'Use o template da planilha acima para importar e gerenciar os dados das unidades e moradores do condomínio.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF666666),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(20),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Color(0xFF4A90E2).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Color(0xFF4A90E2).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF4A90E2),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Como usar:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A90E2),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInstructionStep('1', 'Baixe o template da planilha'),
+                    _buildInstructionStep('2', 'Preencha os dados das unidades'),
+                    _buildInstructionStep('3', 'Importe a planilha no sistema'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24), // Espaçamento adicional no final
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-
-    if (_blocosUnidadesFiltrados.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: 64,
-              color: Color(0xFF999999),
+  Widget _buildInstructionStep(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Color(0xFF4A90E2),
+              borderRadius: BorderRadius.circular(12),
             ),
-            SizedBox(height: 16),
-            Text(
-              'Nenhuma unidade encontrada',
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 color: Color(0xFF666666),
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      child: Column(
-        children: _blocosUnidadesFiltrados
-            .map((blocoComUnidades) => _buildBlocoSection(blocoComUnidades))
-            .toList(),
+          ),
+        ],
       ),
     );
   }
