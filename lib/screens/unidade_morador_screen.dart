@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 // Imports condicionais para web
-import 'dart:html' as html show Blob, Url, AnchorElement;
+import 'dart:html' as html show Blob, Url, AnchorElement, document;
 import 'detalhes_unidade_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
@@ -309,8 +309,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         ),
       );
 
-      // Carrega o arquivo template dos assets
-      final ByteData data = await rootBundle.load('Template_Unidade_Morador_Condogaia_V1.xlsx');
+      // Carrega o arquivo template ODS dos assets
+      final ByteData data = await rootBundle.load('Template_Unidade_Morador_Condogaia_V1.ods');
       final Uint8List bytes = data.buffer.asUint8List();
 
       if (kIsWeb) {
@@ -336,63 +336,124 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
   // Método específico para download no Flutter Web
   Future<void> _downloadForWeb(Uint8List bytes) async {
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'Template_Unidade_Morador_Condogaia_V1.xlsx')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    try {
+      // Verifica se o arquivo não está vazio ou corrompido
+      if (bytes.isEmpty) {
+        throw Exception('Arquivo template está vazio');
+      }
 
-    // Mostra mensagem de sucesso
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Template baixado com sucesso!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 4),
-        ),
-      );
+      // Verifica se é um arquivo ODS válido (deve começar com PK)
+      if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4B) {
+        throw Exception('Arquivo template não é um ODS válido');
+      }
+
+      // Cria o blob com o tipo MIME correto para ODS
+      final blob = html.Blob([bytes], 'application/vnd.oasis.opendocument.spreadsheet');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      
+      // Gera nome único para evitar problemas de cache
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String fileName = 'Template_Unidade_Morador_Condogaia_V1_$timestamp.ods';
+      
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..style.display = 'none';
+      
+      // Adiciona ao DOM, clica e remove
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      
+      // Limpa a URL do blob
+      html.Url.revokeObjectUrl(url);
+
+      // Mostra mensagem de sucesso
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Template baixado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      // Re-lança a exceção para ser tratada no método principal
+      throw Exception('Erro no download web: $e');
     }
   }
 
   // Método específico para download em plataformas móveis
   Future<void> _downloadForMobile(Uint8List bytes) async {
-    // Obtém o diretório de downloads
-    Directory? downloadsDirectory;
-    if (Platform.isAndroid) {
-      downloadsDirectory = Directory('/storage/emulated/0/Download');
-    } else if (Platform.isIOS) {
-      downloadsDirectory = await getApplicationDocumentsDirectory();
-    } else {
-      downloadsDirectory = await getDownloadsDirectory();
-    }
-
-    if (downloadsDirectory != null) {
-      // Cria o arquivo no diretório de downloads
-      final String fileName = 'Template_Unidade_Morador_Condogaia_V1.xlsx';
-      final File file = File('${downloadsDirectory.path}/$fileName');
-      
-      await file.writeAsBytes(bytes);
-
-      // Mostra mensagem de sucesso
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Template baixado com sucesso!\nSalvo em: ${file.path}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
-          ),
-        );
+    try {
+      // Verifica se o arquivo não está vazio ou corrompido
+      if (bytes.isEmpty) {
+        throw Exception('Arquivo template está vazio');
       }
-    } else {
-      throw Exception('Não foi possível acessar o diretório de downloads');
+
+      // Verifica se é um arquivo ODS válido (deve começar com PK)
+      if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4B) {
+        throw Exception('Arquivo template não é um ODS válido');
+      }
+
+      // Obtém o diretório de downloads
+      Directory? downloadsDirectory;
+      if (Platform.isAndroid) {
+        // Verifica se o diretório de downloads existe
+        downloadsDirectory = Directory('/storage/emulated/0/Download');
+        if (!await downloadsDirectory.exists()) {
+          // Tenta diretório alternativo
+          downloadsDirectory = Directory('/sdcard/Download');
+          if (!await downloadsDirectory.exists()) {
+            // Usa diretório de documentos da aplicação
+            downloadsDirectory = await getApplicationDocumentsDirectory();
+          }
+        }
+      } else if (Platform.isIOS) {
+        downloadsDirectory = await getApplicationDocumentsDirectory();
+      } else {
+        downloadsDirectory = await getDownloadsDirectory();
+      }
+
+      if (downloadsDirectory != null && await downloadsDirectory.exists()) {
+        // Gera nome único para evitar sobrescrever
+        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        final String fileName = 'Template_Unidade_Morador_Condogaia_V1_$timestamp.ods';
+        final File file = File('${downloadsDirectory.path}/$fileName');
+        
+        // Escreve o arquivo com verificação de integridade
+        await file.writeAsBytes(bytes, flush: true);
+        
+        // Verifica se o arquivo foi escrito corretamente
+        final savedBytes = await file.readAsBytes();
+        if (savedBytes.length != bytes.length) {
+          await file.delete();
+          throw Exception('Erro na escrita do arquivo - tamanhos diferentes');
+        }
+
+        // Mostra mensagem de sucesso
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Template baixado com sucesso!\nSalvo em: ${file.path}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        }
+      } else {
+        throw Exception('Não foi possível acessar o diretório de downloads');
+      }
+    } catch (e) {
+      // Re-lança a exceção para ser tratada no método principal
+      throw Exception('Erro no download móvel: $e');
     }
   }
 
