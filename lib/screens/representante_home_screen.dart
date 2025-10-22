@@ -211,15 +211,11 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Controle.png',
                       title: 'Controle',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => InquilinoHomeScreen(
-                              condominioId: widget.condominioId,
-                              condominioNome: widget.condominioNome,
-                              condominioCnpj: widget.condominioCnpj,
-                              inquilinoId: 'demo-inquilino-id', // TODO: Usar ID real do inquilino
-                            ),
+                        // TODO: Implementar navegação para controle do representante
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Funcionalidade de Controle em desenvolvimento'),
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       },

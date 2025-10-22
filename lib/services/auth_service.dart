@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/administrator.dart';
 import '../models/representante.dart';
+import '../models/proprietario.dart';
+import '../models/inquilino.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -47,7 +49,11 @@ class AuthService {
   }
 
   // Fazer login (detecta automaticamente se é admin ou representante)
-  Future<LoginResult> login(String email, String password, bool autoLogin) async {
+  Future<LoginResult> login(
+    String email,
+    String password,
+    bool autoLogin,
+  ) async {
     try {
       // Primeiro, tentar login como administrador
       final adminResponse = await _supabase
@@ -58,13 +64,15 @@ class AuthService {
 
       if (adminResponse != null) {
         final administrator = Administrator.fromJson(adminResponse);
-        
+
         // Verificar senha usando a função crypt do PostgreSQL
-        final passwordCheckResponse = await _supabase
-            .rpc('verify_password', params: {
-              'input_password': password,
-              'stored_hash': administrator.passwordHash,
-            });
+        final passwordCheckResponse = await _supabase.rpc(
+          'verify_password',
+          params: {
+            'input_password': password,
+            'stored_hash': administrator.passwordHash,
+          },
+        );
 
         if (passwordCheckResponse == true) {
           // Salvar estado de login como administrador
@@ -85,41 +93,50 @@ class AuthService {
 
       // Se não encontrou admin ou senha incorreta, tentar como representante
       final emailOriginal = email.trim();
-      print('DEBUG: Tentando login como representante');
-      print('DEBUG: Email original: "$email"');
-      print('DEBUG: Email para busca: "$emailOriginal"');
-      
+      print('DEBUG AUTH: ========== TENTATIVA DE LOGIN ==========');
+      print('DEBUG AUTH: Email fornecido: "$email"');
+      print('DEBUG AUTH: Email processado: "$emailOriginal"');
+      print('DEBUG AUTH: Tentando login como representante...');
+
       final representanteResponse = await _supabase
           .from('representantes')
           .select()
-          .ilike('email', emailOriginal) // Buscar representante por email (case-insensitive)
+          .ilike(
+            'email',
+            emailOriginal,
+          ) // Buscar representante por email (case-insensitive)
           .maybeSingle();
 
-      print('DEBUG: Resposta da busca de representante: $representanteResponse');
-      
+      print(
+        'DEBUG AUTH: Resposta da busca de representante: ${representanteResponse != null ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}',
+      );
+
       // Debug: Listar todos os emails de representantes para comparação
       try {
         final todosRepresentantes = await _supabase
             .from('representantes')
             .select('email, nome_completo')
             .limit(10);
-        print('DEBUG: Todos os representantes na tabela:');
+        print('DEBUG AUTH: Representantes cadastrados no sistema:');
         for (var rep in todosRepresentantes) {
-          print('  - Email: "${rep['email']}" | Nome: "${rep['nome_completo']}"');
+          print(
+            '  - Email: "${rep['email']}" | Nome: "${rep['nome_completo']}"',
+          );
         }
       } catch (e) {
-        print('DEBUG: Erro ao listar representantes: $e');
+        print('DEBUG AUTH: Erro ao listar representantes: $e');
       }
 
       if (representanteResponse != null) {
         final representante = Representante.fromJson(representanteResponse);
-        print('DEBUG: Representante encontrado: ${representante.nomeCompleto}');
-        print('DEBUG: Senha armazenada no banco: "${representante.senhaAcesso}"');
-        print('DEBUG: Senha fornecida pelo usuário: "$password"');
-        print('DEBUG: Senhas são iguais? ${representante.senhaAcesso == password}');
-        
+        print(
+          'DEBUG AUTH: Representante encontrado: ${representante.nomeCompleto}',
+        );
+        print('DEBUG AUTH: Verificando senha...');
+
         // Verificar senha diretamente (representantes usam senha simples)
         if (representante.senhaAcesso == password) {
+          print('DEBUG AUTH: ✅ Login como representante APROVADO');
           // Salvar estado de login como representante
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool(_isLoggedInKey, true);
@@ -133,13 +150,110 @@ class AuthService {
             representante: representante,
             userType: UserType.representante,
           );
+        } else {
+          print('DEBUG AUTH: ❌ Senha incorreta para representante');
         }
       }
 
-      return LoginResult(
-        success: false,
-        message: 'Credenciais inválidas',
-      );
+      // Se não encontrou representante, tentar como proprietário
+      print('DEBUG AUTH: Tentando login como proprietário...');
+      try {
+        final proprietarioResponse = await _supabase
+            .from('proprietarios')
+            .select('*')
+            .ilike('email', emailOriginal)
+            .maybeSingle();
+
+        print(
+          'DEBUG AUTH: Resposta da busca de proprietário: ${proprietarioResponse != null ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}',
+        );
+
+        if (proprietarioResponse != null) {
+          final proprietario = Proprietario.fromJson(proprietarioResponse);
+          print('DEBUG AUTH: Proprietário encontrado: ${proprietario.nome}');
+          print('DEBUG AUTH: Verificando senha...');
+
+          // Verificar senha diretamente (proprietários usam senha simples)
+          if (proprietario.senhaAcesso == password) {
+            print('DEBUG AUTH: ✅ Login como proprietário APROVADO');
+            // Salvar estado de login como proprietário
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool(_isLoggedInKey, true);
+            await prefs.setString(_userEmailKey, email);
+            await prefs.setBool(_autoLoginKey, autoLogin);
+            await prefs.setString(_userTypeKey, 'proprietario');
+
+            return LoginResult(
+              success: true,
+              message: 'Login realizado com sucesso',
+              proprietario: proprietario,
+              userType: UserType.proprietario,
+            );
+          } else {
+            print('DEBUG AUTH: ❌ Senha incorreta para proprietário');
+          }
+        }
+      } catch (e) {
+        print('DEBUG AUTH: ❌ ERRO ao buscar proprietário: $e');
+        print('DEBUG AUTH: Tipo do erro: ${e.runtimeType}');
+        if (e is PostgrestException) {
+          print('DEBUG AUTH: Código do erro: ${e.code}');
+          print('DEBUG AUTH: Mensagem do erro: ${e.message}');
+          print('DEBUG AUTH: Detalhes do erro: ${e.details}');
+        }
+      }
+
+      // Se não encontrou proprietário, tentar como inquilino
+      print('DEBUG AUTH: Tentando login como inquilino...');
+      try {
+        final inquilinoResponse = await _supabase
+            .from('inquilinos')
+            .select('*')
+            .ilike('email', emailOriginal)
+            .maybeSingle();
+
+        print(
+          'DEBUG AUTH: Resposta da busca de inquilino: ${inquilinoResponse != null ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}',
+        );
+
+        if (inquilinoResponse != null) {
+          final inquilino = Inquilino.fromJson(inquilinoResponse);
+          print('DEBUG AUTH: Inquilino encontrado: ${inquilino.nome}');
+          print('DEBUG AUTH: Verificando senha...');
+
+          // Verificar senha diretamente (inquilinos usam senha simples)
+          if (inquilino.senhaAcesso == password) {
+            print('DEBUG AUTH: ✅ Login como inquilino APROVADO');
+            // Salvar estado de login como inquilino
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool(_isLoggedInKey, true);
+            await prefs.setString(_userEmailKey, email);
+            await prefs.setBool(_autoLoginKey, autoLogin);
+            await prefs.setString(_userTypeKey, 'inquilino');
+
+            return LoginResult(
+              success: true,
+              message: 'Login realizado com sucesso',
+              inquilino: inquilino,
+              userType: UserType.inquilino,
+            );
+          } else {
+            print('DEBUG AUTH: ❌ Senha incorreta para inquilino');
+          }
+        }
+      } catch (e) {
+        print('DEBUG AUTH: ❌ ERRO ao buscar inquilino: $e');
+        print('DEBUG AUTH: Tipo do erro: ${e.runtimeType}');
+        if (e is PostgrestException) {
+          print('DEBUG AUTH: Código do erro: ${e.code}');
+          print('DEBUG AUTH: Mensagem do erro: ${e.message}');
+          print('DEBUG AUTH: Detalhes do erro: ${e.details}');
+        }
+      }
+
+      print('DEBUG AUTH: ❌ Nenhum usuário encontrado ou senha incorreta');
+
+      return LoginResult(success: false, message: 'Credenciais inválidas');
     } catch (e) {
       return LoginResult(
         success: false,
@@ -156,6 +270,10 @@ class AuthService {
       return UserType.administrator;
     } else if (userTypeString == 'representante') {
       return UserType.representante;
+    } else if (userTypeString == 'proprietario') {
+      return UserType.proprietario;
+    } else if (userTypeString == 'inquilino') {
+      return UserType.inquilino;
     }
     return null;
   }
@@ -174,14 +292,20 @@ class AuthService {
     try {
       final isAutoEnabled = await isAutoLoginEnabled();
       if (!isAutoEnabled) {
-        return LoginResult(success: false, message: 'Login automático desabilitado');
+        return LoginResult(
+          success: false,
+          message: 'Login automático desabilitado',
+        );
       }
 
       final email = await getLoggedUserEmail();
       final userType = await getUserType();
-      
+
       if (email == null || userType == null) {
-        return LoginResult(success: false, message: 'Dados de login não encontrados');
+        return LoginResult(
+          success: false,
+          message: 'Dados de login não encontrados',
+        );
       }
 
       if (userType == UserType.administrator) {
@@ -194,7 +318,10 @@ class AuthService {
 
         if (response == null) {
           await logout();
-          return LoginResult(success: false, message: 'Administrador não encontrado');
+          return LoginResult(
+            success: false,
+            message: 'Administrador não encontrado',
+          );
         }
 
         final administrator = Administrator.fromJson(response);
@@ -204,7 +331,7 @@ class AuthService {
           administrator: administrator,
           userType: UserType.administrator,
         );
-      } else {
+      } else if (userType == UserType.representante) {
         // Verificar se o representante ainda existe no banco
         final response = await _supabase
             .from('representantes')
@@ -214,7 +341,10 @@ class AuthService {
 
         if (response == null) {
           await logout();
-          return LoginResult(success: false, message: 'Representante não encontrado');
+          return LoginResult(
+            success: false,
+            message: 'Representante não encontrado',
+          );
         }
 
         final representante = Representante.fromJson(response);
@@ -224,7 +354,59 @@ class AuthService {
           representante: representante,
           userType: UserType.representante,
         );
+      } else if (userType == UserType.proprietario) {
+        // Verificar se o proprietário ainda existe no banco
+        final response = await _supabase
+            .from('proprietarios')
+            .select('*, unidades!inner(numero, bloco), condominios!inner(nome)')
+            .ilike('email', email)
+            .maybeSingle();
+
+        if (response == null) {
+          await logout();
+          return LoginResult(
+            success: false,
+            message: 'Proprietário não encontrado',
+          );
+        }
+
+        final proprietario = Proprietario.fromJson(response);
+        return LoginResult(
+          success: true,
+          message: 'Login automático realizado',
+          proprietario: proprietario,
+          userType: UserType.proprietario,
+        );
+      } else if (userType == UserType.inquilino) {
+        // Verificar se o inquilino ainda existe no banco
+        final response = await _supabase
+            .from('inquilinos')
+            .select('*, unidades!inner(numero, bloco), condominios!inner(nome)')
+            .ilike('email', email)
+            .maybeSingle();
+
+        if (response == null) {
+          await logout();
+          return LoginResult(
+            success: false,
+            message: 'Inquilino não encontrado',
+          );
+        }
+
+        final inquilino = Inquilino.fromJson(response);
+        return LoginResult(
+          success: true,
+          message: 'Login automático realizado',
+          inquilino: inquilino,
+          userType: UserType.inquilino,
+        );
       }
+
+      // Caso nenhum tipo de usuário seja reconhecido
+      return LoginResult(
+        success: false,
+        message: 'Tipo de usuário não reconhecido',
+      );
     } catch (e) {
       return LoginResult(
         success: false,
@@ -234,16 +416,15 @@ class AuthService {
   }
 }
 
-enum UserType {
-  administrator,
-  representante,
-}
+enum UserType { administrator, representante, proprietario, inquilino }
 
 class LoginResult {
   final bool success;
   final String message;
   final Administrator? administrator;
   final Representante? representante;
+  final Proprietario? proprietario;
+  final Inquilino? inquilino;
   final UserType? userType;
 
   LoginResult({
@@ -251,12 +432,20 @@ class LoginResult {
     required this.message,
     this.administrator,
     this.representante,
+    this.proprietario,
+    this.inquilino,
     this.userType,
   });
 
   // Getter para verificar se é administrador
   bool get isAdministrator => userType == UserType.administrator;
-  
+
   // Getter para verificar se é representante
   bool get isRepresentante => userType == UserType.representante;
+
+  // Getter para verificar se é proprietário
+  bool get isProprietario => userType == UserType.proprietario;
+
+  // Getter para verificar se é inquilino
+  bool get isInquilino => userType == UserType.inquilino;
 }

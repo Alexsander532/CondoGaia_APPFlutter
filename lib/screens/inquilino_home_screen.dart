@@ -7,22 +7,30 @@ class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
   final String condominioNome;
   final String condominioCnpj;
-  final String inquilinoId;
+  final String? inquilinoId;
+  final String? proprietarioId;
+  final String unidadeId;
+  final String unidadeNome;
 
   const InquilinoHomeScreen({
     super.key,
     required this.condominioId,
     required this.condominioNome,
     required this.condominioCnpj,
-    required this.inquilinoId,
-  });
+    this.inquilinoId,
+    this.proprietarioId,
+    required this.unidadeId,
+    required this.unidadeNome,
+  }) : assert(
+         inquilinoId != null || proprietarioId != null,
+         'Deve fornecer inquilinoId ou proprietarioId',
+       );
 
   @override
   State<InquilinoHomeScreen> createState() => _InquilinoHomeScreenState();
 }
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
-  
   Widget _buildMenuCard({
     required String imagePath,
     required String title,
@@ -97,10 +105,7 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
+                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
@@ -134,166 +139,174 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
               ),
             ),
             // Linha de separação
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-            
+            Container(height: 1, color: Colors.grey[300]),
+
             // Grid de funcionalidades do inquilino
-             Expanded(
-               child: Padding(
-                 padding: const EdgeInsets.all(16.0),
-                 child: GridView.count(
-                   crossAxisCount: 2,
-                   crossAxisSpacing: 16,
-                   mainAxisSpacing: 16,
-                   childAspectRatio: 0.9,
-                        children: [
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_chat.png',
-                            title: 'Chat',
-                            onTap: () {
-                              // TODO: Implementar navegação para chat
-                            },
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.9,
+                  children: [
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_chat.png',
+                      title: 'Chat',
+                      onTap: () {
+                        // TODO: Implementar navegação para chat
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_Classificados.png',
+                      title: 'Classificados',
+                      onTap: () {
+                        // TODO: Implementar navegação para classificados
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_Documentos.png',
+                      title: 'Documentos',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DocumentosInquilinoScreen(
+                              condominioId: widget.condominioId,
+                              inquilinoId:
+                                  widget.inquilinoId ?? widget.proprietarioId!,
+                            ),
                           ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_Classificados.png',
-                            title: 'Classificados',
-                            onTap: () {
-                              // TODO: Implementar navegação para classificados
-                            },
+                        );
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
+                      title: 'Diário/Agenda',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AgendaInquilinoScreen(
+                              condominioId: widget.condominioId,
+                              inquilinoId:
+                                  widget.inquilinoId ?? widget.proprietarioId!,
+                            ),
                           ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_Documentos.png',
-                            title: 'Documentos',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DocumentosInquilinoScreen(
-                                    condominioId: widget.condominioId,
-                                    inquilinoId: widget.inquilinoId,
-                                  ),
-                                ),
-                              );
-                            },
+                        );
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_Controle.png',
+                      title: 'Controle',
+                      onTap: () {
+                        // TODO: Implementar navegação para controle
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/Representante/HOME/Imagem_Reservas.png',
+                      title: 'Reservas',
+                      onTap: () {
+                        // TODO: Implementar navegação para reservas
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/HOME_Inquilino/Boleto_icone_Inquilino.png',
+                      title: 'Boletos',
+                      onTap: () {
+                        // TODO: Implementar navegação para boletos
+                      },
+                    ),
+                    _buildMenuCard(
+                      imagePath:
+                          'assets/images/HOME_Inquilino/Portaria_icone_Inquilino.png',
+                      title: 'Portaria',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PortariaInquilinoScreen(
+                              condominioId: widget.condominioId,
+                              condominioNome: widget.condominioNome,
+                              condominioCnpj: widget.condominioCnpj,
+                              inquilinoId:
+                                  widget.inquilinoId ?? widget.proprietarioId!,
+                            ),
                           ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
-                            title: 'Diário/Agenda',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AgendaInquilinoScreen(
-                                    condominioId: widget.condominioId,
-                                    inquilinoId: widget.inquilinoId,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_Controle.png',
-                            title: 'Controle',
-                            onTap: () {
-                              // TODO: Implementar navegação para controle
-                            },
-                          ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/Representante/HOME/Imagem_Reservas.png',
-                            title: 'Reservas',
-                            onTap: () {
-                              // TODO: Implementar navegação para reservas
-                            },
-                          ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/HOME_Inquilino/Boleto_icone_Inquilino.png',
-                            title: 'Boletos',
-                            onTap: () {
-                              // TODO: Implementar navegação para boletos
-                            },
-                          ),
-                          _buildMenuCard(
-                            imagePath: 'assets/images/HOME_Inquilino/Portaria_icone_Inquilino.png',
-                            title: 'Portaria',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PortariaInquilinoScreen(
-                                    condominioId: widget.condominioId,
-                                    condominioNome: widget.condominioNome,
-                                    condominioCnpj: widget.condominioCnpj,
-                                    inquilinoId: widget.inquilinoId,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                   ],
-                 ),
-               ),
-             ),
-            
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Footer com informações do condomínio
-             Container(
-               width: double.infinity,
-               padding: const EdgeInsets.all(16.0),
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 boxShadow: [
-                   BoxShadow(
-                     color: Colors.black.withOpacity(0.05),
-                     blurRadius: 10,
-                     offset: const Offset(0, -2),
-                   ),
-                 ],
-               ),
-               child: Row(
-                 children: [
-                   Expanded(
-                     child: Column(
-                       children: [
-                         Text(
-                           widget.condominioNome,
-                           style: const TextStyle(
-                             fontSize: 18,
-                             fontWeight: FontWeight.w600,
-                             color: Colors.black87,
-                           ),
-                           textAlign: TextAlign.center,
-                         ),
-                         const SizedBox(height: 4),
-                         Text(
-                           'CNPJ: ${widget.condominioCnpj}',
-                           style: TextStyle(
-                             fontSize: 14,
-                             color: Colors.grey[600],
-                           ),
-                           textAlign: TextAlign.center,
-                         ),
-                       ],
-                     ),
-                   ),
-                   // Setas de mudança de condomínio no canto inferior direito
-                   Padding(
-                     padding: const EdgeInsets.only(left: 0.0),
-                     child: GestureDetector(
-                       onTap: () {
-                         // Voltar para a tela anterior (representante)
-                         Navigator.pop(context);
-                       },
-                       child: Image.asset(
-                         'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
-                         height: 35,
-                         width: 35,
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.condominioNome,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Unidade: ${widget.unidadeNome}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Setas de mudança de condomínio no canto inferior direito
+                  Padding(
+                    padding: const EdgeInsets.only(left: 0.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        // Voltar para a tela anterior (representante)
+                        Navigator.pop(context);
+                      },
+                      child: Image.asset(
+                        'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
+                        height: 35,
+                        width: 35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

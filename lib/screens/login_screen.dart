@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'ADMIN/home_screen.dart';
-import 'upload_foto_perfil_screen.dart';
-import 'representante_home_screen.dart';
-import 'representante_dashboard_screen.dart';
+import '../screens/ADMIN/home_screen.dart';
+import '../screens/representante_dashboard_screen.dart';
+import '../screens/proprietario_dashboard_screen.dart';
+import '../screens/inquilino_dashboard_screen.dart';
+import '../screens/upload_foto_perfil_screen.dart';
+import '../screens/upload_foto_perfil_proprietario_screen.dart';
+import '../screens/upload_foto_perfil_inquilino_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -69,6 +72,36 @@ class _LoginScreenState extends State<LoginScreen> {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
                   representante: result.representante!,
+                )),
+              );
+            }
+          } else if (result.userType == UserType.proprietario) {
+            // Verificar se proprietário tem foto de perfil
+            if (result.proprietario?.fotoPerfil == null || result.proprietario!.fotoPerfil!.isEmpty) {
+              // Primeira vez - ir para upload de foto
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => UploadFotoPerfilProprietarioScreen(proprietario: result.proprietario!)),
+              );
+            } else {
+              // Já tem foto - ir direto para dashboard
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
+                  proprietario: result.proprietario!,
+                )),
+              );
+            }
+          } else if (result.userType == UserType.inquilino) {
+            // Verificar se inquilino tem foto de perfil
+            if (result.inquilino?.fotoPerfil == null || result.inquilino!.fotoPerfil!.isEmpty) {
+              // Primeira vez - ir para upload de foto
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => UploadFotoPerfilInquilinoScreen(inquilino: result.inquilino!)),
+              );
+            } else {
+              // Já tem foto - ir direto para dashboard
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
+                  inquilino: result.inquilino!,
                 )),
               );
             }
