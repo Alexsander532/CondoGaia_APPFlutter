@@ -59,10 +59,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   List<Inquilino> _inquilinos = [];
   List<Unidade> _unidades = [];
   bool _isLoadingPropInq = false;
-  
-  // Controles de busca e filtro para Prop/Inq
-  final TextEditingController _searchController = TextEditingController();
-  String _filtroTipo = 'Todos'; // 'Todos', 'Proprietários', 'Inquilinos'
 
   @override
   void initState() {
@@ -95,9 +91,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     _veiculoPlacaController.dispose();
     _veiculoModeloController.dispose();
     _veiculoCorController.dispose();
-    
-    // Dispose do controlador de busca
-    _searchController.dispose();
     
     super.dispose();
   }
@@ -246,29 +239,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Widget para chip de filtro
-  Widget _buildFiltroChip(String tipo) {
-    bool isSelected = _filtroTipo == tipo;
-    return FilterChip(
-      label: Text(tipo),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _filtroTipo = tipo;
-        });
-      },
-      selectedColor: const Color(0xFF1976D2).withOpacity(0.2),
-      checkmarkColor: const Color(0xFF1976D2),
-      labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[700],
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-      ),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[300]!,
       ),
     );
   }
@@ -1066,25 +1036,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     // Agrupar pessoas por unidade
     Map<String, List<Map<String, dynamic>>> pessoasPorUnidade = {};
     
-    // Filtrar dados baseado na busca e filtro
-    List<Proprietario> proprietariosFiltrados = _proprietarios.where((p) {
-      bool matchesBusca = _searchController.text.isEmpty ||
-          p.nome.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-          p.cpfCnpj.contains(_searchController.text);
-      bool matchesFiltro = _filtroTipo == 'Todos' || _filtroTipo == 'Proprietários';
-      return matchesBusca && matchesFiltro;
-    }).toList();
-    
-    List<Inquilino> inquilinosFiltrados = _inquilinos.where((i) {
-      bool matchesBusca = _searchController.text.isEmpty ||
-          i.nome.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-          i.cpfCnpj.contains(_searchController.text);
-      bool matchesFiltro = _filtroTipo == 'Todos' || _filtroTipo == 'Inquilinos';
-      return matchesBusca && matchesFiltro;
-    }).toList();
-    
-    // Adicionar proprietários filtrados
-    for (var proprietario in proprietariosFiltrados) {
+    // Adicionar proprietários
+    for (var proprietario in _proprietarios) {
       final unidade = _unidades.firstWhere(
         (u) => u.id == proprietario.unidadeId,
         orElse: () => Unidade(
@@ -1123,8 +1076,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
       });
     }
     
-    // Adicionar inquilinos filtrados
-    for (var inquilino in inquilinosFiltrados) {
+    // Adicionar inquilinos
+    for (var inquilino in _inquilinos) {
       final unidade = _unidades.firstWhere(
         (u) => u.id == inquilino.unidadeId,
         orElse: () => Unidade(
@@ -1207,77 +1160,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Barra de busca e filtros
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: Column(
-              children: [
-                // Campo de busca
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por nome ou CPF...',
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1976D2)),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                              });
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1976D2)),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                  onChanged: (value) {
-                    setState(() {});
-                  },
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Filtros por tipo
-                Row(
-                  children: [
-                    const Text(
-                      'Filtrar por:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF2E3A59),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFiltroChip('Todos'),
-                            const SizedBox(width: 8),
-                            _buildFiltroChip('Proprietários'),
-                            const SizedBox(width: 8),
-                            _buildFiltroChip('Inquilinos'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
