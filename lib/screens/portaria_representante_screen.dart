@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'chat_representante_screen.dart';
+import '../models/proprietario.dart';
+import '../models/inquilino.dart';
+import '../models/unidade.dart';
+import '../services/supabase_service.dart';
 
 class PortariaRepresentanteScreen extends StatefulWidget {
   final String? condominioId;
@@ -49,11 +53,22 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   bool _isVisitanteExpanded = true;
   bool _isUnidadeCondominioExpanded = true;
   bool _isVeiculoExpanded = true;
+  
+  // Listas para a aba Prop/Inq
+  List<Proprietario> _proprietarios = [];
+  List<Inquilino> _inquilinos = [];
+  List<Unidade> _unidades = [];
+  bool _isLoadingPropInq = false;
+  
+  // Controles de busca e filtro para Prop/Inq
+  final TextEditingController _searchController = TextEditingController();
+  String _filtroTipo = 'Todos'; // 'Todos', 'Proprietários', 'Inquilinos'
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _carregarDadosPropInq();
   }
 
   @override
@@ -80,6 +95,9 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     _veiculoPlacaController.dispose();
     _veiculoModeloController.dispose();
     _veiculoCorController.dispose();
+    
+    // Dispose do controlador de busca
+    _searchController.dispose();
     
     super.dispose();
   }
@@ -232,11 +250,36 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     );
   }
 
+  // Widget para chip de filtro
+  Widget _buildFiltroChip(String tipo) {
+    bool isSelected = _filtroTipo == tipo;
+    return FilterChip(
+      label: Text(tipo),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _filtroTipo = tipo;
+        });
+      },
+      selectedColor: const Color(0xFF1976D2).withOpacity(0.2),
+      checkmarkColor: const Color(0xFF1976D2),
+      labelStyle: TextStyle(
+        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[700],
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[300]!,
+      ),
+    );
+  }
+
   Widget _buildTabContent(String tabName) {
     if (tabName == 'Adicionar') {
       return _buildAdicionarContent();
     } else if (tabName == 'Mensagem') {
       return _buildMensagemTab();
+    } else if (tabName == 'Prop/Inq') {
+      return _buildPropInqTab();
     }
     
     return Container(
@@ -958,6 +1001,503 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             ),
           );
         },
+      ),
+    );
+  }
+
+  // Método para carregar dados de proprietários, inquilinos e unidades
+  Future<void> _carregarDadosPropInq() async {
+    if (widget.condominioId == null) return;
+    
+    setState(() {
+      _isLoadingPropInq = true;
+    });
+
+    try {
+      // Buscar unidades
+      final unidadesResponse = await SupabaseService.client
+          .from('unidades')
+          .select()
+          .eq('condominio_id', widget.condominioId!)
+          .eq('ativo', true)
+          .order('numero');
+
+      _unidades = unidadesResponse.map<Unidade>((json) => Unidade.fromJson(json)).toList();
+
+      // Buscar proprietários
+      final proprietariosResponse = await SupabaseService.client
+          .from('proprietarios')
+          .select()
+          .eq('condominio_id', widget.condominioId!)
+          .eq('ativo', true)
+          .order('nome');
+
+      _proprietarios = proprietariosResponse.map<Proprietario>((json) => Proprietario.fromJson(json)).toList();
+
+      // Buscar inquilinos
+      final inquilinosResponse = await SupabaseService.client
+          .from('inquilinos')
+          .select()
+          .eq('condominio_id', widget.condominioId!)
+          .eq('ativo', true)
+          .order('nome');
+
+      _inquilinos = inquilinosResponse.map<Inquilino>((json) => Inquilino.fromJson(json)).toList();
+
+    } catch (e) {
+      print('Erro ao carregar dados Prop/Inq: $e');
+    } finally {
+      setState(() {
+        _isLoadingPropInq = false;
+      });
+    }
+  }
+
+  // Widget da aba Prop/Inq
+  Widget _buildPropInqTab() {
+    if (_isLoadingPropInq) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF1976D2),
+        ),
+      );
+    }
+
+    // Agrupar pessoas por unidade
+    Map<String, List<Map<String, dynamic>>> pessoasPorUnidade = {};
+    
+    // Filtrar dados baseado na busca e filtro
+    List<Proprietario> proprietariosFiltrados = _proprietarios.where((p) {
+      bool matchesBusca = _searchController.text.isEmpty ||
+          p.nome.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          p.cpfCnpj.contains(_searchController.text);
+      bool matchesFiltro = _filtroTipo == 'Todos' || _filtroTipo == 'Proprietários';
+      return matchesBusca && matchesFiltro;
+    }).toList();
+    
+    List<Inquilino> inquilinosFiltrados = _inquilinos.where((i) {
+      bool matchesBusca = _searchController.text.isEmpty ||
+          i.nome.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          i.cpfCnpj.contains(_searchController.text);
+      bool matchesFiltro = _filtroTipo == 'Todos' || _filtroTipo == 'Inquilinos';
+      return matchesBusca && matchesFiltro;
+    }).toList();
+    
+    // Adicionar proprietários filtrados
+    for (var proprietario in proprietariosFiltrados) {
+      final unidade = _unidades.firstWhere(
+        (u) => u.id == proprietario.unidadeId,
+        orElse: () => Unidade(
+          id: '',
+          numero: 'N/A',
+          condominioId: '',
+          tipoUnidade: '',
+          isencaoNenhum: true,
+          isencaoTotal: false,
+          isencaoCota: false,
+          isencaoFundoReserva: false,
+          acaoJudicial: false,
+          correios: false,
+          nomePagadorBoleto: 'proprietario',
+          ativo: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      
+      String chaveUnidade = unidade.bloco != null && unidade.bloco!.isNotEmpty
+          ? '${unidade.bloco}/${unidade.numero}'
+          : unidade.numero;
+      
+      if (!pessoasPorUnidade.containsKey(chaveUnidade)) {
+        pessoasPorUnidade[chaveUnidade] = [];
+      }
+      
+      pessoasPorUnidade[chaveUnidade]!.add({
+        'nome': proprietario.nome,
+        'cpf': proprietario.cpfCnpj,
+        'fotoPerfil': proprietario.fotoPerfil,
+        'tipo': 'Proprietário',
+        'tipoIcon': Icons.home,
+        'tipoColor': const Color(0xFF4CAF50),
+      });
+    }
+    
+    // Adicionar inquilinos filtrados
+    for (var inquilino in inquilinosFiltrados) {
+      final unidade = _unidades.firstWhere(
+        (u) => u.id == inquilino.unidadeId,
+        orElse: () => Unidade(
+          id: '',
+          numero: 'N/A',
+          condominioId: '',
+          tipoUnidade: '',
+          isencaoNenhum: true,
+          isencaoTotal: false,
+          isencaoCota: false,
+          isencaoFundoReserva: false,
+          acaoJudicial: false,
+          correios: false,
+          nomePagadorBoleto: 'proprietario',
+          ativo: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      
+      String chaveUnidade = unidade.bloco != null && unidade.bloco!.isNotEmpty
+          ? '${unidade.bloco}/${unidade.numero}'
+          : unidade.numero;
+      
+      if (!pessoasPorUnidade.containsKey(chaveUnidade)) {
+        pessoasPorUnidade[chaveUnidade] = [];
+      }
+      
+      pessoasPorUnidade[chaveUnidade]!.add({
+        'nome': inquilino.nome,
+        'cpf': inquilino.cpfCnpj,
+        'fotoPerfil': inquilino.fotoPerfil,
+        'tipo': 'Inquilino',
+        'tipoIcon': Icons.person,
+        'tipoColor': const Color(0xFF2196F3),
+      });
+    }
+
+    // Ordenar as chaves das unidades
+    List<String> unidadesOrdenadas = pessoasPorUnidade.keys.toList()..sort();
+
+    return Container(
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          // Cabeçalho
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1976D2),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.apartment, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  'Proprietários e Inquilinos por Unidade',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${unidadesOrdenadas.length} unidades',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Barra de busca e filtros
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              children: [
+                // Campo de busca
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar por nome ou CPF...',
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1976D2)),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1976D2)),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // Filtros por tipo
+                Row(
+                  children: [
+                    const Text(
+                      'Filtrar por:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2E3A59),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildFiltroChip('Todos'),
+                            const SizedBox(width: 8),
+                            _buildFiltroChip('Proprietários'),
+                            const SizedBox(width: 8),
+                            _buildFiltroChip('Inquilinos'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Lista expandível por unidade
+          Expanded(
+            child: unidadesOrdenadas.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Nenhum proprietário ou inquilino encontrado',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: unidadesOrdenadas.length,
+                    itemBuilder: (context, index) {
+                      String unidade = unidadesOrdenadas[index];
+                      List<Map<String, dynamic>> pessoas = pessoasPorUnidade[unidade]!;
+                      
+                      return _buildUnidadeExpandible(unidade, pessoas);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget para unidade expandível
+  Widget _buildUnidadeExpandible(String unidade, List<Map<String, dynamic>> pessoas) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1976D2).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.apartment,
+            color: Color(0xFF1976D2),
+            size: 20,
+          ),
+        ),
+        title: Text(
+          'Unidade $unidade',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF2E3A59),
+          ),
+        ),
+        subtitle: Text(
+          '${pessoas.length} ${pessoas.length == 1 ? 'pessoa' : 'pessoas'}',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1976D2).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '${pessoas.length}',
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        children: pessoas.map((pessoa) => _buildPessoaCard(pessoa)).toList(),
+      ),
+    );
+  }
+
+  // Widget para card de pessoa
+  Widget _buildPessoaCard(Map<String, dynamic> pessoa) {
+    String cpfTresPrimeiros = pessoa['cpf'].length >= 3 
+        ? pessoa['cpf'].substring(0, 3) 
+        : pessoa['cpf'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[300],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
+                ? ClipOval(
+                    child: Image.network(
+                      pessoa['fotoPerfil'],
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.person,
+                          color: Colors.grey[600],
+                          size: 28,
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.person,
+                    color: Colors.grey[600],
+                    size: 28,
+                  ),
+          ),
+          
+          const SizedBox(width: 12),
+          
+          // Informações da pessoa
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nome
+                Text(
+                  pessoa['nome'],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E3A59),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                const SizedBox(height: 4),
+                
+                // CPF
+                Text(
+                  'CPF: ${cpfTresPrimeiros}...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Badge do tipo
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: pessoa['tipoColor'],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  pessoa['tipoIcon'],
+                  color: Colors.white,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  pessoa['tipo'],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

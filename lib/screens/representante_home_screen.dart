@@ -8,6 +8,7 @@ import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'inquilino_home_screen.dart';
 import 'gestao_screen.dart';
+import 'contatos_chat_representante_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -168,7 +169,16 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_chat.png',
                       title: 'Chat',
                       onTap: () {
-                        // TODO: Implementar navegação para chat
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContatosChatRepresentanteScreen(
+                              representante: widget.representante,
+                              condominioId: widget.condominioId,
+                              condominioNome: widget.condominioNome,
+                            ),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
