@@ -316,13 +316,13 @@ class _ProprietarioDashboardScreenState
                           context,
                           MaterialPageRoute(
                             builder: (context) => InquilinoHomeScreen(
-                              condominioId: _condominio!['id'],
+                              condominioId: _condominio!['id'].toString(),
                               condominioNome:
                                   _condominio!['nome_condominio'] ??
                                   'Condomínio',
                               condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
                               proprietarioId: widget.proprietario.id,
-                              unidadeId: _unidade!['id'],
+                              unidadeId: _unidade!['id'].toString(),
                               unidadeNome:
                                   'Unidade ${_unidade!['numero_unidade'] ?? 'N/A'}',
                             ),

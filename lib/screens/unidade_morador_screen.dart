@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
-// Imports condicionais para web
-import 'dart:html' as html show Blob, Url, AnchorElement, document;
+import 'dart:convert';
+// Importação condicional para download
+import '../utils/download_helper_stub.dart'
+    if (dart.library.html) '../utils/download_helper_web.dart';
 import 'detalhes_unidade_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
@@ -31,12 +33,12 @@ class UnidadeMoradorScreen extends StatefulWidget {
 class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   final TextEditingController _searchController = TextEditingController();
   final UnidadeService _unidadeService = UnidadeService();
-  
+
   List<BlocoComUnidades> _blocosUnidades = [];
   List<BlocoComUnidades> _blocosUnidadesFiltrados = [];
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Controle de operações em andamento
   Set<String> _blocosEditando = {};
   Set<String> _unidadesEditando = {};
@@ -73,7 +75,9 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
     try {
       // Carrega os dados do banco
-      final blocosUnidades = await _unidadeService.listarUnidadesCondominio(widget.condominioId!);
+      final blocosUnidades = await _unidadeService.listarUnidadesCondominio(
+        widget.condominioId!,
+      );
       setState(() {
         _blocosUnidades = blocosUnidades;
         _blocosUnidadesFiltrados = blocosUnidades;
@@ -89,7 +93,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
   void _filtrarUnidades() {
     final termo = _searchController.text.trim();
-    
+
     if (termo.isEmpty) {
       setState(() {
         _blocosUnidadesFiltrados = _blocosUnidades;
@@ -100,19 +104,24 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     setState(() {
       _blocosUnidadesFiltrados = _blocosUnidades.where((blocoComUnidades) {
         // Verifica se o nome do bloco contém o termo
-        final blocoCorresponde = blocoComUnidades.bloco.nome.toLowerCase().contains(termo.toLowerCase()) ||
-                                blocoComUnidades.bloco.codigo.toLowerCase().contains(termo.toLowerCase());
+        final blocoCorresponde =
+            blocoComUnidades.bloco.nome.toLowerCase().contains(
+              termo.toLowerCase(),
+            ) ||
+            blocoComUnidades.bloco.codigo.toLowerCase().contains(
+              termo.toLowerCase(),
+            );
 
         // Verifica se alguma unidade contém o termo
-        final unidadesCorrespondem = blocoComUnidades.unidades.any((unidade) =>
-            unidade.numero.toLowerCase().contains(termo.toLowerCase()));
+        final unidadesCorrespondem = blocoComUnidades.unidades.any(
+          (unidade) =>
+              unidade.numero.toLowerCase().contains(termo.toLowerCase()),
+        );
 
         return blocoCorresponde || unidadesCorrespondem;
       }).toList();
     });
   }
-
-
 
   // Métodos para edição de blocos e unidades
   Future<void> _editarBloco(String blocoId, String novoNome) async {
@@ -172,7 +181,11 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   }
 
   // Métodos para exclusão de blocos e unidades
-  Future<void> _excluirBloco(String blocoId, String nomeBloco, int quantidadeUnidades) async {
+  Future<void> _excluirBloco(
+    String blocoId,
+    String nomeBloco,
+    int quantidadeUnidades,
+  ) async {
     final confirmado = await ConfirmationDialog.showDeleteBlocoDialog(
       context: context,
       nomeBloco: nomeBloco,
@@ -190,7 +203,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       if (sucesso) {
         await _carregarDados();
         await _verificarSeNecessitaReconfiguracao();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -218,7 +231,11 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     }
   }
 
-  Future<void> _excluirUnidade(String unidadeId, String nomeUnidade, String nomeBloco) async {
+  Future<void> _excluirUnidade(
+    String unidadeId,
+    String nomeUnidade,
+    String nomeBloco,
+  ) async {
     final confirmado = await ConfirmationDialog.showDeleteUnidadeDialog(
       context: context,
       nomeUnidade: nomeUnidade,
@@ -236,7 +253,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       if (sucesso) {
         await _carregarDados();
         await _verificarSeNecessitaReconfiguracao();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -269,16 +286,21 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     if (widget.condominioId == null) return;
 
     try {
-      final existemUnidades = await _unidadeService.verificarSeExistemUnidades(widget.condominioId!);
-      
+      final existemUnidades = await _unidadeService.verificarSeExistemUnidades(
+        widget.condominioId!,
+      );
+
       if (!existemUnidades) {
-        final desejaReconfigurar = await ConfirmationDialog.showReconfigurationDialog(
-          context: context,
-        );
+        final desejaReconfigurar =
+            await ConfirmationDialog.showReconfigurationDialog(
+              context: context,
+            );
 
         if (desejaReconfigurar) {
           // Remove a configuração atual
-          await _unidadeService.removerConfiguracaoCondominio(widget.condominioId!);
+          await _unidadeService.removerConfiguracaoCondominio(
+            widget.condominioId!,
+          );
           // Recarrega a tela para mostrar a opção de configuração
           _carregarDados();
         }
@@ -310,7 +332,9 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
 
       // Carrega o arquivo template ODS dos assets
-      final ByteData data = await rootBundle.load('Template_Unidade_Morador_Condogaia_V1.ods');
+      final ByteData data = await rootBundle.load(
+        'assets/Template_Unidade_Morador_Condogaia_V1.ods',
+      );
       final Uint8List bytes = data.buffer.asUint8List();
 
       if (kIsWeb) {
@@ -336,51 +360,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
   // Método específico para download no Flutter Web
   Future<void> _downloadForWeb(Uint8List bytes) async {
-    try {
-      // Verifica se o arquivo não está vazio ou corrompido
-      if (bytes.isEmpty) {
-        throw Exception('Arquivo template está vazio');
-      }
-
-      // Verifica se é um arquivo ODS válido (deve começar com PK)
-      if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4B) {
-        throw Exception('Arquivo template não é um ODS válido');
-      }
-
-      // Cria o blob com o tipo MIME correto para ODS
-      final blob = html.Blob([bytes], 'application/vnd.oasis.opendocument.spreadsheet');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      
-      // Gera nome único para evitar problemas de cache
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String fileName = 'Template_Unidade_Morador_Condogaia_V1_$timestamp.ods';
-      
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', fileName)
-        ..style.display = 'none';
-      
-      // Adiciona ao DOM, clica e remove
-      html.document.body?.append(anchor);
-      anchor.click();
-      anchor.remove();
-      
-      // Limpa a URL do blob
-      html.Url.revokeObjectUrl(url);
-
-      // Mostra mensagem de sucesso
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Template baixado com sucesso!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      }
-    } catch (e) {
-      // Re-lança a exceção para ser tratada no método principal
-      throw Exception('Erro no download web: $e');
-    }
+    await DownloadHelper.downloadFile(bytes, context);
   }
 
   // Método específico para download em plataformas móveis
@@ -417,13 +397,15 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
       if (downloadsDirectory != null && await downloadsDirectory.exists()) {
         // Gera nome único para evitar sobrescrever
-        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-        final String fileName = 'Template_Unidade_Morador_Condogaia_V1_$timestamp.ods';
+        final String timestamp = DateTime.now().millisecondsSinceEpoch
+            .toString();
+        final String fileName =
+            'Template_Unidade_Morador_Condogaia_V1_$timestamp.ods';
         final File file = File('${downloadsDirectory.path}/$fileName');
-        
+
         // Escreve o arquivo com verificação de integridade
         await file.writeAsBytes(bytes, flush: true);
-        
+
         // Verifica se o arquivo foi escrito corretamente
         final savedBytes = await file.readAsBytes();
         if (savedBytes.length != bytes.length) {
@@ -435,7 +417,9 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Template baixado com sucesso!\nSalvo em: ${file.path}'),
+              content: Text(
+                'Template baixado com sucesso!\nSalvo em: ${file.path}',
+              ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
@@ -458,9 +442,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   }
 
   // Mostra diálogo para edição de unidade
-  Future<void> _mostrarDialogoEdicaoUnidade(String unidadeId, String nomeAtual) async {
+  Future<void> _mostrarDialogoEdicaoUnidade(
+    String unidadeId,
+    String nomeAtual,
+  ) async {
     final controller = TextEditingController(text: nomeAtual);
-    
+
     final novoNome = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -496,15 +483,15 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     if (novoNome != null) {
       await _editarUnidade(unidadeId, novoNome);
     }
-    
+
     controller.dispose();
   }
 
   Widget _buildUnidadeButton(
-    String numero, 
-    String bloco, 
-    String unidadeId, 
-    String nomeBloco
+    String numero,
+    String bloco,
+    String unidadeId,
+    String nomeBloco,
   ) {
     final isEditando = _unidadesEditando.contains(unidadeId);
     final isExcluindo = _unidadesExcluindo.contains(unidadeId);
@@ -512,20 +499,22 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     return Container(
       margin: const EdgeInsets.only(right: 8, bottom: 8),
       child: ElevatedButton(
-        onPressed: isEditando || isExcluindo ? null : () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetalhesUnidadeScreen(
-                condominioId: widget.condominioId,
-                condominioNome: widget.condominioNome,
-                condominioCnpj: widget.condominioCnpj,
-                bloco: bloco,
-                unidade: numero,
-              ),
-            ),
-          );
-        },
+        onPressed: isEditando || isExcluindo
+            ? null
+            : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DetalhesUnidadeScreen(
+                      condominioId: widget.condominioId,
+                      condominioNome: widget.condominioNome,
+                      condominioCnpj: widget.condominioCnpj,
+                      bloco: bloco,
+                      unidade: numero,
+                    ),
+                  ),
+                );
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF4A90E2),
           foregroundColor: Colors.white,
@@ -564,7 +553,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     final unidades = blocoComUnidades.unidades;
     final isEditandoBloco = _blocosEditando.contains(bloco.id);
     final isExcluindoBloco = _blocosExcluindo.contains(bloco.id);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 32),
       decoration: BoxDecoration(
@@ -609,7 +598,10 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                 const SizedBox(width: 8),
                 // Estatísticas de ocupação
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4A90E2).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -633,10 +625,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   )
                 else
                   PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      color: Color(0xFF757575),
-                    ),
+                    icon: const Icon(Icons.more_vert, color: Color(0xFF757575)),
                     onSelected: (value) {
                       switch (value) {
                         case 'excluir':
@@ -651,7 +640,10 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                           children: [
                             Icon(Icons.delete, size: 16, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Excluir Bloco', style: TextStyle(color: Colors.red)),
+                            Text(
+                              'Excluir Bloco',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ],
                         ),
                       ),
@@ -664,14 +656,16 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
             child: Wrap(
-              children: unidades.map((unidade) => 
-                _buildUnidadeButton(
-                  unidade.numero, 
-                  bloco.nome,
-                  unidade.id,
-                  bloco.nome,
-                )
-              ).toList(),
+              children: unidades
+                  .map(
+                    (unidade) => _buildUnidadeButton(
+                      unidade.numero,
+                      bloco.nome,
+                      unidade.id,
+                      bloco.nome,
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ],
@@ -701,10 +695,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
+                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
@@ -738,11 +729,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
               ),
             ),
             // Linha de separação
-            Container(
-              height: 1,
-              color: const Color(0xFFE0E0E0),
-            ),
-            
+            Container(height: 1, color: const Color(0xFFE0E0E0)),
+
             // Breadcrumb
             Container(
               color: Colors.white,
@@ -773,7 +761,10 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A90E2),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -840,9 +831,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     const SizedBox(height: 24),
 
                     // Lista de blocos e unidades
-                    Expanded(
-                      child: _buildConteudoPrincipal(),
-                    ),
+                    Expanded(child: _buildConteudoPrincipal()),
                   ],
                 ),
               ),
@@ -865,10 +854,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
             SizedBox(height: 16),
             Text(
               'Carregando dados...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF666666),
-              ),
+              style: TextStyle(fontSize: 16, color: Color(0xFF666666)),
             ),
           ],
         ),
@@ -880,18 +866,11 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
               _errorMessage!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.red,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.red),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -975,7 +954,10 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildInstructionStep('1', 'Baixe o template da planilha'),
-                    _buildInstructionStep('2', 'Preencha os dados das unidades'),
+                    _buildInstructionStep(
+                      '2',
+                      'Preencha os dados das unidades',
+                    ),
                     _buildInstructionStep('3', 'Importe a planilha no sistema'),
                   ],
                 ),
@@ -1016,10 +998,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
+              style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
             ),
           ),
         ],

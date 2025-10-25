@@ -30,6 +30,14 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
 
   Future<void> _loadCondominioAndUnidade() async {
     try {
+      // DEBUG: Log dos dados do inquilino
+      print('=== DEBUG INQUILINO DASHBOARD ===');
+      print('Inquilino ID: ${widget.inquilino.id}');
+      print('Condominio ID: ${widget.inquilino.condominioId}');
+      print('Unidade ID: ${widget.inquilino.unidadeId}');
+      print('Nome: ${widget.inquilino.nome}');
+      print('==================================');
+
       // Buscar dados do condomínio
       final condominio = await SupabaseService.getCondominioById(
         widget.inquilino.condominioId,
@@ -39,6 +47,12 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
       final unidade = await SupabaseService.getUnidadeById(
         widget.inquilino.unidadeId,
       );
+
+      // DEBUG: Log dos dados carregados
+      print('=== DEBUG DADOS CARREGADOS ===');
+      print('Condominio carregado: $condominio');
+      print('Unidade carregada: $unidade');
+      print('==============================');
 
       setState(() {
         _condominio = condominio;
@@ -312,6 +326,13 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                     GestureDetector(
                       onTap: () {
                         // Navegar para a tela home do inquilino
+                        // DEBUG: Log dos dados antes da navegação
+                        print('=== DEBUG NAVEGAÇÃO PARA HOME ===');
+                        print('Condominio ID: ${_condominio!['id']}');
+                        print('Unidade ID: ${_unidade!['id']}');
+                        print('Inquilino ID: ${widget.inquilino.id}');
+                        print('=====================================');
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -319,7 +340,7 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                               condominioId: _condominio!['id'].toString(),
                               condominioNome:
                                   _condominio!['nome_condominio'] ??
-                                  'Condomínio',
+                                      'Condomínio',
                               condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
                               inquilinoId: widget.inquilino.id,
                               unidadeId: _unidade!['id'].toString(),

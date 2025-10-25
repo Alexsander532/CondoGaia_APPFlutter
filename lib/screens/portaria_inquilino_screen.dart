@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'chat_inquilino_screen.dart';
+import '../models/autorizado_inquilino.dart';
+import '../services/autorizado_inquilino_service.dart';
 
 class PortariaInquilinoScreen extends StatefulWidget {
   final String? condominioId;
   final String? condominioNome;
   final String? condominioCnpj;
   final String? inquilinoId;
+  final String? proprietarioId;
+  final String? unidadeId;
 
   const PortariaInquilinoScreen({
     super.key,
@@ -13,6 +19,8 @@ class PortariaInquilinoScreen extends StatefulWidget {
     this.condominioNome,
     this.condominioCnpj,
     this.inquilinoId,
+    this.proprietarioId,
+    this.unidadeId,
   });
 
   @override
@@ -22,6 +30,10 @@ class PortariaInquilinoScreen extends StatefulWidget {
 class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  // Lista de autorizados carregada do banco
+  List<AutorizadoInquilino> _autorizados = [];
+  bool _isLoading = false;
 
   // Controladores para o modal de adicionar autorizado
   final TextEditingController _nomeController = TextEditingController();
@@ -33,16 +45,77 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   final TextEditingController _modeloController = TextEditingController();
   final TextEditingController _corController = TextEditingController();
 
+  // Máscara para CPF
+  final _cpfMask = MaskTextInputFormatter(
+    mask: '###.###.###-##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   // Variáveis de estado para o modal
   String _permissaoSelecionada = 'qualquer'; // 'qualquer' ou 'determinado'
   List<bool> _diasSemana = List.filled(7, false); // DOM, SEG, TER, QUA, QUI, SEX, SAB
-  String _horarioInicio = '8h';
-  String _horarioFim = '18h';
+  String _horarioInicio = '08:00';
+  String _horarioFim = '18:00';
+  
+  // Lista de horários disponíveis (00:00 até 23:00)
+  final List<String> _horariosDisponiveis = List.generate(24, (index) {
+    return '${index.toString().padLeft(2, '0')}:00';
+  });
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Debug: Verificar se os IDs estão sendo passados corretamente
+    print('DEBUG - PortariaInquilinoScreen initState:');
+    print('  condominioId: ${widget.condominioId}');
+    print('  inquilinoId: ${widget.inquilinoId}');
+    print('  proprietarioId: ${widget.proprietarioId}');
+    print('  unidadeId: ${widget.unidadeId}');
+    
+    _carregarAutorizados(); // Carregar autorizados ao inicializar
+  }
+
+  // Método para carregar autorizados do banco de dados
+  Future<void> _carregarAutorizados() async {
+    if (widget.unidadeId == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      List<AutorizadoInquilino> autorizados;
+      
+      // Buscar por inquilino ou proprietário dependendo do contexto
+      if (widget.inquilinoId != null) {
+        autorizados = await AutorizadoInquilinoService.getAutorizadosByInquilino(widget.inquilinoId!);
+      } else if (widget.proprietarioId != null) {
+        autorizados = await AutorizadoInquilinoService.getAutorizadosByProprietario(widget.proprietarioId!);
+      } else {
+        // Se não tiver nem inquilino nem proprietário, buscar por unidade
+        autorizados = await AutorizadoInquilinoService.getAutorizadosByUnidade(widget.unidadeId!);
+      }
+
+      setState(() {
+        _autorizados = autorizados;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar autorizados: $e'),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -191,26 +264,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
   // Widget para a aba Autorizados
   Widget _buildAutorizadosTab() {
-    // Dados mockados de pessoas autorizadas
-    final List<Map<String, String>> pessoasAutorizadas = [
-      {
-        'nome': 'João da Silva',
-        'parentesco': 'Pai',
-      },
-      {
-        'nome': 'Maria Santos',
-        'parentesco': 'Mãe',
-      },
-      {
-        'nome': 'Pedro Silva',
-        'parentesco': 'Irmão',
-      },
-      {
-        'nome': 'Ana Costa',
-        'parentesco': 'Tia',
-      },
-    ];
-
     return Container(
       color: const Color(0xFFF5F5F5),
       child: Column(
@@ -249,28 +302,62 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           
           // Lista de autorizados
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: pessoasAutorizadas.length,
-              itemBuilder: (context, index) {
-                final pessoa = pessoasAutorizadas[index];
-                return _buildAutorizadoCard(
-                  nome: pessoa['nome']!,
-                  parentesco: pessoa['parentesco']!,
-                );
-              },
-            ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF4A90E2),
+                    ),
+                  )
+                : _autorizados.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person_off_outlined,
+                              size: 64,
+                              color: Color(0xFF7F8C8D),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Nenhum autorizado cadastrado',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF7F8C8D),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Toque no botão acima para adicionar',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF95A5A6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _carregarAutorizados,
+                        color: const Color(0xFF4A90E2),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _autorizados.length,
+                          itemBuilder: (context, index) {
+                            final autorizado = _autorizados[index];
+                            return _buildAutorizadoCardFromModel(autorizado);
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
     );
   }
 
-  // Widget do card de pessoa autorizada
-  Widget _buildAutorizadoCard({
-    required String nome,
-    required String parentesco,
-  }) {
+  // Widget do card de pessoa autorizada usando o modelo
+  Widget _buildAutorizadoCardFromModel(AutorizadoInquilino autorizado) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -285,111 +372,555 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Ícone de pessoa
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF4A90E2).withOpacity(0.1),
-            ),
-            child: const Icon(
-              Icons.person,
-              size: 30,
-              color: Color(0xFF4A90E2),
-            ),
-          ),
-          
-          const SizedBox(width: 16),
-          
-          // Informações da pessoa
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Nome
-                Text(
-                  nome,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2E3A59),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Parentesco
-                Row(
-                  children: [
-                    const Text(
-                      'Parentesco: ',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF666666),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Text(
-                      parentesco,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF2E3A59),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Ícones de ação
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Ícone de editar
-              GestureDetector(
-                onTap: () {
-                  // TODO: Implementar edição
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Editar $nome'),
-                      backgroundColor: const Color(0xFF4A90E2),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: Color(0xFF4A90E2),
-                  ),
+              // Ícone de pessoa
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  size: 30,
+                  color: Color(0xFF4A90E2),
                 ),
               ),
               
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
               
-              // Ícone de excluir
-              GestureDetector(
-                onTap: () {
-                  // TODO: Implementar exclusão
-                  _showDeleteConfirmation(context, nome);
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    size: 20,
-                    color: Color(0xFFE74C3C),
-                  ),
+              // Informações da pessoa
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nome
+                    Text(
+                      autorizado.nome,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2E3A59),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // CPF (primeiros 3 dígitos)
+                    if (autorizado.cpf.isNotEmpty)
+                      Text(
+                        'CPF: ${autorizado.cpf.substring(0, 3)}***',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                    // Parentesco
+                    if (autorizado.parentesco?.isNotEmpty == true) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Text(
+                            'Parentesco: ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF666666),
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          Text(
+                            autorizado.parentesco!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF2E3A59),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+              
+              // Ícones de ação
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Ícone de editar
+                  GestureDetector(
+                    onTap: () {
+                      _editarAutorizado(autorizado);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: Color(0xFF4A90E2),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 8),
+                  
+                  // Ícone de excluir
+                  GestureDetector(
+                    onTap: () {
+                      _showDeleteConfirmationFromModel(context, autorizado);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Color(0xFFE74C3C),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
+          
+          // Informações adicionais (horários, veículo, etc.)
+          if ((autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) || autorizado.temVeiculo) ...[
+            const SizedBox(height: 12),
+            const Divider(color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 8),
+            
+            // Horários permitidos
+            if (autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ...[
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${autorizado.diasSemanaFormatados} - ${autorizado.horarioFormatado}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            
+            // Informações do veículo
+            if (autorizado.temVeiculo) ...[
+              Row(
+                children: [
+                  const Icon(
+                    Icons.directions_car,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      autorizado.veiculoFormatado,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
         ],
       ),
+    );
+  }
+
+  // Método para editar autorizado
+  void _editarAutorizado(AutorizadoInquilino autorizado) {
+    _showAdicionarAutorizadoModal(autorizado);
+  }
+
+  // Método para mostrar confirmação de exclusão usando o modelo
+  void _showDeleteConfirmationFromModel(BuildContext context, AutorizadoInquilino autorizado) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: Text('Deseja realmente remover ${autorizado.nome} da lista de autorizados?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Color(0xFF666666)),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _excluirAutorizado(autorizado);
+              },
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Color(0xFFE74C3C)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método para excluir autorizado
+  Future<void> _excluirAutorizado(AutorizadoInquilino autorizado) async {
+    try {
+      await AutorizadoInquilinoService.deleteAutorizado(autorizado.id);
+      
+      // Recarregar a lista
+      await _carregarAutorizados();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${autorizado.nome} removido da lista de autorizados'),
+            backgroundColor: const Color(0xFF27AE60),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir autorizado: $e'),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+    }
+  }
+
+  // Método para salvar autorizado (adicionar ou editar)
+  Future<void> _salvarAutorizado([AutorizadoInquilino? autorizadoExistente]) async {
+    // Validações básicas
+    String nome = _nomeController.text.trim();
+    String cpf = _cpfController.text.trim();
+    
+    if (nome.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, preencha o nome do autorizado'),
+          backgroundColor: Color(0xFFE74C3C),
+        ),
+      );
+      return;
+    }
+
+    if (cpf.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, preencha o CPF do autorizado'),
+          backgroundColor: Color(0xFFE74C3C),
+        ),
+      );
+      return;
+    }
+
+    if (widget.unidadeId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: ID da unidade não encontrado'),
+          backgroundColor: Color(0xFFE74C3C),
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Criar o mapa de dados para o autorizado
+      final autorizadoData = {
+        'unidade_id': widget.unidadeId!,
+        'inquilino_id': widget.inquilinoId,
+        'proprietario_id': widget.proprietarioId,
+        'nome': nome,
+        'cpf': cpf,
+        'parentesco': _parentescoController.text.trim().isEmpty ? null : _parentescoController.text.trim(),
+        // Horários e dias da semana
+        'dias_semana_permitidos': _permissaoSelecionada == 'determinado' ? _diasSemana : null,
+        'horario_inicio': _permissaoSelecionada == 'determinado' ? _horarioInicio : null,
+        'horario_fim': _permissaoSelecionada == 'determinado' ? _horarioFim : null,
+        // Dados do veículo
+        'veiculo_marca': _marcaController.text.trim().isEmpty ? null : _marcaController.text.trim(),
+        'veiculo_modelo': _modeloController.text.trim().isEmpty ? null : _modeloController.text.trim(),
+        'veiculo_cor': _corController.text.trim().isEmpty ? null : _corController.text.trim(),
+        'veiculo_placa': _placaController.text.trim().isEmpty ? null : _placaController.text.trim(),
+        'ativo': true,
+      };
+
+      // DEBUG: Mostrar dados que estão sendo enviados
+      print('=== DEBUG ADICIONAR AUTORIZADO ===');
+      print('Dados do autorizado sendo enviados:');
+      print('- unidade_id: ${autorizadoData['unidade_id']}');
+      print('- inquilino_id: ${autorizadoData['inquilino_id']}');
+      print('- proprietario_id: ${autorizadoData['proprietario_id']}');
+      print('- nome: ${autorizadoData['nome']}');
+      print('- cpf: ${autorizadoData['cpf']}');
+      print('- parentesco: ${autorizadoData['parentesco']}');
+      print('- dias_semana_permitidos: ${autorizadoData['dias_semana_permitidos']}');
+      print('- horario_inicio: ${autorizadoData['horario_inicio']}');
+      print('- horario_fim: ${autorizadoData['horario_fim']}');
+      print('- veiculo_marca: ${autorizadoData['veiculo_marca']}');
+      print('- veiculo_modelo: ${autorizadoData['veiculo_modelo']}');
+      print('- veiculo_cor: ${autorizadoData['veiculo_cor']}');
+      print('- veiculo_placa: ${autorizadoData['veiculo_placa']}');
+      print('- ativo: ${autorizadoData['ativo']}');
+      print('- _permissaoSelecionada: $_permissaoSelecionada');
+      print('- _diasSemana: $_diasSemana');
+      print('===================================');
+
+      // Salvar no banco de dados
+      AutorizadoInquilino? resultado;
+      if (autorizadoExistente != null) {
+        // Editar autorizado existente
+        resultado = await AutorizadoInquilinoService.updateAutorizado(
+          autorizadoExistente.id!,
+          autorizadoData,
+        );
+      } else {
+        // Adicionar novo autorizado
+        resultado = await AutorizadoInquilinoService.insertAutorizado(autorizadoData);
+      }
+
+      // Recarregar a lista
+      await _carregarAutorizados();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(autorizadoExistente != null 
+              ? '$nome atualizado com sucesso' 
+              : '$nome adicionado à lista de autorizados'),
+            backgroundColor: const Color(0xFF27AE60),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar autorizado: $e'),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+    }
+  }
+
+  // Widget para título de seção
+  Widget _buildSectionTitle(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4A90E2),
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2E3A59),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget para campo de texto
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    MaskTextInputFormatter? mask,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF2E3A59),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          inputFormatters: mask != null ? [mask] : null,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF4A90E2)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget para dropdown de horário
+  Widget _buildHorarioDropdown(String label, String valorSelecionado, StateSetter setModalState, bool isInicio) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF2E3A59),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(6),
+            color: Colors.white,
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: valorSelecionado,
+              isExpanded: true,
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: Color(0xFF2E3A59),
+                size: 20,
+              ),
+              style: const TextStyle(
+                color: Color(0xFF2E3A59),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              items: _horariosDisponiveis.map((String horario) {
+                return DropdownMenuItem<String>(
+                  value: horario,
+                  child: Text(horario),
+                );
+              }).toList(),
+              onChanged: (String? novoHorario) {
+                if (novoHorario != null) {
+                  setModalState(() {
+                    if (isInicio) {
+                      _horarioInicio = novoHorario;
+                      // Se o horário de início for maior que o de fim, ajustar o fim
+                      int inicioIndex = _horariosDisponiveis.indexOf(novoHorario);
+                      int fimIndex = _horariosDisponiveis.indexOf(_horarioFim);
+                      if (inicioIndex >= fimIndex) {
+                        if (inicioIndex < _horariosDisponiveis.length - 1) {
+                          _horarioFim = _horariosDisponiveis[inicioIndex + 1];
+                        }
+                      }
+                    } else {
+                      _horarioFim = novoHorario;
+                      // Se o horário de fim for menor que o de início, ajustar o início
+                      int inicioIndex = _horariosDisponiveis.indexOf(_horarioInicio);
+                      int fimIndex = _horariosDisponiveis.indexOf(novoHorario);
+                      if (fimIndex <= inicioIndex) {
+                        if (fimIndex > 0) {
+                          _horarioInicio = _horariosDisponiveis[fimIndex - 1];
+                        }
+                      }
+                    }
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget para checkbox de dia da semana
+  Widget _buildDiaCheckbox(String dia, int index, StateSetter setModalState) {
+    return Column(
+      children: [
+        Text(
+          dia,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF2E3A59),
+          ),
+        ),
+        const SizedBox(height: 4),
+        GestureDetector(
+          onTap: () {
+            setModalState(() {
+              _diasSemana[index] = !_diasSemana[index];
+            });
+          },
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _diasSemana[index] ? const Color(0xFF4A90E2) : Colors.white,
+              border: Border.all(
+                color: _diasSemana[index] ? const Color(0xFF4A90E2) : Colors.grey[300]!,
+              ),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: _diasSemana[index]
+                ? const Icon(
+                    Icons.check,
+                    size: 16,
+                    color: Colors.white,
+                  )
+                : null,
+          ),
+        ),
+      ],
     );
   }
 
@@ -432,19 +963,80 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       setState(() {
         _permissaoSelecionada = 'qualquer';
         _diasSemana = List.filled(7, false);
-        _horarioInicio = '8h';
-        _horarioFim = '18h';
+        _horarioInicio = '08:00';
+        _horarioFim = '18:00';
       });
     }
   }
 
+  // Método para preencher campos com dados do autorizado existente
+  void _preencherCamposParaEdicao(AutorizadoInquilino autorizado) {
+    try {
+      // Preencher campos básicos
+      _nomeController.text = autorizado.nome;
+      _cpfController.text = autorizado.cpf ?? '';
+      _parentescoController.text = autorizado.parentesco ?? '';
+      
+      // Preencher dados do veículo
+      _marcaController.text = autorizado.veiculoMarca ?? '';
+      _modeloController.text = autorizado.veiculoModelo ?? '';
+      _corController.text = autorizado.veiculoCor ?? '';
+      _placaController.text = autorizado.veiculoPlaca ?? '';
+      
+      // Determinar tipo de veículo baseado nos dados existentes
+      if (autorizado.veiculoMarca != null || autorizado.veiculoModelo != null || 
+          autorizado.veiculoCor != null || autorizado.veiculoPlaca != null) {
+        _carroMotoController.text = 'Carro'; // Valor padrão, pode ser ajustado
+      } else {
+        _carroMotoController.text = '';
+      }
+      
+      if (mounted) {
+        setState(() {
+          // Configurar permissões baseadas nos dados existentes
+          if (autorizado.diasSemanaPermitidos != null && autorizado.diasSemanaPermitidos!.isNotEmpty) {
+            _permissaoSelecionada = 'determinado';
+            
+            // Converter lista de inteiros para lista de booleans
+            _diasSemana = List.filled(7, false);
+            
+            for (int dia in autorizado.diasSemanaPermitidos!) {
+              if (dia >= 0 && dia < 7) {
+                _diasSemana[dia] = true;
+              }
+            }
+            
+            // Configurar horários
+            _horarioInicio = autorizado.horarioInicio ?? '08:00';
+            _horarioFim = autorizado.horarioFim ?? '18:00';
+          } else {
+            _permissaoSelecionada = 'qualquer';
+            _diasSemana = List.filled(7, false);
+            _horarioInicio = '08:00';
+            _horarioFim = '18:00';
+          }
+        });
+      }
+    } catch (e) {
+      print('Erro ao preencher campos para edição: $e');
+      // Em caso de erro, usar valores padrão
+      _limparCamposModal();
+      _resetarVariaveisEstado();
+    }
+  }
+
   // Método para mostrar o modal de adicionar autorizado
-  void _showAdicionarAutorizadoModal() {
-    // Limpar campos ao abrir o modal com verificação de segurança
-    _limparCamposModal();
-    
-    // Resetar variáveis de estado
-    _resetarVariaveisEstado();
+  void _showAdicionarAutorizadoModal([AutorizadoInquilino? autorizadoExistente]) {
+    // Se for edição, preencher campos com dados existentes
+    if (autorizadoExistente != null) {
+      _preencherCamposParaEdicao(autorizadoExistente);
+    } else {
+      // Limpar campos ao abrir o modal com verificação de segurança
+      _limparCamposModal();
+      
+      // Resetar variáveis de estado
+      _resetarVariaveisEstado();
+    }
 
     showModalBottomSheet(
       context: context,
@@ -470,9 +1062,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                     // Título do modal
                     Row(
                       children: [
-                        const Text(
-                          'Adicionar Autorizado',
-                          style: TextStyle(
+                        Text(
+                          autorizadoExistente != null ? 'Editar Autorizado' : 'Adicionar Autorizado',
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF2C3E50),
@@ -510,7 +1102,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                             _buildTextField(
                               controller: _cpfController,
                               label: 'CPF*',
-                              hint: '114.225.999-66',
+                              hint: '000.000.000-00',
+                              mask: _cpfMask,
+                              keyboardType: TextInputType.number,
                             ),
                             const SizedBox(height: 4),
                             const Text(
@@ -576,17 +1170,22 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                               // Seleção de horários
                               Row(
                                 children: [
-                                  _buildHorarioButton('8h', setModalState),
-                                  const SizedBox(width: 8),
-                                  const Text(' - '),
-                                  const SizedBox(width: 8),
-                                  _buildHorarioButton('12h', setModalState),
+                                  Expanded(
+                                    child: _buildHorarioDropdown('Início', _horarioInicio, setModalState, true),
+                                  ),
                                   const SizedBox(width: 16),
-                                  _buildHorarioButton('14h', setModalState),
-                                  const SizedBox(width: 8),
-                                  const Text(' - '),
-                                  const SizedBox(width: 8),
-                                  _buildHorarioButton('18h', setModalState),
+                                  const Text(
+                                    ' - ',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF2E3A59),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildHorarioDropdown('Fim', _horarioFim, setModalState, false),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -666,8 +1265,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            _salvarAutorizado();
+                          onPressed: () async {
+                            await _salvarAutorizado(autorizadoExistente);
                             Navigator.of(context).pop();
                           },
                           style: ElevatedButton.styleFrom(
@@ -694,45 +1293,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
               ),
             );
           },
-        );
-      },
-    );
-  }
-
-  // Método para mostrar confirmação de exclusão
-  void _showDeleteConfirmation(BuildContext context, String nome) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: Text('Deseja realmente remover $nome da lista de autorizados?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Color(0xFF666666)),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$nome removido da lista de autorizados'),
-                    backgroundColor: const Color(0xFFE74C3C),
-                  ),
-                );
-              },
-              child: const Text(
-                'Excluir',
-                style: TextStyle(color: Color(0xFFE74C3C)),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -1061,185 +1621,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Métodos auxiliares para o modal
-
-  // Widget para título de seção
-  Widget _buildSectionTitle(String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4A90E2),
-              borderRadius: BorderRadius.all(Radius.circular(2)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2E3A59),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget para campo de texto
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2E3A59),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF4A90E2)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Widget para botão de horário
-  Widget _buildHorarioButton(String horario, StateSetter setModalState) {
-    bool isSelected = (horario == _horarioInicio || horario == _horarioFim);
-    
-    return GestureDetector(
-      onTap: () {
-        setModalState(() {
-          if (horario == '8h' || horario == '12h') {
-            _horarioInicio = horario;
-          } else {
-            _horarioFim = horario;
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
-          border: Border.all(
-            color: isSelected ? const Color(0xFF4A90E2) : Colors.grey[300]!,
-          ),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          horario,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF2E3A59),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Widget para checkbox de dia da semana
-  Widget _buildDiaCheckbox(String dia, int index, StateSetter setModalState) {
-    return Column(
-      children: [
-        Text(
-          dia,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2E3A59),
-          ),
-        ),
-        const SizedBox(height: 4),
-        GestureDetector(
-          onTap: () {
-            setModalState(() {
-              _diasSemana[index] = !_diasSemana[index];
-            });
-          },
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: _diasSemana[index] ? const Color(0xFF4A90E2) : Colors.white,
-              border: Border.all(
-                color: _diasSemana[index] ? const Color(0xFF4A90E2) : Colors.grey[300]!,
-              ),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: _diasSemana[index]
-                ? const Icon(
-                    Icons.check,
-                    size: 16,
-                    color: Colors.white,
-                  )
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Método para salvar autorizado
-  void _salvarAutorizado() {
-    // TODO: Implementar salvamento no backend
-    // Por enquanto, apenas mostra uma mensagem de sucesso
-    
-    String nome = _nomeController.text.trim();
-    if (nome.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha o nome do autorizado'),
-          backgroundColor: Color(0xFFE74C3C),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$nome adicionado à lista de autorizados'),
-        backgroundColor: const Color(0xFF27AE60),
       ),
     );
   }

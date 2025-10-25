@@ -64,6 +64,9 @@ dependencies:
   
   # Para permissões de acesso a arquivos
   permission_handler: ^11.3.1
+  
+  # Para APIs web (substitui dart:html)
+  # web: ^1.1.0
 
 dev_dependencies:
   flutter_test:

@@ -22,8 +22,9 @@ class PortariaRepresentanteScreen extends StatefulWidget {
 }
 
 class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
+  late TabController _encomendasTabController;
   
   // Controladores para a seção Visitante
   final TextEditingController _visitanteNomeController = TextEditingController();
@@ -60,16 +61,23 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   List<Unidade> _unidades = [];
   bool _isLoadingPropInq = false;
 
+  // Variáveis para a seção de Encomendas
+  Unidade? _unidadeSelecionadaEncomenda;
+  String? _imagemEncomenda;
+  bool _notificarUnidade = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _encomendasTabController = TabController(length: 3, vsync: this);
     _carregarDadosPropInq();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _encomendasTabController.dispose();
     
     // Dispose dos controladores da seção Visitante
     _visitanteNomeController.dispose();
@@ -250,6 +258,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
       return _buildMensagemTab();
     } else if (tabName == 'Prop/Inq') {
       return _buildPropInqTab();
+    } else if (tabName == 'Encomendas') {
+      return _buildEncomendasTab();
     }
     
     return Container(
@@ -1382,5 +1392,454 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
         ],
       ),
     );
+  }
+
+  // Método para construir a aba de Encomendas
+  Widget _buildEncomendasTab() {
+    // Verifica se o controller foi inicializado
+    if (!mounted) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    return Column(
+      children: [
+        // Sub-TabBar para Encomendas
+        Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: _encomendasTabController,
+            labelColor: const Color(0xFF2E3A59),
+            unselectedLabelColor: const Color(0xFF9E9E9E),
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+            indicator: const UnderlineTabIndicator(
+              borderSide: BorderSide(
+                color: Color(0xFF1976D2),
+                width: 2.0,
+              ),
+            ),
+            tabs: const [
+              Tab(text: 'Cadastro'),
+              Tab(text: 'Recebimento'),
+              Tab(text: 'Histórico'),
+            ],
+          ),
+        ),
+        
+        // Linha de separação
+        Container(
+          height: 1,
+          color: const Color(0xFFE0E0E0),
+        ),
+        
+        // Conteúdo das sub-abas
+        Expanded(
+          child: TabBarView(
+            controller: _encomendasTabController,
+            children: [
+              _buildCadastroEncomendaTab(),
+              _buildRecebimentoEncomendaTab(),
+              _buildHistoricoEncomendaTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Aba Cadastro de Encomenda
+  Widget _buildCadastroEncomendaTab() {
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Lista de Unidades
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Cabeçalho da lista
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2E3A59),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        topRight: Radius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'UNID/BLOCO ou COND.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'NOME',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Lista de unidades
+                  if (_isLoadingPropInq)
+                    const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_unidades.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(
+                        child: Text(
+                          'Nenhuma unidade encontrada',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _unidades.length,
+                      itemBuilder: (context, index) {
+                        final unidade = _unidades[index];
+                        final isSelected = _unidadeSelecionadaEncomenda?.id == unidade.id;
+                        
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: ListTile(
+                            leading: Checkbox(
+                              value: isSelected,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    _unidadeSelecionadaEncomenda = unidade;
+                                  } else {
+                                    _unidadeSelecionadaEncomenda = null;
+                                  }
+                                });
+                              },
+                              activeColor: const Color(0xFF1976D2),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    '${unidade.numero}/${unidade.bloco}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _getProprietarioNome(unidade.id),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            onTap: () {
+                              setState(() {
+                                if (_unidadeSelecionadaEncomenda?.id == unidade.id) {
+                                  _unidadeSelecionadaEncomenda = null;
+                                } else {
+                                  _unidadeSelecionadaEncomenda = unidade;
+                                }
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Seção de anexar imagem
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Implementar seleção de imagem
+                      setState(() {
+                        _imagemEncomenda = 'imagem_selecionada.jpg'; // Placeholder
+                      });
+                    },
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 2,
+                          style: BorderStyle.solid,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _imagemEncomenda == null
+                          ? const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_outlined,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Anexar imagem',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 48,
+                                  color: Colors.green,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Imagem anexada',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Checkbox para notificar unidade
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _notificarUnidade,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            _notificarUnidade = value ?? false;
+                          });
+                        },
+                        activeColor: const Color(0xFF1976D2),
+                      ),
+                      const Text(
+                        'Notificar Unidade',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Botão Salvar
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _unidadeSelecionadaEncomenda != null
+                          ? () {
+                              // TODO: Implementar salvamento da encomenda
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Encomenda cadastrada para ${_unidadeSelecionadaEncomenda!.numero}/${_unidadeSelecionadaEncomenda!.bloco}' +
+                                    (_notificarUnidade ? ' - Unidade notificada' : ''),
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              
+                              // Limpar seleções
+                              setState(() {
+                                _unidadeSelecionadaEncomenda = null;
+                                _imagemEncomenda = null;
+                                _notificarUnidade = false;
+                              });
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E3A59),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Salvar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Aba Recebimento de Encomenda (placeholder)
+  Widget _buildRecebimentoEncomendaTab() {
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inbox,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Recebimento',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2E3A59),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Em desenvolvimento',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Aba Histórico de Encomenda (placeholder)
+  Widget _buildHistoricoEncomendaTab() {
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Histórico',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2E3A59),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Em desenvolvimento',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Método auxiliar para obter o nome do proprietário de uma unidade
+  String _getProprietarioNome(String unidadeId) {
+    try {
+      final proprietario = _proprietarios.firstWhere(
+        (p) => p.unidadeId == unidadeId,
+      );
+      return proprietario.nome;
+    } catch (e) {
+      return 'Sem proprietário';
+    }
   }
 }
