@@ -18,7 +18,9 @@ class AutorizadoInquilinoService {
           .order('created_at', ascending: false);
 
       return response
-          .map<AutorizadoInquilino>((json) => AutorizadoInquilino.fromJson(json))
+          .map<AutorizadoInquilino>(
+            (json) => AutorizadoInquilino.fromJson(json),
+          )
           .toList();
     } catch (e) {
       print('Erro ao buscar autorizados da unidade: $e');
@@ -39,7 +41,9 @@ class AutorizadoInquilinoService {
           .order('created_at', ascending: false);
 
       return response
-          .map<AutorizadoInquilino>((json) => AutorizadoInquilino.fromJson(json))
+          .map<AutorizadoInquilino>(
+            (json) => AutorizadoInquilino.fromJson(json),
+          )
           .toList();
     } catch (e) {
       print('Erro ao buscar autorizados do inquilino: $e');
@@ -60,10 +64,153 @@ class AutorizadoInquilinoService {
           .order('created_at', ascending: false);
 
       return response
-          .map<AutorizadoInquilino>((json) => AutorizadoInquilino.fromJson(json))
+          .map<AutorizadoInquilino>(
+            (json) => AutorizadoInquilino.fromJson(json),
+          )
           .toList();
     } catch (e) {
       print('Erro ao buscar autorizados do proprietário: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca todos os autorizados de um condomínio agrupados por unidade para representantes
+  static Future<Map<String, List<Map<String, dynamic>>>>
+  getAutorizadosAgrupadosPorUnidade(String condominioId) async {
+    try {
+      print(
+        '🔍 DEBUG SERVICE: Buscando autorizados para condomínio: $condominioId',
+      );
+
+      final response = await _client
+          .from('autorizados_inquilinos')
+          .select('''
+            *,
+            unidades!inner(
+              id,
+              numero,
+              bloco,
+              condominio_id
+            ),
+            inquilinos(
+              id,
+              nome
+            ),
+            proprietarios(
+              id,
+              nome
+            )
+          ''')
+          .eq('unidades.condominio_id', condominioId)
+          .eq('ativo', true)
+          .order('created_at', ascending: false);
+
+      print(
+        '🔍 DEBUG SERVICE: Response recebido: ${response.length} registros',
+      );
+      print('🔍 DEBUG SERVICE: Dados brutos: $response');
+
+      Map<String, List<Map<String, dynamic>>> autorizadosPorUnidade = {};
+
+      for (var item in response) {
+        final unidade = item['unidades'];
+        final inquilino = item['inquilinos'];
+        final proprietario = item['proprietarios'];
+
+        // Criar chave da unidade (Bloco/Número ou apenas Número)
+        String chaveUnidade;
+        if (unidade['bloco'] != null &&
+            unidade['bloco'].toString().isNotEmpty) {
+          chaveUnidade = 'Bloco ${unidade['bloco']} - ${unidade['numero']}';
+        } else {
+          chaveUnidade = unidade['numero'].toString();
+        }
+
+        // Determinar o nome do criador (inquilino ou proprietário)
+        String nomeCriador = 'N/A';
+        if (inquilino != null && inquilino['nome'] != null) {
+          nomeCriador = inquilino['nome'];
+        } else if (proprietario != null && proprietario['nome'] != null) {
+          nomeCriador = proprietario['nome'];
+        }
+
+        // Formatar dias da semana
+        String diasFormatados = 'Todos os dias';
+        if (item['dias_semana_permitidos'] != null) {
+          List<int> dias = List<int>.from(item['dias_semana_permitidos']);
+          List<String> nomesDias = [];
+          for (int dia in dias) {
+            switch (dia) {
+              case 1:
+                nomesDias.add('Dom');
+                break;
+              case 2:
+                nomesDias.add('Seg');
+                break;
+              case 3:
+                nomesDias.add('Ter');
+                break;
+              case 4:
+                nomesDias.add('Qua');
+                break;
+              case 5:
+                nomesDias.add('Qui');
+                break;
+              case 6:
+                nomesDias.add('Sex');
+                break;
+              case 7:
+                nomesDias.add('Sáb');
+                break;
+            }
+          }
+          if (nomesDias.isNotEmpty) {
+            diasFormatados = nomesDias.join(', ');
+          }
+        }
+
+        // Formatar horários
+        String horariosFormatados = '24h';
+        if (item['horario_inicio'] != null && item['horario_fim'] != null) {
+          horariosFormatados =
+              '${item['horario_inicio']} - ${item['horario_fim']}';
+        }
+
+        // Obter os 3 primeiros dígitos do CPF
+        String cpfTresPrimeiros = '';
+        if (item['cpf'] != null && item['cpf'].toString().length >= 3) {
+          cpfTresPrimeiros = item['cpf'].toString().substring(0, 3);
+        }
+
+        Map<String, dynamic> autorizadoFormatado = {
+          'id': item['id'],
+          'nome': item['nome'] ?? 'N/A',
+          'cpfTresPrimeiros': cpfTresPrimeiros,
+          'nomeCriador': nomeCriador,
+          'diasHorarios': '$diasFormatados • $horariosFormatados',
+          'parentesco': item['parentesco'] ?? '',
+          'veiculo': item['veiculo_placa'] != null
+              ? '${item['veiculo_marca'] ?? ''} ${item['veiculo_modelo'] ?? ''} - ${item['veiculo_placa']}'
+                    .trim()
+              : null,
+        };
+
+        if (!autorizadosPorUnidade.containsKey(chaveUnidade)) {
+          autorizadosPorUnidade[chaveUnidade] = [];
+        }
+        autorizadosPorUnidade[chaveUnidade]!.add(autorizadoFormatado);
+      }
+
+      print(
+        '🔍 DEBUG SERVICE: Resultado final: ${autorizadosPorUnidade.length} unidades agrupadas',
+      );
+      print(
+        '🔍 DEBUG SERVICE: Chaves das unidades: ${autorizadosPorUnidade.keys.toList()}',
+      );
+
+      return autorizadosPorUnidade;
+    } catch (e) {
+      print('❌ ERRO SERVICE ao buscar autorizados agrupados por unidade: $e');
       rethrow;
     }
   }
@@ -99,7 +246,9 @@ class AutorizadoInquilinoService {
       }
 
       if (!_validarVinculo(autorizadoData)) {
-        throw Exception('Autorizado deve estar vinculado a um inquilino OU proprietário');
+        throw Exception(
+          'Autorizado deve estar vinculado a um inquilino OU proprietário',
+        );
       }
 
       // Validar se já existe autorizado com mesmo CPF na unidade
@@ -132,7 +281,8 @@ class AutorizadoInquilinoService {
   ) async {
     try {
       // Validações básicas
-      if (autorizadoData.containsKey('cpf') && !_validarCPF(autorizadoData['cpf'])) {
+      if (autorizadoData.containsKey('cpf') &&
+          !_validarCPF(autorizadoData['cpf'])) {
         throw Exception('CPF inválido');
       }
 
@@ -174,10 +324,7 @@ class AutorizadoInquilinoService {
   /// Remove um autorizado permanentemente (hard delete)
   static Future<bool> deleteAutorizadoPermanente(String id) async {
     try {
-      await _client
-          .from('autorizados_inquilinos')
-          .delete()
-          .eq('id', id);
+      await _client.from('autorizados_inquilinos').delete().eq('id', id);
 
       return true;
     } catch (e) {
@@ -201,7 +348,9 @@ class AutorizadoInquilinoService {
           .order('nome', ascending: true);
 
       return response
-          .map<AutorizadoInquilino>((json) => AutorizadoInquilino.fromJson(json))
+          .map<AutorizadoInquilino>(
+            (json) => AutorizadoInquilino.fromJson(json),
+          )
           .toList();
     } catch (e) {
       print('Erro ao buscar autorizados por nome: $e');
@@ -223,7 +372,9 @@ class AutorizadoInquilinoService {
           .eq('cpf', cpf);
 
       return response
-          .map<AutorizadoInquilino>((json) => AutorizadoInquilino.fromJson(json))
+          .map<AutorizadoInquilino>(
+            (json) => AutorizadoInquilino.fromJson(json),
+          )
           .toList();
     } catch (e) {
       print('Erro ao buscar autorizados por CPF: $e');
@@ -256,42 +407,48 @@ class AutorizadoInquilinoService {
   /// Valida se os dados obrigatórios foram fornecidos
   static bool _validarDadosObrigatorios(Map<String, dynamic> data) {
     return data.containsKey('unidade_id') &&
-           data.containsKey('nome') &&
-           data.containsKey('cpf') &&
-           data['unidade_id'] != null &&
-           data['nome'] != null &&
-           data['cpf'] != null &&
-           data['nome'].toString().trim().isNotEmpty &&
-           data['cpf'].toString().trim().isNotEmpty;
+        data.containsKey('nome') &&
+        data.containsKey('cpf') &&
+        data['unidade_id'] != null &&
+        data['nome'] != null &&
+        data['cpf'] != null &&
+        data['nome'].toString().trim().isNotEmpty &&
+        data['cpf'].toString().trim().isNotEmpty;
   }
 
   /// Valida se o autorizado está vinculado a um inquilino OU proprietário
   static bool _validarVinculo(Map<String, dynamic> data) {
-    final temInquilino = data.containsKey('inquilino_id') && data['inquilino_id'] != null;
-    final temProprietario = data.containsKey('proprietario_id') && data['proprietario_id'] != null;
-    
+    final temInquilino =
+        data.containsKey('inquilino_id') && data['inquilino_id'] != null;
+    final temProprietario =
+        data.containsKey('proprietario_id') && data['proprietario_id'] != null;
+
     // Deve ter um OU outro, mas não ambos
-    return (temInquilino && !temProprietario) || (!temInquilino && temProprietario);
+    return (temInquilino && !temProprietario) ||
+        (!temInquilino && temProprietario);
   }
 
   /// Valida formato básico do CPF
   static bool _validarCPF(String cpf) {
     if (cpf.isEmpty) return false;
-    
+
     // Remove caracteres não numéricos
     final cpfLimpo = cpf.replaceAll(RegExp(r'[^0-9]'), '');
-    
+
     // Verifica se tem 11 dígitos
     if (cpfLimpo.length != 11) return false;
-    
+
     // Verifica se não são todos os dígitos iguais
     if (RegExp(r'^(\d)\1{10}$').hasMatch(cpfLimpo)) return false;
-    
+
     return true;
   }
 
   /// Verifica se já existe um autorizado com o mesmo CPF na unidade
-  static Future<bool> _verificarCPFExistente(String cpf, String unidadeId) async {
+  static Future<bool> _verificarCPFExistente(
+    String cpf,
+    String unidadeId,
+  ) async {
     try {
       final response = await _client
           .from('autorizados_inquilinos')
@@ -310,22 +467,25 @@ class AutorizadoInquilinoService {
   /// Valida formato da placa do veículo (formato brasileiro)
   static bool validarPlaca(String? placa) {
     if (placa == null || placa.isEmpty) return true; // Placa é opcional
-    
-    final placaLimpa = placa.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    
+
+    final placaLimpa = placa
+        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+        .toUpperCase();
+
     // Formato antigo: ABC1234
     final formatoAntigo = RegExp(r'^[A-Z]{3}[0-9]{4}$');
-    
+
     // Formato Mercosul: ABC1D23
     final formatoMercosul = RegExp(r'^[A-Z]{3}[0-9][A-Z][0-9]{2}$');
-    
-    return formatoAntigo.hasMatch(placaLimpa) || formatoMercosul.hasMatch(placaLimpa);
+
+    return formatoAntigo.hasMatch(placaLimpa) ||
+        formatoMercosul.hasMatch(placaLimpa);
   }
 
   /// Valida formato do horário (HH:MM)
   static bool validarHorario(String? horario) {
     if (horario == null || horario.isEmpty) return true; // Horário é opcional
-    
+
     final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
     return regex.hasMatch(horario);
   }
@@ -333,7 +493,7 @@ class AutorizadoInquilinoService {
   /// Valida se os dias da semana estão no intervalo correto (0-6)
   static bool validarDiasSemana(List<int>? dias) {
     if (dias == null || dias.isEmpty) return true; // Dias são opcionais
-    
+
     return dias.every((dia) => dia >= 0 && dia <= 6);
   }
 }

@@ -3,7 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 class DownloadHelper {
-  static Future<void> downloadFile(Uint8List bytes, BuildContext context) async {
+  static Future<void> downloadFile(
+    Uint8List bytes,
+    BuildContext context,
+  ) async {
     try {
       // Verifica se o arquivo não está vazio ou corrompido
       if (bytes.isEmpty) {

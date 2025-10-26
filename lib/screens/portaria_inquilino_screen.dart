@@ -657,7 +657,12 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         'cpf': cpf,
         'parentesco': _parentescoController.text.trim().isEmpty ? null : _parentescoController.text.trim(),
         // Horários e dias da semana
-        'dias_semana_permitidos': _permissaoSelecionada == 'determinado' ? _diasSemana : null,
+        'dias_semana_permitidos': _permissaoSelecionada == 'determinado' 
+            ? _diasSemana.asMap().entries
+                .where((entry) => entry.value == true)
+                .map((entry) => entry.key)
+                .toList()
+            : null,
         'horario_inicio': _permissaoSelecionada == 'determinado' ? _horarioInicio : null,
         'horario_fim': _permissaoSelecionada == 'determinado' ? _horarioFim : null,
         // Dados do veículo
@@ -1006,9 +1011,20 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
               }
             }
             
-            // Configurar horários
-            _horarioInicio = autorizado.horarioInicio ?? '08:00';
-            _horarioFim = autorizado.horarioFim ?? '18:00';
+            // Configurar horários - converter formato HH:00:00 para HH:00
+            String horarioInicioFormatado = autorizado.horarioInicio ?? '08:00';
+            String horarioFimFormatado = autorizado.horarioFim ?? '18:00';
+            
+            // Remover segundos se existirem (converter HH:00:00 para HH:00)
+            if (horarioInicioFormatado.length > 5) {
+              horarioInicioFormatado = horarioInicioFormatado.substring(0, 5);
+            }
+            if (horarioFimFormatado.length > 5) {
+              horarioFimFormatado = horarioFimFormatado.substring(0, 5);
+            }
+            
+            _horarioInicio = horarioInicioFormatado;
+            _horarioFim = horarioFimFormatado;
           } else {
             _permissaoSelecionada = 'qualquer';
             _diasSemana = List.filled(7, false);
