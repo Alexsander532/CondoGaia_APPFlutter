@@ -98,7 +98,7 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
-    _encomendasTabController = TabController(length: 3, vsync: this);
+    _encomendasTabController = TabController(length: 2, vsync: this);
     _carregarDadosPropInq();
     _carregarAutorizados();
     _carregarVisitantesNoCondominio();
@@ -1652,7 +1652,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             ),
             tabs: const [
               Tab(text: 'Cadastro'),
-              Tab(text: 'Recebimento'),
               Tab(text: 'Histórico'),
             ],
           ),
@@ -1670,7 +1669,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             controller: _encomendasTabController,
             children: [
               _buildCadastroEncomendaTab(),
-              _buildRecebimentoEncomendaTab(),
               _buildHistoricoEncomendaTab(),
             ],
           ),
@@ -1986,41 +1984,6 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   }
 
   // Aba Recebimento de Encomenda (placeholder)
-  Widget _buildRecebimentoEncomendaTab() {
-    return Container(
-      color: const Color(0xFFF5F5F5),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox,
-              size: 64,
-              color: Colors.grey,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Recebimento',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2E3A59),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Em desenvolvimento',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // Aba Histórico de Encomenda (placeholder)
   Widget _buildHistoricoEncomendaTab() {
     return Container(
