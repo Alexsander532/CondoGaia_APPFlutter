@@ -3,10 +3,10 @@ import 'chat_representante_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/unidade.dart';
-import '../models/visitante_portaria.dart';
 import '../services/supabase_service.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../services/visitante_portaria_service.dart';
+import '../services/historico_acesso_service.dart';
 import '../utils/formatters.dart';
 
 class PortariaRepresentanteScreen extends StatefulWidget {
@@ -79,6 +79,16 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   Map<String, List<Map<String, dynamic>>> _autorizadosPorUnidade = {};
   bool _isLoadingAutorizados = false;
 
+  // Variáveis para controle de acessos
+  final HistoricoAcessoService _historicoAcessoService = HistoricoAcessoService();
+  List<Map<String, dynamic>> _visitantesNoCondominio = [];
+  bool _isLoadingAcessos = false;
+
+  // Variáveis para visitantes cadastrados
+  List<Map<String, dynamic>> _visitantesCadastrados = [];
+  bool _isLoadingVisitantesCadastrados = false;
+  final TextEditingController _pesquisaVisitanteController = TextEditingController();
+
   // Variáveis para a seção de Encomendas
   Unidade? _unidadeSelecionadaEncomenda;
   String? _imagemEncomenda;
@@ -91,6 +101,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     _encomendasTabController = TabController(length: 3, vsync: this);
     _carregarDadosPropInq();
     _carregarAutorizados();
+    _carregarVisitantesNoCondominio();
+    _carregarVisitantesCadastrados();
   }
 
   @override
@@ -120,6 +132,9 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     _veiculoPlacaController.dispose();
     _veiculoModeloController.dispose();
     _veiculoCorController.dispose();
+    
+    // Dispose do controlador de pesquisa de visitantes
+    _pesquisaVisitanteController.dispose();
     
     super.dispose();
   }
@@ -1166,6 +1181,80 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     } finally {
       setState(() {
         _isLoadingAutorizados = false;
+      });
+    }
+  }
+
+  // Carregar visitantes atualmente no condomínio
+  Future<void> _carregarVisitantesNoCondominio() async {
+    if (widget.condominioId == null) return;
+    
+    setState(() {
+      _isLoadingAcessos = true;
+    });
+
+    try {
+      final visitantes = await _historicoAcessoService.getVisitantesNoCondominio(
+        widget.condominioId!,
+      );
+      
+      setState(() {
+        _visitantesNoCondominio = visitantes;
+      });
+    } catch (e) {
+      print('❌ ERRO ao carregar visitantes no condomínio: $e');
+    } finally {
+      setState(() {
+        _isLoadingAcessos = false;
+      });
+    }
+  }
+
+  Future<void> _carregarVisitantesCadastrados() async {
+    if (widget.condominioId == null) return;
+    
+    setState(() {
+      _isLoadingVisitantesCadastrados = true;
+    });
+
+    try {
+      final visitantes = await _historicoAcessoService.getVisitantesCadastrados(
+        widget.condominioId!,
+      );
+      
+      setState(() {
+        _visitantesCadastrados = visitantes;
+      });
+    } catch (e) {
+      print('❌ ERRO ao carregar visitantes cadastrados: $e');
+    } finally {
+      setState(() {
+        _isLoadingVisitantesCadastrados = false;
+      });
+    }
+  }
+
+  void _pesquisarVisitantesCadastrados(String termo) async {
+    if (widget.condominioId == null) return;
+    
+    setState(() {
+      _isLoadingVisitantesCadastrados = true;
+    });
+
+    try {
+      final visitantes = await _historicoAcessoService.getVisitantesCadastrados(
+        widget.condominioId!,
+        filtroNome: termo.isNotEmpty ? termo : null,
+      );
+      
+      setState(() {
+        _visitantesCadastrados = visitantes;
+      });
+    } catch (e) {
+      print('❌ ERRO ao pesquisar visitantes cadastrados: $e');
+    } finally {
+      setState(() {
+        _isLoadingVisitantesCadastrados = false;
       });
     }
   }
@@ -2413,129 +2502,162 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
               color: const Color(0xFFF8F9FA),
               child: Column(
                 children: [
-                  // Cabeçalho da tabela
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1976D2),
-                    ),
-                    child: Row(
-                      children: const [
-                        Expanded(flex: 2, child: Text('NOME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('BL/UNID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('ENTRADA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('HORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('PLACA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('FOTO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                        Expanded(flex: 1, child: Text('SAÍDA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                      ],
-                    ),
-                  ),
-                  
-                  // Lista de acessos (exemplo com dados mockados)
+                  // Tabela com cabeçalho e conteúdo sincronizados
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: 1, // Exemplo com um item
-                      itemBuilder: (context, index) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[300]!, width: 0.5),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                flex: 2,
+                    child: _isLoadingAcessos
+                        ? const Center(child: CircularProgressIndicator())
+                        : _visitantesNoCondominio.isEmpty
+                            ? const Center(
                                 child: Text(
-                                  'Maria de Souza',
+                                  'Nenhum visitante no condomínio no momento',
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  width: 800, // Largura mínima para garantir espaço adequado
+                                  child: Column(
+                                    children: [
+                                      // Cabeçalho da tabela
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1976D2),
+                                        ),
+                                        child: Row(
+                                          children: const [
+                                            SizedBox(width: 200, child: Text('NOME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 80, child: Text('BL/UNID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 100, child: Text('ENTRADA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 80, child: Text('HORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 100, child: Text('PLACA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 80, child: Text('FOTO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            SizedBox(width: 80, child: Text('SAÍDA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                          ],
+                                        ),
+                                      ),
+                                      // Lista de acessos
+                                      Expanded(
+                                        child: ListView.builder(
+                                          itemCount: _visitantesNoCondominio.length,
+                                          itemBuilder: (context, index) {
+                                            final visitante = _visitantesNoCondominio[index];
+                                            final unidadeInfo = visitante['unidades'] != null 
+                                                ? '${visitante['unidades']['bloco'] ?? ''}/${visitante['unidades']['numero'] ?? ''}'
+                                                : 'N/A';
+                                            
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                border: Border(
+                                                  bottom: BorderSide(color: Colors.grey[300]!, width: 0.5),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  SizedBox(
+                                                    width: 200,
+                                                    child: Text(
+                                                      visitante['nome'] ?? 'Nome não informado',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 80,
+                                                    child: Text(
+                                                      unidadeInfo,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 100,
+                                                    child: Text(
+                                                      visitante['hora_entrada_real'] != null
+                                                          ? _formatarData(visitante['hora_entrada_real'])
+                                                          : 'N/A',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 80,
+                                                    child: Text(
+                                                      visitante['hora_entrada_real'] != null
+                                                          ? _formatarHora(visitante['hora_entrada_real'])
+                                                          : 'N/A',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 100,
+                                                    child: Text(
+                                                      visitante['veiculo_placa'] ?? '',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 80,
+                                                    child: Text(
+                                                      '',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF2E3A59),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 80,
+                                                    child: ElevatedButton(
+                                                      onPressed: () {
+                                                        _registrarSaida(visitante);
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: const Color(0xFF1976D2),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        minimumSize: const Size(60, 30),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                      ),
+                                                      child: const Text(
+                                                        'SAIR',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                              const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  'A/102',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                              const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  '11/09/2022',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                              const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  '09:23',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                              const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  '',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                              const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  '',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    _registrarSaida(index);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1976D2),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    minimumSize: const Size(60, 30),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'SAIR',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -2547,10 +2669,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
   }
 
   void _showAdicionarVisitanteDialog() {
-    // TODO: Implementar dialog para adicionar visitante
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de adicionar visitante em desenvolvimento')),
-    );
+    // Navegar automaticamente para a aba "Adicionar" (índice 1)
+    _tabController.animateTo(1);
   }
 
   void _showEntrarVisitanteDialog() {
@@ -2624,10 +2744,186 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     );
   }
 
-  void _registrarSaida(int index) {
-    // TODO: Implementar registro de saída
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saída registrada com sucesso')),
+  void _registrarSaida(Map<String, dynamic> visitante) async {
+    try {
+      // Mostrar dialog de confirmação com campos para observações
+      final result = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (context) => _buildSaidaDialog(visitante),
+      );
+
+      if (result != null) {
+        setState(() {
+          _isLoadingAcessos = true;
+        });
+
+        // Registrar saída no histórico
+        await _historicoAcessoService.registrarSaida(
+          visitanteId: visitante['visitante_id'], // Usar visitante_id em vez de id
+          condominioId: widget.condominioId!,
+          observacoes: result['observacoes'],
+          registradoPor: 'Portaria',
+        );
+
+        // Recarregar lista de visitantes no condomínio
+        await _carregarVisitantesNoCondominio();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Saída registrada com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingAcessos = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao registrar saída: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildSaidaDialog(Map<String, dynamic> visitante) {
+    final observacoesController = TextEditingController();
+    
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cabeçalho
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Confirmar Saída',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2E3A59),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Informações do visitante
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nome: ${visitante['nome'] ?? 'N/A'}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Unidade: ${visitante['unidades'] != null ? '${visitante['unidades']['bloco']}/${visitante['unidades']['numero']}' : 'N/A'}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Entrada: ${visitante['hora_entrada_real'] != null ? DateTime.parse(visitante['hora_entrada_real']).toLocal().toString().substring(0, 16) : 'N/A'}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  if (visitante['veiculo_placa'] != null && visitante['veiculo_placa'].isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Placa: ${visitante['veiculo_placa']}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Campo de observações
+            const Text(
+              'Observações (opcional):',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF2E3A59),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: observacoesController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Digite observações sobre a saída...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Botões
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop({
+                      'observacoes': observacoesController.text.trim(),
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Confirmar Saída',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2732,6 +3028,8 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
             border: Border.all(color: const Color(0xFFE0E0E0)),
           ),
           child: TextField(
+            controller: _pesquisaVisitanteController,
+            onChanged: _pesquisarVisitantesCadastrados,
             decoration: InputDecoration(
               hintText: 'Pesquisar visitante cadastrado...',
               hintStyle: TextStyle(color: Colors.grey[600]),
@@ -2743,66 +3041,66 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
         ),
         const SizedBox(height: 16),
         
-        // Lista de visitantes cadastrados (mockado por enquanto)
+        // Lista de visitantes cadastrados
         Expanded(
-          child: ListView.builder(
-            itemCount: 3, // Exemplo com 3 visitantes
-            itemBuilder: (context, index) {
-              List<Map<String, String>> visitantesMock = [
-                {
-                  'nome': 'João Silva',
-                  'cpf': '123.456.789-00',
-                  'telefone': '(11) 99999-9999',
-                },
-                {
-                  'nome': 'Maria Santos',
-                  'cpf': '987.654.321-00',
-                  'telefone': '(11) 88888-8888',
-                },
-                {
-                  'nome': 'Pedro Oliveira',
-                  'cpf': '456.789.123-00',
-                  'telefone': '(11) 77777-7777',
-                },
-              ];
-              
-              Map<String, String> visitante = visitantesMock[index];
-              
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF1976D2),
-                    child: Text(
-                      visitante['nome']!.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+          child: _isLoadingVisitantesCadastrados
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF1976D2),
                   ),
-                  title: Text(visitante['nome']!),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('CPF: ${visitante['cpf']}'),
-                      Text('Telefone: ${visitante['telefone']}'),
-                    ],
-                  ),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _showRegistroEntradaDialog(visitante, 'Visitante');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
+                )
+              : _visitantesCadastrados.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Nenhum visitante cadastrado encontrado',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _visitantesCadastrados.length,
+                      itemBuilder: (context, index) {
+                        final visitante = _visitantesCadastrados[index];
+                        
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF1976D2),
+                              child: Text(
+                                visitante['nome']?.substring(0, 1).toUpperCase() ?? 'V',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            title: Text(visitante['nome'] ?? 'Nome não informado'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('CPF: ${visitante['cpf'] ?? 'N/A'}'),
+                                Text('Telefone: ${visitante['celular'] ?? 'N/A'}'),
+                                if (visitante['unidade_numero'] != null)
+                                  Text('Unidade: ${visitante['unidade_bloco'] ?? ''}${visitante['unidade_numero']}'),
+                              ],
+                            ),
+                            trailing: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _showRegistroEntradaDialog(visitante, 'Visitante Cadastrado');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2E7D32),
+                              ),
+                              child: const Text(
+                                'Selecionar',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    child: const Text(
-                      'Selecionar',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -2976,14 +3274,46 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
     );
   }
 
-  void _confirmarEntrada(Map<String, dynamic> pessoa, String unidade, String placa, String observacoes) {
-    // TODO: Implementar lógica de registro de entrada no banco de dados
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Entrada registrada para ${pessoa['nome']}'),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-    );
+  void _confirmarEntrada(Map<String, dynamic> pessoa, String unidade, String placa, String observacoes) async {
+    try {
+      setState(() {
+        _isLoadingAcessos = true;
+      });
+
+      // Registrar entrada no histórico
+      await _historicoAcessoService.registrarEntrada(
+        visitanteId: pessoa['id'],
+        condominioId: widget.condominioId!,
+        placaVeiculo: placa.isNotEmpty ? placa : null,
+        observacoes: observacoes.isNotEmpty ? observacoes : null,
+        registradoPor: 'Portaria',
+      );
+
+      // Recarregar lista de visitantes no condomínio
+      await _carregarVisitantesNoCondominio();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Entrada registrada para ${pessoa['nome']}'),
+            backgroundColor: const Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingAcessos = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao registrar entrada: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Método para cadastrar visitante na aba "Adicionar"
@@ -3186,5 +3516,28 @@ class _PortariaRepresentanteScreenState extends State<PortariaRepresentanteScree
         }).toList();
       }
     });
+  }
+
+  // Método para formatar data no padrão brasileiro DD/MM/AAAA
+  String _formatarData(String dataHora) {
+    try {
+      final dateTime = DateTime.parse(dataHora).toLocal();
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  // Método para formatar hora no padrão HH:MM
+  String _formatarHora(String dataHora) {
+    try {
+      // Parse da string ISO e conversão para horário local
+      final dateTime = DateTime.parse(dataHora);
+      // Se a data já está em UTC, converte para local, senão usa como está
+      final localDateTime = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+      return '${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return 'N/A';
+    }
   }
 }
