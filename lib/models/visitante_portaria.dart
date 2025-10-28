@@ -89,7 +89,9 @@ class VisitantePortaria {
       'tipo_autorizacao': tipoAutorizacao,
       'quem_autorizou': quemAutorizou,
       'observacoes': observacoes,
-      'data_visita': dataVisita.toIso8601String().split('T')[0], // Apenas a data
+      'data_visita': dataVisita.toIso8601String().split(
+        'T',
+      )[0], // Apenas a data
       'hora_entrada': horaEntrada,
       'hora_saida': horaSaida,
       'status_visita': statusVisita,

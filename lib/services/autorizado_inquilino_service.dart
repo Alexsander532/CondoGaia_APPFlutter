@@ -190,7 +190,8 @@ class AutorizadoInquilinoService {
           'diasHorarios': '$diasFormatados • $horariosFormatados',
           'parentesco': item['parentesco'] ?? '',
           'criado_por': nomeCriador, // Adicionando campo criado_por
-          'dias_permitidos': diasFormatados, // Adicionando campo dias_permitidos
+          'dias_permitidos':
+              diasFormatados, // Adicionando campo dias_permitidos
           'veiculo': item['veiculo_placa'] != null
               ? '${item['veiculo_marca'] ?? ''} ${item['veiculo_modelo'] ?? ''} - ${item['veiculo_placa']}'
                     .trim()

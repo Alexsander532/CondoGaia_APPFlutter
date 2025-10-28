@@ -5,7 +5,8 @@ import 'supabase_service.dart';
 /// Serviço para gerenciar visitantes da portaria do representante
 class VisitantePortariaService {
   static SupabaseClient get _client => SupabaseService.client;
-  static const String _tableName = 'autorizados_visitantes_portaria_representante';
+  static const String _tableName =
+      'autorizados_visitantes_portaria_representante';
 
   /// Insere um novo visitante
   static Future<VisitantePortaria?> insertVisitante(
@@ -14,7 +15,9 @@ class VisitantePortariaService {
     try {
       // Validações básicas
       if (!_validarDadosObrigatorios(visitanteData)) {
-        throw Exception('Dados obrigatórios não fornecidos (nome, CPF, celular)');
+        throw Exception(
+          'Dados obrigatórios não fornecidos (nome, CPF, celular)',
+        );
       }
 
       if (!_validarCPF(visitanteData['cpf'])) {
@@ -37,7 +40,9 @@ class VisitantePortariaService {
       );
 
       if (cpfExistente) {
-        throw Exception('Já existe um visitante com este CPF agendado para esta data');
+        throw Exception(
+          'Já existe um visitante com este CPF agendado para esta data',
+        );
       }
 
       final response = await _client
@@ -69,12 +74,18 @@ class VisitantePortariaService {
 
       // Filtro por data de início
       if (dataInicio != null) {
-        query = query.gte('data_visita', dataInicio.toIso8601String().split('T')[0]);
+        query = query.gte(
+          'data_visita',
+          dataInicio.toIso8601String().split('T')[0],
+        );
       }
 
       // Filtro por data de fim
       if (dataFim != null) {
-        query = query.lte('data_visita', dataFim.toIso8601String().split('T')[0]);
+        query = query.lte(
+          'data_visita',
+          dataFim.toIso8601String().split('T')[0],
+        );
       }
 
       // Filtro por status
@@ -82,8 +93,9 @@ class VisitantePortariaService {
         query = query.eq('status_visita', status);
       }
 
-      query = query.order('data_visita', ascending: false)
-                   .order('created_at', ascending: false);
+      query = query
+          .order('data_visita', ascending: false)
+          .order('created_at', ascending: false);
 
       final response = await query;
 
@@ -111,12 +123,18 @@ class VisitantePortariaService {
 
       // Filtro por data de início
       if (dataInicio != null) {
-        query = query.gte('data_visita', dataInicio.toIso8601String().split('T')[0]);
+        query = query.gte(
+          'data_visita',
+          dataInicio.toIso8601String().split('T')[0],
+        );
       }
 
       // Filtro por data de fim
       if (dataFim != null) {
-        query = query.lte('data_visita', dataFim.toIso8601String().split('T')[0]);
+        query = query.lte(
+          'data_visita',
+          dataFim.toIso8601String().split('T')[0],
+        );
       }
 
       query = query.order('data_visita', ascending: false);
@@ -176,9 +194,7 @@ class VisitantePortariaService {
     String? horaSaida,
   }) async {
     try {
-      final updateData = <String, dynamic>{
-        'status_visita': novoStatus,
-      };
+      final updateData = <String, dynamic>{'status_visita': novoStatus};
 
       if (horaEntrada != null) {
         updateData['hora_entrada'] = horaEntrada;
@@ -205,10 +221,7 @@ class VisitantePortariaService {
   /// Desativa um visitante (soft delete)
   static Future<bool> deleteVisitante(String id) async {
     try {
-      await _client
-          .from(_tableName)
-          .update({'ativo': false})
-          .eq('id', id);
+      await _client.from(_tableName).update({'ativo': false}).eq('id', id);
 
       return true;
     } catch (e) {
@@ -289,7 +302,8 @@ class VisitantePortariaService {
     int digito2 = 11 - (soma % 11);
     if (digito2 >= 10) digito2 = 0;
 
-    return int.parse(cpfLimpo[9]) == digito1 && int.parse(cpfLimpo[10]) == digito2;
+    return int.parse(cpfLimpo[9]) == digito1 &&
+        int.parse(cpfLimpo[10]) == digito2;
   }
 
   /// Valida o formato do celular
@@ -360,13 +374,13 @@ class VisitantePortariaService {
   /// Formata celular para o padrão (00) 00000-0000
   static String formatarCelular(String celular) {
     final celularLimpo = celular.replaceAll(RegExp(r'[^0-9]'), '');
-    
+
     if (celularLimpo.length == 11) {
       return '(${celularLimpo.substring(0, 2)}) ${celularLimpo.substring(2, 7)}-${celularLimpo.substring(7, 11)}';
     } else if (celularLimpo.length == 10) {
       return '(${celularLimpo.substring(0, 2)}) ${celularLimpo.substring(2, 6)}-${celularLimpo.substring(6, 10)}';
     }
-    
+
     return celular;
   }
 }
