@@ -6,6 +6,7 @@ import '../models/administrator.dart';
 import '../models/representante.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
+import 'supabase_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -276,6 +277,31 @@ class AuthService {
       return UserType.inquilino;
     }
     return null;
+  }
+
+  /// Obtém o representante atual logado
+  static Future<Representante?> getCurrentRepresentante() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userType = prefs.getString(_userTypeKey);
+      final email = prefs.getString(_userEmailKey);
+      
+      if (userType != 'representante' || email == null) {
+        return null;
+      }
+
+      // Buscar representante por email
+      final response = await SupabaseService.client
+          .from('representantes')
+          .select()
+          .ilike('email', email.toLowerCase())
+          .single();
+
+      return Representante.fromJson(response);
+    } catch (e) {
+      print('Erro ao obter representante atual: $e');
+      return null;
+    }
   }
 
   // Fazer logout

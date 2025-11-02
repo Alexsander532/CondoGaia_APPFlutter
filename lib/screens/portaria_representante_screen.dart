@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'chat_representante_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/unidade.dart';
+import '../models/encomenda.dart';
 import '../services/supabase_service.dart';
+import '../services/auth_service.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../services/visitante_portaria_service.dart';
 import '../services/historico_acesso_service.dart';
+import '../services/encomenda_service.dart';
 import '../utils/formatters.dart';
 
 // Classe para unificar proprietários e inquilinos
@@ -32,12 +37,14 @@ class PortariaRepresentanteScreen extends StatefulWidget {
   final String? condominioId;
   final String? condominioNome;
   final String? condominioCnpj;
+  final String? representanteId;
 
   const PortariaRepresentanteScreen({
     super.key,
     this.condominioId,
     this.condominioNome,
     this.condominioCnpj,
+    this.representanteId,
   });
 
   @override
@@ -118,6 +125,7 @@ class _PortariaRepresentanteScreenState
   // Variáveis para controle de acessos
   final HistoricoAcessoService _historicoAcessoService =
       HistoricoAcessoService();
+  final EncomendaService _encomendaService = EncomendaService();
   List<Map<String, dynamic>> _visitantesNoCondominio = [];
   bool _isLoadingAcessos = false;
 
@@ -130,8 +138,13 @@ class _PortariaRepresentanteScreenState
   // Variáveis para a seção de Encomendas
   // Variável para encomenda selecionada (removendo a antiga)
   // Unidade? _unidadeSelecionadaEncomenda;
-  String? _imagemEncomenda;
+  File? _imagemEncomenda;
   bool _notificarUnidade = false;
+  
+  // Variáveis para o histórico de encomendas
+  List<Map<String, dynamic>> _historicoEncomendas = [];
+  bool _isLoadingHistoricoEncomendas = false;
+  String? _errorHistoricoEncomendas;
 
   @override
   void initState() {
@@ -142,6 +155,7 @@ class _PortariaRepresentanteScreenState
     _carregarAutorizados();
     _carregarVisitantesNoCondominio();
     _carregarVisitantesCadastrados();
+    _carregarHistoricoEncomendas();
   }
 
   @override
@@ -2003,12 +2017,42 @@ class _PortariaRepresentanteScreenState
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      // TODO: Implementar seleção de imagem
-                      setState(() {
-                        _imagemEncomenda =
-                            'imagem_selecionada.jpg'; // Placeholder
-                      });
+                    onTap: () async {
+                      // Implementar seleção de imagem
+                      final ImagePicker picker = ImagePicker();
+                      try {
+                        final XFile? image = await picker.pickImage(
+                          source: ImageSource.camera,
+                          maxWidth: 800,
+                          maxHeight: 600,
+                          imageQuality: 80,
+                        );
+                        
+                        if (image != null) {
+                          setState(() {
+                            _imagemEncomenda = File(image.path);
+                          });
+                        }
+                      } catch (e) {
+                        print('Erro ao selecionar imagem: $e');
+                        // Fallback para galeria se câmera falhar
+                        try {
+                          final XFile? image = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 800,
+                            maxHeight: 600,
+                            imageQuality: 80,
+                          );
+                          
+                          if (image != null) {
+                            setState(() {
+                              _imagemEncomenda = File(image.path);
+                            });
+                          }
+                        } catch (e2) {
+                          print('Erro ao selecionar da galeria: $e2');
+                        }
+                      }
                     },
                     child: Container(
                       height: 120,
@@ -2039,23 +2083,14 @@ class _PortariaRepresentanteScreenState
                                 ),
                               ],
                             )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  size: 48,
-                                  color: Colors.green,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Imagem anexada',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.file(
+                                _imagemEncomenda!,
+                                height: 116,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                     ),
                   ),
@@ -2091,26 +2126,9 @@ class _PortariaRepresentanteScreenState
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _pessoaSelecionadaEncomenda != null
-                          ? () {
-                              // TODO: Implementar salvamento da encomenda
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Encomenda cadastrada para ${_pessoaSelecionadaEncomenda!.nome} - ${_pessoaSelecionadaEncomenda!.unidadeNumero}/${_pessoaSelecionadaEncomenda!.unidadeBloco}' +
-                                        (_notificarUnidade
-                                            ? ' - Unidade notificada'
-                                            : ''),
-                                  ),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-
-                              // Limpar seleções
-                              setState(() {
-                                _pessoaSelecionadaEncomenda = null;
-                                _imagemEncomenda = null;
-                                _notificarUnidade = false;
-                              });
+                          ? () async {
+                              // Salvar encomenda usando o EncomendaService
+                              await _salvarEncomenda();
                             }
                           : null,
                       style: ElevatedButton.styleFrom(
@@ -2139,47 +2157,428 @@ class _PortariaRepresentanteScreenState
     );
   }
 
+  // Método para mostrar diálogo de quem recebeu a encomenda
+  Future<void> _mostrarDialogoRecebidoPor(Encomenda encomenda) async {
+    final TextEditingController recebidoPorController = TextEditingController();
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Registrar Recebimento'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Quem recebeu esta encomenda?'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: recebidoPorController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome de quem recebeu',
+                    hintText: 'Ex: João Silva',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  autofocus: true,
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final recebidoPor = recebidoPorController.text.trim();
+                if (recebidoPor.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  _marcarEncomendaComoRecebida(encomenda, recebidoPor);
+                }
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método para marcar encomenda como recebida
+  Future<void> _marcarEncomendaComoRecebida(Encomenda encomenda, String recebidoPor) async {
+    try {
+      await _encomendaService.marcarComoRecebida(
+        encomenda.id,
+        recebidoPor: recebidoPor,
+      );
+      
+      // Recarregar o histórico
+      await _carregarHistoricoEncomendas();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Encomenda marcada como recebida!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao marcar encomenda: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Método para desmarcar encomenda como recebida
+  Future<void> _desmarcarEncomendaComoRecebida(Encomenda encomenda) async {
+    try {
+      await _encomendaService.marcarComoPendente(encomenda.id);
+      
+      // Recarregar o histórico
+      await _carregarHistoricoEncomendas();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Encomenda desmarcada como recebida!'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao desmarcar encomenda: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Método para carregar histórico de encomendas
+  Future<void> _carregarHistoricoEncomendas() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingHistoricoEncomendas = true;
+      _errorHistoricoEncomendas = null;
+    });
+
+    try {
+      final encomendas = await _encomendaService.listarEncomendasComNomes(
+        condominioId: widget.condominioId!,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _historicoEncomendas = encomendas;
+          _isLoadingHistoricoEncomendas = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorHistoricoEncomendas = 'Erro ao carregar histórico: $e';
+          _isLoadingHistoricoEncomendas = false;
+        });
+      }
+    }
+  }
+
   // Aba Recebimento de Encomenda (placeholder)
   // Aba Histórico de Encomenda (placeholder)
-  Widget _buildHistoricoEncomendaTab() {
-    return Container(
-      color: const Color(0xFFF5F5F5),
-      child: const Center(
+  // Widget para exibir card de encomenda no histórico
+  Widget _buildEncomendaCard(Map<String, dynamic> encomendaData) {
+    // Converte os dados para objeto Encomenda para manter compatibilidade
+    final encomenda = Encomenda.fromJson(encomendaData);
+    final String nomeDestinatario = encomendaData['nome_destinatario'] ?? 'N/A';
+    
+    final bool isRecebida = encomenda.recebido;
+    final String statusText = isRecebida ? 'RECEBIDA' : 'PENDENTE';
+    final Color statusColor = isRecebida ? Colors.green : Colors.orange;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Histórico',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2E3A59),
+            // Cabeçalho do card
+            Row(
+              children: [
+                // Status badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusColor, width: 1),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Checkbox para marcar/desmarcar como recebida
+                Checkbox(
+                  value: isRecebida,
+                  onChanged: (bool? value) {
+                    if (value == true && !isRecebida) {
+                      // Marcar como recebida - mostrar diálogo
+                      _mostrarDialogoRecebidoPor(encomenda);
+                    } else if (value == false && isRecebida) {
+                      // Desmarcar como recebida
+                      _desmarcarEncomendaComoRecebida(encomenda);
+                    }
+                  },
+                  activeColor: Colors.green,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Informações do destinatário
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Colors.grey),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Destinatário: $nomeDestinatario',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2E3A59),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            // Data de cadastro
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text(
+                  'Cadastrada em: ${_formatarData(encomenda.dataCadastro)}',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            
+            // Data de recebimento (se recebida)
+            if (isRecebida && encomenda.dataRecebimento != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Recebida em: ${_formatarData(encomenda.dataRecebimento!)}',
+                    style: const TextStyle(fontSize: 14, color: Colors.green),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Em desenvolvimento',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
+            ],
+            
+            // Quem recebeu (se disponível)
+            if (isRecebida && encomenda.recebidoPor != null && encomenda.recebidoPor!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.person, size: 16, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Recebida por: ${encomenda.recebidoPor}',
+                      style: const TextStyle(fontSize: 14, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            
+            // Foto da encomenda (se disponível)
+            if (encomenda.fotoUrl != null && encomenda.fotoUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    encomenda.fotoUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey.shade100,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, color: Colors.grey),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  // Método auxiliar para obter o nome do proprietário de uma unidade
-  String _getProprietarioNome(String unidadeId) {
-    try {
-      final proprietario = _proprietarios.firstWhere(
-        (p) => p.unidadeId == unidadeId,
-      );
-      return proprietario.nome;
-    } catch (e) {
-      return 'Sem proprietário';
-    }
+  // Método auxiliar para formatar data
+  String _formatarData(DateTime data) {
+    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
+
+  Widget _buildHistoricoEncomendaTab() {
+    if (_isLoadingHistoricoEncomendas) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1976D2)),
+      );
+    }
+
+    if (_errorHistoricoEncomendas != null) {
+      return Container(
+        color: const Color(0xFFF5F5F5),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Erro ao carregar histórico',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3A59),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorHistoricoEncomendas!,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _carregarHistoricoEncomendas,
+                child: const Text('Tentar Novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_historicoEncomendas.isEmpty) {
+      return Container(
+        color: const Color(0xFFF5F5F5),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.inbox, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'Nenhuma encomenda encontrada',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3A59),
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Não há encomendas cadastradas neste condomínio',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: Column(
+        children: [
+          // Cabeçalho
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1976D2),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.history, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  'Histórico de Encomendas',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _carregarHistoricoEncomendas,
+                ),
+              ],
+            ),
+          ),
+          // Lista de encomendas
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _carregarHistoricoEncomendas,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _historicoEncomendas.length,
+                itemBuilder: (context, index) {
+                  final encomenda = _historicoEncomendas[index];
+                  return _buildEncomendaCard(encomenda);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   // Widget da aba Autorizados
   Widget _buildAutorizadosTab() {
@@ -3782,16 +4181,6 @@ class _PortariaRepresentanteScreenState
     });
   }
 
-  // Método para formatar data no padrão brasileiro DD/MM/AAAA
-  String _formatarData(String dataHora) {
-    try {
-      final dateTime = DateTime.parse(dataHora).toLocal();
-      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
-    } catch (e) {
-      return 'N/A';
-    }
-  }
-
   // Método para formatar hora no padrão HH:MM
   String _formatarHora(String dataHora) {
     try {
@@ -3802,6 +4191,122 @@ class _PortariaRepresentanteScreenState
       return '${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'N/A';
+    }
+  }
+
+  // Método para salvar encomenda
+  Future<void> _salvarEncomenda() async {
+    if (_pessoaSelecionadaEncomenda == null) return;
+
+    // Obter representante atual
+    final representanteAtual = await AuthService.getCurrentRepresentante();
+    if (representanteAtual == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: Não foi possível identificar o representante atual'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Criar objeto Encomenda
+    final now = DateTime.now();
+    
+    // Debug: verificar dados da pessoa selecionada
+    print('🔍 Debug - Pessoa selecionada:');
+    print('  ID: ${_pessoaSelecionadaEncomenda!.id}');
+    print('  Tipo: ${_pessoaSelecionadaEncomenda!.tipo}');
+    print('  Nome: ${_pessoaSelecionadaEncomenda!.nome}');
+    print('  Unidade ID: ${_pessoaSelecionadaEncomenda!.unidadeId}');
+    
+    // Debug: verificar representante atual
+    print('🔍 Debug - Representante atual:');
+    print('  ID: ${representanteAtual.id}');
+    //print('  Nome: ${representanteAtual.nome}');
+    //print('  Email: ${representanteAtual.email}');
+    
+    // Debug: verificar parâmetros do widget
+    print('🔍 Debug - Parâmetros do widget:');
+    print('  Condomínio ID: ${widget.condominioId}');
+    print('  Representante ID (widget): ${widget.representanteId}');
+    
+    final proprietarioId = _pessoaSelecionadaEncomenda!.tipo == 'P' 
+        ? _pessoaSelecionadaEncomenda!.id 
+        : null;
+    final inquilinoId = _pessoaSelecionadaEncomenda!.tipo == 'I' 
+        ? _pessoaSelecionadaEncomenda!.id 
+        : null;
+        
+    print('  Proprietário ID: $proprietarioId');
+    print('  Inquilino ID: $inquilinoId');
+    print('  Notificar Unidade: $_notificarUnidade');
+    
+    try {
+      final encomenda = Encomenda(
+        id: '', // Será gerado pelo Supabase
+        condominioId: widget.condominioId!,
+        representanteId: representanteAtual.id, // Usar ID do representante atual
+        unidadeId: _pessoaSelecionadaEncomenda!.unidadeId,
+        proprietarioId: proprietarioId,
+        inquilinoId: inquilinoId,
+        notificarUnidade: _notificarUnidade,
+        recebido: false,
+        dataCadastro: now,
+        ativo: true,
+        createdAt: now,
+        updatedAt: now,
+      );
+      
+      print('✅ Encomenda criada com sucesso!');
+      print('🚀 Iniciando salvamento da encomenda...');
+      print('📦 Dados da encomenda: ${encomenda.toJson()}');
+
+      // Salvar encomenda (com ou sem foto)
+      String? encomendaId;
+      if (_imagemEncomenda != null) {
+        // TODO: Implementar upload de foto - por enquanto salvar sem foto
+        encomendaId = await _encomendaService.criarEncomenda(encomenda);
+      } else {
+        encomendaId = await _encomendaService.criarEncomenda(encomenda);
+      }
+
+      if (encomendaId != null && encomendaId.isNotEmpty) {
+        print('✅ Encomenda salva com sucesso! ID: $encomendaId');
+        
+        // Mostrar mensagem de sucesso
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Encomenda cadastrada para ${_pessoaSelecionadaEncomenda!.nome} - ${_pessoaSelecionadaEncomenda!.unidadeNumero}/${_pessoaSelecionadaEncomenda!.unidadeBloco}' +
+                    (_notificarUnidade ? ' - Unidade notificada' : ''),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Limpar seleções
+          setState(() {
+            _pessoaSelecionadaEncomenda = null;
+            _imagemEncomenda = null;
+            _notificarUnidade = false;
+          });
+        }
+      } else {
+        throw Exception('Falha ao salvar encomenda - retorno nulo');
+      }
+    } catch (e) {
+      print('❌ Erro ao salvar encomenda: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao cadastrar encomenda: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
