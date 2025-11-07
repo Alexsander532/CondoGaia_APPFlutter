@@ -1,9 +1,9 @@
 
 import 'package:flutter/material.dart';
-import '../models/ambiente.dart';
-import '../models/reserva.dart';
-import '../services/ambiente_service.dart';
-import '../services/reserva_service.dart';
+import '../models/evento_diario.dart';
+import '../models/evento_agenda.dart';
+import '../services/evento_diario_service.dart';
+import '../services/evento_agenda_service.dart';
 
 class AgendaInquilinoScreen extends StatefulWidget {
   final String condominioId;
@@ -24,9 +24,9 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
     'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  List<Ambiente> _ambientes = [];
-  List<Reserva> _reservas = [];
-  Set<int> _diasComReservas = {};
+  List<EventoDiario> _eventos = [];
+  List<EventoAgenda> _eventosAgenda = [];
+  Set<int> _diasComEventos = {};
 
   @override
   void initState() {
@@ -35,39 +35,67 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
     _selectedDate = _today;
     _currentMonthIndex = _selectedDate.month - 1;
     _currentYear = _selectedDate.year;
+    print('🔵 AgendaInquilinoScreen - condominioId: ${widget.condominioId}');
     _carregarAmbientes();
     _carregarReservas();
   }
 
   Future<void> _carregarAmbientes() async {
-    try {
-      final ambientes = await AmbienteService.getAmbientes();
-      setState(() {
-        _ambientes = ambientes;
-      });
-    } catch (e) {
-      setState(() {
-      });
-    }
+    // Não carrega ambientes mais, apenas eventos do diário
   }
 
   Future<void> _carregarReservas() async {
     try {
-      final reservas = await ReservaService.getReservasPorCondominio(widget.condominioId);
-      final diasComReservas = <int>{};
-      for (var reserva in reservas) {
-        if (reserva.dataReserva.month == _currentMonthIndex + 1 &&
-            reserva.dataReserva.year == _currentYear) {
-          diasComReservas.add(reserva.dataReserva.day);
+      if (widget.condominioId.isEmpty) {
+        print('❌ condominioId está vazio!');
+        return;
+      }
+      print('🔵 Carregando eventos para condominio: ${widget.condominioId}');
+      
+      // Carrega eventos de diário
+      final eventos = await EventoDiarioService.buscarEventosPorCondominio(widget.condominioId);
+      print('📅 Eventos de diário: ${eventos.length}');
+      
+      // Carrega eventos de agenda
+      final eventosAgenda = await EventoAgendaService.buscarEventosPorCondominio(widget.condominioId);
+      print('📅 Eventos de agenda: ${eventosAgenda.length}');
+      
+      // Combina os eventos de ambos os tipos
+      final todosDias = <int>{};
+      
+      for (var evento in eventos) {
+        print('📅 Evento diário encontrado: ${evento.titulo} em ${evento.dataEvento}');
+        if (evento.dataEvento.month == _currentMonthIndex + 1 &&
+            evento.dataEvento.year == _currentYear) {
+          todosDias.add(evento.dataEvento.day);
         }
       }
+      
+      for (var evento in eventosAgenda) {
+        print('📅 Evento agenda encontrado: ${evento.titulo} em ${evento.dataEvento}');
+        if (evento.dataEvento.month == _currentMonthIndex + 1 &&
+            evento.dataEvento.year == _currentYear) {
+          todosDias.add(evento.dataEvento.day);
+        }
+      }
+      
       setState(() {
-        _reservas = reservas;
-        _diasComReservas = diasComReservas;
+        _eventos = eventos;
+        _eventosAgenda = eventosAgenda;
+        _diasComEventos = todosDias;
       });
+      print('✅ Total de eventos diários: ${eventos.length}');
+      print('✅ Total de eventos agenda: ${eventosAgenda.length}');
+      print('✅ Dias com eventos: $todosDias');
     } catch (e) {
-      print('❌ Erro ao carregar reservas: $e');
+      print('❌ Erro ao carregar eventos: $e');
     }
+  }
+
+  bool _hasReservationOn(DateTime date) {
+    return _diasComEventos.contains(date.day) &&
+           date.month == _currentMonthIndex + 1 &&
+           date.year == _currentYear;
   }
 
   String _formatarHora(String hora) {
@@ -79,12 +107,6 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
     } catch (e) {
       return hora;
     }
-  }
-
-  bool _hasReservationOn(DateTime date) {
-    return _diasComReservas.contains(date.day) &&
-           date.month == _currentMonthIndex + 1 &&
-           date.year == _currentYear;
   }
 
   void _previousMonth() {
@@ -186,11 +208,6 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
         isSelected: isSelected,
         isToday: isToday,
         hasReservation: hasReservation,
-        onTap: () {
-          setState(() {
-            _selectedDate = date;
-          });
-        },
       ));
     }
 
@@ -209,25 +226,32 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
     required bool isSelected,
     required bool isToday,
     required bool hasReservation,
-    required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        setState(() {
+          _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, day);
+        });
+      },
       child: Container(
+        margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF003E7E) : Colors.white,
-          border: isToday ? Border.all(color: const Color(0xFF003E7E), width: 2) : null,
+          color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 4)] : [],
+          border: !isSelected && isToday
+              ? Border.all(color: const Color(0xFF1E3A8A))
+              : null,
         ),
         child: Stack(
-          alignment: Alignment.center,
           children: [
-            Text(
-              day.toString(),
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w500,
+            Center(
+              child: Text(
+                day.toString(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
               ),
             ),
             if (hasReservation)
@@ -250,13 +274,22 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
   }
 
   Widget _buildReservationCard() {
-    final reservasDoDia = _reservas.where((reserva) {
-      return reserva.dataReserva.day == _selectedDate.day &&
-             reserva.dataReserva.month == _selectedDate.month &&
-             reserva.dataReserva.year == _selectedDate.year;
+    // Filtra eventos de diário do dia selecionado
+    final eventosDoDia = _eventos.where((evento) {
+      return evento.dataEvento.day == _selectedDate.day &&
+             evento.dataEvento.month == _selectedDate.month &&
+             evento.dataEvento.year == _selectedDate.year;
     }).toList();
 
-    if (reservasDoDia.isEmpty) {
+    // Filtra eventos de agenda do dia selecionado
+    final eventosAgendaDoDia = _eventosAgenda.where((evento) {
+      return evento.dataEvento.day == _selectedDate.day &&
+             evento.dataEvento.month == _selectedDate.month &&
+             evento.dataEvento.year == _selectedDate.year;
+    }).toList();
+
+    // Se não houver eventos de nenhum tipo
+    if (eventosDoDia.isEmpty && eventosAgendaDoDia.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
         child: Center(
@@ -265,7 +298,7 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
               Icon(Icons.event_note, size: 48, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'Nenhuma reserva para este dia',
+                'Nenhum evento para este dia',
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
@@ -274,97 +307,155 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
       );
     }
 
-    return ListView.builder(
+    return ListView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: reservasDoDia.length,
-      itemBuilder: (context, index) {
-        final reserva = reservasDoDia[index];
-        final ambiente = _ambientes.firstWhere(
-          (a) => a.id == reserva.ambienteId,
-          orElse: () => Ambiente(
-            id: '',
-            titulo: 'Ambiente desconhecido',
-            valor: 0,
-          ),
-        );
+      children: [
+        // Eventos de diário
+        ...eventosDoDia.map((evento) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF003E7E),
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Primeira linha: Título
+                Text(
+                  evento.titulo,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.0,
+                  ),
+                ),
+                const SizedBox(height: 8.0),
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFF003E7E),
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Primeira linha: Título e Horário
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
+                // Descrição (se houver)
+                if (evento.descricao != null && evento.descricao!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
                     child: Text(
-                      'Reserva dia ${reserva.dataReserva.day} - ${ambiente.titulo}',
+                      evento.descricao!,
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
+                        color: Colors.white70,
+                        fontSize: 13.0,
                       ),
                     ),
                   ),
-                  Text(
-                    '${_formatarHora(reserva.horaInicio)} - ${_formatarHora(reserva.horaFim)}',
-                    style: const TextStyle(
+
+                // Badge de tipo
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'DIÁRIO',
+                    style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.0,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4.0),
-
-              // Descrição
-              Text(
-                reserva.para,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13.0,
-                ),
-              ),
-
-              if (reserva.local.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2.0),
-                  child: Text(
-                    reserva.local,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13.0,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          );
+        }).toList(),
 
-              const SizedBox(height: 8.0),
+        // Eventos de agenda
+        ...eventosAgendaDoDia.map((evento) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF003E7E),
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Primeira linha: Título e Horário
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        evento.titulo,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.0,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${_formatarHora(evento.horaInicio)}${evento.horaFim != null ? ' - ${_formatarHora(evento.horaFim!)}' : ''}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4.0),
 
-              // Observações (se houver)
-              if (reserva.listaPresentes != null && reserva.listaPresentes!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Text(
-                    reserva.listaPresentes!,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12.0,
-                      fontStyle: FontStyle.italic,
+                // Descrição
+                if (evento.descricao != null && evento.descricao!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      evento.descricao!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13.0,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 4.0),
+
+                // Informações adicionais
+                if (evento.eventoRecorrente)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      'Recorrente: cada ${evento.numeroMesesRecorrencia ?? 1} mês(es)',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12.0,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+
+                // Badge de tipo
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'AGENDA',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 
@@ -374,19 +465,96 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _buildMonthSelector(),
-                const SizedBox(height: 24.0),
-                _buildCalendarHeader(),
-                const SizedBox(height: 8.0),
-                _buildCalendarGrid(),
-                const SizedBox(height: 24.0),
-                _buildReservationCard(),
-              ],
-            ),
+          child: Column(
+            children: [
+              // Cabeçalho superior padronizado
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    // Botão de voltar
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, size: 24),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Spacer(),
+                    // Logo CondoGaia
+                    Image.asset(
+                      'assets/images/logo_CondoGaia.png',
+                      height: 32,
+                    ),
+                    const Spacer(),
+                    // Ícones do lado direito
+                    Row(
+                      children: [
+                        // Ícone de notificação
+                        GestureDetector(
+                          onTap: () {
+                            // TODO: Implementar notificações
+                          },
+                          child: Image.asset(
+                            'assets/images/Sino_Notificacao.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Ícone de fone de ouvido
+                        GestureDetector(
+                          onTap: () {
+                            // TODO: Implementar suporte/ajuda
+                          },
+                          child: Image.asset(
+                            'assets/images/Fone_Ouvido_Cabecalho.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Linha de separação
+              Container(
+                height: 1,
+                color: Colors.grey[300],
+              ),
+              
+              // Título da página
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: const Text(
+                  'Home/Diário-Agenda',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              
+              // Conteúdo da agenda
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildMonthSelector(),
+                    const SizedBox(height: 24.0),
+                    _buildCalendarHeader(),
+                    const SizedBox(height: 8.0),
+                    _buildCalendarGrid(),
+                    const SizedBox(height: 24.0),
+                    _buildReservationCard(),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

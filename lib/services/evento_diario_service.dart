@@ -56,6 +56,7 @@ class EventoDiarioService {
   /// Busca eventos de diário por condomínio
   static Future<List<EventoDiario>> buscarEventosPorCondominio(String condominioId) async {
     try {
+      print('🔵 EventoDiarioService.buscarEventosPorCondominio - Buscando eventos para condominio: $condominioId');
       final response = await _client
           .from('eventos_diario_representante')
           .select()
@@ -64,9 +65,11 @@ class EventoDiarioService {
           .order('data_evento', ascending: false)
           .order('criado_em', ascending: false);
 
+      print('🔵 EventoDiarioService - Response: $response');
+      print('✅ EventoDiarioService - Eventos encontrados: ${response.length}');
       return response.map<EventoDiario>((json) => EventoDiario.fromJson(json)).toList();
     } catch (e) {
-      print('Erro ao buscar eventos por condomínio: $e');
+      print('❌ Erro ao buscar eventos por condomínio: $e');
       rethrow;
     }
   }

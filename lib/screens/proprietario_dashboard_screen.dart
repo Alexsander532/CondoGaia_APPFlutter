@@ -41,6 +41,8 @@ class _ProprietarioDashboardScreenState
         widget.proprietario.unidadeId!,
       );
 
+      print('🔵 Unidade carregada: $unidade');
+
       setState(() {
         _condominio = condominio;
         _unidade = unidade;
@@ -251,10 +253,9 @@ class _ProprietarioDashboardScreenState
               else
                 Column(
                   children: [
-                    // Card do condomínio
+                    // Card do condomínio COM unidade aninhada
                     Container(
                       width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -267,126 +268,130 @@ class _ProprietarioDashboardScreenState
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.apartment,
-                              color: Colors.green,
-                            ),
+                          // Cabeçalho do condomínio
+                          Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.apartment,
+                                  color: Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _condominio!['nome_condominio'] ??
+                                          'Condomínio',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      'CNPJ: ${_condominio!['cnpj'] ?? 'N/A'}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _condominio!['nome_condominio'] ??
-                                      'Condomínio',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Divisor
+                          Container(
+                            height: 1,
+                            color: Colors.grey[200],
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Unidade dentro do condomínio
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => InquilinoHomeScreen(
+                                    condominioId: _condominio!['id'].toString(),
+                                    condominioNome:
+                                        _condominio!['nome_condominio'] ??
+                                        'Condomínio',
+                                    condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
+                                    proprietarioId: widget.proprietario.id,
+                                    unidadeId: _unidade!['id'].toString(),
+                                    unidadeNome:
+                                        'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
                                   ),
                                 ),
-                                Text(
-                                  'CNPJ: ${_condominio!['cnpj'] ?? 'N/A'}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 16),
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.home_mini,
+                                      color: Colors.orange,
+                                      size: 20,
+                                    ),
                                   ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey,
                                 ),
                               ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-
-                    // Card da unidade
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => InquilinoHomeScreen(
-                              condominioId: _condominio!['id'].toString(),
-                              condominioNome:
-                                  _condominio!['nome_condominio'] ??
-                                  'Condomínio',
-                              condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
-                              proprietarioId: widget.proprietario.id,
-                              unidadeId: _unidade!['id'].toString(),
-                              unidadeNome:
-                                  'Unidade ${_unidade!['numero_unidade'] ?? 'N/A'}',
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.home,
-                                color: Colors.orange,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Unidade ${_unidade!['numero_unidade'] ?? 'N/A'}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey,
-                              size: 16,
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ],
