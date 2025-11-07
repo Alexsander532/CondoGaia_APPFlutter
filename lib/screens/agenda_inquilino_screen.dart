@@ -1,170 +1,236 @@
+
 import 'package:flutter/material.dart';
+import '../models/ambiente.dart';
+import '../models/reserva.dart';
+import '../services/ambiente_service.dart';
+import '../services/reserva_service.dart';
 
 class AgendaInquilinoScreen extends StatefulWidget {
-  final String? condominioId;
-  final String? inquilinoId;
-  
-  const AgendaInquilinoScreen({
-    super.key,
-    this.condominioId,
-    this.inquilinoId,
-  });
+  final String condominioId;
+  const AgendaInquilinoScreen({Key? key, required this.condominioId}) : super(key: key);
 
   @override
   State<AgendaInquilinoScreen> createState() => _AgendaInquilinoScreenState();
 }
 
 class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
-  late int selectedDay;
-  late String currentMonth;
-  late int currentYear;
-  
-  // IDs para operações
-  String get condominioId => widget.condominioId ?? 'demo-condominio-id';
-  String get inquilinoId => widget.inquilinoId ?? 'demo-inquilino-id';
-  
+  late final DateTime _today;
+  late DateTime _selectedDate;
+  late int _currentMonthIndex;
+  late int _currentYear;
+  final List<String> _months = const [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril',
+    'Maio', 'Junho', 'Julho', 'Agosto',
+    'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  List<Ambiente> _ambientes = [];
+  List<Reserva> _reservas = [];
+  Set<int> _diasComReservas = {};
+
   @override
   void initState() {
     super.initState();
-    DateTime now = DateTime.now();
-    selectedDay = now.day;
-    currentMonth = months[now.month - 1];
-    currentYear = now.year;
+    _today = DateTime.now();
+    _selectedDate = _today;
+    _currentMonthIndex = _selectedDate.month - 1;
+    _currentYear = _selectedDate.year;
+    _carregarAmbientes();
+    _carregarReservas();
   }
-  
-  final List<String> months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
-  
-  // Dados mockados de eventos criados pelo representante
-  final Map<String, List<Map<String, dynamic>>> eventosPorData = {
-    '06/05/2022': [
-      {
-        'titulo': 'Dedetização',
-        'tipo': 'Agenda',
-        'horario': '18h30 até 22h',
-        'descricao': 'Dedetização do condomínio - Evento recorrente',
-        'criadoPor': 'Administradora',
-      }
-    ],
-    '15/05/2022': [
-      {
-        'titulo': 'Reunião com a Administradora',
-        'tipo': 'Diário',
-        'horario': 'Todo o dia',
-        'descricao': 'Hoje foi reunião com a equipe da Administradora do Condomínio.',
-        'criadoPor': 'Representante',
-      }
-    ],
-    '20/05/2022': [
-      {
-        'titulo': 'Manutenção Elevador',
-        'tipo': 'Agenda',
-        'horario': '08h00 até 17h00',
-        'descricao': 'Manutenção preventiva do elevador social',
-        'criadoPor': 'Administradora',
-      }
-    ],
-  };
-  
-  int get currentMonthIndex => months.indexOf(currentMonth);
-  
-  // Função para verificar se o ano é bissexto
-  bool _isLeapYear(int year) {
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-  }
-  
-  // Função para obter o número de dias do mês
-  int _getDaysInMonth(int month, int year) {
-    switch (month) {
-      case 1: // Janeiro
-      case 3: // Março
-      case 5: // Maio
-      case 7: // Julho
-      case 8: // Agosto
-      case 10: // Outubro
-      case 12: // Dezembro
-        return 31;
-      case 4: // Abril
-      case 6: // Junho
-      case 9: // Setembro
-      case 11: // Novembro
-        return 30;
-      case 2: // Fevereiro
-        return _isLeapYear(year) ? 29 : 28;
-      default:
-        return 31;
+
+  Future<void> _carregarAmbientes() async {
+    try {
+      final ambientes = await AmbienteService.getAmbientes();
+      setState(() {
+        _ambientes = ambientes;
+      });
+    } catch (e) {
+      setState(() {
+      });
     }
   }
-  
-  // Função para obter o primeiro dia da semana do mês (0 = domingo)
-  int _getFirstDayOfMonth(int month, int year) {
-    DateTime firstDay = DateTime(year, month, 1);
-    // DateTime.weekday retorna 1-7 (segunda a domingo)
-    // Convertemos para 0-6 (domingo a sábado)
-    return firstDay.weekday == 7 ? 0 : firstDay.weekday;
+
+  Future<void> _carregarReservas() async {
+    try {
+      final reservas = await ReservaService.getReservasPorCondominio(widget.condominioId);
+      final diasComReservas = <int>{};
+      for (var reserva in reservas) {
+        if (reserva.dataReserva.month == _currentMonthIndex + 1 &&
+            reserva.dataReserva.year == _currentYear) {
+          diasComReservas.add(reserva.dataReserva.day);
+        }
+      }
+      setState(() {
+        _reservas = reservas;
+        _diasComReservas = diasComReservas;
+      });
+    } catch (e) {
+      print('❌ Erro ao carregar reservas: $e');
+    }
   }
-  
+
+  String _formatarHora(String hora) {
+    try {
+      if (hora.length >= 5) {
+        return hora.substring(0, 5);
+      }
+      return hora;
+    } catch (e) {
+      return hora;
+    }
+  }
+
+  bool _hasReservationOn(DateTime date) {
+    return _diasComReservas.contains(date.day) &&
+           date.month == _currentMonthIndex + 1 &&
+           date.year == _currentYear;
+  }
+
   void _previousMonth() {
     setState(() {
-      if (currentMonthIndex > 0) {
-        currentMonth = months[currentMonthIndex - 1];
-      } else {
-        currentMonth = months[11];
-        currentYear--;
+      _currentMonthIndex--;
+      if (_currentMonthIndex < 0) {
+        _currentMonthIndex = 11;
+        _currentYear--;
       }
-      // Ajustar o dia selecionado se não existir no novo mês
-      int daysInNewMonth = _getDaysInMonth(currentMonthIndex + 1, currentYear);
-      if (selectedDay > daysInNewMonth) {
-        selectedDay = 1;
-      }
+      final daysInCurrentMonth = DateTime(_currentYear, _currentMonthIndex + 2, 0).day;
+      final selectedDay = _selectedDate.day > daysInCurrentMonth ? daysInCurrentMonth : _selectedDate.day;
+      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      _carregarReservas();
     });
   }
-  
+
   void _nextMonth() {
     setState(() {
-      if (currentMonthIndex < 11) {
-        currentMonth = months[currentMonthIndex + 1];
-      } else {
-        currentMonth = months[0];
-        currentYear++;
+      _currentMonthIndex++;
+      if (_currentMonthIndex > 11) {
+        _currentMonthIndex = 0;
+        _currentYear++;
       }
-      // Ajustar o dia selecionado se não existir no novo mês
-      int daysInNewMonth = _getDaysInMonth(currentMonthIndex + 1, currentYear);
-      if (selectedDay > daysInNewMonth) {
-        selectedDay = 1;
-      }
+      final daysInNewMonth = DateTime(_currentYear, _currentMonthIndex + 2, 0).day;
+      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
+      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      _carregarReservas();
     });
   }
-  
-  Widget _buildCalendarDay(int day, {bool isSelected = false, bool hasEvent = false}) {
+
+  Widget _buildMonthSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: _previousMonth,
+          icon: const Icon(Icons.chevron_left, size: 28),
+        ),
+        Text(
+          '${_months[_currentMonthIndex]} $_currentYear',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        IconButton(
+          onPressed: _nextMonth,
+          icon: const Icon(Icons.chevron_right, size: 28),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCalendarHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: const [
+        'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'
+      ].map((day) => Expanded(
+        child: Center(
+          child: Text(
+            day,
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      )).toList(),
+    );
+  }
+
+  Widget _buildCalendarGrid() {
+    final firstDayOfMonth = DateTime(_currentYear, _currentMonthIndex + 1, 1);
+    final lastDayOfMonth = DateTime(_currentYear, _currentMonthIndex + 2, 0);
+    final daysInMonth = lastDayOfMonth.day;
+    final firstWeekday = firstDayOfMonth.weekday % 7;
+
+    final days = <Widget>[];
+
+    for (int i = 0; i < firstWeekday; i++) {
+      days.add(const SizedBox());
+    }
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_currentYear, _currentMonthIndex + 1, day);
+      final isSelected = _selectedDate.day == day &&
+          _selectedDate.month == _currentMonthIndex + 1 &&
+          _selectedDate.year == _currentYear;
+      final isToday = _today.day == day &&
+          _today.month == _currentMonthIndex + 1 &&
+          _today.year == _currentYear;
+      final hasReservation = _hasReservationOn(date);
+
+      days.add(_buildCalendarDay(
+        day: day,
+        isSelected: isSelected,
+        isToday: isToday,
+        hasReservation: hasReservation,
+        onTap: () {
+          setState(() {
+            _selectedDate = date;
+          });
+        },
+      ));
+    }
+
+    return GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: days,
+    );
+  }
+
+  Widget _buildCalendarDay({
+    required int day,
+    required bool isSelected,
+    required bool isToday,
+    required bool hasReservation,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedDay = day;
-        });
-      },
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
+          color: isSelected ? const Color(0xFF003E7E) : Colors.white,
+          border: isToday ? Border.all(color: const Color(0xFF003E7E), width: 2) : null,
           borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 4)] : [],
         ),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            Center(
-              child: Text(
-                day.toString(),
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
-                  fontSize: 16,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
+            Text(
+              day.toString(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            // Indicador de evento
-            if (hasEvent)
+            if (hasReservation)
               Positioned(
                 bottom: 4,
                 right: 4,
@@ -182,299 +248,146 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
       ),
     );
   }
-  
-  String _getMonthName(int month) {
-    const monthNames = [
-      '', 'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-      'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-    ];
-    return monthNames[month];
-  }
-  
-  Widget _buildCalendarHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'
-      ].map((day) => Expanded(
+
+  Widget _buildReservationCard() {
+    final reservasDoDia = _reservas.where((reserva) {
+      return reserva.dataReserva.day == _selectedDate.day &&
+             reserva.dataReserva.month == _selectedDate.month &&
+             reserva.dataReserva.year == _selectedDate.year;
+    }).toList();
+
+    if (reservasDoDia.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
         child: Center(
-          child: Text(
-            day,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      )).toList(),
-    );
-  }
-  
-  Widget _buildCalendarGrid() {
-    List<Widget> days = [];
-    int monthNumber = currentMonthIndex + 1;
-    int daysInMonth = _getDaysInMonth(monthNumber, currentYear);
-    int firstDayOfWeek = _getFirstDayOfMonth(monthNumber, currentYear);
-    
-    // Adicionar células vazias no início para alinhar o primeiro dia
-    for (int i = 0; i < firstDayOfWeek; i++) {
-      days.add(Container());
-    }
-    
-    // Adicionar os dias do mês
-    for (int day = 1; day <= daysInMonth; day++) {
-      String dateKey = '${day.toString().padLeft(2, '0')}/${_getMonthName(monthNumber).substring(0, 3)}/$currentYear';
-      String dateKeyFull = '${day.toString().padLeft(2, '0')}/${monthNumber.toString().padLeft(2, '0')}/$currentYear';
-      bool hasEvent = eventosPorData.containsKey(dateKeyFull);
-      
-      days.add(_buildCalendarDay(
-        day, 
-        isSelected: day == selectedDay,
-        hasEvent: hasEvent,
-      ));
-    }
-    
-    return GridView.count(
-      crossAxisCount: 7,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: days,
-    );
-  }
-  
-  List<Map<String, dynamic>> _getEventosForSelectedDay() {
-    String dateKey = '${selectedDay.toString().padLeft(2, '0')}/${(currentMonthIndex + 1).toString().padLeft(2, '0')}/$currentYear';
-    return eventosPorData[dateKey] ?? [];
-  }
-  
-  Widget _buildEventCard(Map<String, dynamic> evento) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A8A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
             children: [
-              Expanded(
-                child: Text(
-                  evento['titulo'],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  evento['tipo'],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+              Icon(Icons.event_note, size: 48, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                'Nenhuma reserva para este dia',
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (evento['horario'] != null)
-            Text(
-              evento['horario'],
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          const SizedBox(height: 4),
-          Text(
-            evento['descricao'],
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: reservasDoDia.length,
+      itemBuilder: (context, index) {
+        final reserva = reservasDoDia[index];
+        final ambiente = _ambientes.firstWhere(
+          (a) => a.id == reserva.ambienteId,
+          orElse: () => Ambiente(
+            id: '',
+            titulo: 'Ambiente desconhecido',
+            valor: 0,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Criado por: ${evento['criadoPor']}',
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
+        );
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF003E7E),
+            borderRadius: BorderRadius.circular(12.0),
           ),
-        ],
-      ),
-    );
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    List<Map<String, dynamic>> eventosDodia = _getEventosForSelectedDay();
-    
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Cabeçalho superior padronizado
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Primeira linha: Título e Horário
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Botão de voltar
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, size: 24),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                  const Spacer(),
-                  // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
-                  const Spacer(),
-                  // Ícones do lado direito
-                  Row(
-                    children: [
-                      // Ícone de notificação
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Implementar notificações
-                        },
-                        child: Image.asset(
-                          'assets/images/Sino_Notificacao.png',
-                          width: 24,
-                          height: 24,
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Reserva dia ${reserva.dataReserva.day} - ${ambiente.titulo}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
                       ),
-                      const SizedBox(width: 12),
-                      // Ícone de fone de ouvido
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Implementar suporte/ajuda
-                        },
-                        child: Image.asset(
-                          'assets/images/Fone_Ouvido_Cabecalho.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ),
+                  Text(
+                    '${_formatarHora(reserva.horaInicio)} - ${_formatarHora(reserva.horaFim)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.0,
+                    ),
                   ),
                 ],
               ),
-            ),
-            // Linha de separação
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-            
-            // Título da página
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: const Text(
-                'Home/Diário-Agenda',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 4.0),
+
+              // Descrição
+              Text(
+                reserva.para,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13.0,
                 ),
               ),
-            ),
-            
-            // Conteúdo da agenda
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Seletor de mês/ano
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: _previousMonth,
-                          icon: const Icon(Icons.chevron_left, size: 28),
-                        ),
-                        Text(
-                          '$currentMonth $currentYear',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _nextMonth,
-                          icon: const Icon(Icons.chevron_right, size: 28),
-                        ),
-                      ],
+
+              if (reserva.local.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Text(
+                    reserva.local,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13.0,
                     ),
-                    const SizedBox(height: 20),
-                    
-                    // Cabeçalho do calendário
-                    _buildCalendarHeader(),
-                    const SizedBox(height: 10),
-                    
-                    // Grid do calendário
-                    _buildCalendarGrid(),
-                    const SizedBox(height: 30),
-                    
-                    // Seção de eventos (sem botão de adicionar)
-                    Text(
-                      'Eventos - Dia ${selectedDay.toString().padLeft(2, '0')}/${currentMonth.toUpperCase()}/$currentYear',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // Lista de eventos
-                    Expanded(
-                      child: eventosDodia.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'Nenhum evento neste dia',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: eventosDodia.length,
-                              itemBuilder: (context, index) {
-                                return _buildEventCard(eventosDodia[index]);
-                              },
-                            ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+
+              const SizedBox(height: 8.0),
+
+              // Observações (se houver)
+              if (reserva.listaPresentes != null && reserva.listaPresentes!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Text(
+                    reserva.listaPresentes!,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12.0,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _buildMonthSelector(),
+                const SizedBox(height: 24.0),
+                _buildCalendarHeader(),
+                const SizedBox(height: 8.0),
+                _buildCalendarGrid(),
+                const SizedBox(height: 24.0),
+                _buildReservationCard(),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

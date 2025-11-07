@@ -194,8 +194,6 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                           MaterialPageRoute(
                             builder: (context) => AgendaInquilinoScreen(
                               condominioId: widget.condominioId,
-                              inquilinoId:
-                                  widget.inquilinoId ?? widget.proprietarioId!,
                             ),
                           ),
                         );

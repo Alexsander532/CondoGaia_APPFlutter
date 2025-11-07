@@ -2,6 +2,20 @@ import '../models/reserva.dart';
 import 'supabase_service.dart';
 
 class ReservaService {
+  /// Buscar todas as reservas de um condomínio
+  static Future<List<Reserva>> getReservasPorCondominio(String condominioId) async {
+    try {
+      final response = await SupabaseService.client
+          .from('reservas')
+          .select()
+          .eq('condominio_id', condominioId)
+          .order('data_reserva', ascending: true)
+          .order('hora_inicio', ascending: true);
+      return response.map((json) => Reserva.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Erro ao buscar reservas por condomínio: $e');
+    }
+  }
   /// Buscar todas as reservas do representante atual
   static Future<List<Reserva>> getReservasRepresentante(String representanteId) async {
     try {
