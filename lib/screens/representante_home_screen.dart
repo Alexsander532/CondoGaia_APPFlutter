@@ -260,7 +260,9 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ReservasScreen(),
+                            builder: (context) => ReservasScreen(
+                              representante: widget.representante,
+                            ),
                           ),
                         );
                       },

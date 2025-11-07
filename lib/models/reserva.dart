@@ -5,18 +5,12 @@ class Reserva {
   final DateTime dataReserva;
   final String horaInicio;
   final String horaFim;
-  final double valor;
-  final String? observacoes;
-  final bool termoLocacao;
-  final String? condominioId;
+  final String para; // Condomínio ou Bloco/Unid
+  final String local; // Local da reserva
+  final double valorLocacao; // Valor da locação
+  final String? listaPresentes; // Lista de presentes (opcional)
   final DateTime? criadoEm;
   final DateTime? atualizadoEm;
-  
-  // Novos campos baseados na tela de reserva
-  final String para; // Condomínio ou Bloco/Unid
-  final String local; // Local da reserva (ex: Salão de Festas)
-  final double valorLocacao; // Valor da locação
-  final List<String> listaPresentes; // Lista de presentes
 
   const Reserva({
     this.id,
@@ -25,16 +19,12 @@ class Reserva {
     required this.dataReserva,
     required this.horaInicio,
     required this.horaFim,
-    required this.valor,
-    this.observacoes,
-    this.termoLocacao = false,
-    this.condominioId,
-    this.criadoEm,
-    this.atualizadoEm,
     required this.para,
     required this.local,
     required this.valorLocacao,
-    this.listaPresentes = const [],
+    this.listaPresentes,
+    this.criadoEm,
+    this.atualizadoEm,
   });
 
   // Construtor para criar uma instância a partir de JSON (Supabase)
@@ -46,20 +36,16 @@ class Reserva {
       dataReserva: DateTime.parse(json['data_reserva']),
       horaInicio: json['hora_inicio'] ?? '',
       horaFim: json['hora_fim'] ?? '',
-      valor: (json['valor'] ?? 0.0).toDouble(),
-      observacoes: json['observacoes'],
-      termoLocacao: json['termo_locacao'] ?? false,
-      condominioId: json['condominio_id']?.toString(),
-      criadoEm: json['criado_em'] != null 
-          ? DateTime.parse(json['criado_em'])
-          : null,
-      atualizadoEm: json['atualizado_em'] != null 
-          ? DateTime.parse(json['atualizado_em'])
-          : null,
-      para: json['para'] ?? '',
+      para: json['para'] ?? 'Condomínio',
       local: json['local'] ?? '',
       valorLocacao: (json['valor_locacao'] ?? 0.0).toDouble(),
-      listaPresentes: List<String>.from(json['lista_presentes'] ?? []),
+      listaPresentes: json['lista_presentes'],
+      criadoEm: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'])
+          : null,
+      atualizadoEm: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at'])
+          : null,
     );
   }
 
@@ -72,16 +58,12 @@ class Reserva {
       'data_reserva': dataReserva.toIso8601String().split('T')[0], // Apenas a data
       'hora_inicio': horaInicio,
       'hora_fim': horaFim,
-      'valor': valor,
-      'observacoes': observacoes,
-      'termo_locacao': termoLocacao,
-      'condominio_id': condominioId,
-      if (criadoEm != null) 'criado_em': criadoEm!.toIso8601String(),
-      if (atualizadoEm != null) 'atualizado_em': atualizadoEm!.toIso8601String(),
       'para': para,
       'local': local,
       'valor_locacao': valorLocacao,
-      'lista_presentes': listaPresentes,
+      if (listaPresentes != null) 'lista_presentes': listaPresentes,
+      if (criadoEm != null) 'created_at': criadoEm!.toIso8601String(),
+      if (atualizadoEm != null) 'updated_at': atualizadoEm!.toIso8601String(),
     };
   }
 
@@ -93,16 +75,12 @@ class Reserva {
     DateTime? dataReserva,
     String? horaInicio,
     String? horaFim,
-    double? valor,
-    String? observacoes,
-    bool? termoLocacao,
-    String? condominioId,
-    DateTime? criadoEm,
-    DateTime? atualizadoEm,
     String? para,
     String? local,
     double? valorLocacao,
-    List<String>? listaPresentes,
+    String? listaPresentes,
+    DateTime? criadoEm,
+    DateTime? atualizadoEm,
   }) {
     return Reserva(
       id: id ?? this.id,
@@ -111,16 +89,12 @@ class Reserva {
       dataReserva: dataReserva ?? this.dataReserva,
       horaInicio: horaInicio ?? this.horaInicio,
       horaFim: horaFim ?? this.horaFim,
-      valor: valor ?? this.valor,
-      observacoes: observacoes ?? this.observacoes,
-      termoLocacao: termoLocacao ?? this.termoLocacao,
-      condominioId: condominioId ?? this.condominioId,
-      criadoEm: criadoEm ?? this.criadoEm,
-      atualizadoEm: atualizadoEm ?? this.atualizadoEm,
       para: para ?? this.para,
       local: local ?? this.local,
       valorLocacao: valorLocacao ?? this.valorLocacao,
       listaPresentes: listaPresentes ?? this.listaPresentes,
+      criadoEm: criadoEm ?? this.criadoEm,
+      atualizadoEm: atualizadoEm ?? this.atualizadoEm,
     );
   }
 
@@ -130,7 +104,7 @@ class Reserva {
            representanteId.isNotEmpty && 
            horaInicio.isNotEmpty && 
            horaFim.isNotEmpty &&
-           valor >= 0;
+           valorLocacao >= 0;
   }
 
   // Método para verificar se a reserva é para hoje
@@ -161,7 +135,7 @@ class Reserva {
 
   // Método para formatar o valor como moeda
   String get valorFormatado {
-    return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+    return 'R\$ ${valorLocacao.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
   // Método para calcular a duração da reserva em horas

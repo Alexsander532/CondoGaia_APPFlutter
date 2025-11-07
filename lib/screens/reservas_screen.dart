@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'configurar_ambientes_screen.dart';
+import '../models/ambiente.dart';
+import '../models/representante.dart';
+import '../services/ambiente_service.dart';
+import '../services/reserva_service.dart';
 
 class ReservasScreen extends StatefulWidget {
-  const ReservasScreen({super.key});
+  final Representante? representante;
+
+  const ReservasScreen({
+    super.key,
+    this.representante,
+  });
 
   @override
   State<ReservasScreen> createState() => _ReservasScreenState();
@@ -10,11 +20,15 @@ class ReservasScreen extends StatefulWidget {
 
 class _ReservasScreenState extends State<ReservasScreen> {
   // Variáveis para controle do calendário
-  late DateTime _currentDate;
-  late int _currentMonth;
+  late final DateTime _today;
+  late DateTime _selectedDate;
+  late int _currentMonthIndex;
   late int _currentYear;
-  List<int> _selectedDays = [];
-  String _selectedDay = '';
+  final List<String> _months = const [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril',
+    'Maio', 'Junho', 'Julho', 'Agosto',
+    'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
   
   // Controladores para os campos do formulário
   final TextEditingController _valorController = TextEditingController(text: 'R\$ 100,00');
@@ -23,18 +37,221 @@ class _ReservasScreenState extends State<ReservasScreen> {
   final TextEditingController _listaPresentesController = TextEditingController();
   
   // Variáveis para controle do formulário
-  String _selectedLocal = 'Salão de Festas';
   bool _isCondominio = true;
   bool _isBlocoUnid = false;
+  
+  // Ambientes carregados
+  List<Ambiente> _ambientes = [];
+  bool _ambientesCarregando = false;
+  String? _selectedAmbienteId;
   
   @override
   void initState() {
     super.initState();
-    _currentDate = DateTime.now();
-    _currentMonth = _currentDate.month;
-    _currentYear = _currentDate.year;
-    // Atualizar para a data atual
-    _selectedDay = '${_currentDate.day.toString().padLeft(2, '0')}/${_getMonthName(_currentDate.month).toUpperCase()}/${_currentDate.year}';
+    _today = DateTime.now();
+    _selectedDate = _today;
+    _currentMonthIndex = _selectedDate.month - 1;
+    _currentYear = _selectedDate.year;
+    _carregarAmbientes();
+  }
+  
+  Future<void> _carregarAmbientes() async {
+    setState(() {
+      _ambientesCarregando = true;
+    });
+    
+    try {
+      final ambientes = await AmbienteService.getAmbientes();
+      setState(() {
+        _ambientes = ambientes;
+        if (ambientes.isNotEmpty) {
+          _selectedAmbienteId = ambientes.first.id;
+        }
+        _ambientesCarregando = false;
+      });
+    } catch (e) {
+      setState(() {
+        _ambientesCarregando = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar ambientes: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _salvarReserva() async {
+    try {
+      // Validar campos obrigatórios
+      if (_selectedAmbienteId == null || _selectedAmbienteId!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selecione um ambiente')),
+          );
+        }
+        return;
+      }
+
+      if (_horaInicioController.text.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Preencha a hora de início')),
+          );
+        }
+        return;
+      }
+
+      if (_horaFimController.text.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Preencha a hora de fim')),
+          );
+        }
+        return;
+      }
+
+      // Validar se hora de fim é maior que hora de início
+      final horaInicio = _horaInicioController.text;
+      final horaFim = _horaFimController.text;
+      
+      if (horaFim.compareTo(horaInicio) <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Hora de fim deve ser posterior à hora de início')),
+          );
+        }
+        return;
+      }
+
+      // Obter o ambiente selecionado para pegar o nome (local)
+      final ambiente = _ambientes.firstWhere(
+        (a) => a.id == _selectedAmbienteId,
+        orElse: () => Ambiente(titulo: '', valor: 0),
+      );
+
+      // Obter o valor da locação (remover 'R$ ' e converter)
+      double valorLocacao = 0.0;
+      try {
+        final valorText = _valorController.text
+            .replaceAll('R\$ ', '')
+            .replaceAll('.', '')
+            .replaceAll(',', '.');
+        valorLocacao = double.parse(valorText);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Valor inválido')),
+          );
+        }
+        return;
+      }
+
+      // Mostrar indicador de carregamento
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return const Dialog(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Salvando reserva...'),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+
+      // Validar se representante está disponível
+      if (widget.representante == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro: Representante não identificado')),
+          );
+        }
+        return;
+      }
+
+      // Criar a reserva
+      print('🔵 [ReservasScreen] Iniciando save da reserva...');
+      print('🔵 [ReservasScreen] Representante ID: ${widget.representante!.id}');
+      print('🔵 [ReservasScreen] Ambiente ID: $_selectedAmbienteId');
+      
+      await ReservaService.criarReserva(
+        representanteId: widget.representante!.id,
+        ambienteId: _selectedAmbienteId!,
+        dataReserva: _selectedDate,
+        horaInicio: horaInicio,
+        horaFim: horaFim,
+        valorLocacao: valorLocacao,
+        para: _isCondominio ? 'Condomínio' : 'Bloco/Unid',
+        local: ambiente.titulo,
+        listaPresentes: _listaPresentesController.text.isNotEmpty 
+            ? _listaPresentesController.text 
+            : null,
+      );
+
+      // Fechar o diálogo de carregamento
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Aguarda um pouco antes de fechar o modal
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      print('✅ [ReservasScreen] Reserva criada com sucesso!');
+      
+      // Mostrar mensagem de sucesso
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reserva criada com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // Fechar o modal de reserva após 2 segundos
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }
+
+      // Limpar os campos
+      _horaInicioController.clear();
+      _horaFimController.clear();
+      _listaPresentesController.clear();
+      _valorController.text = 'R\$ 100,00';
+      
+    } catch (e, stackTrace) {
+      print('❌ [ReservasScreen] ERRO: $e');
+      print('❌ [ReservasScreen] Stack trace: $stackTrace');
+      
+      // Fechar o diálogo de carregamento se estiver aberto
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar mensagem de erro
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao criar reserva: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
   
   @override
@@ -46,16 +263,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
     super.dispose();
   }
 
-  // Função para obter o nome do mês
-  String _getMonthName(int month) {
-    const monthNames = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril',
-      'Maio', 'Junho', 'Julho', 'Agosto',
-      'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    return monthNames[month - 1];
+  String get _selectedDayLabel {
+    final monthName = _months[_selectedDate.month - 1].toUpperCase();
+    return '${_selectedDate.day.toString().padLeft(2, '0')}/$monthName/${_selectedDate.year}';
   }
 
+  // Função para obter o nome do mês
   // Função para verificar se o ano é bissexto
   bool _isLeapYear(int year) {
     return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
@@ -78,140 +291,232 @@ class _ReservasScreenState extends State<ReservasScreen> {
   // Função para navegar para o mês anterior
   void _previousMonth() {
     setState(() {
-      if (_currentMonth == 1) {
-        _currentMonth = 12;
+      if (_currentMonthIndex == 0) {
+        _currentMonthIndex = 11;
         _currentYear--;
       } else {
-        _currentMonth--;
+        _currentMonthIndex--;
       }
+
+      final daysInNewMonth = _getDaysInMonth(_currentMonthIndex + 1, _currentYear);
+      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
+      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
     });
   }
 
   // Função para navegar para o próximo mês
   void _nextMonth() {
     setState(() {
-      if (_currentMonth == 12) {
-        _currentMonth = 1;
+      if (_currentMonthIndex == 11) {
+        _currentMonthIndex = 0;
         _currentYear++;
       } else {
-        _currentMonth++;
+        _currentMonthIndex++;
       }
+
+      final daysInNewMonth = _getDaysInMonth(_currentMonthIndex + 1, _currentYear);
+      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
+      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
     });
   }
 
-  // Função para construir o cabeçalho do calendário
-  Widget _buildCalendarHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: _previousMonth,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          Text(
-            '${_getMonthName(_currentMonth)} $_currentYear',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: _nextMonth,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Função para construir o grid do calendário
-  Widget _buildCalendarGrid() {
-    const daysOfWeek = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
-    final daysInMonth = _getDaysInMonth(_currentMonth, _currentYear);
-    final firstDayOfWeek = _getFirstDayOfWeekFromMonth(_currentMonth, _currentYear);
-
-    // Construir cabeçalho dos dias da semana
-    final List<Widget> dayHeaders = daysOfWeek.map((day) {
-      return Container(
-        alignment: Alignment.center,
-        child: Text(
-          day,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
-    }).toList();
-
-    // Construir células do calendário
-    final List<Widget> calendarCells = [];
-
-    // Adicionar células vazias para os dias antes do primeiro dia do mês
-    for (int i = 0; i < firstDayOfWeek; i++) {
-      calendarCells.add(Container());
-    }
-
-    // Adicionar células para os dias do mês
-    for (int day = 1; day <= daysInMonth; day++) {
-      final isSelected = day == _currentDate.day && _currentMonth == _currentDate.month && _currentYear == _currentDate.year;
-      final hasEvent = day == _currentDate.day && _currentMonth == _currentDate.month && _currentYear == _currentDate.year; // Apenas o dia atual tem evento
-      
-      calendarCells.add(
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isSelected ? const Color(0xFF003E7E) : Colors.transparent,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            day.toString(),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected 
-                  ? Colors.white 
-                  : hasEvent 
-                      ? const Color(0xFF003E7E) 
-                      : Colors.black,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Column(
+  // Função para construir o seletor de mês
+  Widget _buildMonthSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Cabeçalho dos dias da semana
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 7,
-          children: dayHeaders,
+        IconButton(
+          onPressed: _previousMonth,
+          icon: const Icon(Icons.chevron_left, size: 28),
         ),
-        // Grid do calendário
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 7,
-          children: calendarCells,
+        Text(
+          '${_months[_currentMonthIndex]} $_currentYear',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        IconButton(
+          onPressed: _nextMonth,
+          icon: const Icon(Icons.chevron_right, size: 28),
         ),
       ],
     );
   }
 
-  // Função para verificar se há reservas para hoje
-  bool _hasReservationsForToday() {
-    // Por padrão, não há reservas - mostra apenas o botão de adicionar
-    // Você pode modificar esta lógica para verificar reservas reais do banco de dados
+  // Cabeçalho com os dias da semana
+  Widget _buildCalendarHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: const [
+        'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'
+      ].map((day) => Expanded(
+        child: Center(
+          child: Text(
+            day,
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      )).toList(),
+    );
+  }
+
+  // Formatador customizado para entrada de hora (HH:MM)
+  TextInputFormatter _TimeInputFormatter() {
+    return TextInputFormatter.withFunction((oldValue, newValue) {
+      String text = newValue.text;
+
+      // Remove caracteres inválidos
+      text = text.replaceAll(RegExp(r'[^0-9]'), '');
+
+      // Limita a 4 dígitos
+      if (text.length > 4) {
+        text = text.substring(0, 4);
+      }
+
+      // Formata para HH:MM
+      if (text.length >= 3) {
+        final hh = text.substring(0, 2);
+        final mm = text.substring(2, text.length > 4 ? 4 : text.length);
+
+        // Valida horas (00-23)
+        final hhInt = int.tryParse(hh) ?? 0;
+        if (hhInt > 23) {
+          return oldValue;
+        }
+
+        // Valida minutos (00-59)
+        if (mm.isNotEmpty) {
+          final mmInt = int.tryParse(mm) ?? 0;
+          if (mmInt > 59) {
+            return oldValue;
+          }
+        }
+
+        if (mm.isEmpty) {
+          text = '$hh:';
+        } else {
+          text = '$hh:$mm';
+        }
+      } else if (text.length == 2) {
+        final hhInt = int.tryParse(text) ?? 0;
+        if (hhInt <= 23) {
+          text = '$text:';
+        } else {
+          return oldValue;
+        }
+      }
+
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.fromPosition(
+          TextPosition(offset: text.length),
+        ),
+      );
+    });
+  }
+
+  // Função para construir o grid do calendário
+  Widget _buildCalendarGrid() {
+    final List<Widget> days = [];
+    final monthNumber = _currentMonthIndex + 1;
+    final daysInMonth = _getDaysInMonth(monthNumber, _currentYear);
+    final firstDayOfWeek = _getFirstDayOfWeekFromMonth(monthNumber, _currentYear);
+
+    for (int i = 0; i < firstDayOfWeek; i++) {
+      days.add(Container());
+    }
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_currentYear, monthNumber, day);
+      final isSelected = date.day == _selectedDate.day && date.month == _selectedDate.month && date.year == _selectedDate.year;
+      final isToday = date.day == _today.day && date.month == _today.month && date.year == _today.year;
+      final hasReservation = _hasReservationOn(date);
+
+      days.add(_buildCalendarDay(
+        day: day,
+        isSelected: isSelected,
+        isToday: isToday,
+        hasReservation: hasReservation,
+      ));
+    }
+
+    return GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: days,
+    );
+  }
+
+  Widget _buildCalendarDay({
+    required int day,
+    required bool isSelected,
+    required bool isToday,
+    required bool hasReservation,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, day);
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: !isSelected && isToday
+              ? Border.all(color: const Color(0xFF1E3A8A))
+              : null,
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Text(
+                day.toString(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            if (hasReservation)
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : const Color(0xFF1E3A8A),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _hasReservationOn(DateTime date) {
+    // TODO: Integrar com backend de reservas
     return false;
   }
 
-  // Função para construir a seção "Adicionar novo evento"
+  // Função para verificar se há reservas para o dia selecionado
+  bool _hasReservationsForSelectedDay() {
+    return _hasReservationOn(_selectedDate);
+  }
+
+  // Função para construir a seção "Adicionar nova tarefa"
   Widget _buildAddEventSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
@@ -237,7 +542,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
           GestureDetector(
             onTap: _showReservationModal,
             child: const Text(
-              'Adicionar novo evento',
+              'Adicionar nova reserva',
               style: TextStyle(
                 color: Color(0xFF003E7E),
                 fontSize: 16.0,
@@ -272,7 +577,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
             children: [
               // Título do modal
               Text(
-                'Reservar Dia $_selectedDay',
+                'Reservar Dia $_selectedDayLabel',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -382,26 +687,40 @@ class _ReservasScreenState extends State<ReservasScreen> {
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(4.0),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: _selectedLocal,
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedLocal = newValue;
-                    });
-                  }
-                },
-                items: <String>['Salão de Festas', 'Churrasqueira', 'Quadra']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-            ),
+            child: _ambientesCarregando
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedAmbienteId,
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedAmbienteId = newValue;
+                            final ambiente = _ambientes.firstWhere(
+                              (a) => a.id == newValue,
+                              orElse: () => _ambientes.first,
+                            );
+                            _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+                          });
+                        }
+                      },
+                      items: _ambientes
+                          .map<DropdownMenuItem<String>>((Ambiente ambiente) {
+                        return DropdownMenuItem<String>(
+                          value: ambiente.id,
+                          child: Text(ambiente.titulo),
+                        );
+                      }).toList(),
+                    ),
+                  ),
           ),
           const SizedBox(height: 16.0),
           // Valor da locação
@@ -435,13 +754,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     const SizedBox(height: 8.0),
                     TextField(
                       controller: _horaInicioController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        _TimeInputFormatter(),
+                      ],
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4.0),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                        hintText: '-',
+                        hintText: 'HH:MM',
+                        counterText: '',
                       ),
+                      maxLength: 5,
                     ),
                   ],
                 ),
@@ -458,13 +783,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     const SizedBox(height: 8.0),
                     TextField(
                       controller: _horaFimController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        _TimeInputFormatter(),
+                      ],
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4.0),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                        hintText: '-',
+                        hintText: 'HH:MM',
+                        counterText: '',
                       ),
+                      maxLength: 5,
                     ),
                   ],
                 ),
@@ -472,9 +803,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
             ],
           ),
           const SizedBox(height: 16.0),
-          // Lista de presentes
           const Text(
-            'Lista de Presentes (opcional)',
+            'Observações (Digite o nome e descrição da reserva)',
             style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8.0),
@@ -486,18 +816,14 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 borderRadius: BorderRadius.circular(4.0),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              hintText: 'Digite aqui a lista de presentes desejados (opcional)',
+              hintText: 'Ex: Reserva da área da churrasqueira para a unidade 201/A',
             ),
           ),
           const SizedBox(height: 16.0),
           // Botão de reservar
           Center(
             child: ElevatedButton(
-                onPressed: () {
-                  // Fechar o modal após reservar
-                  Navigator.of(context).pop();
-                  // Aqui você pode adicionar a lógica para salvar a reserva
-                },
+                onPressed: _salvarReserva,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF003E7E),
                   padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
@@ -642,8 +968,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
             ),
             
             // Calendário
-            _buildCalendarHeader(),
-            _buildCalendarGrid(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              child: Column(
+                children: [
+                  _buildMonthSelector(),
+                  const SizedBox(height: 20),
+                  _buildCalendarHeader(),
+                  const SizedBox(height: 10),
+                  _buildCalendarGrid(),
+                ],
+              ),
+            ),
             
             // Reservas do dia selecionado
             Padding(
@@ -652,7 +988,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Reservados - Dia $_selectedDay',
+                      'Reservados - Dia $_selectedDayLabel',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -676,8 +1012,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
               ),
             ),
             
-            // Verificar se há reservas para o dia atual
-            _hasReservationsForToday() ? _buildReservationCard() : _buildAddEventSection(),
+            // Verificar se há reservas para o dia selecionado
+            _hasReservationsForSelectedDay() ? _buildReservationCard() : _buildAddEventSection(),
             ],
           ),
         ),

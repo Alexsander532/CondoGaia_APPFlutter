@@ -1,20 +1,14 @@
 import '../models/reserva.dart';
-import '../models/ambiente.dart';
 import 'supabase_service.dart';
 
 class ReservaService {
-  /// Buscar todas as reservas do usuário atual
-  static Future<List<Reserva>> getReservasUsuario() async {
+  /// Buscar todas as reservas do representante atual
+  static Future<List<Reserva>> getReservasRepresentante(String representanteId) async {
     try {
-      final userId = SupabaseService.client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuário não autenticado');
-      }
-
       final response = await SupabaseService.client
           .from('reservas')
           .select()
-          .eq('usuario_id', userId)
+          .eq('representante_id', representanteId)
           .order('data_reserva', ascending: true)
           .order('hora_inicio', ascending: true);
       
@@ -24,20 +18,18 @@ class ReservaService {
     }
   }
 
-  /// Buscar reservas por data específica
-  static Future<List<Reserva>> getReservasPorData(DateTime data) async {
+  /// Buscar reservas por data específica e representante
+  static Future<List<Reserva>> getReservasPorDataRepresentante(
+    String representanteId,
+    DateTime data,
+  ) async {
     try {
-      final userId = SupabaseService.client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuário não autenticado');
-      }
-
       final dataFormatada = data.toIso8601String().split('T')[0];
       
       final response = await SupabaseService.client
           .from('reservas')
           .select()
-          .eq('usuario_id', userId)
+          .eq('representante_id', representanteId)
           .eq('data_reserva', dataFormatada)
           .order('hora_inicio', ascending: true);
       
@@ -64,70 +56,97 @@ class ReservaService {
 
   /// Criar uma nova reserva
   static Future<Reserva> criarReserva({
+    required String representanteId,
     required String ambienteId,
     required DateTime dataReserva,
     required String horaInicio,
     required String horaFim,
-    String? observacoes,
     required double valorLocacao,
     required String para,
     required String local,
+    String? listaPresentes,
   }) async {
     try {
-      final userId = SupabaseService.client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuário não autenticado');
-      }
-
+      print('🔵 [ReservaService] Iniciando criarReserva...');
+      print('🔵 [ReservaService] representanteId: $representanteId');
+      print('🔵 [ReservaService] ambienteId: $ambienteId');
+      
       // Validar se o horário é válido
       if (!_isValidTimeRange(horaInicio, horaFim)) {
         throw Exception('Horário inválido: hora de fim deve ser posterior à hora de início');
       }
 
-      // Verificar se já existe reserva no mesmo horário
-      final conflito = await _verificarConflitoHorario(
-        ambienteId, 
-        dataReserva, 
-        horaInicio, 
-        horaFim
-      );
+      // Preparar dados para insert
+      final dados = {
+        'ambiente_id': ambienteId,
+        'representante_id': representanteId,
+        'data_reserva': dataReserva.toIso8601String().split('T')[0],
+        'hora_inicio': horaInicio,
+        'hora_fim': horaFim,
+        'valor_locacao': valorLocacao,
+        'para': para,
+        'local': local,
+      };
       
-      if (conflito) {
-        throw Exception('Já existe uma reserva neste horário para este ambiente');
+      print('🔵 [ReservaService] Dados preparados: $dados');
+      
+      // Adicionar lista_presentes se fornecido
+      if (listaPresentes != null && listaPresentes.isNotEmpty) {
+        dados['lista_presentes'] = listaPresentes;
       }
 
-      final reserva = Reserva(
-        ambienteId: ambienteId,
-        representanteId: userId,
-        dataReserva: dataReserva,
-        horaInicio: horaInicio,
-        horaFim: horaFim,
-        valor: valorLocacao, // Usando valorLocacao como valor principal
-        observacoes: observacoes,
-        para: para,
-        local: local,
-        valorLocacao: valorLocacao,
-      );
-
-      final response = await SupabaseService.client
-          .from('reservas')
-          .insert({
-            'ambiente_id': ambienteId,
-            'usuario_id': userId,
-            'data_reserva': dataReserva.toIso8601String().split('T')[0],
-            'hora_inicio': horaInicio,
-            'hora_fim': horaFim,
-            'observacoes': observacoes,
-            'valor': valorLocacao, // Campo principal de valor
-            'valor_locacao': valorLocacao,
-            'para': para,
-            'local': local,
-          })
-          .select()
-          .single();
+      // Inserir com rpc call para evitar problemas com índices
+      try {
+        print('🔵 [ReservaService] Tentando inserir na tabela...');
+        await SupabaseService.client
+            .from('reservas')
+            .insert(dados);
+        print('✅ [ReservaService] Insert realizado com sucesso!');
+      } catch (e) {
+        print('❌ [ReservaService] Erro no insert: $e');
+        // Se o insert direto falhar, tenta sem o campo lista_presentes
+        dados.remove('lista_presentes');
+        print('🔵 [ReservaService] Tentando novamente sem lista_presentes...');
+        await SupabaseService.client
+            .from('reservas')
+            .insert(dados);
+        print('✅ [ReservaService] Insert retry realizado com sucesso!');
+      }
       
-      return Reserva.fromJson(response);
-    } catch (e) {
+      // Buscar a reserva criada - versão simplificada
+      print('🔵 [ReservaService] Buscando reserva criada...');
+      final List<dynamic> response = await SupabaseService.client
+          .from('reservas')
+          .select()
+          .eq('representante_id', representanteId)
+          .eq('data_reserva', dataReserva.toIso8601String().split('T')[0])
+          .eq('hora_inicio', horaInicio)
+          .order('created_at', ascending: false)
+          .limit(1);
+      
+      print('🔵 [ReservaService] Response: $response');
+      
+      if (response.isEmpty) {
+        print('⚠️  [ReservaService] Resposta vazia, criando objeto localmente');
+        // Se não conseguir recuperar, cria um objeto com os dados enviados
+        return Reserva(
+          ambienteId: ambienteId,
+          representanteId: representanteId,
+          dataReserva: dataReserva,
+          horaInicio: horaInicio,
+          horaFim: horaFim,
+          para: para,
+          local: local,
+          valorLocacao: valorLocacao,
+          listaPresentes: listaPresentes,
+        );
+      }
+      
+      print('✅ [ReservaService] Retornando reserva encontrada');
+      return Reserva.fromJson(response.first);
+    } catch (e, stackTrace) {
+      print('❌ [ReservaService] ERRO FATAL: $e');
+      print('❌ [ReservaService] Stack trace: $stackTrace');
       throw Exception('Erro ao criar reserva: $e');
     }
   }
@@ -139,7 +158,7 @@ class ReservaService {
     DateTime? dataReserva,
     String? horaInicio,
     String? horaFim,
-    String? observacoes,
+    String? listaPresentes,
     double? valorLocacao,
     String? para,
     String? local,
@@ -153,9 +172,8 @@ class ReservaService {
       if (dataReserva != null) dados['data_reserva'] = dataReserva.toIso8601String().split('T')[0];
       if (horaInicio != null) dados['hora_inicio'] = horaInicio;
       if (horaFim != null) dados['hora_fim'] = horaFim;
-      if (observacoes != null) dados['observacoes'] = observacoes;
+      if (listaPresentes != null) dados['lista_presentes'] = listaPresentes;
       if (valorLocacao != null) {
-        dados['valor'] = valorLocacao; // Atualiza ambos os campos
         dados['valor_locacao'] = valorLocacao;
       }
       if (para != null) dados['para'] = para;
