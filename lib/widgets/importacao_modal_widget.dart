@@ -228,7 +228,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           // Header com título e progresso
           _buildHeader(),
 
-          // Conteúdo do passo atual
+          // Conteúdo do passo atual (com scroll automático)
           Expanded(
             child: _buildConteudoPasso(),
           ),
@@ -617,208 +617,325 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
 
   /// Passo 3: Preview com validações
   Widget _buildPasso3Preview() {
-    return Column(
-      children: [
-        // Header section
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4A90E2).withOpacity(0.08),
-            border: Border(
-              bottom: BorderSide(
-                color: const Color(0xFF4A90E2).withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.preview,
-                  color: Color(0xFF4A90E2),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Visualizar Dados',
-                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Revise os dados antes de confirmar',
-                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Summary Statistics
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Container(
-            padding: const EdgeInsets.all(16),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Header section
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90E2).withOpacity(0.06),
-              border: Border.all(
-                color: const Color(0xFF4A90E2).withOpacity(0.3),
+              color: const Color(0xFF4A90E2).withOpacity(0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: const Color(0xFF4A90E2).withOpacity(0.2),
+                  width: 1,
+                ),
               ),
-              borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
+            child: Row(
               children: [
-                _buildStatsRow(
-                  label: 'Total de linhas:',
-                  value: '${_rowsValidadas?.length ?? 0}',
-                  isHighlight: false,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(
-                    height: 1,
-                    color: const Color(0xFF4A90E2).withOpacity(0.1),
-                  ),
-                ),
-                _buildStatsRow(
-                  label: '✅ Linhas válidas:',
-                  value: '${_rowsValidas.length}',
-                  isHighlight: true,
-                  color: Colors.green,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(
-                    height: 1,
-                    color: const Color(0xFF4A90E2).withOpacity(0.1),
-                  ),
-                ),
-                _buildStatsRow(
-                  label: '❌ Linhas com erro:',
-                  value: '${_rowsComErro.length}',
-                  isHighlight: true,
-                  color: Colors.red,
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Errors section (if any)
-        if (_rowsComErro.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '❌ Erros Encontrados',
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-              itemCount: _rowsComErro.length,
-              itemBuilder: (context, index) {
-                final row = _rowsComErro[index];
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    border: Border.all(color: Colors.red[200]!),
-                    borderRadius: BorderRadius.circular(10),
+                    color: const Color(0xFF4A90E2).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(
+                    Icons.preview,
+                    color: Color(0xFF4A90E2),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Linha ${row.linhaNumero}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      ...row.errosValidacao.map(
-                        (erro) => Padding(
-                          padding: const EdgeInsets.only(top: 3),
-                          child: Text(
-                            '• ${erro.replaceFirst('Linha ${row.linhaNumero}: ', '')}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.red[700],
+                        'Visualizar Dados',
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                          ),
-                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Revise os dados antes de confirmar',
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                              color: Colors.grey[600],
+                            ),
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
-        ] else ...[
-          Expanded(
-            child: Center(
+
+          // Summary Statistics
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2).withOpacity(0.06),
+                border: Border.all(
+                  color: const Color(0xFF4A90E2).withOpacity(0.3),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      size: 56,
-                      color: Colors.green,
+                  _buildStatsRow(
+                    label: 'Total de linhas:',
+                    value: '${_rowsValidadas?.length ?? 0}',
+                    isHighlight: false,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: const Color(0xFF4A90E2).withOpacity(0.1),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '✅ Dados Validados!',
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  _buildStatsRow(
+                    label: '✅ Linhas válidas:',
+                    value: '${_rowsValidas.length}',
+                    isHighlight: true,
+                    color: Colors.green,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Todas as ${_rowsValidas.length} linhas estão válidas',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: const Color(0xFF4A90E2).withOpacity(0.1),
+                    ),
+                  ),
+                  _buildStatsRow(
+                    label: '❌ Linhas com erro:',
+                    value: '${_rowsComErro.length}',
+                    isHighlight: true,
+                    color: Colors.red,
                   ),
                 ],
               ),
             ),
           ),
+
+          // Preview das primeiras 4 linhas
+          if ((_rowsValidadas?.isNotEmpty ?? false)) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Preview dos Dados',
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                          color: Colors.grey[800],
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              child: Column(
+                children: List.generate(
+                  (_rowsValidadas!.length > 4 ? 4 : _rowsValidadas!.length),
+                  (index) {
+                    final row = _rowsValidadas![index];
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: row.temErros ? Colors.red[100] : Colors.blue[100],
+                        border: Border.all(
+                          color: row.temErros ? Colors.red[400]! : Colors.blue[400]!,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Linha ${row.linhaNumero}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: row.temErros ? Colors.red : Colors.blue,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              if (row.temErros)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '❌ Com erro',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '✅ Válida',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ..._buildRowPreviewFields(row),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            if (_rowsValidadas!.length > 4)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Text(
+                  '+ ${_rowsValidadas!.length - 4} mais linhas',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+
+          // Errors section (if any)
+          if (_rowsComErro.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '❌ Erros Encontrados',
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              child: Column(
+                children: _rowsComErro.map((row) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      border: Border.all(color: Colors.red[200]!),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Linha ${row.linhaNumero}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ...row.errosValidacao.map(
+                          (erro) => Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              '• ${erro.replaceFirst('Linha ${row.linhaNumero}: ', '')}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ] else ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_circle,
+                        size: 56,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '✅ Dados Validados!',
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Todas as ${_rowsValidas.length} linhas estão válidas',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 20),
         ],
-      ],
+      ),
     );
   }
 
@@ -849,6 +966,65 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Build preview fields for a row
+  List<Widget> _buildRowPreviewFields(ImportacaoRow row) {
+    return [
+      _buildPreviewField('🏠 Bloco', row.bloco ?? '—'),
+      _buildPreviewField('🚪 Unidade', row.unidade ?? '—'),
+      _buildPreviewField('📊 Fração Ideal', row.fracaoIdeal ?? '—'),
+      const Divider(height: 12),
+      _buildPreviewField('👤 Proprietário', row.proprietarioNomeCompleto ?? '—'),
+      _buildPreviewField('📱 CPF Proprietário', row.proprietarioCpf ?? '—'),
+      _buildPreviewField('📧 Email Proprietário', row.proprietarioEmail ?? '—'),
+      const Divider(height: 12),
+      if (row.inquilinoNomeCompleto != null) ...[
+        _buildPreviewField('👤 Inquilino', row.inquilinoNomeCompleto!),
+        _buildPreviewField('📱 CPF Inquilino', row.inquilinoCpf ?? '—'),
+        _buildPreviewField('📧 Email Inquilino', row.inquilinoEmail ?? '—'),
+      ],
+      if (row.nomeImobiliaria != null) ...[
+        const Divider(height: 12),
+        _buildPreviewField('🏢 Imobiliária', row.nomeImobiliaria!),
+        _buildPreviewField('📋 CNPJ Imobiliária', row.cnpjImobiliaria ?? '—'),
+      ],
+    ];
+  }
+
+  /// Build a preview field with label and value
+  Widget _buildPreviewField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1350,7 +1526,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                 label: const Text('Fechar'),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.grey[600],
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
               ),
             )
