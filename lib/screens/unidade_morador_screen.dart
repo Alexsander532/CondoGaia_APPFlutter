@@ -13,6 +13,7 @@ import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
 import '../widgets/editable_text_widget.dart';
 import '../widgets/confirmation_dialog.dart';
+import '../widgets/importacao_modal_widget.dart';
 
 class UnidadeMoradorScreen extends StatefulWidget {
   final String? condominioId;
@@ -443,19 +444,29 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
   Future<void> _importarPlanilha() async {
     try {
-      // Mostrar mensagem informativa
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Funcionalidade de importação em desenvolvimento'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
-        ),
+      // Mostrar o modal de importação como bottom sheet
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return ImportacaoModalWidget(
+            condominioId: widget.condominioId ?? 'sem-id',
+            condominioNome: widget.condominioNome ?? 'Condomínio',
+            cpfsExistentes: const {},  // TODO: Buscar do banco
+            emailsExistentes: const {},  // TODO: Buscar do banco
+            onImportarConfirmado: (dados) async {
+              // Aqui virá a lógica de inserção no banco
+              print('Dados prontos para inserção: $dados');
+            },
+          );
+        },
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao importar: $e'),
+            content: Text('Erro ao abrir importação: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),

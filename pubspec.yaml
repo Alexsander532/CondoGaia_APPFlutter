@@ -65,6 +65,9 @@ dependencies:
   # Para permissões de acesso a arquivos
   permission_handler: ^11.3.1
   
+  # Para leitura de arquivos Excel
+  excel: ^2.0.0
+  
   # Para APIs web (substitui dart:html)
   # web: ^1.1.0
 
