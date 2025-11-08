@@ -441,6 +441,29 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     }
   }
 
+  Future<void> _importarPlanilha() async {
+    try {
+      // Mostrar mensagem informativa
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Funcionalidade de importação em desenvolvimento'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao importar: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   // Mostra diálogo para edição de unidade
   Future<void> _mostrarDialogoEdicaoUnidade(
     String unidadeId,
@@ -760,6 +783,24 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     label: const Text('Baixar Template da Planilha'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _importarPlanilha,
+                    icon: const Icon(Icons.upload_file, size: 18),
+                    label: const Text('Importar Planilha'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF50C878),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
