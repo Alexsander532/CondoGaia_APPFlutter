@@ -52,6 +52,10 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
   List<String> _logs = [];
   final ScrollController _logsScrollController = ScrollController();
 
+  // Resultado da importação
+  Map<String, dynamic>? _resultadoImportacao;
+  bool _importacaoEmAndamento = false;
+
   // Separar válidas e com erro
   List<ImportacaoRow> get _rowsValidas =>
       _rowsValidadas?.where((r) => !r.temErros).toList() ?? [];
@@ -177,13 +181,106 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
         _mensagemErro = null;
       });
 
-      // Avançar para resultado
+      // Avançar para resultado (Passo 4 - Execução)
       _avancarPasso();
+      
+      // Iniciar importação automaticamente (Passo 4)
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _executarImportacaoCompleta();
+      
     } catch (e) {
       _adicionarLog('❌ ERRO ao mapear: $e');
       setState(() {
         _carregando = false;
         _mensagemErro = 'Erro ao mapear dados: $e';
+      });
+    }
+  }
+
+  /// Executa a importação completa via Supabase
+  Future<void> _executarImportacaoCompleta() async {
+    if (_rowsValidas.isEmpty) return;
+
+    setState(() {
+      _importacaoEmAndamento = true;
+      _resultadoImportacao = null;
+    });
+
+    _adicionarLog('\n╔════════════════════════════════════════════════════╗');
+    _adicionarLog('║     INICIANDO IMPORTAÇÃO PARA SUPABASE             ║');
+    _adicionarLog('╚════════════════════════════════════════════════════╝\n');
+
+    try {
+      final resultado = await ImportacaoService.executarImportacaoCompleta(
+        _arquivoBytes!,
+        condominioId: widget.condominioId,
+        cpfsExistentes: widget.cpfsExistentes,
+        emailsExistentes: widget.emailsExistentes,
+      );
+
+      // Processar resultado
+      setState(() {
+        _resultadoImportacao = resultado;
+        _importacaoEmAndamento = false;
+      });
+
+      // Exibir log do resultado
+      _adicionarLog('\n╔════════════════════════════════════════════════════╗');
+      _adicionarLog('║              RESUMO DA IMPORTAÇÃO                 ║');
+      _adicionarLog('╚════════════════════════════════════════════════════╝\n');
+
+      _adicionarLog('✅ Linhas com sucesso: ${resultado['linhasComSucesso'] ?? 0}');
+      _adicionarLog('❌ Linhas com erro: ${resultado['linhasComErro'] ?? 0}');
+      _adicionarLog('📊 Total processado: ${resultado['linhasProcessadas'] ?? 0}');
+      _adicionarLog('⏱️  Tempo total: ${resultado['tempo'] ?? 0}s\n');
+
+      // Exibir senhas se existirem
+      final senhas = resultado['senhas'] as List?;
+      if (senhas != null && senhas.isNotEmpty) {
+        _adicionarLog('🔐 SENHAS TEMPORÁRIAS GERADAS:\n');
+        for (final senha in senhas) {
+          final linhaNum = senha['linhaNumero'] ?? 'N/A';
+          final senhaProp = senha['senhaProprietario'] ?? '—';
+          final senhaInq = senha['senhaInquilino'];
+          
+          _adicionarLog('Linha $linhaNum:');
+          _adicionarLog('  📱 Proprietário: $senhaProp');
+          if (senhaInq != null) {
+            _adicionarLog('  👤 Inquilino: $senhaInq');
+          }
+        }
+      }
+
+      // Exibir erros detalhados se houver
+      final resultados = resultado['resultados'] as List?;
+      if (resultados != null) {
+        final erros = resultados.where((r) => r['sucesso'] != true).toList();
+        if (erros.isNotEmpty) {
+          _adicionarLog('\n⚠️  LINHAS COM ERRO:\n');
+          for (final erro in erros) {
+            final linhaNum = erro['linhaNumero'] ?? 'N/A';
+            final erroMsg = erro['erro'] ?? 'Erro desconhecido';
+            final errosLista = erro['erros'] as List?;
+            
+            _adicionarLog('❌ Linha $linhaNum: $erroMsg');
+            if (errosLista != null) {
+              for (final e in errosLista) {
+                _adicionarLog('   • $e');
+              }
+            }
+          }
+        }
+      }
+
+      // Avançar para Passo 5 (Resultado)
+      _adicionarLog('\n✅ Importação finalizada! Exibindo resultado...\n');
+      setState(() => _passoAtual = 5);
+
+    } catch (e) {
+      _adicionarLog('❌ ERRO GERAL NA IMPORTAÇÃO: $e\n');
+      setState(() {
+        _importacaoEmAndamento = false;
+        _mensagemErro = 'Erro na importação: $e';
       });
     }
   }
@@ -1223,27 +1320,104 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
     );
   }
 
-  /// Passo 5: Resultado final
+  /// Passo 5: Resultado final da importação
   Widget _buildPasso5Resultado() {
-    if (_dadosMapeados == null) {
-      return const Center(child: CircularProgressIndicator());
+    // Se importação ainda está em andamento
+    if (_importacaoEmAndamento || _resultadoImportacao == null) {
+      return Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.blue.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(Colors.blue),
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Importação em Andamento',
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Processando dados no Supabase...',
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Logs
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _logsScrollController,
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                _logs.join('\n'),
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
-    final proprietarios = _dadosMapeados!['proprietarios'] as List?;
-    final inquilinos = _dadosMapeados!['inquilinos'] as List?;
-    final blocos = _dadosMapeados!['blocos'] as List?;
-    final imobiliarias = _dadosMapeados!['imobiliarias'] as List?;
+    // Importação concluída - mostrar resultado
+    final sucesso = _resultadoImportacao!['sucesso'] as bool? ?? false;
+    final linhasComSucesso = _resultadoImportacao!['linhasComSucesso'] as int? ?? 0;
+    final linhasComErro = _resultadoImportacao!['linhasComErro'] as int? ?? 0;
+    final tempo = _resultadoImportacao!['tempo'] as int? ?? 0;
+    final senhas = _resultadoImportacao!['senhas'] as List? ?? [];
+    final resultados = _resultadoImportacao!['resultados'] as List? ?? [];
 
     return Column(
       children: [
-        // Header section
+        // Header
         Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.08),
+            color: sucesso ? Colors.green.withOpacity(0.08) : Colors.orange.withOpacity(0.08),
             border: Border(
               bottom: BorderSide(
-                color: Colors.green.withOpacity(0.2),
+                color: sucesso ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
                 width: 1,
               ),
             ),
@@ -1253,12 +1427,12 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.15),
+                  color: sucesso ? Colors.green.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
+                child: Icon(
+                  sucesso ? Icons.check_circle : Icons.warning_amber_rounded,
+                  color: sucesso ? Colors.green : Colors.orange,
                   size: 24,
                 ),
               ),
@@ -1268,18 +1442,20 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Importação Preparada',
+                      sucesso ? 'Importação Concluída' : 'Importação Concluída com Erros',
                       style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.green[700],
-                          ),
+                        fontWeight: FontWeight.w600,
+                        color: sucesso ? Colors.green[700] : Colors.orange[700],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Dados validados e prontos',
+                      sucesso
+                          ? 'Todos os dados foram importados com sucesso'
+                          : '$linhasComErro linhas com erro(s) durante importação',
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
@@ -1293,110 +1469,225 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Success icon
+                // Resumo
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    size: 56,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title
-                Text(
-                  '✅ Dados Prontos para Salvar',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Summary container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
+                    color: sucesso ? Colors.green[50] : Colors.orange[50],
                     border: Border.all(
-                      color: Colors.green[200]!,
+                      color: sucesso ? Colors.green[200]! : Colors.orange[200]!,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     children: [
                       _buildResultRow(
-                        icon: '👤',
-                        label: 'Proprietários:',
-                        value: '${proprietarios?.length ?? 0}',
+                        icon: '✅',
+                        label: 'Com Sucesso:',
+                        value: '$linhasComSucesso',
+                        color: Colors.green,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Divider(
                           height: 1,
-                          color: Colors.green[200],
+                          color: sucesso ? Colors.green[200] : Colors.orange[200],
                         ),
                       ),
                       _buildResultRow(
-                        icon: '🏠',
-                        label: 'Inquilinos:',
-                        value: '${inquilinos?.length ?? 0}',
+                        icon: '❌',
+                        label: 'Com Erro:',
+                        value: '$linhasComErro',
+                        color: Colors.red,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Divider(
                           height: 1,
-                          color: Colors.green[200],
+                          color: sucesso ? Colors.green[200] : Colors.orange[200],
                         ),
                       ),
                       _buildResultRow(
-                        icon: '🏘️',
-                        label: 'Blocos:',
-                        value: '${blocos?.length ?? 0}',
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(
-                          height: 1,
-                          color: Colors.green[200],
-                        ),
-                      ),
-                      _buildResultRow(
-                        icon: '🏢',
-                        label: 'Imobiliárias:',
-                        value: '${imobiliarias?.length ?? 0}',
+                        icon: '⏱️',
+                        label: 'Tempo Total:',
+                        value: '${tempo}s',
+                        color: Colors.blue,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Note about passwords
+                // Senhas geradas
+                if (senhas.isNotEmpty) ...[
+                  Text(
+                    '🔐 Senhas Temporárias Geradas',
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      border: Border.all(color: Colors.blue[200]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: senhas.length,
+                      itemBuilder: (context, index) {
+                        final senha = senhas[index] as Map;
+                        final linhaNum = senha['linhaNumero'] ?? 'N/A';
+                        final senhaProp = senha['senhaProprietario'] ?? '—';
+                        final senhaInq = senha['senhaInquilino'];
+                        
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: index < senhas.length - 1
+                                ? Border(
+                              bottom: BorderSide(
+                                color: Colors.blue[100]!,
+                              ),
+                            )
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Linha $linhaNum',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _buildSenhaField('Proprietário:', senhaProp),
+                              if (senhaInq != null) ...[
+                                const SizedBox(height: 4),
+                                _buildSenhaField('Inquilino:', senhaInq),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Erros (se houver)
+                if (linhasComErro > 0) ...[
+                  Text(
+                    '⚠️ Linhas com Erro',
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      border: Border.all(color: Colors.red[200]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: resultados.length,
+                      itemBuilder: (context, index) {
+                        final resultado = resultados[index] as Map;
+                        final temErro = resultado['sucesso'] != true;
+                        
+                        if (!temErro) return const SizedBox.shrink();
+
+                        final linhaNum = resultado['linhaNumero'] ?? 'N/A';
+                        final erro = resultado['erro'] ?? 'Erro desconhecido';
+                        final erros = resultado['erros'] as List?;
+
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: index < resultados.length - 1
+                                ? Border(
+                              bottom: BorderSide(
+                                color: Colors.red[100]!,
+                              ),
+                            )
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Linha $linhaNum: $erro',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              if (erros != null && erros.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                ...(erros.cast<String>()).map((e) => Padding(
+                                  padding: const EdgeInsets.only(left: 8, top: 4),
+                                  child: Text(
+                                    '• $e',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                )),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Logs
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.amber[50],
-                    border: Border.all(color: Colors.amber[300]!),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.grey[100],
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.amber),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'As senhas serão geradas e exibidas após a conclusão.',
-                          style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                                color: Colors.amber[900],
-                              ),
+                      Text(
+                        '📋 Logs Detalhados',
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 150,
+                        child: SingleChildScrollView(
+                          controller: _logsScrollController,
+                          child: Text(
+                            _logs.join('\n'),
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 10,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1410,11 +1701,52 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
     );
   }
 
+  /// Helper para exibir campo de senha
+  Widget _buildSenhaField(String label, String senha) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.blue[100]!),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  senha,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Helper method to build result row
   Widget _buildResultRow({
     required String icon,
     required String label,
     required String value,
+    Color? color,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1440,7 +1772,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           value,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.green[700],
+            color: color ?? Colors.green[700],
             fontSize: 14,
           ),
         ),

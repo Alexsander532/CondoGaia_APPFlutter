@@ -88,7 +88,9 @@ class _ChatInquilinoScreenState extends State<ChatInquilinoScreen> {
   }
 
   String _formatTime(DateTime timestamp) {
-    return '${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')}/${timestamp.year} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    // Converter para local se estiver em UTC
+    final dataLocal = timestamp.isUtc ? timestamp.toLocal() : timestamp;
+    return '${dataLocal.day.toString().padLeft(2, '0')}/${dataLocal.month.toString().padLeft(2, '0')}/${dataLocal.year} ${dataLocal.hour.toString().padLeft(2, '0')}:${dataLocal.minute.toString().padLeft(2, '0')}';
   }
 
   @override

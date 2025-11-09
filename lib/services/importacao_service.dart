@@ -6,6 +6,7 @@ import 'package:condogaiaapp/models/validador_importacao.dart';
 import 'package:condogaiaapp/models/gerador_senha.dart';
 import 'package:condogaiaapp/models/parseador_excel.dart';
 import 'package:condogaiaapp/services/logger_importacao.dart';
+import 'package:condogaiaapp/services/importacao_insercao_service.dart';
 
 /// Service para importação de planilhas
 /// Responsável por:
@@ -475,6 +476,150 @@ class ImportacaoService {
     };
   }
 
+  /// Mapeia uma ImportacaoRow validada para estrutura de inserção no Supabase
+  /// Transforma dados da planilha em formato pronto para inserção no banco
+  static Map<String, dynamic> mapearParaInsercao(
+    ImportacaoRow row, {
+    required String condominioId,
+  }) {
+    // Limpar e normalizar dados
+    final cpfProprietario = ValidadorImportacao.limparCpf(row.proprietarioCpf ?? '');
+    final emailProprietario = (row.proprietarioEmail ?? '').toLowerCase();
+    final celProprietario = ValidadorImportacao.limparTelefone(row.proprietarioCel ?? '');
+
+    final senhaProprietario = GeradorSenha.gerarSimples();
+
+    // UNIDADE
+    final bloco = (row.bloco?.trim().isEmpty ?? true) ? 'A' : row.bloco!.trim();
+    final unidade = row.unidade?.trim() ?? '';
+    final fracaoIdeal = _parsearFracaoIdeal(row.fracaoIdeal);
+
+    final mapUnidade = {
+      'numero': unidade,
+      'bloco': bloco,
+      'fracao_ideal': fracaoIdeal,
+      'condominio_id': condominioId,
+      'tipo_unidade': 'A',
+      'ativo': true,
+      // Campos com defaults
+      'isencao_nenhum': true,
+      'isencao_total': false,
+      'isencao_cota': false,
+      'isencao_fundo_reserva': false,
+      'acao_judicial': false,
+      'correios': false,
+      'nome_pagador_boleto': 'proprietario',
+    };
+
+    // PROPRIETARIO
+    final mapProprietario = {
+      'condominio_id': condominioId,
+      'nome': row.proprietarioNomeCompleto ?? '',
+      'cpf_cnpj': cpfProprietario,
+      'celular': celProprietario.isNotEmpty ? celProprietario : null,
+      'email': emailProprietario.isNotEmpty ? emailProprietario : null,
+      'senha_acesso': senhaProprietario,
+      'ativo': true,
+      // Campos opcionais como null
+      'cep': null,
+      'endereco': null,
+      'numero': null,
+      'complemento': null,
+      'bairro': null,
+      'cidade': null,
+      'estado': null,
+      'telefone': null,
+      'conjuge': null,
+      'multiproprietarios': null,
+      'moradores': null,
+      'foto_perfil': null,
+    };
+
+    // INQUILINO (opcional)
+    Map<String, dynamic>? mapInquilino;
+    String? senhaInquilino;
+
+    if ((row.inquilinoNomeCompleto?.trim().isNotEmpty ?? false)) {
+      final cpfInquilino = ValidadorImportacao.limparCpf(row.inquilinoCpf ?? '');
+      final emailInquilino = (row.inquilinoEmail ?? '').toLowerCase();
+      final celInquilino = ValidadorImportacao.limparTelefone(row.inquilinoCel ?? '');
+
+      senhaInquilino = GeradorSenha.gerarSimples();
+
+      mapInquilino = {
+        'condominio_id': condominioId,
+        'nome': row.inquilinoNomeCompleto ?? '',
+        'cpf_cnpj': cpfInquilino,
+        'celular': celInquilino.isNotEmpty ? celInquilino : null,
+        'email': emailInquilino.isNotEmpty ? emailInquilino : null,
+        'senha_acesso': senhaInquilino,
+        'receber_boleto_email': true,
+        'controle_locacao': true,
+        'ativo': true,
+        // Campos opcionais como null
+        'cep': null,
+        'endereco': null,
+        'numero': null,
+        'bairro': null,
+        'cidade': null,
+        'estado': null,
+        'telefone': null,
+        'conjuge': null,
+        'multiproprietarios': null,
+        'moradores': null,
+        'foto_perfil': null,
+      };
+    }
+
+    // IMOBILIARIA (opcional)
+    Map<String, dynamic>? mapImobiliaria;
+
+    if ((row.nomeImobiliaria?.trim().isNotEmpty ?? false)) {
+      final cnpjImobiliaria = ValidadorImportacao.limparCnpj(row.cnpjImobiliaria ?? '');
+      final emailImobiliaria = (row.emailImobiliaria ?? '').toLowerCase();
+      final celImobiliaria = ValidadorImportacao.limparTelefone(row.celImobiliaria ?? '');
+
+      mapImobiliaria = {
+        'condominio_id': condominioId,
+        'nome': row.nomeImobiliaria ?? '',
+        'cnpj': cnpjImobiliaria,
+        'celular': celImobiliaria.isNotEmpty ? celImobiliaria : null,
+        'email': emailImobiliaria.isNotEmpty ? emailImobiliaria : null,
+        'telefone': null,
+        'ativo': true,
+      };
+    }
+
+    return {
+      'linhaNumero': row.linhaNumero,
+      'unidade': mapUnidade,
+      'proprietario': mapProprietario,
+      'inquilino': mapInquilino,
+      'imobiliaria': mapImobiliaria,
+      'senhas': {
+        'proprietario': senhaProprietario,
+        'inquilino': senhaInquilino,
+      },
+    };
+  }
+
+  /// Parseia fração ideal de String para double
+  /// Retorna null se vazio ou inválido, senão retorna o valor parseado
+  static double? _parsearFracaoIdeal(String? fracao) {
+    if (fracao == null || fracao.trim().isEmpty) return null;
+
+    try {
+      final valor = double.parse(fracao.trim().replaceAll(',', '.'));
+      // Validar que está entre 0 e 1
+      if (valor > 0 && valor <= 1.0) {
+        return valor;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Cria o resultado da importação com estatísticas
   static ImportacaoResultado criarResultado({
     required List<ImportacaoRow> todasAsLinhas,
@@ -500,5 +645,200 @@ class ImportacaoService {
       senhasProprietarios: senhasProprietarios,
       senhasInquilinos: senhasInquilinos,
     );
+  }
+
+  /// FASE 4: ORQUESTRAÇÃO COMPLETA
+  /// Executa o fluxo completo: Validação → Mapeamento → Inserção
+  /// 
+  /// Retorna um Map com resultado detalhado de cada linha
+  static Future<Map<String, dynamic>> executarImportacaoCompleta(
+    Uint8List bytes, {
+    required String condominioId,
+    required Set<String> cpfsExistentes,
+    required Set<String> emailsExistentes,
+    bool enableLogging = true,
+  }) async {
+    final tempoInicio = DateTime.now();
+    
+    print('\n╔════════════════════════════════════════════════════╗');
+    print('║         INICIANDO IMPORTAÇÃO COMPLETA             ║');
+    print('╚════════════════════════════════════════════════════╝\n');
+
+    try {
+      // ============================================================
+      // ETAPA 1: VALIDAÇÃO
+      // ============================================================
+      print('📋 ETAPA 1: VALIDAÇÃO DE DADOS');
+      print('═══════════════════════════════════════════════════\n');
+
+      final rowsValidadas = await parsarEValidarArquivo(
+        bytes,
+        cpfsExistentesNoBanco: cpfsExistentes,
+        emailsExistenteNoBanco: emailsExistentes,
+        enableLogging: enableLogging,
+      );
+
+      final totalLinhas = rowsValidadas.length;
+      final linhasComErro = rowsValidadas.where((r) => r.temErros).length;
+      final linhasValidas = totalLinhas - linhasComErro;
+
+      print('\n✅ VALIDAÇÃO CONCLUÍDA');
+      print('   Total: $totalLinhas linhas');
+      print('   ✅ Válidas: $linhasValidas');
+      print('   ❌ Com erro: $linhasComErro\n');
+
+      // Se todas têm erro, retorna erro
+      if (linhasValidas == 0) {
+        return {
+          'sucesso': false,
+          'mensagem': 'Todas as linhas contêm erros. Revise os dados e tente novamente.',
+          'totalLinhas': totalLinhas,
+          'linhasProcessadas': 0,
+          'linhasComSucesso': 0,
+          'linhasComErro': linhasComErro,
+          'resultados': rowsValidadas.map((r) => {
+            'linhaNumero': r.linhaNumero,
+            'sucesso': false,
+            'erros': r.errosValidacao,
+          }).toList(),
+          'tempo': DateTime.now().difference(tempoInicio).inSeconds,
+        };
+      }
+
+      // ============================================================
+      // ETAPA 2: MAPEAMENTO
+      // ============================================================
+      print('📝 ETAPA 2: MAPEAMENTO DE DADOS');
+      print('═══════════════════════════════════════════════════\n');
+
+      final dadosMapeados = <int, Map<String, dynamic>>{};
+      
+      for (final row in rowsValidadas) {
+        if (!row.temErros) {
+          try {
+            final dados = mapearParaInsercao(
+              row,
+              condominioId: condominioId,
+            );
+            dadosMapeados[row.linhaNumero] = dados;
+            print('✅ Linha ${row.linhaNumero}: Mapeada com sucesso');
+          } catch (e) {
+            print('❌ Linha ${row.linhaNumero}: Erro ao mapear - $e');
+          }
+        }
+      }
+
+      print('\n✅ MAPEAMENTO CONCLUÍDO: ${dadosMapeados.length} linhas mapeadas\n');
+
+      // ============================================================
+      // ETAPA 3: INSERÇÃO NO SUPABASE
+      // ============================================================
+      print('💾 ETAPA 3: INSERÇÃO NO SUPABASE');
+      print('═══════════════════════════════════════════════════\n');
+
+      final resultados = <Map<String, dynamic>>[];
+      final todasSenhas = <Map<String, dynamic>>[];
+
+      for (final row in rowsValidadas) {
+        if (row.temErros) {
+          // Linha com erro não é inserida
+          resultados.add({
+            'linhaNumero': row.linhaNumero,
+            'sucesso': false,
+            'erros': row.errosValidacao,
+          });
+          continue;
+        }
+
+        if (!dadosMapeados.containsKey(row.linhaNumero)) {
+          // Linha que não foi mapeada
+          resultados.add({
+            'linhaNumero': row.linhaNumero,
+            'sucesso': false,
+            'erro': 'Linha não foi mapeada',
+          });
+          continue;
+        }
+
+        // Processar linha completa (inserir em ordem)
+        final dadosLinhaFormatada = dadosMapeados[row.linhaNumero]!;
+        final resultadoInsercao = 
+            await ImportacaoInsercaoService.processarLinhaCompleta(
+          dadosLinhaFormatada,
+        );
+
+        // Adicionar ao resultado
+        resultados.add(resultadoInsercao);
+
+        // Coletar senhas se sucesso
+        if (resultadoInsercao['sucesso'] == true) {
+          todasSenhas.add({
+            'linhaNumero': resultadoInsercao['linhaNumero'],
+            'proprietario': resultadoInsercao['proprietario'] ?? 
+                           resultadoInsercao['senhas']?['proprietario'],
+            'senhaProprietario': resultadoInsercao['senhas']?['proprietario'],
+            'inquilino': resultadoInsercao['inquilino'],
+            'senhaInquilino': resultadoInsercao['senhas']?['inquilino'],
+          });
+        }
+      }
+
+      // ============================================================
+      // RESUMO FINAL
+      // ============================================================
+      print('\n╔════════════════════════════════════════════════════╗');
+      print('║              RESUMO DA IMPORTAÇÃO                 ║');
+      print('╚════════════════════════════════════════════════════╝\n');
+
+      final sucessos = resultados.where((r) => r['sucesso'] == true).length;
+      final erros = resultados.where((r) => r['sucesso'] != true).length;
+
+      print('✅ Linhas processadas com sucesso: $sucessos');
+      print('❌ Linhas com erro: $erros');
+      print('📊 Total: ${resultados.length} linhas\n');
+
+      // Exibir senhas geradas
+      if (todasSenhas.isNotEmpty) {
+        print('🔐 SENHAS TEMPORÁRIAS GERADAS:');
+        print('═══════════════════════════════════════════════════\n');
+        for (final senha in todasSenhas) {
+          print('Linha ${senha['linhaNumero']}:');
+          print('  Proprietário: ${senha['senhaProprietario']}');
+          if (senha['senhaInquilino'] != null) {
+            print('  Inquilino: ${senha['senhaInquilino']}');
+          }
+          print('');
+        }
+      }
+
+      final tempoTotal = DateTime.now().difference(tempoInicio).inSeconds;
+      print('⏱️  Tempo total: ${tempoTotal}s\n');
+
+      return {
+        'sucesso': erros == 0,
+        'mensagem': erros == 0
+            ? 'Importação concluída com sucesso!'
+            : 'Importação concluída com alguns erros.',
+        'totalLinhas': totalLinhas,
+        'linhasProcessadas': resultados.length,
+        'linhasComSucesso': sucessos,
+        'linhasComErro': erros,
+        'resultados': resultados,
+        'senhas': todasSenhas,
+        'tempo': tempoTotal,
+      };
+    } catch (e) {
+      print('❌ ERRO GERAL NA IMPORTAÇÃO: $e\n');
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro geral na importação: $e',
+        'totalLinhas': 0,
+        'linhasProcessadas': 0,
+        'linhasComSucesso': 0,
+        'linhasComErro': 0,
+        'resultados': [],
+        'tempo': DateTime.now().difference(tempoInicio).inSeconds,
+      };
+    }
   }
 }

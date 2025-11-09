@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
-import 'chat_inquilino_screen.dart';
+import 'chat_inquilino_v2_screen.dart';
 import '../models/autorizado_inquilino.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../models/encomenda.dart';
@@ -1442,7 +1442,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     );
   }
 
-  // Widget do card de mensagem
+  // Widget do card de mensagem - INTEGRADO COM DADOS REAIS
   Widget _buildMensagemCard({
     required String nome,
     required String data,
@@ -1463,7 +1463,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 50,
           height: 50,
@@ -1486,14 +1487,24 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
         ),
         onTap: () {
+          // Abre ChatInquilinoV2Screen com dados reais
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatInquilinoScreen(
-                nomeContato: nome,
-                apartamento: nome == 'Portaria'
-                    ? 'Central de Segurança'
-                    : 'B/501',
+              builder: (context) => ChatInquilinoV2Screen(
+                condominioId: widget.condominioId ?? '',
+                unidadeId: widget.unidadeId ?? '',
+                usuarioId: widget.inquilinoId ??
+                    widget.proprietarioId ??
+                    '', // Inquilino ou Proprietário
+                usuarioNome: widget.inquilinoId != null
+                    ? 'Inquilino'
+                    : 'Proprietário', // Nome real seria obtido do banco
+                usuarioTipo: widget.inquilinoId != null
+                    ? 'inquilino'
+                    : 'proprietario',
+                unidadeNumero:
+                    'Sua Unidade', // Seria obtido do banco (B/501)
               ),
             ),
           );

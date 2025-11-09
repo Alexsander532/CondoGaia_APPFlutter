@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'chat_representante_screen.dart';
+import 'conversas_simples_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/unidade.dart';
@@ -146,11 +146,16 @@ class _PortariaRepresentanteScreenState
   bool _isLoadingHistoricoEncomendas = false;
   String? _errorHistoricoEncomendas;
 
+  // Variável para armazenar dados do representante atual
+  dynamic _representanteAtual;
+  bool _isLoadingRepresentante = true;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
     _encomendasTabController = TabController(length: 2, vsync: this);
+    _carregarRepresentanteAtual();
     _carregarDadosPropInq();
     _carregarAutorizados();
     _carregarVisitantesNoCondominio();
@@ -1061,115 +1066,91 @@ class _PortariaRepresentanteScreenState
     );
   }
 
-  // Widget para a aba Mensagem
-  Widget _buildMensagemTab() {
-    // Dados mockados de mensagens
-    final List<Map<String, dynamic>> mensagens = [
-      {
-        'nome': 'Luana Sichieri',
-        'apartamento': 'B/501',
-        'data': '25/11/2023 17:20',
-        'icone': Icons.person,
-        'corFundo': const Color(0xFF2C3E50),
-      },
-      {
-        'nome': 'João Moreira',
-        'apartamento': 'A/400',
-        'data': '24/11/2023 07:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-      {
-        'nome': 'Pedro Tebet',
-        'apartamento': 'C/200',
-        'data': '25/10/2023 17:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-      {
-        'nome': 'Rui Guerra',
-        'apartamento': 'D/301',
-        'data': '25/09/2023 17:20',
-        'icone': Icons.person_outline,
-        'corFundo': const Color(0xFF4A90E2),
-      },
-    ];
-
-    return Container(
-      color: const Color(0xFFF5F5F5),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: mensagens.length,
-        itemBuilder: (context, index) {
-          final mensagem = mensagens[index];
-          return _buildMensagemCard(
-            nome: mensagem['nome'],
-            apartamento: mensagem['apartamento'],
-            data: mensagem['data'],
-            icone: mensagem['icone'],
-            corFundo: mensagem['corFundo'],
-          );
-        },
-      ),
-    );
+  // Widget para a aba Mensagem - INTEGRADA COM DADOS REAIS
+  /// Carrega dados do representante atual autenticado
+  Future<void> _carregarRepresentanteAtual() async {
+    debugPrint('═' * 80);
+    debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO REPRESENTANTE ═══');
+    debugPrint('═' * 80);
+    
+    try {
+      debugPrint('🔄 [PORTARIA_REP] Chamando AuthService.getCurrentRepresentante()...');
+      final representante = await AuthService.getCurrentRepresentante();
+      
+      if (representante == null) {
+        debugPrint('[PORTARIA_REP] ERROR: AuthService retornou NULL');
+        setState(() {
+          _isLoadingRepresentante = false;
+        });
+        return;
+      }
+      
+      debugPrint('[PORTARIA_REP] OK: Representante obtido com sucesso');
+      debugPrint('[PORTARIA_REP] ID: ${representante.id}');
+      debugPrint('[PORTARIA_REP] Nome: ${representante.nomeCompleto}');
+      debugPrint('[PORTARIA_REP] CPF: ${representante.cpf}');
+      
+      if (representante.id.isEmpty) {
+        debugPrint('[PORTARIA_REP] ERROR: ID está VAZIO!');
+        setState(() {
+          _isLoadingRepresentante = false;
+        });
+        return;
+      }
+      
+      setState(() {
+        _representanteAtual = representante;
+        _isLoadingRepresentante = false;
+      });
+      
+      debugPrint('[PORTARIA_REP] OK: Estado atualizado com representante');
+    } catch (e, stackTrace) {
+      debugPrint('[PORTARIA_REP] ERROR: ao carregar representante!');
+      debugPrint('[PORTARIA_REP] Erro: $e');
+      debugPrint('[PORTARIA_REP] Stack: $stackTrace');
+      
+      setState(() {
+        _isLoadingRepresentante = false;
+      });
+    }
   }
 
-  // Widget do card de mensagem
-  Widget _buildMensagemCard({
-    required String nome,
-    required String apartamento,
-    required String data,
-    required IconData icone,
-    required Color corFundo,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: corFundo,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icone, color: Colors.white, size: 24),
-        ),
-        title: Text(
-          '$nome  $apartamento',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-        subtitle: Text(
-          data,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatRepresentanteScreen(
-                nomeContato: nome,
-                apartamento: apartamento,
-              ),
-            ),
-          );
-        },
-      ),
+  Widget _buildMensagemTab() {
+    debugPrint('═' * 80);
+    debugPrint('[PORTARIA_REP] BUILD MENSAGEM TAB');
+    debugPrint('[PORTARIA_REP] _isLoadingRepresentante: $_isLoadingRepresentante');
+    debugPrint('[PORTARIA_REP] _representanteAtual: $_representanteAtual');
+    
+    // Se ainda está carregando o representante, mostra loading
+    if (_isLoadingRepresentante) {
+      debugPrint('[PORTARIA_REP] Ainda está carregando representante...');
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    // Se não conseguiu carregar o representante, mostra erro
+    if (_representanteAtual == null) {
+      debugPrint('[PORTARIA_REP] ERROR: _representanteAtual é NULL!');
+      return const Center(
+        child: Text('Erro ao carregar dados do representante'),
+      );
+    }
+
+    final repId = _representanteAtual.id;
+    final repNome = _representanteAtual.nomeCompleto;
+    
+    debugPrint('[PORTARIA_REP] OK: Representante carregado com sucesso');
+    debugPrint('[PORTARIA_REP] ID a passar para ConversasSimples: $repId');
+    debugPrint('[PORTARIA_REP] Nome a passar para ConversasSimples: $repNome');
+    debugPrint('[PORTARIA_REP] Condominio ID: ${widget.condominioId}');
+
+    // Retorna o ConversasSimples com UI simplificada (apenas busca, sem filtros)
+    // Usa dados reais do representante autenticado
+    return ConversasSimples(
+      condominioId: widget.condominioId!,
+      representanteId: repId,
+      representanteName: repNome,
     );
   }
 
