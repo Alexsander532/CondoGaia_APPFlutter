@@ -11,7 +11,8 @@ import 'package:condogaiaapp/services/logger_importacao.dart';
 /// 2. Execute: dart run bin/testar_importacao.dart
 
 Future<void> main(List<String> args) async {
-  try {
+  try
+   {
     // Ler arquivo da planilha
     final file =
         File('assets/planilha_importacao.xlsx');
