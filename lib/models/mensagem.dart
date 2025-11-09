@@ -178,15 +178,17 @@ class Mensagem {
   bool get temAnexo =>
       anexoUrl != null && anexoUrl!.isNotEmpty;
 
-  /// Formata o horário da mensagem
+  /// Formata o horário da mensagem (fuso horário de Brasília)
   String get horaFormatada {
+    // O Supabase já retorna em Brasília, então não precisa converter
     final hora = createdAt.hour.toString().padLeft(2, '0');
     final minuto = createdAt.minute.toString().padLeft(2, '0');
     return '$hora:$minuto';
   }
 
-  /// Formata a data e hora completa
+  /// Formata a data e hora completa (fuso horário de Brasília)
   String get dataHoraFormatada {
+    // O Supabase já retorna em Brasília, então não precisa converter
     final dia = createdAt.day.toString().padLeft(2, '0');
     final mes = createdAt.month.toString().padLeft(2, '0');
     final hora = createdAt.hour.toString().padLeft(2, '0');

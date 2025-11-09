@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:condogaiaapp/models/conversa.dart';
 import 'package:condogaiaapp/services/conversas_service.dart';
 import 'package:condogaiaapp/services/condominio_init_service.dart';
-import 'package:condogaiaapp/screens/chat_representante_simples_v3.dart';
+import 'package:condogaiaapp/screens/chat_representante_screen_v2.dart';
 
 /// Tela de lista de conversas SIMPLIFICADA para o REPRESENTANTE (Portaria)
 /// 
@@ -465,13 +465,13 @@ class _ConversasSimplesState extends State<ConversasSimples> {
       debugPrint('[CONVERSAS_SIMPLES] WARN: Erro ao marcar como lida: $e');
     }
 
-    // Navega para ChatRepresentanteSimples (versão simplificada)
+    // Navega para ChatRepresentanteScreenV2
     if (mounted) {
-      debugPrint('[CONVERSAS_SIMPLES] Navegando para ChatRepresentanteSimples...');
+      debugPrint('[CONVERSAS_SIMPLES] Navegando para ChatRepresentanteScreenV2...');
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ChatRepresentanteSimples(
+          builder: (_) => ChatRepresentanteScreenV2(
             conversaId: conversa.id,
             condominioId: widget.condominioId,
             representanteId: widget.representanteId,

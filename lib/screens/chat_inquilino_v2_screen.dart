@@ -140,17 +140,19 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
     });
   }
 
-  /// Formata a data/hora (corrigindo fuso horário)
+  /// Formata a data/hora (fuso horário de Brasília)
   String _formatarHora(DateTime data) {
-    // Converter ambas para local para comparar corretamente
-    final dataLocal = data.isUtc ? data.toLocal() : data;
-    final agora = DateTime.now();
-    final diferenca = agora.difference(dataLocal);
+    // Converter para fuso horário de Brasília (UTC-3)
+    final dataUtc = data.isUtc ? data : data.toUtc();
+    final dataBrasilia = dataUtc.add(const Duration(hours: -3));
+    
+    final agora = DateTime.now().toUtc().add(const Duration(hours: -3));
+    final diferenca = agora.difference(dataBrasilia);
 
     if (diferenca.inSeconds < 0) {
       // Se for no futuro, mostrar a hora exata
       final formatter = DateFormat('HH:mm');
-      return formatter.format(dataLocal);
+      return formatter.format(dataBrasilia);
     } else if (diferenca.inMinutes < 1) {
       return 'Agora';
     } else if (diferenca.inHours < 1) {
@@ -159,7 +161,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
       return 'Há ${diferenca.inHours}h';
     } else {
       final formatter = DateFormat('dd/MM/yyyy HH:mm');
-      return formatter.format(dataLocal);
+      return formatter.format(dataBrasilia);
     }
   }
 

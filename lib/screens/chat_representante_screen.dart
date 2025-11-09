@@ -88,9 +88,10 @@ class _ChatRepresentanteScreenState extends State<ChatRepresentanteScreen> {
   }
 
   String _formatTime(DateTime timestamp) {
-    // Converter para local se estiver em UTC
-    final dataLocal = timestamp.isUtc ? timestamp.toLocal() : timestamp;
-    return '${dataLocal.day.toString().padLeft(2, '0')}/${dataLocal.month.toString().padLeft(2, '0')}/${dataLocal.year} ${dataLocal.hour.toString().padLeft(2, '0')}:${dataLocal.minute.toString().padLeft(2, '0')}';
+    // Converter para fuso horário de Brasília (UTC-3)
+    final dataUtc = timestamp.isUtc ? timestamp : timestamp.toUtc();
+    final dataBrasilia = dataUtc.add(const Duration(hours: -3));
+    return '${dataBrasilia.day.toString().padLeft(2, '0')}/${dataBrasilia.month.toString().padLeft(2, '0')}/${dataBrasilia.year} ${dataBrasilia.hour.toString().padLeft(2, '0')}:${dataBrasilia.minute.toString().padLeft(2, '0')}';
   }
 
   @override

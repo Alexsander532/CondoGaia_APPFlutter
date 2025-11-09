@@ -40,6 +40,14 @@ class AutorizadoInquilino {
 
   /// Cria uma instância de AutorizadoInquilino a partir de um Map (JSON)
   factory AutorizadoInquilino.fromJson(Map<String, dynamic> json) {
+    // Helper para converter DateTime
+    DateTime? parseDateTime(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.parse(value);
+      return null;
+    }
+
     return AutorizadoInquilino(
       id: json['id'] as String,
       unidadeId: json['unidade_id'] as String,
@@ -58,12 +66,8 @@ class AutorizadoInquilino {
       veiculoCor: json['veiculo_cor'] as String?,
       veiculoPlaca: json['veiculo_placa'] as String?,
       ativo: json['ativo'] as bool? ?? true,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+      createdAt: parseDateTime(json['created_at']),
+      updatedAt: parseDateTime(json['updated_at']),
     );
   }
 
