@@ -294,7 +294,7 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                     padding: const EdgeInsets.only(left: 0.0),
                     child: GestureDetector(
                       onTap: () {
-                        // Voltar para a tela anterior (representante)
+                        // Voltar para o dashboard anterior
                         Navigator.pop(context);
                       },
                       child: Image.asset(

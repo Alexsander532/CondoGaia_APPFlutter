@@ -1,14 +1,11 @@
-import 'package:condogaiaapp/screens/documentos_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/representante.dart';
-import '../services/auth_service.dart';
-import 'login_screen.dart';
 import 'documentos_screen.dart';
 import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
-import 'inquilino_home_screen.dart';
 import 'gestao_screen.dart';
 import 'contatos_chat_representante_screen.dart';
+import 'representante_dashboard_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -29,15 +26,6 @@ class RepresentanteHomeScreen extends StatefulWidget {
 }
 
 class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
-  final AuthService _authService = AuthService();
-
-  Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-
   Widget _buildMenuCard({
     required String imagePath,
     required String title,
@@ -332,7 +320,14 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                     child: GestureDetector(
                       onTap: () {
                         // Navegar para o dashboard principal do representante
-                        Navigator.pushReplacementNamed(context, '/representante_dashboard_screen');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RepresentanteDashboardScreen(
+                              representante: widget.representante,
+                            ),
+                          ),
+                        );
                       },
                       child: Image.asset(
                         'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
