@@ -341,14 +341,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Editar Reserva dia $_selectedDayLabel',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF003E7E),
+                    Flexible(
+                      child: Text(
+                        'Editar Reserva dia $_selectedDayLabel',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF003E7E),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 12),
                     GestureDetector(
                       onTap: () => Navigator.of(context, rootNavigator: false).pop(),
                       child: const Icon(Icons.close, color: Color(0xFF003E7E)),
@@ -1086,47 +1090,57 @@ class _ReservasScreenState extends State<ReservasScreen> {
             style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8.0),
-          Row(
+          Wrap(
+            spacing: 8.0,
             children: [
-              Radio(
-                value: true,
-                groupValue: _isCondominio,
-                onChanged: (value) {
-                  if (setModalState != null) {
-                    setModalState(() {
-                      _isCondominio = true;
-                      _isBlocoUnid = false;
-                    });
-                  } else {
-                    setState(() {
-                      _isCondominio = true;
-                      _isBlocoUnid = false;
-                    });
-                  }
-                },
-                activeColor: const Color(0xFF003E7E),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio(
+                    value: true,
+                    groupValue: _isCondominio,
+                    onChanged: (value) {
+                      if (setModalState != null) {
+                        setModalState(() {
+                          _isCondominio = true;
+                          _isBlocoUnid = false;
+                        });
+                      } else {
+                        setState(() {
+                          _isCondominio = true;
+                          _isBlocoUnid = false;
+                        });
+                      }
+                    },
+                    activeColor: const Color(0xFF003E7E),
+                  ),
+                  const Text('Condomínio'),
+                ],
               ),
-              const Text('Condomínio'),
-              const SizedBox(width: 16.0),
-              Radio(
-                value: true,
-                groupValue: _isBlocoUnid,
-                onChanged: (value) {
-                  if (setModalState != null) {
-                    setModalState(() {
-                      _isCondominio = false;
-                      _isBlocoUnid = true;
-                    });
-                  } else {
-                    setState(() {
-                      _isCondominio = false;
-                      _isBlocoUnid = true;
-                    });
-                  }
-                },
-                activeColor: const Color(0xFF003E7E),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio(
+                    value: true,
+                    groupValue: _isBlocoUnid,
+                    onChanged: (value) {
+                      if (setModalState != null) {
+                        setModalState(() {
+                          _isCondominio = false;
+                          _isBlocoUnid = true;
+                        });
+                      } else {
+                        setState(() {
+                          _isCondominio = false;
+                          _isBlocoUnid = true;
+                        });
+                      }
+                    },
+                    activeColor: const Color(0xFF003E7E),
+                  ),
+                  const Text('Bloco/Unid.'),
+                ],
               ),
-              const Text('Bloco/Unid.'),
             ],
           ),
           const SizedBox(height: 16.0),

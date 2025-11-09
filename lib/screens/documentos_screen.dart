@@ -334,8 +334,15 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       String fileName = balancete.nomeArquivo ?? 'balancete_${balancete.mes}_${balancete.ano}.png';
 
       if (balancete.url != null) {
-        // Se for arquivo do Supabase, usar método específico
-        if (balancete.url!.contains('supabase')) {
+        // Verificar se é um arquivo local
+        if (balancete.url!.startsWith('file://') || !balancete.url!.startsWith('http')) {
+          // É um arquivo local - copiar para Downloads
+          filePath = await DocumentoService.copiarArquivoLocal(
+            balancete.url!,
+            fileName,
+          );
+        } else if (balancete.url!.contains('supabase')) {
+          // Se for arquivo do Supabase, usar método específico
           filePath = await DocumentoService.downloadArquivoSupabase(
             balancete.url!,
             fileName,
@@ -348,11 +355,20 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           );
         }
       } else if (balancete.linkExterno != null) {
-        // Para links externos, usar download direto
-        filePath = await DocumentoService.downloadArquivo(
-          balancete.linkExterno!,
-          fileName,
-        );
+        // Verificar se é um arquivo local
+        if (balancete.linkExterno!.startsWith('file://') || !balancete.linkExterno!.startsWith('http')) {
+          // É um arquivo local - copiar para Downloads
+          filePath = await DocumentoService.copiarArquivoLocal(
+            balancete.linkExterno!,
+            fileName,
+          );
+        } else {
+          // Para links externos, usar download direto
+          filePath = await DocumentoService.downloadArquivo(
+            balancete.linkExterno!,
+            fileName,
+          );
+        }
       }
 
       if (filePath != null && mounted) {

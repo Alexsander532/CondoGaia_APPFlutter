@@ -783,44 +783,49 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
             // Botão de download do template
             Container(
+              width: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _downloadTemplate,
-                    icon: const Icon(Icons.download, size: 18),
-                    label: const Text('Baixar Template da Planilha'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _downloadTemplate,
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Baixar Template'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 2,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _importarPlanilha,
-                    icon: const Icon(Icons.upload_file, size: 18),
-                    label: const Text('Importar Planilha'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF50C878),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _importarPlanilha,
+                      icon: const Icon(Icons.upload_file, size: 18),
+                      label: const Text('Importar Planilha'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF50C878),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 2,
                     ),
                   ),
                 ],
