@@ -40,7 +40,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   
   // Controle de período para balancetes
   int _anoSelecionado = 2025;
-  int _mesSelecionado = 9; // Setembro
+  int _mesSelecionado = DateTime.now().month; // Mês atual
   
   String selectedPrivacy = 'Público';
   final TextEditingController _linkController = TextEditingController();

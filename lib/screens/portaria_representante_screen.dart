@@ -2368,7 +2368,7 @@ class _PortariaRepresentanteScreenState
                 const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                 const SizedBox(width: 8),
                 Text(
-                  'Cadastrada em: ${_formatarData(encomenda.dataCadastro)}',
+                  'Cadastrada em: ${_formatarData(encomenda.createdAt)}',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
@@ -4249,8 +4249,8 @@ class _PortariaRepresentanteScreenState
       // Salvar encomenda (com ou sem foto)
       String? encomendaId;
       if (_imagemEncomenda != null) {
-        // TODO: Implementar upload de foto - por enquanto salvar sem foto
-        encomendaId = await _encomendaService.criarEncomenda(encomenda);
+        print('📸 Iniciando upload de foto da encomenda...');
+        encomendaId = await _encomendaService.criarEncomendaComFoto(encomenda, _imagemEncomenda);
       } else {
         encomendaId = await _encomendaService.criarEncomenda(encomenda);
       }

@@ -1519,8 +1519,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
     final DateFormat timeFormat = DateFormat('HH:mm');
 
-    final String dataCadastro = dateFormat.format(encomenda.dataCadastro);
-    final String horaCadastro = timeFormat.format(encomenda.dataCadastro);
+    // Usar createdAt que é preenchido automaticamente pelo Supabase em horário de Brasília
+    final String dataCadastro = dateFormat.format(encomenda.createdAt);
+    final String horaCadastro = timeFormat.format(encomenda.createdAt);
 
     // Status da encomenda
     final bool foiRetirada = encomenda.recebido;

@@ -146,23 +146,9 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
     final dataUtc = data.isUtc ? data : data.toUtc();
     final dataBrasilia = dataUtc.add(const Duration(hours: -3));
     
-    final agora = DateTime.now().toUtc().add(const Duration(hours: -3));
-    final diferenca = agora.difference(dataBrasilia);
-
-    if (diferenca.inSeconds < 0) {
-      // Se for no futuro, mostrar a hora exata
-      final formatter = DateFormat('HH:mm');
-      return formatter.format(dataBrasilia);
-    } else if (diferenca.inMinutes < 1) {
-      return 'Agora';
-    } else if (diferenca.inHours < 1) {
-      return 'Há ${diferenca.inMinutes}m';
-    } else if (diferenca.inHours < 24) {
-      return 'Há ${diferenca.inHours}h';
-    } else {
-      final formatter = DateFormat('dd/MM/yyyy HH:mm');
-      return formatter.format(dataBrasilia);
-    }
+    // Sempre mostrar a data e hora no formato DD/MM/AA - HH:mm
+    final formatter = DateFormat('dd/MM/yy - HH:mm');
+    return formatter.format(dataBrasilia);
   }
 
   /// Mostra mensagem de erro

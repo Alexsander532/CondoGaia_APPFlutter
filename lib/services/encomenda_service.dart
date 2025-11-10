@@ -15,7 +15,8 @@ class EncomendaService {
   final SupabaseClient _supabase = Supabase.instance.client;
   
   /// Nome do bucket no Supabase Storage para fotos de encomendas
-  static const String _bucketFotos = 'encomendas-fotos';
+  /// Usando o bucket 'documentos' que já tem RLS configurado
+  static const String _bucketFotos = 'documentos';
 
   // =====================================================
   // MÉTODOS DE CRIAÇÃO (CREATE)
@@ -529,22 +530,26 @@ class EncomendaService {
   /// Retorna a URL pública da foto ou lança exceção em caso de erro
   Future<String> _uploadFotoEncomenda(File arquivo) async {
     try {
+      // Lê os bytes do arquivo
+      final bytes = await arquivo.readAsBytes();
+      
       // Gera um nome único para o arquivo
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final extensao = arquivo.path.split('.').last.toLowerCase();
       final nomeArquivo = 'encomenda_${timestamp}.$extensao';
+      final caminhoCompleto = 'encomendas/$nomeArquivo';
       
-      // Faz o upload para o bucket
-      final response = await _supabase.storage
+      // Faz o upload para o bucket usando uploadBinary (mais robusto)
+      await _supabase.storage
           .from(_bucketFotos)
-          .upload(nomeArquivo, arquivo);
+          .uploadBinary(caminhoCompleto, bytes);
       
       // Obtém a URL pública
       final urlPublica = _supabase.storage
           .from(_bucketFotos)
-          .getPublicUrl(nomeArquivo);
+          .getPublicUrl(caminhoCompleto);
       
-      print('📸 Upload concluído: $nomeArquivo');
+      print('📸 Upload concluído: $caminhoCompleto');
       return urlPublica;
       
     } catch (e) {
@@ -787,28 +792,4 @@ class EncomendaService {
   // =====================================================
   // MÉTODOS PRINCIPAIS
   // =====================================================
-
-  /// Verifica se o bucket de fotos existe e o cria se necessário
-  Future<void> _verificarBucketFotos() async {
-    try {
-      final buckets = await _supabase.storage.listBuckets();
-      final bucketExiste = buckets.any((bucket) => bucket.name == _bucketFotos);
-      
-      if (!bucketExiste) {
-        await _supabase.storage.createBucket(
-          _bucketFotos,
-          const BucketOptions(public: true),
-        );
-        print('📁 Bucket criado: $_bucketFotos');
-      }
-    } catch (e) {
-      print('⚠️ Erro ao verificar/criar bucket: $e');
-    }
-  }
-
-  /// Inicializa o serviço (chama verificação do bucket)
-  Future<void> inicializar() async {
-    await _verificarBucketFotos();
-    print('🚀 EncomendaService inicializado');
-  }
 }
