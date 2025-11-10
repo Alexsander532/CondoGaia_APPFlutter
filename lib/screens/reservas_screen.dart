@@ -898,6 +898,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   // Função para mostrar o modal de reserva
   void _showReservationModal() {
+    // Limpar todos os campos antes de abrir o modal
+    _horaInicioController.clear();
+    _horaFimController.clear();
+    _listaPresentesController.clear();
+    _valorController.clear();
+    _isCondominio = true;
+    _isBlocoUnid = false;
+    _selectedAmbienteId = _ambientes.isNotEmpty ? _ambientes.first.id : null;
+    if (_selectedAmbienteId != null) {
+      final ambiente = _ambientes.firstWhere(
+        (a) => a.id == _selectedAmbienteId,
+        orElse: () => _ambientes.first,
+      );
+      _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+    }
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1171,14 +1187,25 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       value: _selectedAmbienteId,
                       onChanged: (String? newValue) {
                         if (newValue != null) {
-                          setState(() {
-                            _selectedAmbienteId = newValue;
-                            final ambiente = _ambientes.firstWhere(
-                              (a) => a.id == newValue,
-                              orElse: () => _ambientes.first,
-                            );
-                            _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
-                          });
+                          if (setModalState != null) {
+                            setModalState(() {
+                              _selectedAmbienteId = newValue;
+                              final ambiente = _ambientes.firstWhere(
+                                (a) => a.id == newValue,
+                                orElse: () => _ambientes.first,
+                              );
+                              _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+                            });
+                          } else {
+                            setState(() {
+                              _selectedAmbienteId = newValue;
+                              final ambiente = _ambientes.firstWhere(
+                                (a) => a.id == newValue,
+                                orElse: () => _ambientes.first,
+                              );
+                              _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+                            });
+                          }
                         }
                       },
                       items: _ambientes
