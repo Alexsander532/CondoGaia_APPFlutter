@@ -181,9 +181,12 @@ class Mensagem {
   /// Formata o horário da mensagem (fuso horário de Brasília)
   String get horaFormatada {
     // O Supabase já retorna em Brasília, então não precisa converter
+    final dia = createdAt.day.toString().padLeft(2, '0');
+    final mes = createdAt.month.toString().padLeft(2, '0');
+    final ano = createdAt.year.toString().substring(2);
     final hora = createdAt.hour.toString().padLeft(2, '0');
     final minuto = createdAt.minute.toString().padLeft(2, '0');
-    return '$hora:$minuto';
+    return '$dia/$mes/$ano - $hora:$minuto';
   }
 
   /// Formata a data e hora completa (fuso horário de Brasília)
