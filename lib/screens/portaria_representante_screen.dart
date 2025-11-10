@@ -1505,15 +1505,18 @@ class _PortariaRepresentanteScreenState
               children: [
                 const Icon(Icons.apartment, color: Colors.white, size: 24),
                 const SizedBox(width: 12),
-                const Text(
-                  'Proprietários e Inquilinos por Unidade',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Flexible(
+                  child: Text(
+                    'Proprietários e Inquilinos por Unidade',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -1524,7 +1527,7 @@ class _PortariaRepresentanteScreenState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${unidadesOrdenadas.length} unidades',
+                    '${unidadesOrdenadas.length}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
