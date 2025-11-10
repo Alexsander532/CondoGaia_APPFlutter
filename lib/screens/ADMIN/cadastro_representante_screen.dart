@@ -437,7 +437,7 @@ class _CadastroRepresentanteScreenState
           const SizedBox(height: 16),
 
           // Campos de texto
-          _buildTextField('Nome Completo:', _nomeCompletoController, ''),
+          _buildTextField('Nome Completo:', _nomeCompletoController, '', required: true),
           const SizedBox(height: 12),
           _buildTextFieldWithMask(
             'CPF:',
@@ -447,6 +447,7 @@ class _CadastroRepresentanteScreenState
             keyboardType: TextInputType.number,
             onChanged: _validateCPF,
             errorText: _cpfError,
+            required: true,
           ),
           const SizedBox(height: 12),
           _buildTextFieldWithMask(
@@ -457,6 +458,7 @@ class _CadastroRepresentanteScreenState
             keyboardType: TextInputType.phone,
             onChanged: _validateTelefone,
             errorText: _telefoneError,
+            required: true,
           ),
           const SizedBox(height: 12),
           _buildTextFieldWithMask(
@@ -467,6 +469,7 @@ class _CadastroRepresentanteScreenState
             keyboardType: TextInputType.phone,
             onChanged: _validateCelular,
             errorText: _celularError,
+            required: true,
           ),
           const SizedBox(height: 12),
           _buildTextFieldWithMask(
@@ -476,6 +479,7 @@ class _CadastroRepresentanteScreenState
             keyboardType: TextInputType.emailAddress,
             onChanged: _validateEmail,
             errorText: _emailError,
+            required: true,
           ),
           const SizedBox(height: 12),
 
@@ -493,6 +497,7 @@ class _CadastroRepresentanteScreenState
                       _ufSelecionada = value!;
                     });
                   },
+                  required: true,
                 ),
               ),
               const SizedBox(width: 12),
@@ -502,12 +507,13 @@ class _CadastroRepresentanteScreenState
                   'Cidade:',
                   _cidadeController,
                   'Digite a cidade',
+                  required: true,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildTextField('Endereço:', _enderecoController, 'Rua da Figueira'),
+          _buildTextField('Endereço:', _enderecoController, 'Rua da Figueira', required: true),
           const SizedBox(height: 24),
 
           // Seção Todos
@@ -809,18 +815,32 @@ class _CadastroRepresentanteScreenState
   Widget _buildTextField(
     String label,
     TextEditingController controller,
-    String placeholder,
-  ) {
+    String placeholder, {
+    bool required = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -853,17 +873,31 @@ class _CadastroRepresentanteScreenState
     Function(String)? onChanged,
     String? errorText,
     TextInputType? keyboardType,
+    bool required = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -906,18 +940,32 @@ class _CadastroRepresentanteScreenState
     String label,
     String value,
     List<String> items,
-    ValueChanged<String?> onChanged,
-  ) {
+    ValueChanged<String?> onChanged, {
+    bool required = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -1019,13 +1067,25 @@ class _CadastroRepresentanteScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Condomínio',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            const Text(
+              'Condomínio',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Text(
+              ' *',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(

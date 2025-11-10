@@ -180,24 +180,24 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
                     // Seção Dados
                     _buildSectionTitle('Dados'),
                     const SizedBox(height: 16),
-                    _buildTextFieldWithMask('CNPJ:', _cnpjController, '19.555.666/0001-69', _cnpjMask),
+                    _buildTextFieldWithMask('CNPJ:', _cnpjController, '19.555.666/0001-69', _cnpjMask, required: true),
                     const SizedBox(height: 12),
-                    _buildTextField('Nome Condomínio:', _nomeController, 'Villas de Córdoba'),
+                    _buildTextField('Nome Condomínio:', _nomeController, 'Villas de Córdoba', required: true),
                     const SizedBox(height: 12),
-                    _buildTextFieldWithMask('CEP:', _cepController, '11123-456', _cepMask),
+                    _buildTextFieldWithMask('CEP:', _cepController, '11123-456', _cepMask, required: true),
                     const SizedBox(height: 12),
-                    _buildTextField('Endereço:', _enderecoController, 'Rua Almirante Carlos Guedert'),
+                    _buildTextField('Endereço:', _enderecoController, 'Rua Almirante Carlos Guedert', required: true),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           flex: 1,
-                          child: _buildTextField('Número:', _numeroController, ''),
+                          child: _buildTextField('Número:', _numeroController, '', required: true),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
-                          child: _buildTextField('Bairro:', _bairroController, ''),
+                          child: _buildTextField('Bairro:', _bairroController, '', required: true),
                         ),
                       ],
                     ),
@@ -205,11 +205,11 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField('Cidade:', _cidadeController, ''),
+                          child: _buildTextField('Cidade:', _cidadeController, '', required: true),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildDropdownField('Estado:', _estadoSelecionado, _estados),
+                          child: _buildDropdownField('Estado:', _estadoSelecionado, _estados, required: true),
                         ),
                       ],
                     ),
@@ -236,22 +236,6 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
                     const SizedBox(height: 12),
                     _buildTextField('Token:', _tokenUnidadeController, 'qjskf4qpbabqs2s1e61611f6v16as1as6'),
                     const SizedBox(height: 32),
-                    // Botões
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            // Implementar funcionalidade de editar
-                          },
-                          child: Image.asset(
-                            'assets/images/ADMIN/cadastro_condominio/Editar_Texto.png',
-                            height: 40,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
                     // Botão Salvar
                     Center(
                       child: GestureDetector(
@@ -299,17 +283,30 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, String placeholder) {
+  Widget _buildTextField(String label, TextEditingController controller, String placeholder, {bool required = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -337,17 +334,30 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
     );
   }
 
-  Widget _buildTextFieldWithMask(String label, TextEditingController controller, String placeholder, MaskTextInputFormatter mask) {
+  Widget _buildTextFieldWithMask(String label, TextEditingController controller, String placeholder, MaskTextInputFormatter mask, {bool required = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -420,17 +430,30 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String? selectedValue, List<Map<String, String>> options) {
+  Widget _buildDropdownField(String label, String? selectedValue, List<Map<String, String>> options, {bool required = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (required)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Container(
@@ -499,7 +522,7 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
   }
 
   Future<void> _salvarCondominio() async {
-    // Validar campos obrigatórios
+    // Validar apenas os campos da seção Dados (obrigatórios)
     if (_cnpjController.text.isEmpty ||
         _nomeController.text.isEmpty ||
         _cepController.text.isEmpty ||
@@ -507,18 +530,10 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
         _numeroController.text.isEmpty ||
         _bairroController.text.isEmpty ||
         _cidadeController.text.isEmpty ||
-        _estadoSelecionado == null ||
-        _planoAssinaturaController.text.isEmpty ||
-        _pagamentoController.text.isEmpty ||
-        _vencimentoController.text.isEmpty ||
-        _valorController.text.isEmpty ||
-        _instituicaoCondominioController.text.isEmpty ||
-        _tokenCondominioController.text.isEmpty ||
-        _instituicaoUnidadeController.text.isEmpty ||
-        _tokenUnidadeController.text.isEmpty) {
+        _estadoSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor, preencha todos os campos obrigatórios.'),
+          content: Text('Por favor, preencha todos os campos obrigatórios da seção Dados.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -547,32 +562,29 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
       return;
     }
 
-    // Validar formato da data
-    if (_vencimentoController.text.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data de vencimento deve ter o formato: DD/MM/AAAA'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Converter valor monetário para decimal
-      String valorText = _valorController.text
-          .replaceAll('R\u0024 ', '')
-          .replaceAll('.', '')
-          .replaceAll(',', '.');
-      double valor = double.parse(valorText);
+      // Converter valor monetário para decimal (opcional)
+      double valor = 0.0;
+      if (_valorController.text.isNotEmpty) {
+        String valorText = _valorController.text
+            .replaceAll('R\u0024 ', '')
+            .replaceAll('.', '')
+            .replaceAll(',', '.');
+        valor = double.parse(valorText);
+      }
 
-      // Converter data para formato ISO
-      List<String> dateParts = _vencimentoController.text.split('/');
-      String isoDate = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
+      // Converter data para formato ISO (opcional)
+      String? isoDate;
+      if (_vencimentoController.text.isNotEmpty) {
+        if (_vencimentoController.text.length == 10) {
+          List<String> dateParts = _vencimentoController.text.split('/');
+          isoDate = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
+        }
+      }
 
       // Preparar dados para inserção
       Map<String, dynamic> condominioData = {
@@ -584,14 +596,14 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
         'bairro': _bairroController.text,
         'cidade': _cidadeController.text,
         'estado': _estadoSelecionado,
-        'plano_assinatura': _planoAssinaturaController.text,
-        'pagamento': _pagamentoController.text,
+        'plano_assinatura': _planoAssinaturaController.text.isEmpty ? null : _planoAssinaturaController.text,
+        'pagamento': _pagamentoController.text.isEmpty ? null : _pagamentoController.text,
         'vencimento': isoDate,
-        'valor': valor,
-        'instituicao_financeiro_condominio': _instituicaoCondominioController.text,
-        'token_financeiro_condominio': _tokenCondominioController.text,
-        'instituicao_financeiro_unidade': _instituicaoUnidadeController.text,
-        'token_financeiro_unidade': _tokenUnidadeController.text,
+        'valor': valor > 0 ? valor : null,
+        'instituicao_financeiro_condominio': _instituicaoCondominioController.text.isEmpty ? null : _instituicaoCondominioController.text,
+        'token_financeiro_condominio': _tokenCondominioController.text.isEmpty ? null : _tokenCondominioController.text,
+        'instituicao_financeiro_unidade': _instituicaoUnidadeController.text.isEmpty ? null : _instituicaoUnidadeController.text,
+        'token_financeiro_unidade': _tokenUnidadeController.text.isEmpty ? null : _tokenUnidadeController.text,
       };
 
       // Inserir no Supabase
