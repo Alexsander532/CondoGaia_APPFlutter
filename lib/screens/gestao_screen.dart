@@ -24,35 +24,35 @@ class _GestaoScreenState extends State<GestaoScreen> {
   final List<Map<String, dynamic>> gestaoItems = [
     {
       'title': 'Boleto',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/Boleto_icone_gestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/Boleto_icone_gestao.png',
     },
     {
       'title': 'Acordo',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/acordoiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/acordoiconegestao.png',
     },
     {
       'title': 'Relatórios',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/relatoriosiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/relatoriosiconegestao.png',
     },
     {
       'title': 'E-Mail',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/emailiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/emailiconegestao.png',
     },
     {
       'title': 'Despesa/Receita',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/despesareceitaiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/despesareceitaiconegestao.png',
     },
     {
       'title': 'Morador/Unidade',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/moradorunidadeiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/moradorunidadeiconegestao.png',
     },
     {
       'title': 'Condomínio',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/condominioiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/condominioiconegestao.png',
     },
     {
       'title': 'Portaria',
-      'imagePath': 'assets/images/HOME_Inquilino/Gestão_Inquilino/portariaiconegestao.png',
+      'imagePath': 'assets/images/HOME_Inquilino/Gestao_Inquilino/portariaiconegestao.png',
     },
   ];
 
@@ -85,6 +85,13 @@ class _GestaoScreenState extends State<GestaoScreen> {
               child: Image.asset(
                 imagePath,
                 fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.image_not_supported,
+                    color: Color(0xFFBDBDBD),
+                    size: 24,
+                  );
+                },
               ),
             ),
             const SizedBox(width: 16),

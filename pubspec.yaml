@@ -105,7 +105,7 @@ flutter:
     - assets/images/Representante/
     - assets/images/Representante/HOME/
     - assets/images/Home_Inquilino/
-    - assets/images/HOME_Inquilino/Gestão_Inquilino/
+    - assets/images/HOME_Inquilino/Gestao_Inquilino/
     - assets/images/common/
 
   # An image asset can refer to one or more resolution-specific "variants", see
