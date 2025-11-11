@@ -22,6 +22,7 @@ class PessoaUnidade {
   final String unidadeNumero;
   final String unidadeBloco;
   final String tipo; // 'P' para proprietário, 'I' para inquilino
+  final String? fotoPerfil; // URL ou base64
 
   PessoaUnidade({
     required this.id,
@@ -30,6 +31,7 @@ class PessoaUnidade {
     required this.unidadeNumero,
     required this.unidadeBloco,
     required this.tipo,
+    this.fotoPerfil,
   });
 }
 
@@ -1240,6 +1242,7 @@ class _PortariaRepresentanteScreenState
             unidadeNumero: unidade.numero,
             unidadeBloco: unidade.bloco ?? 'N/A',
             tipo: 'P',
+            fotoPerfil: proprietario.fotoPerfil,
           ),
         );
       }
@@ -1267,6 +1270,7 @@ class _PortariaRepresentanteScreenState
             unidadeNumero: unidade.numero,
             unidadeBloco: unidade.bloco ?? 'N/A',
             tipo: 'I',
+            fotoPerfil: inquilino.fotoPerfil,
           ),
         );
       }
@@ -4255,7 +4259,7 @@ class _PortariaRepresentanteScreenState
         encomendaId = await _encomendaService.criarEncomenda(encomenda);
       }
 
-      if (encomendaId != null && encomendaId.isNotEmpty) {
+      if (encomendaId.isNotEmpty) {
         print('✅ Encomenda salva com sucesso! ID: $encomendaId');
         
         // Mostrar mensagem de sucesso

@@ -103,20 +103,52 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
   Widget _buildProfileImage() {
     if (widget.inquilino.temFotoPerfil) {
       try {
-        // Remover o prefixo data:image/jpeg;base64, se existir
-        String base64String = widget.inquilino.fotoPerfil!;
-        if (base64String.startsWith('data:image')) {
-          base64String = base64String.split(',')[1];
-        }
+        final fotoUrl = widget.inquilino.fotoPerfil!;
+        
+        // Verificar se é URL (começa com http) ou Base64
+        if (fotoUrl.startsWith('http')) {
+          // É URL do Storage - usar Image.network
+          return ClipOval(
+            child: Image.network(
+              fotoUrl,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.purple,
+                  child: Icon(Icons.person, size: 40, color: Colors.white),
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.grey,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                );
+              },
+            ),
+          );
+        } else {
+          // É Base64 - decodificar e usar Image.memory
+          String base64String = fotoUrl;
+          if (base64String.startsWith('data:image')) {
+            base64String = base64String.split(',')[1];
+          }
 
-        return ClipOval(
-          child: Image.memory(
-            base64Decode(base64String),
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-          ),
-        );
+          return ClipOval(
+            child: Image.memory(
+              base64Decode(base64String),
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+            ),
+          );
+        }
       } catch (e) {
         // Se houver erro ao decodificar, mostrar ícone padrão
         return const CircleAvatar(

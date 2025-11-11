@@ -6,6 +6,7 @@ class Mensagem {
   final String remetenteTipo; // 'usuario' | 'representante'
   final String remetenteId;
   final String remetenteNome;
+  final String? remetenteFoto; // URL ou base64
   final String conteudo;
   final String tipoConteudo; // 'texto' | 'imagem' | 'arquivo' | 'audio'
   final String? anexoUrl;
@@ -31,6 +32,7 @@ class Mensagem {
     required this.remetenteTipo,
     required this.remetenteId,
     required this.remetenteNome,
+    this.remetenteFoto,
     required this.conteudo,
     required this.tipoConteudo,
     this.anexoUrl,
@@ -59,6 +61,7 @@ class Mensagem {
       remetenteTipo: json['remetente_tipo'] as String,
       remetenteId: json['remetente_id'] as String,
       remetenteNome: json['remetente_nome'] as String,
+      remetenteFoto: json['remetente_foto'] as String?,
       conteudo: json['conteudo'] as String,
       tipoConteudo: json['tipo_conteudo'] as String? ?? 'texto',
       anexoUrl: json['anexo_url'] as String?,
@@ -92,6 +95,7 @@ class Mensagem {
       'remetente_tipo': remetenteTipo,
       'remetente_id': remetenteId,
       'remetente_nome': remetenteNome,
+      'remetente_foto': remetenteFoto,
       'conteudo': conteudo,
       'tipo_conteudo': tipoConteudo,
       'anexo_url': anexoUrl,
@@ -120,6 +124,7 @@ class Mensagem {
     String? remetenteTipo,
     String? remetenteId,
     String? remetenteNome,
+    String? remetenteFoto,
     String? conteudo,
     String? tipoConteudo,
     String? anexoUrl,
@@ -145,6 +150,7 @@ class Mensagem {
       remetenteTipo: remetenteTipo ?? this.remetenteTipo,
       remetenteId: remetenteId ?? this.remetenteId,
       remetenteNome: remetenteNome ?? this.remetenteNome,
+      remetenteFoto: remetenteFoto ?? this.remetenteFoto,
       conteudo: conteudo ?? this.conteudo,
       tipoConteudo: tipoConteudo ?? this.tipoConteudo,
       anexoUrl: anexoUrl ?? this.anexoUrl,

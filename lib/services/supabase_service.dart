@@ -1396,4 +1396,86 @@ class SupabaseService {
       rethrow;
     }
   }
+
+  /// Faz upload da foto de perfil do proprietário para o Storage e atualiza a URL no banco
+  static Future<Map<String, dynamic>?> uploadProprietarioFotoPerfil(
+    String proprietarioId,
+    File imageFile,
+  ) async {
+    try {
+      // Detectar a extensão do arquivo
+      final fileName = imageFile.path.split('/').last;
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      
+      // Validar extensão
+      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+
+      // Gerar nome único para o arquivo
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'proprietarios/$proprietarioId/$timestamp.$extension';
+
+      // Fazer upload para o Storage
+      final bytes = await imageFile.readAsBytes();
+      await client.storage.from('fotos_perfil').uploadBinary(storagePath, bytes);
+
+      // Obter a URL pública
+      final imageUrl =
+          client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+
+      // Atualizar a URL no banco de dados
+      final response = await client
+          .from('proprietarios')
+          .update({'foto_perfil': imageUrl})
+          .eq('id', proprietarioId)
+          .select()
+          .single();
+
+      return response;
+    } catch (e) {
+      print('Erro ao fazer upload da foto de perfil do proprietário: $e');
+      rethrow;
+    }
+  }
+
+  /// Faz upload da foto de perfil do inquilino para o Storage e atualiza a URL no banco
+  static Future<Map<String, dynamic>?> uploadInquilinoFotoPerfil(
+    String inquilinoId,
+    File imageFile,
+  ) async {
+    try {
+      // Detectar a extensão do arquivo
+      final fileName = imageFile.path.split('/').last;
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      
+      // Validar extensão
+      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+
+      // Gerar nome único para o arquivo
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'inquilinos/$inquilinoId/$timestamp.$extension';
+
+      // Fazer upload para o Storage
+      final bytes = await imageFile.readAsBytes();
+      await client.storage.from('fotos_perfil').uploadBinary(storagePath, bytes);
+
+      // Obter a URL pública
+      final imageUrl =
+          client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+
+      // Atualizar a URL no banco de dados
+      final response = await client
+          .from('inquilinos')
+          .update({'foto_perfil': imageUrl})
+          .eq('id', inquilinoId)
+          .select()
+          .single();
+
+      return response;
+    } catch (e) {
+      print('Erro ao fazer upload da foto de perfil do inquilino: $e');
+      rethrow;
+    }
+  }
 }

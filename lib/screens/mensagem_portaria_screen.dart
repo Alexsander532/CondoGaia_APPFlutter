@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:condogaiaapp/models/mensagem.dart';
 import 'package:condogaiaapp/services/mensagens_service.dart';
 import 'package:condogaiaapp/services/conversas_service.dart';
+import 'package:condogaiaapp/widgets/foto_perfil_avatar.dart';
 
 /// Tela de chat para USUÁRIO (Proprietário/Inquilino) conversar com Portaria
 /// 
@@ -321,63 +322,92 @@ class MensagemTile extends StatelessWidget {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-        child: Column(
-          crossAxisAlignment:
-              isUsuario ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment:
+              isUsuario ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Remetente (se necessário)
+            // Avatar (esquerda, apenas para não usuário)
             if (!isUsuario)
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  mensagem.remetenteNome,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                padding: const EdgeInsets.only(right: 8, bottom: 4),
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: FotoPerfilAvatar(
+                    fotoUrl: mensagem.remetenteFoto,
+                    nome: mensagem.remetenteNome,
+                    radius: 16,
                   ),
                 ),
               ),
 
-            // Mensagem
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isUsuario ? Colors.blue : Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                mensagem.conteudo,
-                style: TextStyle(
-                  color: isUsuario ? Colors.white : Colors.black87,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-
-            // Data/Status
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            // Coluna com mensagem
+            Expanded(
+              child: Column(
+                crossAxisAlignment: isUsuario
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    mensagem.horaFormatada,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[500],
+                  // Remetente (se necessário)
+                  if (!isUsuario)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        mensagem.remetenteNome,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                  // Mensagem
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isUsuario ? Colors.blue : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      mensagem.conteudo,
+                      style: TextStyle(
+                        color: isUsuario ? Colors.white : Colors.black87,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
-                  if (isUsuario) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      mensagem.lida
-                          ? Icons.done_all
-                          : Icons.done,
-                      size: 12,
-                      color: mensagem.lida ? Colors.blue : Colors.grey[500],
+
+                  // Data/Status
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          mensagem.horaFormatada,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        if (isUsuario) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            mensagem.lida
+                                ? Icons.done_all
+                                : Icons.done,
+                            size: 12,
+                            color: mensagem.lida
+                                ? Colors.blue
+                                : Colors.grey[500],
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),

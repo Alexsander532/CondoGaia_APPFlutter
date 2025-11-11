@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/proprietario.dart';
 import '../services/supabase_service.dart';
 import '../screens/proprietario_dashboard_screen.dart';
-
-// Conditional import for File (only for mobile/desktop)
-import 'dart:io' if (dart.library.html) 'dart:html' as io;
 
 class UploadFotoPerfilProprietarioScreen extends StatefulWidget {
   final Proprietario proprietario;
@@ -26,11 +23,10 @@ class UploadFotoPerfilProprietarioScreen extends StatefulWidget {
 class _UploadFotoPerfilProprietarioScreenState
     extends State<UploadFotoPerfilProprietarioScreen> {
   final ImagePicker _picker = ImagePicker();
-  final SupabaseService _supabaseService = SupabaseService();
 
   Uint8List? _selectedImageBytes;
+  XFile? _selectedImageFile;
   bool _isUploading = false;
-  String? _imageBase64;
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -43,11 +39,10 @@ class _UploadFotoPerfilProprietarioScreenState
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        final base64String = base64Encode(bytes);
 
         setState(() {
           _selectedImageBytes = bytes;
-          _imageBase64 = 'data:image/jpeg;base64,$base64String';
+          _selectedImageFile = image;
         });
       }
     } catch (e) {
@@ -63,7 +58,7 @@ class _UploadFotoPerfilProprietarioScreenState
   }
 
   Future<void> _uploadFoto() async {
-    if (_imageBase64 == null) {
+    if (_selectedImageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, selecione uma foto'),
@@ -78,20 +73,27 @@ class _UploadFotoPerfilProprietarioScreenState
     });
 
     try {
-      final success = await SupabaseService.updateProprietarioFotoPerfil(
+      // Converter XFile para File
+      final imageFile = File(_selectedImageFile!.path);
+      
+      // Fazer upload usando o novo método que salva no Storage
+      final uploadedProprietario = await SupabaseService.uploadProprietarioFotoPerfil(
         widget.proprietario.id,
-        _imageBase64!,
+        imageFile,
       );
 
       if (mounted) {
-        if (success != null) {
+        if (uploadedProprietario != null) {
+          // Atualizar o proprietário com a nova foto
+          final updatedProprietario = widget.proprietario.copyWith(
+            fotoPerfil: uploadedProprietario['foto_perfil'],
+          );
+
           // Navegar para o dashboard
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => ProprietarioDashboardScreen(
-                proprietario: widget.proprietario.copyWith(
-                  fotoPerfil: _imageBase64,
-                ),
+                proprietario: updatedProprietario,
               ),
             ),
           );

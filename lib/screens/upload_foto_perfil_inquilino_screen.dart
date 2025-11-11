@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/inquilino.dart';
 import '../services/supabase_service.dart';
 import '../screens/inquilino_dashboard_screen.dart';
-
-// Conditional import for File (only for mobile/desktop)
-import 'dart:io' if (dart.library.html) 'dart:html' as io;
 
 class UploadFotoPerfilInquilinoScreen extends StatefulWidget {
   final Inquilino inquilino;
@@ -23,11 +20,10 @@ class UploadFotoPerfilInquilinoScreen extends StatefulWidget {
 class _UploadFotoPerfilInquilinoScreenState
     extends State<UploadFotoPerfilInquilinoScreen> {
   final ImagePicker _picker = ImagePicker();
-  final SupabaseService _supabaseService = SupabaseService();
 
   Uint8List? _selectedImageBytes;
+  XFile? _selectedImageFile;
   bool _isUploading = false;
-  String? _imageBase64;
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -40,11 +36,10 @@ class _UploadFotoPerfilInquilinoScreenState
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        final base64String = base64Encode(bytes);
 
         setState(() {
           _selectedImageBytes = bytes;
-          _imageBase64 = 'data:image/jpeg;base64,$base64String';
+          _selectedImageFile = image;
         });
       }
     } catch (e) {
@@ -92,7 +87,7 @@ class _UploadFotoPerfilInquilinoScreenState
   }
 
   Future<void> _uploadFoto() async {
-    if (_imageBase64 == null) {
+    if (_selectedImageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, selecione uma foto'),
@@ -107,18 +102,27 @@ class _UploadFotoPerfilInquilinoScreenState
     });
 
     try {
-      final success = await SupabaseService.updateInquilinoFotoPerfil(
+      // Converter XFile para File
+      final imageFile = File(_selectedImageFile!.path);
+      
+      // Fazer upload usando o novo método que salva no Storage
+      final uploadedInquilino = await SupabaseService.uploadInquilinoFotoPerfil(
         widget.inquilino.id,
-        _imageBase64!,
+        imageFile,
       );
 
       if (mounted) {
-        if (success != null) {
+        if (uploadedInquilino != null) {
+          // Atualizar o inquilino com a nova foto
+          final updatedInquilino = widget.inquilino.copyWith(
+            fotoPerfil: uploadedInquilino['foto_perfil'],
+          );
+
           // Navegar para o dashboard
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => InquilinoDashboardScreen(
-                inquilino: widget.inquilino.copyWith(fotoPerfil: _imageBase64),
+                inquilino: updatedInquilino,
               ),
             ),
           );
