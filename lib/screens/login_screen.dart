@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/supabase_service.dart';
 import '../screens/ADMIN/home_screen.dart';
 import '../screens/representante_dashboard_screen.dart';
 import '../screens/proprietario_dashboard_screen.dart';
 import '../screens/inquilino_dashboard_screen.dart';
+import '../screens/representante_home_screen.dart';
+import '../screens/inquilino_home_screen.dart';
 import '../screens/upload_foto_perfil_screen.dart';
 import '../screens/upload_foto_perfil_proprietario_screen.dart';
 import '../screens/upload_foto_perfil_inquilino_screen.dart';
@@ -68,12 +71,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialPageRoute(builder: (context) => UploadFotoPerfilScreen(representante: result.representante!)),
               );
             } else {
-              // Já tem foto - ir direto para dashboard
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-                  representante: result.representante!,
-                )),
-              );
+              // Já tem foto - verificar se tem múltiplas unidades/condominios
+              _redirectRepresentante(result);
             }
           } else if (result.userType == UserType.proprietario) {
             // Verificar se proprietário tem foto de perfil
@@ -83,12 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialPageRoute(builder: (context) => UploadFotoPerfilProprietarioScreen(proprietario: result.proprietario!)),
               );
             } else {
-              // Já tem foto - ir direto para dashboard
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-                  proprietario: result.proprietario!,
-                )),
-              );
+              // Já tem foto - verificar se tem múltiplas unidades/condominios
+              _redirectProprietario(result);
             }
           } else if (result.userType == UserType.inquilino) {
             // Verificar se inquilino tem foto de perfil
@@ -98,12 +93,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialPageRoute(builder: (context) => UploadFotoPerfilInquilinoScreen(inquilino: result.inquilino!)),
               );
             } else {
-              // Já tem foto - ir direto para dashboard
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-                  inquilino: result.inquilino!,
-                )),
-              );
+              // Já tem foto - verificar se tem múltiplas unidades/condominios
+              _redirectInquilino(result);
             }
           }
         } else {
@@ -120,6 +111,229 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  /// Verifica se o representante tem apenas 1 condomínio e 1 unidade
+  /// Se sim, vai direto para a home; senão, vai para o dashboard
+  Future<void> _redirectRepresentante(result) async {
+    try {
+      // Buscar condominios do representante
+      final condominios = await SupabaseService.client
+          .from('condominios')
+          .select('id, nome_condominio, cnpj')
+          .eq('representante_id', result.representante!.id);
+      
+      if (condominios.isEmpty) {
+        // Sem condominios, ir para dashboard (que mostrará erro)
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
+              representante: result.representante!,
+            )),
+          );
+        }
+        return;
+      }
+      
+      // Se tem apenas 1 condomínio
+      if (condominios.length == 1) {
+        final condominio = condominios[0];
+        
+        // Buscar unidades do representante nesse condomínio
+        final unidades = await SupabaseService.client
+            .from('unidades')
+            .select('id, numero, bloco')
+            .eq('condominio_id', condominio['id']);
+        
+        // Se tem apenas 1 unidade, ir direto para a home
+        if (unidades.length == 1) {
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => RepresentanteHomeScreen(
+                representante: result.representante!,
+                condominioId: condominio['id'],
+                condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
+                condominioCnpj: condominio['cnpj'] ?? 'N/A',
+              )),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Se tem múltiplos condominios ou múltiplas unidades, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
+            representante: result.representante!,
+          )),
+        );
+      }
+    } catch (e) {
+      print('Erro ao verificar condominios: $e');
+      // Em caso de erro, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
+            representante: result.representante!,
+          )),
+        );
+      }
+    }
+  }
+
+  /// Verifica se o proprietário tem apenas 1 condomínio e 1 unidade
+  /// Se sim, vai direto para a home; senão, vai para o dashboard
+  Future<void> _redirectProprietario(result) async {
+    try {
+      // Buscar unidades do proprietário
+      final unidades = await SupabaseService.client
+          .from('proprietarios')
+          .select('unidade_id')
+          .eq('id', result.proprietario!.id);
+      
+      if (unidades.isEmpty) {
+        // Sem unidades, ir para dashboard
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
+              proprietario: result.proprietario!,
+            )),
+          );
+        }
+        return;
+      }
+      
+      // Se tem apenas 1 unidade
+      if (unidades.length == 1) {
+        final unidadeId = unidades[0]['unidade_id'];
+        
+        // Buscar dados da unidade
+        final unidadeData = await SupabaseService.client
+            .from('unidades')
+            .select('id, numero, bloco, condominio_id')
+            .eq('id', unidadeId)
+            .single();
+        
+        // Buscar dados do condomínio
+        final condominioData = await SupabaseService.client
+            .from('condominios')
+            .select('id, nome_condominio, cnpj')
+            .eq('id', unidadeData['condominio_id'])
+            .single();
+        
+        // Ir direto para a home
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
+              condominioId: condominioData['id'],
+              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+              proprietarioId: result.proprietario!.id,
+              unidadeId: unidadeData['id'],
+              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+            )),
+          );
+        }
+        return;
+      }
+      
+      // Se tem múltiplas unidades, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
+            proprietario: result.proprietario!,
+          )),
+        );
+      }
+    } catch (e) {
+      print('Erro ao verificar unidades: $e');
+      // Em caso de erro, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
+            proprietario: result.proprietario!,
+          )),
+        );
+      }
+    }
+  }
+
+  /// Verifica se o inquilino tem apenas 1 condomínio e 1 unidade
+  /// Se sim, vai direto para a home; senão, vai para o dashboard
+  Future<void> _redirectInquilino(result) async {
+    try {
+      // Buscar unidades do inquilino
+      final unidades = await SupabaseService.client
+          .from('inquilinos')
+          .select('unidade_id')
+          .eq('id', result.inquilino!.id);
+      
+      if (unidades.isEmpty) {
+        // Sem unidades, ir para dashboard
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
+              inquilino: result.inquilino!,
+            )),
+          );
+        }
+        return;
+      }
+      
+      // Se tem apenas 1 unidade
+      if (unidades.length == 1) {
+        final unidadeId = unidades[0]['unidade_id'];
+        
+        // Buscar dados da unidade
+        final unidadeData = await SupabaseService.client
+            .from('unidades')
+            .select('id, numero, bloco, condominio_id')
+            .eq('id', unidadeId)
+            .single();
+        
+        // Buscar dados do condomínio
+        final condominioData = await SupabaseService.client
+            .from('condominios')
+            .select('id, nome_condominio, cnpj')
+            .eq('id', unidadeData['condominio_id'])
+            .single();
+        
+        // Ir direto para a home
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
+              condominioId: condominioData['id'],
+              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+              inquilinoId: result.inquilino!.id,
+              unidadeId: unidadeData['id'],
+              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+            )),
+          );
+        }
+        return;
+      }
+      
+      // Se tem múltiplas unidades, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
+            inquilino: result.inquilino!,
+          )),
+        );
+      }
+    } catch (e) {
+      print('Erro ao verificar unidades: $e');
+      // Em caso de erro, ir para dashboard
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
+            inquilino: result.inquilino!,
+          )),
+        );
       }
     }
   }

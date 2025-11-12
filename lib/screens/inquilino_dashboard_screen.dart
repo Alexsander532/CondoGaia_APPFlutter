@@ -426,7 +426,21 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right, color: Colors.grey),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Entrar',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.chevron_right, color: Colors.grey),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
