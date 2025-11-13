@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/representante.dart';
 import 'documentos_screen.dart';
 import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'gestao_screen.dart';
+import '../services/auth_service.dart';
+import '../screens/login_screen.dart';
 
 import 'representante_dashboard_screen.dart';
 
