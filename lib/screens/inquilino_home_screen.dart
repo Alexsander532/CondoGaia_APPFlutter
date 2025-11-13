@@ -265,6 +265,21 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
               ),
               child: Row(
                 children: [
+                  // Setas de mudança de condomínio no canto esquerdo
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        // Voltar para o dashboard anterior
+                        Navigator.pop(context);
+                      },
+                      child: Image.asset(
+                        'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
+                        height: 35,
+                        width: 35,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Column(
                       children: [
@@ -289,16 +304,15 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                       ],
                     ),
                   ),
-                  // Setas de mudança de condomínio no canto inferior direito
+                  // Ícone de compartilhamento no lado direito
                   Padding(
-                    padding: const EdgeInsets.only(left: 0.0),
+                    padding: const EdgeInsets.only(left: 12.0),
                     child: GestureDetector(
                       onTap: () {
-                        // Voltar para o dashboard anterior
-                        Navigator.pop(context);
+                        // TODO: Implementar compartilhamento
                       },
                       child: Image.asset(
-                        'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
+                        'assets/images/Compartilhar.png',
                         height: 35,
                         width: 35,
                       ),

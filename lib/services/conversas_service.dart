@@ -556,9 +556,38 @@ class ConversasService {
               usuarioId: propId,
               usuarioNome: propNome,
             );
+            
+            // Busca dados da unidade separadamente
+            try {
+              final unidadeResponse = await _supabase
+                  .from('unidades')
+                  .select('numero, bloco')
+                  .eq('id', unidadeId)
+                  .single();
+              
+              final numero = unidadeResponse['numero'] as String?;
+              final bloco = unidadeResponse['bloco'] as String?;
+              
+              String? unidadeNumero;
+              if (numero != null) {
+                unidadeNumero = bloco != null && bloco.isNotEmpty 
+                    ? '$bloco/$numero'
+                    : numero;
+              }
+              
+              // Atualiza conversa com unidadeNumero
+              if (unidadeNumero != null) {
+                await _supabase
+                    .from('conversas')
+                    .update({'unidade_numero': unidadeNumero})
+                    .eq('id', conversa.id);
+              }
+            } catch (e) {
+              print('Erro ao buscar unidade para proprietário $propNome: $e');
+            }
+            
             novasConversas.add(conversa);
           } catch (e) {
-            // Log silencioso de erro individual
             print('Erro ao criar conversa com proprietário $propNome: $e');
           }
         }
@@ -581,9 +610,38 @@ class ConversasService {
               usuarioId: inqId,
               usuarioNome: inqNome,
             );
+            
+            // Busca dados da unidade separadamente
+            try {
+              final unidadeResponse = await _supabase
+                  .from('unidades')
+                  .select('numero, bloco')
+                  .eq('id', unidadeId)
+                  .single();
+              
+              final numero = unidadeResponse['numero'] as String?;
+              final bloco = unidadeResponse['bloco'] as String?;
+              
+              String? unidadeNumero;
+              if (numero != null) {
+                unidadeNumero = bloco != null && bloco.isNotEmpty 
+                    ? '$bloco/$numero'
+                    : numero;
+              }
+              
+              // Atualiza conversa com unidadeNumero
+              if (unidadeNumero != null) {
+                await _supabase
+                    .from('conversas')
+                    .update({'unidade_numero': unidadeNumero})
+                    .eq('id', conversa.id);
+              }
+            } catch (e) {
+              print('Erro ao buscar unidade para inquilino $inqNome: $e');
+            }
+            
             novasConversas.add(conversa);
           } catch (e) {
-            // Log silencioso de erro individual
             print('Erro ao criar conversa com inquilino $inqNome: $e');
           }
         }

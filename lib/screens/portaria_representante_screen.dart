@@ -472,6 +472,7 @@ class _PortariaRepresentanteScreenState
                         label: 'Nome:',
                         controller: _visitanteNomeController,
                         hintText: 'José Marcos da Silva',
+                        isRequired: true,
                       ),
 
                       const SizedBox(height: 16),
@@ -485,6 +486,7 @@ class _PortariaRepresentanteScreenState
                         errorText: _cpfError,
                         mask: Formatters.cpfFormatter,
                         keyboardType: TextInputType.number,
+                        isRequired: true,
                       ),
 
                       const SizedBox(height: 16),
@@ -494,6 +496,7 @@ class _PortariaRepresentanteScreenState
                         label: 'Endereço:',
                         controller: _visitanteEnderecoController,
                         hintText: 'Rua Almirante Carlos Guedert',
+                        isRequired: true,
                       ),
 
                       const SizedBox(height: 16),
@@ -520,6 +523,7 @@ class _PortariaRepresentanteScreenState
                               errorText: _celularError,
                               mask: Formatters.phoneFormatter,
                               keyboardType: TextInputType.phone,
+                              isRequired: true,
                             ),
                           ),
                         ],
@@ -535,6 +539,7 @@ class _PortariaRepresentanteScreenState
                         onChanged: _validateEmail,
                         errorText: _emailError,
                         keyboardType: TextInputType.emailAddress,
+                        isRequired: true,
                       ),
 
                       const SizedBox(height: 16),
@@ -987,17 +992,31 @@ class _PortariaRepresentanteScreenState
     String? errorText,
     mask,
     TextInputType? keyboardType,
+    bool isRequired = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF333333),
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            if (isRequired)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.red,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         Container(
@@ -1652,39 +1671,44 @@ class _PortariaRepresentanteScreenState
       ),
       child: Row(
         children: [
-          // Avatar
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.grey[300],
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          // Avatar - com opção de ampliar ao clicar
+          GestureDetector(
+            onTap: pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
+                ? () => _mostrarFotoAmpliada(pessoa['fotoPerfil'], pessoa['nome'])
+                : null,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[300],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child:
+                  pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        pessoa['fotoPerfil'],
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.person,
+                            color: Colors.grey[600],
+                            size: 28,
+                          );
+                        },
+                      ),
+                    )
+                  : Icon(Icons.person, color: Colors.grey[600], size: 28),
             ),
-            child:
-                pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
-                ? ClipOval(
-                    child: Image.network(
-                      pessoa['fotoPerfil'],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.person,
-                          color: Colors.grey[600],
-                          size: 28,
-                        );
-                      },
-                    ),
-                  )
-                : Icon(Icons.person, color: Colors.grey[600], size: 28),
           ),
 
           const SizedBox(width: 12),
@@ -4297,4 +4321,96 @@ class _PortariaRepresentanteScreenState
       }
     }
   }
+
+  /// Mostra a foto ampliada em um diálogo
+  void _mostrarFotoAmpliada(String fotoUrl, String nome) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Cabeçalho com nome
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1976D2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        nome,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Foto ampliada
+              Flexible(
+                child: Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 500,
+                  ),
+                  child: Image.network(
+                    fotoUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Erro ao carregar a foto',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
+

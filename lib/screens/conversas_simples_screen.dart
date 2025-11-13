@@ -298,37 +298,44 @@ class _ConversasSimplesState extends State<ConversasSimples> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nome + Unidade (mesma linha)
+                      // Tipo (P/I) + Unidade + Nome (mesma linha com ellipsis)
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              conversa.usuarioNome,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF2C3E50),
+                            child: RichText(
+                              text: TextSpan(
+                                children: [
+                                  // Badge P/I
+                                  TextSpan(
+                                    text: '[${conversa.usuarioTipo.startsWith('proprietario') ? 'P' : 'I'}] ',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2C3E50),
+                                    ),
+                                  ),
+                                  // Unidade
+                                  TextSpan(
+                                    text: '${conversa.unidadeNumero ?? 'N/A'} - ',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  // Nome com ellipsis
+                                  TextSpan(
+                                    text: conversa.usuarioNome,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2C3E50),
+                                    ),
+                                  ),
+                                ],
                               ),
                               overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              conversa.unidadeNumero ?? 'N/A',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w500,
-                              ),
+                              maxLines: 1,
                             ),
                           ),
                         ],

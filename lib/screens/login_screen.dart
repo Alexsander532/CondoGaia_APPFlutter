@@ -141,29 +141,21 @@ class _LoginScreenState extends State<LoginScreen> {
       if (condominios.length == 1) {
         final condominio = condominios[0];
         
-        // Buscar unidades do representante nesse condomínio
-        final unidades = await SupabaseService.client
-            .from('unidades')
-            .select('id, numero, bloco')
-            .eq('condominio_id', condominio['id']);
-        
-        // Se tem apenas 1 unidade, ir direto para a home
-        if (unidades.length == 1) {
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => RepresentanteHomeScreen(
-                representante: result.representante!,
-                condominioId: condominio['id'],
-                condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
-                condominioCnpj: condominio['cnpj'] ?? 'N/A',
-              )),
-            );
-          }
-          return;
+        // Ir direto para a home desse condomínio
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => RepresentanteHomeScreen(
+              representante: result.representante!,
+              condominioId: condominio['id'],
+              condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominio['cnpj'] ?? 'N/A',
+            )),
+          );
         }
+        return;
       }
       
-      // Se tem múltiplos condominios ou múltiplas unidades, ir para dashboard
+      // Se tem múltiplos condominios, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(

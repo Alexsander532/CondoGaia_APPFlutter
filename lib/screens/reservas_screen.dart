@@ -169,6 +169,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
+      // Validar se a data é no futuro (usando horário de Brasília)
+      final agora = DateTime.now().toUtc();
+      final agoraBrasilia = agora.add(const Duration(hours: -3));
+      final todayBrasilia = DateTime(agoraBrasilia.year, agoraBrasilia.month, agoraBrasilia.day);
+      final selectedDateWithoutTime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+      
+      if (selectedDateWithoutTime.isBefore(todayBrasilia) || selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('A reserva deve ser para uma data futura')),
+          );
+        }
+        return;
+      }
+
       // Obter o ambiente selecionado para pegar o nome (local)
       final ambiente = _ambientes.firstWhere(
         (a) => a.id == _selectedAmbienteId,
@@ -261,6 +276,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
           ),
         );
       }
+      // Recarregar reservas para aparecer automaticamente
+      await _carregarReservas();
+     
 
       // Limpar os campos
       _horaInicioController.clear();
@@ -269,7 +287,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       _valorController.text = 'R\$ 100,00';
       
       // Fechar o modal após um curto delay
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 00));
       if (mounted) {
         Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o modal
       }
@@ -278,10 +296,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
       print('❌ [ReservasScreen] ERRO: $e');
       print('❌ [ReservasScreen] Stack trace: $stackTrace');
       
+     
       // Fechar o diálogo de carregamento se estiver aberto
-      if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o dialog
-      }
+      //if (mounted) {
+      //  Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o dialog
+      //}
 
       // Mostrar mensagem de erro
       if (mounted) {
@@ -419,6 +438,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       final horaInicio = _horaInicioController.text;
       final horaFim = _horaFimController.text;
+
+      // Validar se a data é no futuro (usando horário de Brasília)
+      final agora = DateTime.now().toUtc();
+      final agoraBrasilia = agora.add(const Duration(hours: -3));
+      final todayBrasilia = DateTime(agoraBrasilia.year, agoraBrasilia.month, agoraBrasilia.day);
+      final selectedDateWithoutTime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+      
+      if (selectedDateWithoutTime.isBefore(todayBrasilia) || selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('A reserva deve ser para uma data futura'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       // Mostrar loading
       if (mounted) {

@@ -84,9 +84,18 @@ class ReservaService {
       print('🔵 [ReservaService] Iniciando criarReserva...');
       print('🔵 [ReservaService] representanteId: $representanteId');
       print('🔵 [ReservaService] ambienteId: $ambienteId');
+      print('🔵 [ReservaService] horaInicio recebido: $horaInicio');
+      print('🔵 [ReservaService] horaFim recebido: $horaFim');
+      
+      // Normalizar horários para o formato HH:MM:SS
+      final horaInicioNormalizada = _normalizeTime(horaInicio);
+      final horaFimNormalizada = _normalizeTime(horaFim);
+      
+      print('🔵 [ReservaService] horaInicio normalizada: $horaInicioNormalizada');
+      print('🔵 [ReservaService] horaFim normalizada: $horaFimNormalizada');
       
       // Validar se o horário é válido
-      if (!_isValidTimeRange(horaInicio, horaFim)) {
+      if (!_isValidTimeRange(horaInicioNormalizada, horaFimNormalizada)) {
         throw Exception('Horário inválido: hora de fim deve ser posterior à hora de início');
       }
 
@@ -95,8 +104,8 @@ class ReservaService {
         'ambiente_id': ambienteId,
         'representante_id': representanteId,
         'data_reserva': dataReserva.toIso8601String().split('T')[0],
-        'hora_inicio': horaInicio,
-        'hora_fim': horaFim,
+        'hora_inicio': horaInicioNormalizada,
+        'hora_fim': horaFimNormalizada,
         'valor_locacao': valorLocacao,
         'para': para,
         'local': local,
@@ -184,8 +193,8 @@ class ReservaService {
       
       if (ambienteId != null) dados['ambiente_id'] = ambienteId;
       if (dataReserva != null) dados['data_reserva'] = dataReserva.toIso8601String().split('T')[0];
-      if (horaInicio != null) dados['hora_inicio'] = horaInicio;
-      if (horaFim != null) dados['hora_fim'] = horaFim;
+      if (horaInicio != null) dados['hora_inicio'] = _normalizeTime(horaInicio);
+      if (horaFim != null) dados['hora_fim'] = _normalizeTime(horaFim);
       if (listaPresentes != null) dados['lista_presentes'] = listaPresentes;
       if (valorLocacao != null) {
         dados['valor_locacao'] = valorLocacao;
@@ -195,7 +204,9 @@ class ReservaService {
 
       // Validar horário se foi alterado
       if (horaInicio != null && horaFim != null) {
-        if (!_isValidTimeRange(horaInicio, horaFim)) {
+        final horaInicioNormalizada = _normalizeTime(horaInicio);
+        final horaFimNormalizada = _normalizeTime(horaFim);
+        if (!_isValidTimeRange(horaInicioNormalizada, horaFimNormalizada)) {
           throw Exception('Horário inválido: hora de fim deve ser posterior à hora de início');
         }
       }
@@ -354,6 +365,33 @@ class ReservaService {
     final time2End = _parseTime(fim2);
     
     return time1Start < time2End && time2Start < time1End;
+  }
+
+  /// Normalizar tempo para o formato HH:MM:SS
+  static String _normalizeTime(String timeString) {
+    try {
+      // Remove espaços
+      timeString = timeString.trim();
+      
+      // Se já tem HH:MM:SS, retorna como está
+      if (timeString.contains(':') && timeString.split(':').length == 3) {
+        return timeString;
+      }
+      
+      // Se tem HH:MM, adiciona :00
+      if (timeString.contains(':') && timeString.split(':').length == 2) {
+        return '$timeString:00';
+      }
+      
+      // Se é apenas HH, converte para HH:00:00
+      if (!timeString.contains(':')) {
+        return '$timeString:00:00';
+      }
+      
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
   }
 
   /// Converter string de horário para minutos desde meia-noite

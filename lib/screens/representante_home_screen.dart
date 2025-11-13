@@ -4,7 +4,7 @@ import 'documentos_screen.dart';
 import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'gestao_screen.dart';
-import 'contatos_chat_representante_screen.dart';
+
 import 'representante_dashboard_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
@@ -157,14 +157,11 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_chat.png',
                       title: 'Chat',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ContatosChatRepresentanteScreen(
-                              representante: widget.representante,
-                              condominioId: widget.condominioId,
-                              condominioNome: widget.condominioNome,
-                            ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       },
@@ -173,7 +170,13 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Classificados.png',
                       title: 'Classificados',
                       onTap: () {
-                        // TODO: Implementar navegação para classificados
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
@@ -209,10 +212,10 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Controle.png',
                       title: 'Controle',
                       onTap: () {
-                        // TODO: Implementar navegação para controle do representante
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Funcionalidade de Controle em desenvolvimento'),
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -222,7 +225,13 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_Cursos.png',
                       title: 'Cursos',
                       onTap: () {
-                        // TODO: Implementar navegação para Cursos
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
@@ -259,14 +268,26 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       imagePath: 'assets/images/Representante/HOME/Imagem_FolhaFunc.png',
                       title: 'Folha Func.',
                       onTap: () {
-                        // TODO: Implementar navegação para Folha Func.
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
                       imagePath: 'assets/images/Representante/HOME/Imagem_Leitura.png',
                       title: 'Leitura',
                       onTap: () {
-                        // TODO: Implementar navegação para Leitura
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Em breve'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -290,6 +311,28 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
               ),
               child: Row(
                 children: [
+                  // Setas de mudança de condomínio no canto esquerdo
+                  Padding(
+                    padding: const EdgeInsets.only(right: 0.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        // Navegar para o dashboard principal do representante
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RepresentanteDashboardScreen(
+                              representante: widget.representante,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
+                        height: 35,
+                        width: 35,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Column(
                       children: [
@@ -314,23 +357,15 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                       ],
                     ),
                   ),
-                  // Setas de mudança de condomínio no canto inferior direito
+                  // Ícone de compartilhamento no lado direito
                   Padding(
-                    padding: const EdgeInsets.only(left: 0.0),
+                    padding: const EdgeInsets.only(left: 12.0),
                     child: GestureDetector(
                       onTap: () {
-                        // Navegar para o dashboard principal do representante
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RepresentanteDashboardScreen(
-                              representante: widget.representante,
-                            ),
-                          ),
-                        );
+                        // TODO: Implementar compartilhamento
                       },
                       child: Image.asset(
-                        'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',
+                        'assets/images/Compartilhar.png',
                         height: 35,
                         width: 35,
                       ),

@@ -205,11 +205,11 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField('Cidade:', _cidadeController, '', required: true),
+                          child: _buildDropdownField('Estado:', _estadoSelecionado, _estados, required: true),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildDropdownField('Estado:', _estadoSelecionado, _estados, required: true),
+                          child: _buildTextField('Cidade:', _cidadeController, '', required: true),
                         ),
                       ],
                     ),
