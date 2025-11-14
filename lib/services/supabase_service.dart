@@ -824,6 +824,32 @@ class SupabaseService {
     }
   }
 
+  /// Buscar todas as pastas (públicas E privadas) - para REPRESENTANTE
+  static Future<List<Map<String, dynamic>>> getPastasDocumentosRepresentante(
+    String condominioId,
+  ) async {
+    try {
+      print('🔍 Buscando todas as pastas (públicas + privadas) do condominio: $condominioId');
+      
+      final response = await client
+          .from('documentos')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('tipo', 'pasta')
+          .order('created_at', ascending: false);
+
+      print('✅ Todas as pastas encontradas: ${response.length}');
+      if (response.isNotEmpty) {
+        print('📋 Primeira pasta: ${response[0]}');
+      }
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Erro ao buscar pastas de documentos: $e');
+      rethrow;
+    }
+  }
+
   /// Buscar arquivos de uma pasta específica
   static Future<List<Map<String, dynamic>>> getArquivosPasta(
     String pastaId,

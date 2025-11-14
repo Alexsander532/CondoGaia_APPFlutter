@@ -80,7 +80,8 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     });
     
     try {
-      final pastasCarregadas = await DocumentoService.getPastas(condominioId);
+      // Usar getPastasRepresentante para mostrar pastas públicas + privadas
+      final pastasCarregadas = await DocumentoService.getPastasRepresentante(condominioId);
       setState(() {
         pastas = pastasCarregadas;
         isLoading = false;
