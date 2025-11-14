@@ -717,13 +717,21 @@ class _CadastroRepresentanteScreenState
 
     return Column(
       children: _resultadosPesquisa.map((resultado) {
+        // Verificar se o condomínio já possui representante
+        final representanteAssociado = resultado['representante_associado'];
+        final temRepresentante = representanteAssociado != null;
+        print('📋 ${resultado['nome_condominio']}: representante_associado=$representanteAssociado, temRepresentante=$temRepresentante');
+        
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF87CEEB),
+            color: temRepresentante ? Colors.orange.shade100 : const Color(0xFF87CEEB),
             borderRadius: BorderRadius.circular(8),
+            border: temRepresentante 
+                ? Border.all(color: Colors.orange.shade400, width: 2)
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -733,6 +741,7 @@ class _CadastroRepresentanteScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Título do condomínio
                     Text(
                       resultado['nome_condominio'] ?? 'Nome não informado',
                       style: const TextStyle(
@@ -741,6 +750,7 @@ class _CadastroRepresentanteScreenState
                         color: Colors.black,
                       ),
                     ),
+                    // Localização
                     Text(
                       '${resultado['condominio_cidade'] ?? 'Cidade não informada'}/${resultado['condominio_estado'] ?? 'UF'}',
                       style: const TextStyle(
@@ -748,11 +758,35 @@ class _CadastroRepresentanteScreenState
                         color: Colors.black87,
                       ),
                     ),
-                    Text(
-                      resultado['nome_completo'] ?? 'Nome não informado',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
+                    // Representante atual (se houver)
+                    if (temRepresentante)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade200,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '✓ Associado: $representanteAssociado',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Nome do representante da pesquisa
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        resultado['nome_completo'] ?? 'Nome não informado',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                   ],
@@ -3160,11 +3194,13 @@ class _CadastroRepresentanteScreenState
   }
 
   /// Widget para seleção de condomínios
+  /// Mostra APENAS condomínios completamente disponíveis (sem representante)
+  /// Condomínios já associados ao representante atual são mantidos automaticamente
   Widget _buildCondominiosSelector(List<String> condominiosSelecionados, StateSetter setState, {String? representanteId}) {
+    print('🏢 SELETOR DE CONDOMÍNIOS: ${condominiosSelecionados.length} selecionados');
+    
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: representanteId != null 
-          ? SupabaseService.getCondominiosDisponiveisParaRepresentante(representanteId)
-          : SupabaseService.getCondominiosDisponiveis(),
+      future: SupabaseService.getCondominiosDisponiveis(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -3174,47 +3210,107 @@ class _CadastroRepresentanteScreenState
           return Text('Erro ao carregar condomínios: ${snapshot.error}');
         }
         
-        final condominios = snapshot.data ?? [];
+        final condominiosDisponiveis = snapshot.data ?? [];
+        print('✅ Carregados ${condominiosDisponiveis.length} condomínios DISPONÍVEIS (sem representante)');
+        
+        if (condominiosDisponiveis.isEmpty) {
+          return Container(
+            height: 150,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.orange.shade300, width: 1.5),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.orange.shade50,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info, color: Colors.orange.shade700, size: 40),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Nenhum condomínio disponível',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Todos os condomínios já estão associados a representantes',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         
         return Container(
-          height: 200,
+          height: 250,
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
+            border: Border.all(color: Colors.grey.shade300, width: 1.5),
             borderRadius: BorderRadius.circular(8),
+            color: Colors.grey.shade50,
           ),
           child: ListView.builder(
-            itemCount: condominios.length,
+            itemCount: condominiosDisponiveis.length,
             itemBuilder: (context, index) {
-              final condominio = condominios[index];
+              final condominio = condominiosDisponiveis[index];
               final condominioId = condominio['id'].toString();
               final isSelected = condominiosSelecionados.contains(condominioId);
-              final hasRepresentante = condominio['representante_id'] != null;
-              final isCurrentRepresentante = representanteId != null && 
-                  condominio['representante_id'] == representanteId;
               
-              // Determinar o subtítulo baseado no status do condomínio
-              String subtitle = '${condominio['cidade'] ?? 'Cidade não informada'}/${condominio['estado'] ?? 'UF'}';
-              if (hasRepresentante && !isCurrentRepresentante) {
-                subtitle += ' (Já possui representante)';
-              } else if (isCurrentRepresentante) {
-                subtitle += ' (Já associado)';
-              } else {
-                subtitle += ' (Disponível)';
-              }
+              print('  ${isSelected ? '✓' : '○'} ${condominio['nome_condominio']}: $condominioId (Disponível)');
               
-              return CheckboxListTile(
-                title: Text(condominio['nome_condominio'] ?? 'Nome não informado'),
-                subtitle: Text(subtitle),
-                value: isSelected,
-                onChanged: (bool? value) {
-                  setState(() {
-                    if (value == true) {
-                      condominiosSelecionados.add(condominioId);
-                    } else {
-                      condominiosSelecionados.remove(condominioId);
-                    }
-                  });
-                },
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.blue.shade50 : Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: CheckboxListTile(
+                  title: Text(
+                    condominio['nome_condominio'] ?? 'Nome não informado',
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? Colors.blue.shade900 : Colors.black87,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${condominio['cidade'] ?? 'Cidade não informada'}/${condominio['estado'] ?? 'UF'} • CNPJ: ${condominio['cnpj'] ?? 'N/A'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  value: isSelected,
+                  activeColor: Colors.blue.shade700,
+                  checkColor: Colors.white,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        if (!condominiosSelecionados.contains(condominioId)) {
+                          condominiosSelecionados.add(condominioId);
+                          print('➕ Condomínio adicionado: ${condominio['nome_condominio']}');
+                        }
+                      } else {
+                        if (condominiosSelecionados.contains(condominioId)) {
+                          condominiosSelecionados.remove(condominioId);
+                          print('➖ Condomínio removido: ${condominio['nome_condominio']}');
+                        }
+                      }
+                    });
+                  },
+                ),
               );
             },
           ),

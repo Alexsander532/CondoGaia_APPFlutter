@@ -369,6 +369,7 @@ class SupabaseService {
   }
 
   /// Pesquisa representantes com dados dos condomínios associados
+  /// Usa o array condominios_selecionados da tabela representantes
   static Future<List<Map<String, dynamic>>>
   pesquisarRepresentantesComCondominios({
     String? uf,
@@ -376,13 +377,10 @@ class SupabaseService {
     String? textoPesquisa,
   }) async {
     try {
-      // Busca representantes com seus condomínios usando JOIN
-      var query = client.from('representantes').select('''
-            *,
-            condominios!condominios_representante_id_fkey(
-              *
-            )
-          ''');
+      print('🔍 PESQUISA REPRESENTANTES: uf=$uf, cidade=$cidade, texto=$textoPesquisa');
+      
+      // Busca representantes com filtros básicos
+      var query = client.from('representantes').select('*');
 
       if (uf != null && uf.isNotEmpty) {
         query = query.eq('uf', uf);
@@ -399,23 +397,80 @@ class SupabaseService {
         );
       }
 
-      final response = await query.order('created_at', ascending: false);
+      final representantes = await query.order('created_at', ascending: false);
+      print('✅ Encontrados ${representantes.length} representantes');
+
+      // Agora busca todos os condomínios para fazer o matching
+      final condominiosResponse = await client
+          .from('condominios')
+          .select('*')
+          .order('nome_condominio');
+      
+      final condominiosMap = <String, Map<String, dynamic>>{};
+      for (final cond in condominiosResponse) {
+        condominiosMap[cond['id'] as String] = cond;
+        print('🏢 Condomínio carregado: ${cond['nome_condominio']} - representante_id: ${cond['representante_id']}');
+      }
+      print('✅ Carregados ${condominiosMap.length} condomínios para matching');
+
+      // Criar mapa de representantes por ID para rápida lookup
+      final representantesMap = <String, Map<String, dynamic>>{};
+      for (final rep in representantes) {
+        representantesMap[rep['id'] as String] = rep;
+      }
+      print('✅ Carregados ${representantesMap.length} representantes para matching');
 
       // Processa os resultados para criar uma linha por condomínio
+      // CORRIÇÃO: Usar representante_id da tabela de condominios como fonte de verdade
       final resultados = <Map<String, dynamic>>[];
 
-      for (final representante in response) {
-        final condominios =
-            representante['condominios'] as List<dynamic>? ?? [];
+      // Agrupar condomínios por representante_id
+      for (final representante in representantes) {
+        // Buscar condomínios que têm este representante_id
+        final condominiosDoRepresentante = condominiosMap.values
+            .where((cond) => cond['representante_id'] == representante['id'])
+            .toList();
 
-        if (condominios.isEmpty) {
-          // Representante sem condomínios
+        print('👤 Representante ${representante['nome_completo']} (${representante['id']}): ${condominiosDoRepresentante.length} condomínios');
+
+        // Pular representantes sem condomínios
+        if (condominiosDoRepresentante.isEmpty) {
+          print('  ⏭️ Pulando ${representante['nome_completo']} (sem condomínios)');
+          continue;
+        }
+        
+        // Para cada condomínio associado a este representante
+        for (final condominio in condominiosDoRepresentante) {
           final resultado = Map<String, dynamic>.from(representante);
-          resultado.remove('condominios'); // Remove a chave condominios
-          resultado['nome_condominio'] = 'Sem condomínio';
-          resultado['cnpj'] = 'N/A';
-          resultado['condominio_cidade'] = 'N/A';
-          resultado['condominio_estado'] = 'N/A';
+          resultado.remove('condominios_selecionados');
+
+          // Adiciona todos os campos do condomínio ao resultado
+          resultado['condominio_id'] = condominio['id'];
+          resultado['nome_condominio'] = condominio['nome_condominio'] ?? 'Sem nome';
+          resultado['cnpj'] = condominio['cnpj'] ?? 'N/A';
+          resultado['cep'] = condominio['cep'];
+          resultado['endereco'] = condominio['endereco'];
+          resultado['numero'] = condominio['numero'];
+          resultado['bairro'] = condominio['bairro'];
+          resultado['condominio_cidade'] = condominio['cidade'];
+          resultado['condominio_estado'] = condominio['estado'];
+          resultado['plano_assinatura'] = condominio['plano_assinatura'];
+          resultado['pagamento'] = condominio['pagamento'];
+          resultado['vencimento'] = condominio['vencimento'];
+          resultado['valor'] = condominio['valor'];
+          resultado['instituicao_financeiro_condominio'] =
+              condominio['instituicao_financeiro_condominio'];
+          resultado['token_financeiro_condominio'] =
+              condominio['token_financeiro_condominio'];
+          resultado['instituicao_financeiro_unidade'] =
+              condominio['instituicao_financeiro_unidade'];
+          resultado['token_financeiro_unidade'] =
+              condominio['token_financeiro_unidade'];
+
+          // O representante associado é o próprio representante
+          resultado['representante_associado'] = representante['nome_completo'];
+          resultado['representante_id_associado'] = representante['id'];
+          print('🔗 ${condominio['nome_condominio']}: Associado a ${representante['nome_completo']}');
 
           // Aplica filtro de texto se necessário
           if (textoPesquisa == null ||
@@ -423,48 +478,13 @@ class SupabaseService {
               _contemTexto(resultado, textoPesquisa)) {
             resultados.add(resultado);
           }
-        } else {
-          // Para cada condomínio associado
-          for (final condominio in condominios) {
-            final resultado = Map<String, dynamic>.from(representante);
-            resultado.remove('condominios'); // Remove a chave condominios
-
-            // Adiciona todos os campos do condomínio ao resultado
-            resultado['condominio_id'] = condominio['id'];
-            resultado['nome_condominio'] = condominio['nome_condominio'];
-            resultado['cnpj'] = condominio['cnpj'];
-            resultado['cep'] = condominio['cep'];
-            resultado['endereco'] = condominio['endereco'];
-            resultado['numero'] = condominio['numero'];
-            resultado['bairro'] = condominio['bairro'];
-            resultado['condominio_cidade'] = condominio['cidade'];
-            resultado['condominio_estado'] = condominio['estado'];
-            resultado['plano_assinatura'] = condominio['plano_assinatura'];
-            resultado['pagamento'] = condominio['pagamento'];
-            resultado['vencimento'] = condominio['vencimento'];
-            resultado['valor'] = condominio['valor'];
-            resultado['instituicao_financeiro_condominio'] =
-                condominio['instituicao_financeiro_condominio'];
-            resultado['token_financeiro_condominio'] =
-                condominio['token_financeiro_condominio'];
-            resultado['instituicao_financeiro_unidade'] =
-                condominio['instituicao_financeiro_unidade'];
-            resultado['token_financeiro_unidade'] =
-                condominio['token_financeiro_unidade'];
-
-            // Aplica filtro de texto se necessário
-            if (textoPesquisa == null ||
-                textoPesquisa.isEmpty ||
-                _contemTexto(resultado, textoPesquisa)) {
-              resultados.add(resultado);
-            }
-          }
         }
       }
 
+      print('✅ Retornando ${resultados.length} resultados da pesquisa');
       return resultados;
     } catch (e) {
-      print('Erro ao pesquisar representantes com condomínios: $e');
+      print('❌ Erro ao pesquisar representantes com condomínios: $e');
       throw Exception('Erro ao pesquisar representantes: $e');
     }
   }
@@ -500,28 +520,32 @@ class SupabaseService {
   }
 
   /// Busca representantes associados a um condomínio específico
+  /// Verifica quais representantes têm o condomínio em seu array condominios_selecionados
   static Future<List<Map<String, dynamic>>> getRepresentantesByCondominio(
     String condominioId,
   ) async {
     try {
-      // Busca o condomínio e seu representante associado
-      final condominioResponse = await client
-          .from('condominios')
-          .select('''
-            *,
-            representantes!condominios_representante_id_fkey(*)
-          ''')
-          .eq('id', condominioId)
-          .single();
+      print('🔍 BUSCAR REPRESENTANTES DO CONDOMÍNIO: $condominioId');
+      
+      // Busca todos os representantes que têm este condomínio no array
+      final response = await client
+          .from('representantes')
+          .select('*')
+          .not('condominios_selecionados', 'is', null);
 
-      final representante = condominioResponse['representantes'];
-      if (representante != null) {
-        return [representante];
-      } else {
-        return [];
+      final representantesDoCondominio = <Map<String, dynamic>>[];
+      
+      for (final rep in response) {
+        final condominiosIds = rep['condominios_selecionados'] as List<dynamic>? ?? [];
+        if (condominiosIds.contains(condominioId)) {
+          representantesDoCondominio.add(rep);
+        }
       }
+
+      print('✅ Encontrados ${representantesDoCondominio.length} representantes para o condomínio');
+      return representantesDoCondominio;
     } catch (e) {
-      print('Erro ao buscar representantes do condomínio: $e');
+      print('❌ Erro ao buscar representantes do condomínio: $e');
       rethrow;
     }
   }
@@ -583,19 +607,49 @@ class SupabaseService {
   }
 
   /// Busca condomínios associados a um representante específico
+  /// Usa o array condominios_selecionados da tabela representantes
   static Future<List<Map<String, dynamic>>> getCondominiosByRepresentante(
     String representanteId,
   ) async {
     try {
-      final response = await client
-          .from('condominios')
-          .select('*')
-          .eq('representante_id', representanteId)
-          .order('nome_condominio');
+      print('🔍 BUSCAR CONDOMÍNIOS: representante=$representanteId');
+      
+      // Busca o representante e seu array de condomínios
+      final representante = await client
+          .from('representantes')
+          .select('condominios_selecionados')
+          .eq('id', representanteId)
+          .maybeSingle();
 
-      return List<Map<String, dynamic>>.from(response);
+      if (representante == null) {
+        print('❌ Representante não encontrado');
+        return [];
+      }
+
+      final condominiosIds = representante['condominios_selecionados'] as List<dynamic>? ?? [];
+      print('✅ Representante tem ${condominiosIds.length} condomínios');
+
+      if (condominiosIds.isEmpty) {
+        return [];
+      }
+
+      // Busca os dados completos de cada condomínio
+      final resultados = <Map<String, dynamic>>[];
+      for (final condominioId in condominiosIds) {
+        final cond = await client
+            .from('condominios')
+            .select('*')
+            .eq('id', condominioId.toString())
+            .maybeSingle();
+        
+        if (cond != null) {
+          resultados.add(cond);
+        }
+      }
+
+      return resultados;
     } catch (e) {
-      print('Erro ao buscar condomínios do representante: $e');
+      print('❌ Erro ao buscar condomínios do representante: $e');
       rethrow;
     }
   }
@@ -1239,59 +1293,63 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>>
   getRepresentantesComCondominiosParaAdmin() async {
     try {
-      // Busca representantes com seus condomínios usando JOIN
-      final response = await client
+      print('🔍 BUSCAR REPRESENTANTES PARA ADMIN');
+      
+      // Busca todos os representantes
+      final representantes = await client
           .from('representantes')
-          .select('''
-            id,
-            nome_completo,
-            email,
-            senha_acesso,
-            cpf,
-            telefone,
-            celular,
-            cidade,
-            uf,
-            created_at,
-            condominios!condominios_representante_id_fkey(
-              id,
-              nome_condominio,
-              cnpj,
-              cidade,
-              estado
-            )
-          ''')
+          .select('*')
           .order('created_at', ascending: false);
+
+      // Busca todos os condomínios
+      final condominios = await client
+          .from('condominios')
+          .select('*')
+          .order('nome_condominio');
+
+      final condominiosMap = <String, Map<String, dynamic>>{};
+      for (final cond in condominios) {
+        condominiosMap[cond['id'] as String] = cond;
+      }
 
       // Processa os resultados para criar uma estrutura mais amigável
       final resultados = <Map<String, dynamic>>[];
 
-      for (final representante in response) {
-        final condominios =
-            representante['condominios'] as List<dynamic>? ?? [];
+      for (final rep in representantes) {
+        final condominiosIds = rep['condominios_selecionados'] as List<dynamic>? ?? [];
+        
+        // Busca os dados dos condomínios associados
+        final condominiosAssociados = <Map<String, dynamic>>[];
+        for (final condId in condominiosIds) {
+          final cond = condominiosMap[condId.toString()];
+          if (cond != null) {
+            condominiosAssociados.add(cond);
+          }
+        }
 
         // Cria um mapa com os dados do representante e seus condomínios
         final representanteData = {
-          'id': representante['id'],
-          'nome_completo': representante['nome_completo'],
-          'email': representante['email'],
-          'senha_acesso': representante['senha_acesso'],
-          'cpf': representante['cpf'],
-          'telefone': representante['telefone'],
-          'celular': representante['celular'],
-          'cidade': representante['cidade'],
-          'uf': representante['uf'],
-          'created_at': representante['created_at'],
-          'condominios': condominios,
-          'total_condominios': condominios.length,
+          'id': rep['id'],
+          'nome_completo': rep['nome_completo'],
+          'email': rep['email'],
+          'senha_acesso': rep['senha_acesso'],
+          'cpf': rep['cpf'],
+          'telefone': rep['telefone'],
+          'celular': rep['celular'],
+          'cidade': rep['cidade'],
+          'uf': rep['uf'],
+          'created_at': rep['created_at'],
+          'condominios': condominiosAssociados,
+          'total_condominios': condominiosAssociados.length,
         };
 
         resultados.add(representanteData);
       }
 
+      print('✅ Retornando ${resultados.length} representantes para admin');
       return resultados;
     } catch (e) {
-      print('Erro ao buscar representantes com condomínios para admin: $e');
+      print('❌ Erro ao buscar representantes com condomínios para admin: $e');
       rethrow;
     }
   }
@@ -1361,16 +1419,18 @@ class SupabaseService {
     String condominioId,
   ) async {
     try {
+      print('🗑️ DELETANDO CONDOMÍNIO: $condominioId');
+      
       // Primeiro, verificar se existem representantes associados a este condomínio
       final representantesAssociados = await client
           .from('representantes')
-          .select('id, condominios_ids')
-          .not('condominios_ids', 'is', null);
+          .select('id, condominios_selecionados')
+          .not('condominios_selecionados', 'is', null);
 
       // Atualizar representantes que têm este condomínio associado
       for (final representante in representantesAssociados) {
         final condominiosIds =
-            representante['condominios_ids'] as List<dynamic>?;
+            representante['condominios_selecionados'] as List<dynamic>?;
         if (condominiosIds != null && condominiosIds.contains(condominioId)) {
           // Remover o condomínio da lista de condomínios do representante
           final novosCondominiosIds = condominiosIds
@@ -1380,7 +1440,7 @@ class SupabaseService {
           await client
               .from('representantes')
               .update({
-                'condominios_ids': novosCondominiosIds.isEmpty
+                'condominios_selecionados': novosCondominiosIds.isEmpty
                     ? null
                     : novosCondominiosIds,
               })
@@ -1392,10 +1452,10 @@ class SupabaseService {
       await client.from('condominios').delete().eq('id', condominioId);
 
       print(
-        'Condomínio $condominioId deletado e representantes atualizados com sucesso',
+        '✅ Condomínio $condominioId deletado e representantes atualizados com sucesso',
       );
     } catch (e) {
-      print('Erro ao deletar condomínio com atualização de representantes: $e');
+      print('❌ Erro ao deletar condomínio com atualização de representantes: $e');
       rethrow;
     }
   }
@@ -1405,24 +1465,26 @@ class SupabaseService {
     String representanteId,
   ) async {
     try {
+      print('🗑️ DELETANDO REPRESENTANTE: $representanteId');
+      
       // Primeiro, buscar o representante para ver quais condomínios estão associados
       final representante = await client
           .from('representantes')
-          .select('condominios_ids')
+          .select('condominios_selecionados')
           .eq('id', representanteId)
           .maybeSingle();
 
       if (representante != null) {
         final condominiosIds =
-            representante['condominios_ids'] as List<dynamic>?;
+            representante['condominios_selecionados'] as List<dynamic>?;
 
         if (condominiosIds != null && condominiosIds.isNotEmpty) {
           // Verificar se existem outros representantes para estes condomínios
           final outrosRepresentantes = await client
               .from('representantes')
-              .select('id, condominios_ids')
+              .select('id, condominios_selecionados')
               .neq('id', representanteId)
-              .not('condominios_ids', 'is', null);
+              .not('condominios_selecionados', 'is', null);
 
           // Para cada condomínio do representante que será deletado
           for (final condominioId in condominiosIds) {
@@ -1431,7 +1493,7 @@ class SupabaseService {
             // Verificar se algum outro representante gerencia este condomínio
             for (final outroRep in outrosRepresentantes) {
               final outrosCondominios =
-                  outroRep['condominios_ids'] as List<dynamic>?;
+                  outroRep['condominios_selecionados'] as List<dynamic>?;
               if (outrosCondominios != null &&
                   outrosCondominios.contains(condominioId)) {
                 temOutroRepresentante = true;
