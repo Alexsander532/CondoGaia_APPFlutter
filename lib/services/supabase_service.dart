@@ -801,15 +801,24 @@ class SupabaseService {
     String condominioId,
   ) async {
     try {
+      print('🔍 Buscando pastas públicas do condominio: $condominioId');
+      
       final response = await client
           .from('documentos')
           .select()
           .eq('condominio_id', condominioId)
           .eq('tipo', 'pasta')
+          .eq('privado', false)
           .order('created_at', ascending: false);
+
+      print('✅ Pastas públicas encontradas: ${response.length}');
+      if (response.isNotEmpty) {
+        print('📋 Primeira pasta: ${response[0]}');
+      }
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
+      print('❌ Erro ao buscar pastas de documentos: $e');
       print('Erro ao buscar pastas de documentos: $e');
       rethrow;
     }

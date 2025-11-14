@@ -33,8 +33,12 @@ class DocumentoService {
   
   /// Buscar todas as pastas de um condomínio
   static Future<List<Documento>> getPastas(String condominioId) async {
+    print('📂 DocumentoService.getPastas() chamado com condominioId: $condominioId');
     final response = await SupabaseService.getPastasDocumentos(condominioId);
-    return response.map((json) => Documento.fromJson(json)).toList();
+    print('📂 Resposta do SupabaseService: ${response.length} itens');
+    final pastas = response.map((json) => Documento.fromJson(json)).toList();
+    print('📂 Pastas parseadas: ${pastas.length}');
+    return pastas;
   }
   
   /// Atualizar uma pasta

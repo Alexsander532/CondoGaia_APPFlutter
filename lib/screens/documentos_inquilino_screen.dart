@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pasta_arquivos_screen.dart';
+import '../models/documento.dart';
+import '../services/documento_service.dart';
 
 class DocumentosInquilinoScreen extends StatefulWidget {
   final String? condominioId;
@@ -21,26 +23,46 @@ class _DocumentosInquilinoScreenState extends State<DocumentosInquilinoScreen> {
   String get condominioId => widget.condominioId ?? 'demo-condominio-id';
   String get inquilinoId => widget.inquilinoId ?? 'demo-inquilino-id';
   
-  // Lista de pastas de documentos do inquilino
-  final List<Map<String, dynamic>> pastasDocumentos = [
-    {
-      'nome': 'Atas',
-      'icone': Icons.folder,
-      'cor': Colors.blue,
-    },
-    {
-      'nome': 'Convenção',
-      'icone': Icons.folder,
-      'cor': Colors.blue,
-    },
-    {
-      'nome': 'Regimento Interno',
-      'icone': Icons.folder,
-      'cor': Colors.blue,
-    },
-  ];
+  // Dados dinâmicos
+  List<Documento> pastas = [];
+  bool isLoading = false;
+  String? errorMessage;
+  
+  @override
+  void initState() {
+    super.initState();
+    _carregarPastas();
+  }
+  
+  Future<void> _carregarPastas() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    
+    print('🔍 Iniciando carregamento de pastas para o inquilino');
+    print('📌 Condominio ID: $condominioId');
+    
+    try {
+      final pastasCarregadas = await DocumentoService.getPastas(condominioId);
+      setState(() {
+        pastas = pastasCarregadas;
+        isLoading = false;
+      });
+      print('✅ Documentos do inquilino carregados: ${pastas.length} pastas');
+      for (var pasta in pastas) {
+        print('📁 Pasta: ${pasta.nome} (ID: ${pasta.id})');
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Erro ao carregar pastas: $e';
+        isLoading = false;
+      });
+      print('❌ Erro ao carregar pastas do inquilino: $e');
+    }
+  }
 
-  Widget _buildPastaItem(Map<String, dynamic> pasta) {
+  Widget _buildPastaItem(Documento pasta) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -52,19 +74,37 @@ class _DocumentosInquilinoScreenState extends State<DocumentosInquilinoScreen> {
       child: Row(
         children: [
           Icon(
-            pasta['icone'],
-            color: pasta['cor'],
+            Icons.folder,
+            color: Colors.blue,
             size: 24,
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              pasta['nome'],
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pasta.nome,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (pasta.descricao != null && pasta.descricao!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      pasta.descricao!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
             ),
           ),
           const Icon(
@@ -175,28 +215,81 @@ class _DocumentosInquilinoScreenState extends State<DocumentosInquilinoScreen> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // Lista de pastas
+                    // Lista de pastas ou estado de carregamento
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: pastasDocumentos.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PastaArquivosScreen(
-                                    nomePasta: pastasDocumentos[index]['nome']!,
-                                    condominioId: condominioId,
-                                    inquilinoId: inquilinoId,
+                      child: isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : errorMessage != null
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        size: 48,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        errorMessage!,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: _carregarPastas,
+                                        child: const Text('Tentar novamente'),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              );
-                            },
-                            child: _buildPastaItem(pastasDocumentos[index]),
-                          );
-                        },
-                      ),
+                                )
+                              : pastas.isEmpty
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.folder_open,
+                                            size: 48,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Nenhuma pasta disponível',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: pastas.length,
+                                      itemBuilder: (context, index) {
+                                        final pasta = pastas[index];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => PastaArquivosScreen(
+                                                  nomePasta: pasta.nome,
+                                                  condominioId: condominioId,
+                                                  inquilinoId: inquilinoId,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: _buildPastaItem(pasta),
+                                        );
+                                      },
+                                    ),
                     ),
                   ],
                 ),

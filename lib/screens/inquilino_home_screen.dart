@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
 import 'portaria_inquilino_screen.dart';
+import 'login_screen.dart';
+import '../services/auth_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -31,6 +34,151 @@ class InquilinoHomeScreen extends StatefulWidget {
 }
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
+  final AuthService _authService = AuthService();
+
+  /// Constrói o drawer (menu lateral)
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Header do drawer
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1976D2),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo_CondoGaia.png',
+                  height: 40,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Menu',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Botão Sair da conta
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text(
+              'Sair da conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Fecha o drawer
+              _handleLogout();
+            },
+          ),
+          const Divider(),
+          // Botão Excluir conta
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text(
+              'Excluir conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Fecha o drawer
+              _handleDeleteAccount();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Trata logout do usuário
+  Future<void> _handleLogout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da sua conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _authService.logout();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Trata exclusão de conta
+  Future<void> _handleDeleteAccount() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Conta'),
+          content: const Text('Tem certeza que deseja excluir sua conta? Esta ação é irreversível!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  // Excluir a conta
+                  await Supabase.instance.client
+                      .from('inquilinos')
+                      .delete()
+                      .eq('id', widget.inquilinoId ?? widget.proprietarioId ?? '');
+                  
+                  // Fazer logout
+                  await _authService.logout();
+                  
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir conta: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildMenuCard({
     required String imagePath,
     required String title,
@@ -88,20 +236,27 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: _buildDrawer(),
       body: SafeArea(
-        child: Column(
+        child: Builder(
+          builder: (BuildContext scaffoldContext) {
+            return Column(
           children: [
-            // Cabeçalho superior padronizado
+            // Cabeçalho superior padronizado (IDÊNTICO AO REPRESENTANTE)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  // Botão de voltar
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, size: 24),
-                    onPressed: () {
-                      Navigator.pop(context);
+                  // Botão de menu (hamburger)
+                  GestureDetector(
+                    onTap: () {
+                      Scaffold.of(scaffoldContext).openDrawer();
                     },
+                    child: const Icon(
+                      Icons.menu,
+                      size: 24,
+                      color: Colors.black,
+                    ),
                   ),
                   const Spacer(),
                   // Logo CondoGaia
@@ -322,6 +477,8 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
               ),
             ),
           ],
+            );
+          },
         ),
       ),
     );

@@ -100,6 +100,58 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
     );
   }
 
+  Future<void> _handleDeleteAccount() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Conta'),
+          content: const Text('Tem certeza que deseja excluir sua conta? Esta ação é irreversível!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  // Excluir a conta
+                  await SupabaseService.client
+                      .from('inquilinos')
+                      .delete()
+                      .eq('id', widget.inquilino.id);
+                  
+                  // Fazer logout
+                  await _authService.logout();
+                  
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir conta: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildProfileImage() {
     if (widget.inquilino.temFotoPerfil) {
       try {
@@ -177,7 +229,31 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(icon: const Icon(Icons.logout), onPressed: _handleLogout),
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                onTap: _handleLogout,
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sair'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                onTap: _handleDeleteAccount,
+                child: const Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Excluir Conta', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: SafeArea(

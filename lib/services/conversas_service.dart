@@ -516,6 +516,9 @@ class ConversasService {
     required String condominioId,
   }) async {
     try {
+      debugPrint('[CONVERSAS_SERVICE] 🚀 Iniciando criarConversasAutomaticas...');
+      debugPrint('[CONVERSAS_SERVICE] Condomínio ID: $condominioId');
+      
       final conversasExistentes = await _supabase
           .from('conversas')
           .select()
@@ -524,27 +527,51 @@ class ConversasService {
       final idsExistentes = (conversasExistentes as List<dynamic>)
           .map((c) => (c as Map<String, dynamic>)['usuario_id'] as String)
           .toSet();
+      
+      debugPrint('[CONVERSAS_SERVICE] Conversas existentes: ${idsExistentes.length}');
+
+      // ============================================
+      // CARREGAR TODAS AS UNIDADES DO CONDOMÍNIO
+      // (mesma abordagem da portaria_representante_screen)
+      // ============================================
+      final unidadesResponse = await _supabase
+          .from('unidades')
+          .select('id, numero, bloco')
+          .eq('condominio_id', condominioId);
+      
+      debugPrint('[CONVERSAS_SERVICE] ✓ Unidades carregadas: ${(unidadesResponse as List).length}');
+      for (var u in (unidadesResponse as List)) {
+        final uMap = u as Map<String, dynamic>;
+        debugPrint('[CONVERSAS_SERVICE]   - ${uMap['bloco']}/${uMap['numero']} (ID: ${uMap['id']})');
+      }
 
       // Busca todos os proprietários
       final proprietarios = await _supabase
           .from('proprietarios')
           .select('id, nome, unidade_id')
           .eq('condominio_id', condominioId);
+      
+      debugPrint('[CONVERSAS_SERVICE] ✓ Proprietários carregados: ${(proprietarios as List).length}');
 
       // Busca todos os inquilinos
       final inquilinos = await _supabase
           .from('inquilinos')
           .select('id, nome, unidade_id')
           .eq('condominio_id', condominioId);
+      
+      debugPrint('[CONVERSAS_SERVICE] ✓ Inquilinos carregados: ${(inquilinos as List).length}');
 
       final novasConversas = <Conversa>[];
 
       // Processa proprietários
+      debugPrint('[CONVERSAS_SERVICE] 👤 PROCESSANDO PROPRIETÁRIOS:');
       for (var prop in (proprietarios as List<dynamic>)) {
         final propMap = prop as Map<String, dynamic>;
         final propId = propMap['id'] as String;
         final propNome = propMap['nome'] as String;
         final unidadeId = propMap['unidade_id'] as String;
+
+        debugPrint('[CONVERSAS_SERVICE]   Proprietário: $propNome (ID: $propId, Unidade: $unidadeId)');
 
         // Se conversa não existe, cria
         if (!idsExistentes.contains(propId)) {
@@ -557,48 +584,56 @@ class ConversasService {
               usuarioNome: propNome,
             );
             
-            // Busca dados da unidade separadamente
+            // Busca a unidade na lista carregada (firstWhere - mesma abordagem da portaria)
             try {
-              final unidadeResponse = await _supabase
-                  .from('unidades')
-                  .select('numero, bloco')
-                  .eq('id', unidadeId)
-                  .single();
+              final unidadeMap = (unidadesResponse as List<dynamic>).firstWhere(
+                (u) => (u as Map<String, dynamic>)['id'] == unidadeId,
+                orElse: () => {
+                  'id': unidadeId,
+                  'numero': 'N/A',
+                  'bloco': 'N/A',
+                } as Map<String, dynamic>,
+              ) as Map<String, dynamic>;
               
-              final numero = unidadeResponse['numero'] as String?;
-              final bloco = unidadeResponse['bloco'] as String?;
+              final numero = unidadeMap['numero'] as String? ?? 'N/A';
+              final bloco = unidadeMap['bloco'] as String? ?? 'N/A';
               
-              String? unidadeNumero;
-              if (numero != null) {
-                unidadeNumero = bloco != null && bloco.isNotEmpty 
-                    ? '$bloco/$numero'
-                    : numero;
-              }
+              // Montar unidadeNumero (bloco/numero)
+              final unidadeNumero = bloco != 'N/A' && bloco.isNotEmpty
+                  ? '$bloco/$numero'
+                  : numero;
+              
+              debugPrint('[CONVERSAS_SERVICE]     ✓ Unidade encontrada: $unidadeNumero');
               
               // Atualiza conversa com unidadeNumero
-              if (unidadeNumero != null) {
-                await _supabase
-                    .from('conversas')
-                    .update({'unidade_numero': unidadeNumero})
-                    .eq('id', conversa.id);
-              }
+              await _supabase
+                  .from('conversas')
+                  .update({'unidade_numero': unidadeNumero})
+                  .eq('id', conversa.id);
+              
+              debugPrint('[CONVERSAS_SERVICE]     ✓ Conversa atualizada com unidade: $unidadeNumero');
             } catch (e) {
-              print('Erro ao buscar unidade para proprietário $propNome: $e');
+              debugPrint('[CONVERSAS_SERVICE]     ❌ Erro ao buscar unidade para proprietário $propNome: $e');
             }
             
             novasConversas.add(conversa);
           } catch (e) {
-            print('Erro ao criar conversa com proprietário $propNome: $e');
+            debugPrint('[CONVERSAS_SERVICE]     ❌ Erro ao criar conversa com proprietário $propNome: $e');
           }
+        } else {
+          debugPrint('[CONVERSAS_SERVICE]     ℹ️ Conversa já existe para $propNome');
         }
       }
 
       // Processa inquilinos
+      debugPrint('[CONVERSAS_SERVICE] 👤 PROCESSANDO INQUILINOS:');
       for (var inq in (inquilinos as List<dynamic>)) {
         final inqMap = inq as Map<String, dynamic>;
         final inqId = inqMap['id'] as String;
         final inqNome = inqMap['nome'] as String;
         final unidadeId = inqMap['unidade_id'] as String;
+
+        debugPrint('[CONVERSAS_SERVICE]   Inquilino: $inqNome (ID: $inqId, Unidade: $unidadeId)');
 
         // Se conversa não existe, cria
         if (!idsExistentes.contains(inqId)) {
@@ -611,42 +646,50 @@ class ConversasService {
               usuarioNome: inqNome,
             );
             
-            // Busca dados da unidade separadamente
+            // Busca a unidade na lista carregada (firstWhere - mesma abordagem da portaria)
             try {
-              final unidadeResponse = await _supabase
-                  .from('unidades')
-                  .select('numero, bloco')
-                  .eq('id', unidadeId)
-                  .single();
+              final unidadeMap = (unidadesResponse as List<dynamic>).firstWhere(
+                (u) => (u as Map<String, dynamic>)['id'] == unidadeId,
+                orElse: () => {
+                  'id': unidadeId,
+                  'numero': 'N/A',
+                  'bloco': 'N/A',
+                } as Map<String, dynamic>,
+              ) as Map<String, dynamic>;
               
-              final numero = unidadeResponse['numero'] as String?;
-              final bloco = unidadeResponse['bloco'] as String?;
+              final numero = unidadeMap['numero'] as String? ?? 'N/A';
+              final bloco = unidadeMap['bloco'] as String? ?? 'N/A';
               
-              String? unidadeNumero;
-              if (numero != null) {
-                unidadeNumero = bloco != null && bloco.isNotEmpty 
-                    ? '$bloco/$numero'
-                    : numero;
-              }
+              // Montar unidadeNumero (bloco/numero)
+              final unidadeNumero = bloco != 'N/A' && bloco.isNotEmpty
+                  ? '$bloco/$numero'
+                  : numero;
+              
+              debugPrint('[CONVERSAS_SERVICE]     ✓ Unidade encontrada: $unidadeNumero');
               
               // Atualiza conversa com unidadeNumero
-              if (unidadeNumero != null) {
-                await _supabase
-                    .from('conversas')
-                    .update({'unidade_numero': unidadeNumero})
-                    .eq('id', conversa.id);
-              }
+              await _supabase
+                  .from('conversas')
+                  .update({'unidade_numero': unidadeNumero})
+                  .eq('id', conversa.id);
+              
+              debugPrint('[CONVERSAS_SERVICE]     ✓ Conversa atualizada com unidade: $unidadeNumero');
             } catch (e) {
-              print('Erro ao buscar unidade para inquilino $inqNome: $e');
+              debugPrint('[CONVERSAS_SERVICE]     ❌ Erro ao buscar unidade para inquilino $inqNome: $e');
             }
             
             novasConversas.add(conversa);
           } catch (e) {
-            print('Erro ao criar conversa com inquilino $inqNome: $e');
+            debugPrint('[CONVERSAS_SERVICE]     ❌ Erro ao criar conversa com inquilino $inqNome: $e');
           }
+        } else {
+          debugPrint('[CONVERSAS_SERVICE]     ℹ️ Conversa já existe para $inqNome');
         }
       }
 
+      debugPrint('[CONVERSAS_SERVICE] ✅ Conversas automáticas criadas/verificadas com sucesso!');
+      debugPrint('[CONVERSAS_SERVICE] Total de novas conversas: ${novasConversas.length}');
+      
       // Retorna TODAS as conversas (existentes + novas)
       return await listarConversasDoCondominio(condominioId);
     } catch (e) {
@@ -674,7 +717,37 @@ class ConversasService {
     }
   }
 
+  /// Carrega unidades e completa as conversas com dados de bloco/número
+  Future<Map<String, Map<String, String>>> _carregarUnidades(String condominioId) async {
+    try {
+      final unidadesResponse = await _supabase
+          .from('unidades')
+          .select('id, numero, bloco')
+          .eq('condominio_id', condominioId);
+
+      final unidadesMap = <String, Map<String, String>>{};
+      
+      for (var u in (unidadesResponse as List<dynamic>)) {
+        final uMap = u as Map<String, dynamic>;
+        final unidadeId = uMap['id'] as String;
+        final numero = uMap['numero'] as String? ?? 'N/A';
+        final bloco = uMap['bloco'] as String? ?? 'N/A';
+        
+        unidadesMap[unidadeId] = {
+          'numero': numero,
+          'bloco': bloco,
+        };
+      }
+      
+      return unidadesMap;
+    } catch (e) {
+      debugPrint('[CONVERSAS_SERVICE] Erro ao carregar unidades: $e');
+      return {};
+    }
+  }
+
   /// Stream TODOS conversas do condomínio (com criação automática na primeira vez)
+  /// Completa as conversas com dados de unidade/bloco em tempo real
   Stream<List<Conversa>> streamTodasConversasCondominio(String condominioId) {
     // Primeiro, cria conversas automáticas se não existirem (fire and forget)
     criarConversasAutomaticas(condominioId: condominioId).ignore();
@@ -683,13 +756,39 @@ class ConversasService {
     return _supabase
         .from('conversas')
         .stream(primaryKey: ['id'])
-        .map((list) {
+        .asyncMap((list) async {
+          // Carrega unidades uma vez
+          final unidadesMap = await _carregarUnidades(condominioId);
+          
           final filtered = (list as List<dynamic>)
               .where((item) {
                 final json = item as Map<String, dynamic>;
                 return json['condominio_id'] == condominioId;
               })
-              .map((json) => Conversa.fromJson(json))
+              .map((json) {
+                final conversaJson = json as Map<String, dynamic>;
+                final conversa = Conversa.fromJson(conversaJson);
+                
+                // Se unidadeNumero está vazio, busca dos dados da unidade
+                if ((conversa.unidadeNumero == null || conversa.unidadeNumero!.isEmpty) &&
+                    unidadesMap.containsKey(conversa.unidadeId)) {
+                  final unidadeData = unidadesMap[conversa.unidadeId]!;
+                  final numero = unidadeData['numero']!;
+                  final bloco = unidadeData['bloco']!;
+                  
+                  // Monta o unidadeNumero
+                  final unidadeNumero = bloco != 'N/A' && bloco.isNotEmpty
+                      ? '$bloco/$numero'
+                      : numero;
+                  
+                  debugPrint('[CONVERSAS_SERVICE] Completando conversa ${conversa.usuarioNome}: $unidadeNumero');
+                  
+                  // Retorna conversa com unidadeNumero preenchido
+                  return conversa.copyWith(unidadeNumero: unidadeNumero);
+                }
+                
+                return conversa;
+              })
               .toList();
 
           // Ordena por updated_at decrescente
