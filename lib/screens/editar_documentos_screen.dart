@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
@@ -67,20 +65,62 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
 
   // Método para editar nome do arquivo
   Future<void> _editarNomeArquivo(Documento arquivo) async {
-    final TextEditingController nomeController = TextEditingController(text: arquivo.nome);
+    // Extrair nome sem extensão
+    final nomeOriginal = arquivo.nome;
+    final ultimoPonto = nomeOriginal.lastIndexOf('.');
+    final nomeSemExtensao = ultimoPonto != -1 
+      ? nomeOriginal.substring(0, ultimoPonto) 
+      : nomeOriginal;
+    final extensao = ultimoPonto != -1 
+      ? nomeOriginal.substring(ultimoPonto) 
+      : '';
     
-    final novoNome = await showDialog<String>(
+    final TextEditingController nomeController = TextEditingController(text: nomeSemExtensao);
+    
+    final novoNomeSemExt = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Editar Nome do Arquivo'),
-          content: TextField(
-            controller: nomeController,
-            decoration: const InputDecoration(
-              labelText: 'Nome do arquivo',
-              border: OutlineInputBorder(),
-            ),
-            maxLength: 100,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nomeController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome do arquivo',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 100,
+              ),
+              const SizedBox(height: 12),
+              // Mostrar a extensão como texto fixo
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Extensão: ',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      TextSpan(
+                        text: extensao,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -100,42 +140,47 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
       },
     );
 
-    if (novoNome != null && novoNome != arquivo.nome) {
-      try {
-        setState(() => _isLoading = true);
-        
-        // Atualizar o nome do arquivo no banco
-        await DocumentoService.atualizarDocumento(
-          arquivo.id,
-          nome: novoNome,
-        );
-        
-        // Recarregar a lista de arquivos
-        await _carregarArquivos();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nome do arquivo atualizado com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
+    if (novoNomeSemExt != null && novoNomeSemExt.isNotEmpty) {
+      final novoNomeCompleto = '$novoNomeSemExt$extensao';
+      if (novoNomeCompleto != arquivo.nome) {
+        try {
+          setState(() => _isLoading = true);
+          
+          // Atualizar o nome do arquivo no banco
+          await DocumentoService.atualizarDocumento(
+            arquivo.id,
+            nome: novoNomeCompleto,
           );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao atualizar nome: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
+          
+          // Recarregar a lista de arquivos
+          await _carregarArquivos();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Nome do arquivo atualizado com sucesso!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao atualizar nome: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } finally {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
         }
       }
     }
+    
+    nomeController.dispose();
   }
 
   // Método para copiar link para área de transferência
@@ -699,7 +744,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
 
       if (image != null) {
         // Fazer upload da imagem
-        final arquivo = await DocumentoService.adicionarArquivoComUpload(
+        await DocumentoService.adicionarArquivoComUpload(
           nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
           arquivo: File(image.path),
           descricao: 'Foto capturada pela câmera',
@@ -740,46 +785,90 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         _isLoading = true;
       });
 
-      // Selecionar arquivo PDF do dispositivo
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.bytes != null) {
-        final bytes = result.files.single.bytes!;
-        String nomeArquivo = result.files.single.name;
+      if (result != null && result.files.single.path != null) {
+        try {
+          // Obter o arquivo original
+          final File originalFile = File(result.files.single.path!);
+          
+          // Verificar se o arquivo existe
+          if (!await originalFile.exists()) {
+            print('Erro: Arquivo não encontrado em ${result.files.single.path}');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
 
-        // Validar se é realmente um PDF
-        if (!nomeArquivo.toLowerCase().endsWith('.pdf')) {
-          throw Exception('Apenas arquivos PDF são permitidos');
-        }
+          // Copiar arquivo para diretório temporário da app (necessário no Android)
+          final appDocDir = await getApplicationDocumentsDirectory();
+          final tempDir = Directory('${appDocDir.path}/pdf_temporarios');
+          if (!await tempDir.exists()) {
+            await tempDir.create(recursive: true);
+          }
 
-        // Fazer upload do arquivo usando bytes
-        final documentoUpload = await DocumentoService.adicionarArquivoComUploadBytes(
-          nome: nomeArquivo,
-          bytes: bytes,
-          descricao: 'Documento PDF enviado do dispositivo',
-          privado: _privacidade == 'Privado',
-          pastaId: widget.pasta.id,
-          condominioId: widget.condominioId,
-          representanteId: widget.representanteId,
-        );
+          final fileName = result.files.single.name;
+          final copiedFile = File('${tempDir.path}/$fileName');
+          
+          // Copiar conteúdo do arquivo
+          final bytes = await originalFile.readAsBytes();
+          await copiedFile.writeAsBytes(bytes);
 
-        // Recarregar a lista de arquivos
-        await _carregarArquivos();
+          print('PDF copiado com sucesso: ${copiedFile.path}');
+          print('Tamanho do arquivo: ${bytes.length} bytes');
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PDF adicionado com sucesso!')),
+          // Fazer upload do arquivo
+          await DocumentoService.adicionarArquivoComUpload(
+            nome: fileName,
+            arquivo: copiedFile,
+            descricao: 'Documento PDF enviado do dispositivo',
+            privado: _privacidade == 'Privado',
+            pastaId: widget.pasta.id,
+            condominioId: widget.condominioId,
+            representanteId: widget.representanteId,
           );
+
+          // Recarregar a lista de arquivos
+          await _carregarArquivos();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✓ PDF "$fileName" importado com sucesso!'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        } catch (uploadError) {
+          print('Erro ao fazer upload do PDF: $uploadError');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao fazer upload do PDF: $uploadError'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao selecionar PDF: $e')),
+          SnackBar(
+            content: Text('Erro ao selecionar PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
@@ -210,7 +211,9 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       );
 
       // Limpar o campo de link
-      _linkController.clear();
+      if (mounted) {
+        _linkController.clear();
+      }
 
       // Recarregar a lista de balancetes
       await _carregarBalancetes();
@@ -237,18 +240,60 @@ class _DocumentosScreenState extends State<DocumentosScreen>
 
   // Métodos auxiliares para balancetes
   Future<void> _editarNomeBalancete(Balancete balancete) async {
-    final TextEditingController nomeController = TextEditingController(text: balancete.nomeArquivo);
+    // Extrair nome sem extensão
+    final nomeOriginal = balancete.nomeArquivo;
+    final ultimoPonto = nomeOriginal.lastIndexOf('.');
+    final nomeSemExtensao = ultimoPonto != -1 
+      ? nomeOriginal.substring(0, ultimoPonto) 
+      : nomeOriginal;
+    final extensao = ultimoPonto != -1 
+      ? nomeOriginal.substring(ultimoPonto) 
+      : '';
     
-    final novoNome = await showDialog<String>(
+    final TextEditingController nomeController = TextEditingController(text: nomeSemExtensao);
+    
+    final novoNomeSemExt = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Editar Nome'),
-        content: TextField(
-          controller: nomeController,
-          decoration: const InputDecoration(
-            labelText: 'Nome do arquivo',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nomeController,
+              decoration: const InputDecoration(
+                labelText: 'Nome do arquivo',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Mostrar a extensão como texto fixo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    const TextSpan(
+                      text: 'Extensão: ',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    TextSpan(
+                      text: extensao,
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -263,25 +308,28 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       ),
     );
     
-    if (novoNome != null && novoNome.isNotEmpty && novoNome != balancete.nomeArquivo) {
-      try {
-        await DocumentoService.atualizarBalancete(
-          balancete.id,
-          nomeArquivo: novoNome,
-        );
-        
-        await _carregarBalancetes();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nome atualizado com sucesso!')),
+    if (novoNomeSemExt != null && novoNomeSemExt.isNotEmpty) {
+      final novoNomeCompleto = '$novoNomeSemExt$extensao';
+      if (novoNomeCompleto != balancete.nomeArquivo) {
+        try {
+          await DocumentoService.atualizarBalancete(
+            balancete.id,
+            nomeArquivo: novoNomeCompleto,
           );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao atualizar nome: $e')),
-          );
+          
+          await _carregarBalancetes();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nome atualizado com sucesso!')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao atualizar nome: $e')),
+            );
+          }
         }
       }
     }
@@ -414,6 +462,11 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     return extensoesImagem.any((ext) => nomeArquivo.toLowerCase().endsWith(ext));
   }
 
+  bool _isPDFBalancete(Balancete balancete) {
+    final nomeArquivo = balancete.nomeArquivo ?? '';
+    return nomeArquivo.toLowerCase().endsWith('.pdf');
+  }
+
   // Novos métodos para funcionalidades aprimoradas
   
   // Validação de link em tempo real
@@ -518,21 +571,74 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       );
 
       if (result != null && result.files.single.path != null) {
-        final File pdfFile = File(result.files.single.path!);
-        setState(() {
-          _pdfsTemporarios.add(pdfFile);
-        });
+        try {
+          // Obter o arquivo original
+          final File originalFile = File(result.files.single.path!);
+          
+          // Verificar se o arquivo existe
+          if (!await originalFile.exists()) {
+            print('Erro: Arquivo não encontrado em ${result.files.single.path}');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PDF adicionado! Clique em "Salvar" para confirmar.')),
-          );
+          // Copiar arquivo para diretório temporário da app (necessário no Android)
+          final appDocDir = await getApplicationDocumentsDirectory();
+          final tempDir = Directory('${appDocDir.path}/pdf_temporarios');
+          if (!await tempDir.exists()) {
+            await tempDir.create(recursive: true);
+          }
+
+          final fileName = result.files.single.name;
+          final copiedFile = File('${tempDir.path}/$fileName');
+          
+          // Copiar conteúdo do arquivo
+          final bytes = await originalFile.readAsBytes();
+          await copiedFile.writeAsBytes(bytes);
+
+          print('PDF copiado com sucesso: ${copiedFile.path}');
+          print('Tamanho do arquivo: ${bytes.length} bytes');
+
+          // Adicionar arquivo copiado à lista
+          setState(() {
+            _pdfsTemporarios.add(copiedFile);
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✓ PDF "$fileName" selecionado!\nClique em "Salvar" para importar o PDF selecionado.'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        } catch (copyError) {
+          print('Erro ao copiar PDF: $copyError');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao copiar PDF: $copyError'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao selecionar PDF: $e')),
+          SnackBar(
+            content: Text('Erro ao selecionar PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -559,6 +665,11 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     final temImagens = _imagensTemporarias.isNotEmpty;
     final temPDFs = _pdfsTemporarios.isNotEmpty;
 
+    print('[DocumentosScreen] Iniciando salvamento de arquivos');
+    print('[DocumentosScreen] Tem Link: $temLink');
+    print('[DocumentosScreen] Tem Imagens: $temImagens (${_imagensTemporarias.length})');
+    print('[DocumentosScreen] Tem PDFs: $temPDFs (${_pdfsTemporarios.length})');
+
     if (!temLink && !temImagens && !temPDFs) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Adicione pelo menos um arquivo ou link antes de salvar')),
@@ -573,6 +684,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
 
       // Salvar link se existir
       if (temLink) {
+        print('[DocumentosScreen] Salvando link: ${_linkController.text.trim()}');
         await DocumentoService.adicionarBalancete(
           nomeArquivo: 'Link_${DateTime.now().millisecondsSinceEpoch}',
           linkExterno: _linkController.text.trim(),
@@ -582,44 +694,68 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           condominioId: condominioId,
           representanteId: representanteId,
         );
+        print('[DocumentosScreen] Link salvo com sucesso!');
       }
 
       // Salvar imagens
+      print('[DocumentosScreen] Processando ${_imagensTemporarias.length} imagens...');
+
       for (File imagem in _imagensTemporarias) {
-        await DocumentoService.adicionarBalanceteComUpload(
-          arquivo: imagem,
-          nomeArquivo: 'Imagem_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          mes: _mesSelecionado.toString(),
-          ano: _anoSelecionado.toString(),
-          privado: selectedPrivacy == 'Privado',
-          condominioId: condominioId,
-          representanteId: representanteId,
-        );
+        try {
+          print('[DocumentosScreen] Salvando imagem: ${imagem.path}');
+          await DocumentoService.adicionarBalanceteComUpload(
+            arquivo: imagem,
+            nomeArquivo: 'Imagem_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            mes: _mesSelecionado.toString(),
+            ano: _anoSelecionado.toString(),
+            privado: selectedPrivacy == 'Privado',
+            condominioId: condominioId,
+            representanteId: representanteId,
+          );
+          print('[DocumentosScreen] Imagem salva com sucesso!');
+        } catch (e) {
+          print('[DocumentosScreen] ERRO ao salvar imagem: $e');
+          rethrow;
+        }
       }
 
       // Salvar PDFs
+      print('[DocumentosScreen] Processando ${_pdfsTemporarios.length} PDFs...');
       for (File pdf in _pdfsTemporarios) {
-        await DocumentoService.adicionarBalanceteComUpload(
-          arquivo: pdf,
-          nomeArquivo: 'PDF_${DateTime.now().millisecondsSinceEpoch}.pdf',
-          mes: _mesSelecionado.toString(),
-          ano: _anoSelecionado.toString(),
-          privado: selectedPrivacy == 'Privado',
-          condominioId: condominioId,
-          representanteId: representanteId,
-        );
+        try {
+          print('[DocumentosScreen] Salvando PDF: ${pdf.path}');
+          // Usar o nome original do arquivo ao invés de renomear
+          final nomeOriginalPDF = pdf.path.split('/').last;
+          await DocumentoService.adicionarBalanceteComUpload(
+            arquivo: pdf,
+            nomeArquivo: nomeOriginalPDF,
+            mes: _mesSelecionado.toString(),
+            ano: _anoSelecionado.toString(),
+            privado: selectedPrivacy == 'Privado',
+            condominioId: condominioId,
+            representanteId: representanteId,
+          );
+          print('[DocumentosScreen] PDF salvo com sucesso!');
+        } catch (e) {
+          print('[DocumentosScreen] ERRO ao salvar PDF: $e');
+          rethrow;
+        }
       }
 
       // Limpar campos e arquivos temporários
-      _linkController.clear();
-      setState(() {
-        _imagensTemporarias.clear();
-        _pdfsTemporarios.clear();
-        _linkValido = false;
-      });
+      if (mounted) {
+        _linkController.clear();
+        setState(() {
+          _imagensTemporarias.clear();
+          _pdfsTemporarios.clear();
+          _linkValido = false;
+        });
+      }
 
       // Recarregar balancetes
+      print('[DocumentosScreen] Recarregando balancetes...');
       await _carregarBalancetes();
+      print('[DocumentosScreen] Balancetes recarregados com sucesso!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -629,7 +765,9 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           ),
         );
       }
+      print('[DocumentosScreen] Todos os arquivos foram salvos com sucesso!');
     } catch (e) {
+      print('[DocumentosScreen] ERRO geral ao salvar arquivos: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -649,8 +787,18 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   
   @override
   void dispose() {
-    _tabController.dispose();
-    _linkController.dispose();
+    try {
+      _tabController.dispose();
+    } catch (e) {
+      print('[DocumentosScreen] Erro ao descartar TabController: $e');
+    }
+    
+    try {
+      _linkController.dispose();
+    } catch (e) {
+      print('[DocumentosScreen] Erro ao descartar LinkController: $e');
+    }
+    
     super.dispose();
   }
 
@@ -1309,8 +1457,8 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                           size: 20,
                         ),
                       )
-                    else if (_isImagemBalancete(balancete))
-                      // Para imagens: apenas download
+                    else if (_isImagemBalancete(balancete) || _isPDFBalancete(balancete))
+                      // Para imagens e PDFs: download
                       GestureDetector(
                         onTap: () => _baixarBalancete(balancete),
                         child: const Icon(

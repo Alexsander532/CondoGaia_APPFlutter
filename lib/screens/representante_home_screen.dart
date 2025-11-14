@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/representante.dart';
 import 'documentos_screen.dart';
 import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'gestao_screen.dart';
+import 'login_screen.dart';
 
 import 'representante_dashboard_screen.dart';
 
@@ -156,13 +158,35 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                // TODO: Implementar logout via AuthService
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Saindo da conta...'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
+                
+                try {
+                  // Fazer logout via Supabase
+                  await Supabase.instance.client.auth.signOut();
+                  
+                  // Limpar dados locais se necessário
+                  // await SharedPreferences.getInstance().then((prefs) => prefs.clear());
+                  
+                  // Navegar para a tela de login
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print('Erro ao fazer logout: $e');
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao sair: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               child: const Text('Sair'),
             ),

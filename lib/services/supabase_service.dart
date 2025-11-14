@@ -1104,10 +1104,23 @@ class SupabaseService {
     String ano,
   ) async {
     try {
+      print('[SupabaseService] Iniciando upload de balancete: $nomeArquivo');
+      
+      // Verificar se arquivo existe
+      if (!await arquivo.exists()) {
+        print('[SupabaseService] ERRO: Arquivo não existe em ${arquivo.path}');
+        throw Exception('Arquivo não encontrado: ${arquivo.path}');
+      }
+
       final bytes = await arquivo.readAsBytes();
+      print('[SupabaseService] Arquivo lido: ${bytes.length} bytes');
+
       final sanitizedName = _sanitizeFileName(nomeArquivo);
       final fileName =
           '${condominioId}/balancetes/${ano}_${mes}_${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
+
+      print('[SupabaseService] Caminho no storage: $fileName');
+      print('[SupabaseService] Iniciando upload binário...');
 
       final response = await client.storage
           .from('documentos')
@@ -1118,12 +1131,15 @@ class SupabaseService {
         final publicUrl = client.storage
             .from('documentos')
             .getPublicUrl(fileName);
+        print('[SupabaseService] Upload concluído com sucesso!');
+        print('[SupabaseService] URL pública: $publicUrl');
         return publicUrl;
       }
 
+      print('[SupabaseService] ERRO: Resposta vazia do upload');
       return null;
     } catch (e) {
-      print('Erro ao fazer upload do balancete: $e');
+      print('[SupabaseService] ERRO ao fazer upload do balancete: $e');
       rethrow;
     }
   }
@@ -1131,27 +1147,48 @@ class SupabaseService {
   /// Download de arquivo do storage
   static Future<Uint8List?> downloadArquivo(String url) async {
     try {
+      print('[SupabaseService] Iniciando download da URL: $url');
+      
       // Extrair o caminho do arquivo da URL
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
 
-      // Encontrar o índice do bucket 'documentos'
-      final bucketIndex = pathSegments.indexOf('documentos');
-      if (bucketIndex == -1 || bucketIndex >= pathSegments.length - 1) {
-        throw Exception('URL inválida para download');
+      print('[SupabaseService] Path segments: $pathSegments');
+
+      // Procurar por qualquer bucket conhecido (fotos_perfil ou documentos)
+      String? bucketName;
+      int bucketIndex = -1;
+      
+      final buckets = ['fotos_perfil', 'documentos'];
+      for (final bucket in buckets) {
+        bucketIndex = pathSegments.indexOf(bucket);
+        if (bucketIndex != -1) {
+          bucketName = bucket;
+          break;
+        }
       }
+
+      if (bucketIndex == -1 || bucketIndex >= pathSegments.length - 1) {
+        print('[SupabaseService] ERRO: Não encontrou bucket conhecido na URL');
+        throw Exception('URL inválida para download - bucket não encontrado');
+      }
+
+      print('[SupabaseService] Bucket encontrado: $bucketName');
 
       // Construir o caminho do arquivo no storage
       final filePath = pathSegments.sublist(bucketIndex + 1).join('/');
+      print('[SupabaseService] Caminho do arquivo: $filePath');
 
       // Fazer download do arquivo
+      print('[SupabaseService] Iniciando download do bucket: $bucketName');
       final response = await client.storage
-          .from('documentos')
+          .from(bucketName!)
           .download(filePath);
 
+      print('[SupabaseService] Download concluído com sucesso! Tamanho: ${response.length} bytes');
       return response;
     } catch (e) {
-      print('Erro ao fazer download do arquivo: $e');
+      print('[SupabaseService] Erro ao fazer download do arquivo: $e');
       rethrow;
     }
   }
