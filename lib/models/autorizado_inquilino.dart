@@ -14,6 +14,7 @@ class AutorizadoInquilino {
   final String? veiculoModelo;
   final String? veiculoCor;
   final String? veiculoPlaca;
+  final String? fotoUrl;
   final bool ativo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -33,6 +34,7 @@ class AutorizadoInquilino {
     this.veiculoModelo,
     this.veiculoCor,
     this.veiculoPlaca,
+    this.fotoUrl,
     this.ativo = true,
     this.createdAt,
     this.updatedAt,
@@ -65,6 +67,7 @@ class AutorizadoInquilino {
       veiculoModelo: json['veiculo_modelo'] as String?,
       veiculoCor: json['veiculo_cor'] as String?,
       veiculoPlaca: json['veiculo_placa'] as String?,
+      fotoUrl: json['foto_url'] as String?,
       ativo: json['ativo'] as bool? ?? true,
       createdAt: parseDateTime(json['created_at']),
       updatedAt: parseDateTime(json['updated_at']),
@@ -88,6 +91,7 @@ class AutorizadoInquilino {
       'veiculo_modelo': veiculoModelo,
       'veiculo_cor': veiculoCor,
       'veiculo_placa': veiculoPlaca,
+      'foto_url': fotoUrl,
       'ativo': ativo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),

@@ -829,6 +829,8 @@ class SupabaseService {
     String pastaId,
   ) async {
     try {
+      print('🔍 Buscando arquivos da pasta: $pastaId');
+      
       final response = await client
           .from('documentos')
           .select()
@@ -836,9 +838,14 @@ class SupabaseService {
           .eq('tipo', 'arquivo')
           .order('created_at', ascending: false);
 
+      print('✅ Arquivos encontrados: ${response.length}');
+      if (response.isNotEmpty) {
+        print('📄 Primeiro arquivo: ${response[0]}');
+      }
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Erro ao buscar arquivos da pasta: $e');
+      print('❌ Erro ao buscar arquivos da pasta: $e');
       rethrow;
     }
   }

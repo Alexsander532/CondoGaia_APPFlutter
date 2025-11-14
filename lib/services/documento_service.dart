@@ -168,8 +168,12 @@ class DocumentoService {
   
   /// Buscar arquivos de uma pasta
   static Future<List<Documento>> getArquivosDaPasta(String pastaId) async {
+    print('📄 DocumentoService.getArquivosDaPasta() chamado com pastaId: $pastaId');
     final response = await SupabaseService.getArquivosPasta(pastaId);
-    return response.map((json) => Documento.fromJson(json)).toList();
+    print('📄 Resposta do SupabaseService: ${response.length} itens');
+    final documentos = response.map((json) => Documento.fromJson(json)).toList();
+    print('📄 Documentos parseados: ${documentos.length}');
+    return documentos;
   }
   
   /// Atualizar um arquivo/documento

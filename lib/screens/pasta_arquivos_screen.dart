@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import '../models/documento.dart';
+import '../services/documento_service.dart';
 
 class PastaArquivosScreen extends StatefulWidget {
   final String nomePasta;
@@ -18,46 +23,229 @@ class PastaArquivosScreen extends StatefulWidget {
 
 class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
   
-  // Dados mockados para demonstração
-  List<Map<String, String>> arquivos = [];
+  // Dados dinâmicos
+  List<Documento> arquivos = [];
+  bool isLoading = false;
+  String? errorMessage;
+  String? pastaId;
   
   @override
   void initState() {
     super.initState();
-    _carregarArquivosMockados();
+    _carregarArquivos();
   }
   
-  void _carregarArquivosMockados() {
-    // Dados mockados baseados no nome da pasta
-    switch (widget.nomePasta.toLowerCase()) {
-      case 'atas':
-        arquivos = [
-          {'nome': 'ataReuniao1808.pdf', 'data': '18/08/2024'},
-          {'nome': 'ataReuniao1808.pdf', 'data': '15/07/2024'},
-          {'nome': 'ataReuniao1808.pdf', 'data': '20/06/2024'},
-        ];
-        break;
-      case 'convenção':
-        arquivos = [
-          {'nome': 'convencaoCondominio.pdf', 'data': '01/01/2024'},
-          {'nome': 'alteracaoConvencao.pdf', 'data': '15/03/2024'},
-        ];
-        break;
-      case 'regimento interno':
-        arquivos = [
-          {'nome': 'regimentoInterno2024.pdf', 'data': '01/01/2024'},
-          {'nome': 'atualizacaoRegimento.pdf', 'data': '10/05/2024'},
-        ];
-        break;
-      default:
-        arquivos = [
-          {'nome': 'documento1.pdf', 'data': '01/01/2024'},
-          {'nome': 'documento2.pdf', 'data': '15/02/2024'},
-        ];
+  Future<void> _carregarArquivos() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    
+    try {
+      print('🔍 Carregando arquivos da pasta: ${widget.nomePasta}');
+      
+      // Primeiro, buscar a pasta para obter seu ID
+      final pastas = await DocumentoService.getPastas(widget.condominioId);
+      final pasta = pastas.firstWhere(
+        (p) => p.nome == widget.nomePasta,
+        orElse: () => throw Exception('Pasta não encontrada'),
+      );
+      
+      pastaId = pasta.id;
+      print('✅ Pasta encontrada: $pastaId');
+      
+      // Agora buscar os arquivos da pasta
+      final arquivosCarregados = await DocumentoService.getArquivosDaPasta(pastaId!);
+      
+      setState(() {
+        arquivos = arquivosCarregados;
+        isLoading = false;
+      });
+      
+      print('✅ ${arquivos.length} arquivos carregados');
+      for (var arquivo in arquivos) {
+        print('📄 ${arquivo.nome} (URL: ${arquivo.url}, Link: ${arquivo.linkExterno})');
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Erro ao carregar arquivos: $e';
+        isLoading = false;
+      });
+      print('❌ Erro ao carregar arquivos: $e');
     }
   }
 
-  Widget _buildArquivoItem(Map<String, String> arquivo) {
+  /// Detecta se é um arquivo ou link
+  bool _ehArquivo(Documento doc) {
+    return doc.url != null && doc.url!.isNotEmpty;
+  }
+
+  bool _ehLink(Documento doc) {
+    return doc.linkExterno != null && doc.linkExterno!.isNotEmpty;
+  }
+
+  /// Retorna o ícone apropriado baseado na extensão
+  IconData _getIconForFile(String fileName) {
+    if (fileName.toLowerCase().endsWith('.pdf')) {
+      return Icons.picture_as_pdf;
+    } else if (fileName.toLowerCase().endsWith('.png') || 
+               fileName.toLowerCase().endsWith('.jpg') || 
+               fileName.toLowerCase().endsWith('.jpeg') ||
+               fileName.toLowerCase().endsWith('.gif')) {
+      return Icons.image;
+    } else if (fileName.toLowerCase().endsWith('.xlsx') || 
+               fileName.toLowerCase().endsWith('.xls')) {
+      return Icons.table_chart;
+    } else if (fileName.toLowerCase().endsWith('.doc') || 
+               fileName.toLowerCase().endsWith('.docx')) {
+      return Icons.description;
+    } else {
+      return Icons.file_present;
+    }
+  }
+
+  Color _getColorForFile(String fileName) {
+    if (fileName.toLowerCase().endsWith('.pdf')) {
+      return Colors.red;
+    } else if (fileName.toLowerCase().endsWith('.png') || 
+               fileName.toLowerCase().endsWith('.jpg') || 
+               fileName.toLowerCase().endsWith('.jpeg') ||
+               fileName.toLowerCase().endsWith('.gif')) {
+      return Colors.purple;
+    } else if (fileName.toLowerCase().endsWith('.xlsx') || 
+               fileName.toLowerCase().endsWith('.xls')) {
+      return Colors.green;
+    } else if (fileName.toLowerCase().endsWith('.doc') || 
+               fileName.toLowerCase().endsWith('.docx')) {
+      return Colors.blue;
+    } else {
+      return Colors.grey;
+    }
+  }
+
+  /// Baixa o arquivo usando DocumentoService (igual ao representante)
+  Future<void> _baixarArquivo(Documento documento) async {
+    if (!_ehArquivo(documento)) return;
+
+    try {
+      // Solicitar permissão de armazenamento
+      if (Platform.isAndroid) {
+        final status = await Permission.storage.request();
+        
+        if (status.isDenied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permissão de armazenamento necessária para baixar arquivos'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          return;
+        }
+        
+        if (status.isPermanentlyDenied) {
+          // Abrir configurações do app
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permissão permanentemente negada. Abra as configurações do app.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          openAppSettings();
+          return;
+        }
+      }
+
+      // Mostrar diálogo de progresso
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Baixando ${documento.nome}...'),
+                ],
+              ),
+            );
+          },
+        );
+      }
+
+      // Usar a mesma função do representante
+      final filePath = await DocumentoService.downloadArquivo(
+        documento.url!,
+        documento.nome,
+      );
+
+      // Fechar o diálogo de progresso
+      if (mounted) Navigator.of(context).pop();
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${documento.nome} baixado com sucesso'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        print('✅ Arquivo baixado: $filePath');
+      }
+    } catch (e) {
+      // Tentar fechar o diálogo
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      print('❌ Erro ao baixar: $e');
+    }
+  }
+
+  /// Copia o link para a área de transferência
+  Future<void> _copiarLink(Documento documento) async {
+    if (!_ehLink(documento)) return;
+
+    try {
+      await Clipboard.setData(ClipboardData(text: documento.linkExterno!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Link "${documento.nome}" copiado para área de transferência'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      print('✅ Link copiado: ${documento.linkExterno}');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao copiar link: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildArquivoItem(Documento documento) {
+    final isArquivo = _ehArquivo(documento);
+    final isLink = _ehLink(documento);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -69,8 +257,8 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
       child: Row(
         children: [
           Icon(
-            Icons.picture_as_pdf,
-            color: Colors.red[600],
+            _getIconForFile(documento.nome),
+            color: _getColorForFile(documento.nome),
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -79,50 +267,50 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  arquivo['nome']!,
+                  documento.nome,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  'Adicionado em: ${arquivo['data']}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                if (documento.descricao != null && documento.descricao!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      documento.descricao!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              // TODO: Implementar visualização do PDF
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Abrindo ${arquivo['nome']}')),
-              );
-            },
-            child: const Icon(
-              Icons.visibility,
-              color: Colors.blue,
-              size: 20,
+          // Botão de ação (Download ou Copiar)
+          if (isArquivo)
+            GestureDetector(
+              onTap: () => _baixarArquivo(documento),
+              child: const Icon(
+                Icons.download,
+                color: Colors.green,
+                size: 20,
+              ),
+            )
+          else if (isLink)
+            GestureDetector(
+              onTap: () => _copiarLink(documento),
+              child: const Icon(
+                Icons.content_copy,
+                color: Colors.blue,
+                size: 20,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () {
-              // TODO: Implementar download do PDF
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Baixando ${arquivo['nome']}')),
-              );
-            },
-            child: const Icon(
-              Icons.download,
-              color: Colors.green,
-              size: 20,
-            ),
-          ),
         ],
       ),
     );
@@ -135,7 +323,7 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Cabeçalho superior padronizado (idêntico ao documentos_screen.dart)
+            // Cabeçalho superior padronizado
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -235,23 +423,65 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
               ),
             ),
             
-            // Lista de arquivos
+            // Lista de arquivos ou estado de carregamento
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: arquivos.isEmpty
+                child: isLoading
                     ? const Center(
-                        child: Text(
-                          'Nenhum arquivo encontrado',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        child: CircularProgressIndicator(),
                       )
-                    : ListView(
-                        children: arquivos.map((arquivo) => _buildArquivoItem(arquivo)).toList(),
-                      ),
+                    : errorMessage != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _carregarArquivos,
+                                  child: const Text('Tentar novamente'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : arquivos.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.folder_open,
+                                      size: 48,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Nenhum arquivo nesta pasta',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView(
+                                children: arquivos.map((arquivo) => _buildArquivoItem(arquivo)).toList(),
+                              ),
               ),
             ),
           ],
