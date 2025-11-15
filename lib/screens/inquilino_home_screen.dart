@@ -393,8 +393,7 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                               condominioId: widget.condominioId,
                               condominioNome: widget.condominioNome,
                               condominioCnpj: widget.condominioCnpj,
-                              inquilinoId:
-                                  widget.inquilinoId ?? widget.proprietarioId!,
+                              inquilinoId: widget.inquilinoId,
                               proprietarioId: widget.proprietarioId,
                               unidadeId: widget.unidadeId,
                             ),
