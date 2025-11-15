@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
 import '../../services/supabase_service.dart';
 import '../login_screen.dart';
 import 'cadastro_condominio_screen.dart';
@@ -14,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final AuthService _authService = AuthService();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String? userEmail;
   List<Map<String, dynamic>> _representantes = [];
@@ -28,9 +26,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    final email = await _authService.getCurrentUserEmail();
+    final user = SupabaseService.client.auth.currentUser;
     setState(() {
-      userEmail = email;
+      userEmail = user?.email;
     });
   }
 
@@ -60,11 +58,50 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
+  Future<void> _handleLogout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da sua conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  await SupabaseService.client.auth.signOut();
+                  
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao sair: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -131,23 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 1,
               color: Colors.grey[300],
             ),
-            // Seção com botão voltar e título HOME
+            // Seção com título HOME
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  // Botão voltar
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      );
-                    },
-                    child: const Icon(
-                      Icons.arrow_back_ios,
-                      size: 20,
-                    ),
-                  ),
                   const Expanded(
                     child: Center(
                       child: Text(
@@ -159,8 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  // Espaço para balancear o botão voltar
-                  const SizedBox(width: 20),
                 ],
               ),
             ),
@@ -246,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 40),
                     // Botão de logout (oculto, acessível por gesture)
                     GestureDetector(
-                      onLongPress: _logout,
+                      onLongPress: _handleLogout,
                       child: Container(
                         height: 20,
                         color: Colors.transparent,
@@ -282,27 +305,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Image.asset(
             textImagePath,
             height: 20,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItemTextOnly({
-    required String text,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          const SizedBox(width: 48), // Espaço para alinhar com outros itens
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-            ),
           ),
         ],
       ),
@@ -693,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onTap: () {
               Navigator.pop(context);
-              _logout();
+              _handleLogout();
             },
           ),
           const Divider(),

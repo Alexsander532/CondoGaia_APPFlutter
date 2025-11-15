@@ -1,5 +1,6 @@
 import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
+import '../login_screen.dart';
 
 class PesquisaCondominiosScreen extends StatefulWidget {
   const PesquisaCondominiosScreen({super.key});
@@ -836,7 +837,7 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
             ),
             onTap: () {
               Navigator.pop(context);
-              _logout();
+              _handleLogout();
             },
           ),
           const Divider(),
@@ -857,11 +858,50 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
     );
   }
 
-  Future<void> _logout() async {
-    await SupabaseService.client.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
+  Future<void> _handleLogout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da sua conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  await SupabaseService.client.auth.signOut();
+                  
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao sair: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// Trata exclusão de conta do admin

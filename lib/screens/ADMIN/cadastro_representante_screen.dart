@@ -2,6 +2,7 @@ import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import '../login_screen.dart';
 
 class CadastroRepresentanteScreen extends StatefulWidget {
   const CadastroRepresentanteScreen({super.key});
@@ -733,10 +734,10 @@ class _CadastroRepresentanteScreenState
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: temRepresentante ? Colors.orange.shade100 : const Color(0xFF87CEEB),
+            color: temRepresentante ? const Color(0xFF1976D2).withOpacity(0.1) : const Color(0xFF87CEEB),
             borderRadius: BorderRadius.circular(8),
             border: temRepresentante 
-                ? Border.all(color: Colors.orange.shade400, width: 2)
+                ? Border.all(color: const Color(0xFF1976D2), width: 2)
                 : null,
           ),
           child: Row(
@@ -771,15 +772,15 @@ class _CadastroRepresentanteScreenState
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade200,
+                            color: const Color(0xFF1976D2).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '✓ Associado: $representanteAssociado',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.orange.shade900,
+                              color: Color(0xFF1976D2),
                             ),
                           ),
                         ),
@@ -3199,22 +3200,22 @@ class _CadastroRepresentanteScreenState
           return Container(
             height: 150,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.orange.shade300, width: 1.5),
+              border: Border.all(color: const Color(0xFF1976D2), width: 1.5),
               borderRadius: BorderRadius.circular(8),
-              color: Colors.orange.shade50,
+              color: const Color(0xFF1976D2).withOpacity(0.05),
             ),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info, color: Colors.orange.shade700, size: 40),
+                  const Icon(Icons.info, color: Color(0xFF1976D2), size: 40),
                   const SizedBox(height: 12),
-                  Text(
+                  const Text(
                     'Nenhum condomínio disponível',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Colors.orange.shade700,
+                      color: Color(0xFF1976D2),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -3222,7 +3223,7 @@ class _CadastroRepresentanteScreenState
                     'Todos os condomínios já estão associados a representantes',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.orange.shade600,
+                      color: const Color(0xFF1976D2).withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -3944,7 +3945,7 @@ class _CadastroRepresentanteScreenState
             ),
             onTap: () {
               Navigator.pop(context);
-              _logout();
+              _handleLogout();
             },
           ),
           const Divider(),
@@ -3966,11 +3967,50 @@ class _CadastroRepresentanteScreenState
   }
 
   /// Trata logout
-  Future<void> _logout() async {
-    await SupabaseService.client.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
+  Future<void> _handleLogout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da sua conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  await SupabaseService.client.auth.signOut();
+                  
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao sair: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// Trata exclusão de conta
@@ -3997,7 +4037,7 @@ class _CadastroRepresentanteScreenState
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Funcionalidade em desenvolvimento'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: Color(0xFF1976D2),
                     ),
                   );
                 } catch (e) {
