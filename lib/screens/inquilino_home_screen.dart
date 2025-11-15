@@ -4,6 +4,7 @@ import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
 import 'portaria_inquilino_screen.dart';
 import 'login_screen.dart';
+import 'proprietario_dashboard_screen.dart';
 import '../services/auth_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class InquilinoHomeScreen extends StatefulWidget {
   final String? proprietarioId;
   final String unidadeId;
   final String unidadeNome;
+  final dynamic proprietarioData; // Dados do proprietário para voltar ao dashboard
 
   const InquilinoHomeScreen({
     super.key,
@@ -24,6 +26,7 @@ class InquilinoHomeScreen extends StatefulWidget {
     this.proprietarioId,
     required this.unidadeId,
     required this.unidadeNome,
+    this.proprietarioData,
   }) : assert(
          inquilinoId != null || proprietarioId != null,
          'Deve fornecer inquilinoId ou proprietarioId',
@@ -425,8 +428,19 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                     padding: const EdgeInsets.only(right: 12.0),
                     child: GestureDetector(
                       onTap: () {
-                        // Voltar para o dashboard anterior
-                        Navigator.pop(context);
+                        // Se for proprietário e tem dados, voltar ao dashboard
+                        if (widget.proprietarioId != null && widget.proprietarioData != null) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => ProprietarioDashboardScreen(
+                                proprietario: widget.proprietarioData,
+                              ),
+                            ),
+                          );
+                        } else {
+                          // Caso contrário, fazer pop normal
+                          Navigator.pop(context);
+                        }
                       },
                       child: Image.asset(
                         'assets/images/Representante/HOME/Setas_Mudancadecomdominio.png',

@@ -226,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
               proprietarioId: result.proprietario!.id,
               unidadeId: unidadeData['id'],
               unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+              proprietarioData: result.proprietario,
             )),
           );
         }
