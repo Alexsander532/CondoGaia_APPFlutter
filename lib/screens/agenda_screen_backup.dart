@@ -1269,7 +1269,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
         return; // Sair da função aqui para eventos diários
       }
       
-      // Salvar evento de agenda (código original)
+      // Salvar evento de agenda (com suporte a recorrência automática)
       final eventoSalvo = await EventoAgendaService.criarEvento(
         representanteId: widget.representante.id,
         condominioId: _selectedCondominioId!,
@@ -1284,42 +1284,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
         avisarRepresentanteEmail: _notifyMe,
       );
       
-      // Se for recorrente, criar eventos para os próximos meses
-      if (eventoSalvo != null && _isRecurrent && _recurrentMonths != null && _recurrentMonths! > 1) {
-        for (int i = 1; i < _recurrentMonths!; i++) {
-          try {
-            // Calcular data do próximo evento (mesmo dia, próximo mês)
-            DateTime proximaData = DateTime(
-              dataEvento.year,
-              dataEvento.month + i,
-              dataEvento.day,
-            );
-            
-            // Verificar se o dia existe no próximo mês (ex: 31 de janeiro -> 28/29 de fevereiro)
-            if (proximaData.month != (dataEvento.month + i) % 12 && proximaData.month != (dataEvento.month + i)) {
-              // Se o dia não existe no próximo mês, usar o último dia do mês
-              proximaData = DateTime(dataEvento.year, dataEvento.month + i + 1, 0);
-            }
-            
-            await EventoAgendaService.criarEvento(
-              representanteId: widget.representante.id,
-              condominioId: _selectedCondominioId!,
-              titulo: _titleController.text.trim(),
-              descricao: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-              dataEvento: proximaData,
-              horaInicio: _startTimeController.text.trim(),
-              horaFim: _endTimeController.text.trim(),
-              eventoRecorrente: true,
-              numeroMesesRecorrencia: _recurrentMonths,
-              avisarCondominiosEmail: _notifyAll,
-              avisarRepresentanteEmail: _notifyMe,
-            );
-          } catch (e) {
-            print('Erro ao criar evento recorrente para o mês ${i + 1}: $e');
-            // Continua criando os outros eventos mesmo se um falhar
-          }
-        }
-      }
+      // A geração de eventos recorrentes é feita automaticamente dentro de criarEvento()
+      // Não é necessário criar eventos em loop aqui
       
       if (eventoSalvo != null) {
         // Sucesso - fechar modal e recarregar eventos

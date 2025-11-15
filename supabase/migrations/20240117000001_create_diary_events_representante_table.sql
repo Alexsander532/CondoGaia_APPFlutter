@@ -33,11 +33,20 @@ CREATE INDEX IF NOT EXISTS idx_eventos_diario_criado_em ON public.eventos_diario
 -- Índice composto para consultas por representante e data
 CREATE INDEX IF NOT EXISTS idx_eventos_diario_rep_data ON public.eventos_diario_representante(representante_id, data_evento);
 
+-- Função para atualizar o campo atualizado_em (específica para eventos de diário)
+CREATE OR REPLACE FUNCTION update_eventos_diario_atualizado_em()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.atualizado_em = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger para atualizar automaticamente o campo atualizado_em
 CREATE TRIGGER update_eventos_diario_atualizado_em
     BEFORE UPDATE ON public.eventos_diario_representante
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION update_eventos_diario_atualizado_em();
 
 -- Comentários explicativos
 COMMENT ON TABLE public.eventos_diario_representante IS 'Tabela para armazenar eventos de diário criados pelos representantes';

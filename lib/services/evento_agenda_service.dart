@@ -19,6 +19,7 @@ class EventoAgendaService {
     bool avisarRepresentanteEmail = false,
   }) async {
     try {
+      print('🔵 [EventoAgendaService] criarEvento chamado - eventoRecorrente: $eventoRecorrente, numeroMeses: $numeroMesesRecorrencia');
       final eventoData = {
         'representante_id': representanteId,
         'condominio_id': condominioId,
@@ -40,10 +41,105 @@ class EventoAgendaService {
           .select()
           .single();
 
+      // Se é recorrente, gera eventos nos intervalos especificados
+      if (eventoRecorrente && numeroMesesRecorrencia != null && numeroMesesRecorrencia > 0) {
+        await _gerarEventosRecorrentes(
+          representanteId: representanteId,
+          condominioId: condominioId,
+          titulo: titulo,
+          descricao: descricao,
+          dataEventoInicial: dataEvento,
+          horaInicio: horaInicio,
+          horaFim: horaFim,
+          numeroMesesRecorrencia: numeroMesesRecorrencia,
+          avisarCondominiosEmail: avisarCondominiosEmail,
+          avisarRepresentanteEmail: avisarRepresentanteEmail,
+        );
+      }
+
       return EventoAgenda.fromJson(response);
     } catch (e) {
       print('Erro ao criar evento de agenda: $e');
       rethrow;
+    }
+  }
+
+  /// Gera eventos recorrentes a cada X meses durante 4 anos
+  static Future<void> _gerarEventosRecorrentes({
+    required String representanteId,
+    required String condominioId,
+    required String titulo,
+    String? descricao,
+    required DateTime dataEventoInicial,
+    required String horaInicio,
+    String? horaFim,
+    required int numeroMesesRecorrencia,
+    required bool avisarCondominiosEmail,
+    required bool avisarRepresentanteEmail,
+  }) async {
+    try {
+      print('🟢 [EventoAgendaService._gerarEventosRecorrentes] Iniciando geração de eventos recorrentes - intervalo: $numeroMesesRecorrencia meses');
+      final List<Map<String, dynamic>> eventosRecorrentes = [];
+      
+      // Calcula até 4 anos (1460 dias aprox) depois da data inicial
+      final dataLimite = dataEventoInicial.add(Duration(days: 4 * 365 + 1)); // 4 anos
+
+      // Gera eventos em intervalos de numeroMesesRecorrencia
+      int intervaloAtual = numeroMesesRecorrencia;
+      
+      while (true) {
+        // Calcula a próxima data: data inicial + N meses
+        DateTime dataSeguinte = DateTime(
+          dataEventoInicial.year,
+          dataEventoInicial.month + intervaloAtual,
+          dataEventoInicial.day,
+        );
+        
+        // Normaliza a data se o mês ultrapassar 12
+        while (dataSeguinte.month > 12) {
+          dataSeguinte = DateTime(
+            dataSeguinte.year + 1,
+            dataSeguinte.month - 12,
+            dataSeguinte.day,
+          );
+        }
+
+        if (dataSeguinte.isAfter(dataLimite)) {
+          break;
+        }
+
+        print('Gerando evento recorrente para: ${dataSeguinte.toIso8601String().split('T')[0]}');
+        
+        eventosRecorrentes.add({
+          'representante_id': representanteId,
+          'condominio_id': condominioId,
+          'titulo': titulo,
+          'descricao': descricao,
+          'data_evento': dataSeguinte.toIso8601String().split('T')[0],
+          'hora_inicio': horaInicio,
+          'hora_fim': horaFim,
+          'evento_recorrente': false, // Não marcamos como recorrente os filhos
+          'numero_meses_recorrencia': null,
+          'avisar_condominios_email': avisarCondominiosEmail,
+          'avisar_representante_email': avisarRepresentanteEmail,
+          'status': 'ativo',
+        });
+
+        // Avança para o próximo intervalo
+        intervaloAtual += numeroMesesRecorrencia;
+      }
+
+      // Insere todos os eventos recorrentes em uma única operação
+      if (eventosRecorrentes.isNotEmpty) {
+        await _client
+            .from('eventos_agenda_representante')
+            .insert(eventosRecorrentes);
+        
+        print('${eventosRecorrentes.length} eventos recorrentes criados com sucesso!');
+      }
+    } catch (e) {
+      print('Erro ao gerar eventos recorrentes: $e');
+      // Não retira erro, apenas registra no log
     }
   }
 
