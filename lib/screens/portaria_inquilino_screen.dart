@@ -101,23 +101,34 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     try {
       List<AutorizadoInquilino> autorizados;
 
+      // Debug
+      print('🔵 _carregarAutorizados():');
+      print('   inquilinoId: ${widget.inquilinoId}');
+      print('   proprietarioId: ${widget.proprietarioId}');
+      print('   unidadeId: ${widget.unidadeId}');
+
       // Buscar por inquilino ou proprietário dependendo do contexto
       if (widget.inquilinoId != null) {
+        print('   → Buscando por inquilinoId: ${widget.inquilinoId}');
         autorizados =
             await AutorizadoInquilinoService.getAutorizadosByInquilino(
               widget.inquilinoId!,
             );
       } else if (widget.proprietarioId != null) {
+        print('   → Buscando por proprietarioId: ${widget.proprietarioId}');
         autorizados =
             await AutorizadoInquilinoService.getAutorizadosByProprietario(
               widget.proprietarioId!,
             );
       } else {
+        print('   → Buscando por unidadeId: ${widget.unidadeId}');
         // Se não tiver nem inquilino nem proprietário, buscar por unidade
         autorizados = await AutorizadoInquilinoService.getAutorizadosByUnidade(
           widget.unidadeId!,
         );
       }
+
+      print('   Autorizados encontrados: ${autorizados.length}');
 
       setState(() {
         _autorizados = autorizados;
@@ -148,12 +159,20 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     });
 
     try {
+      // Debug
+      print('🔵 _carregarEncomendas():');
+      print('   inquilinoId: ${widget.inquilinoId}');
+      print('   proprietarioId: ${widget.proprietarioId}');
+      print('   unidadeId: ${widget.unidadeId}');
+
       // Usar o novo método que filtra por pessoa específica
       final encomendas = await _encomendaService.listarEncomendasPessoa(
         unidadeId: widget.unidadeId!,
         proprietarioId: widget.proprietarioId,
         inquilinoId: widget.inquilinoId,
       );
+
+      print('   Encomendas encontradas: ${encomendas.length}');
 
       setState(() {
         _encomendas = encomendas;

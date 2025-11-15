@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
@@ -38,6 +39,27 @@ class InquilinoHomeScreen extends StatefulWidget {
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
   final AuthService _authService = AuthService();
+
+  /// Copia dados do condomínio e unidade para a área de transferência
+  void _copiarDados() {
+    final texto = '''Dados da Propriedade
+    
+Condomínio: ${widget.condominioNome}
+CNPJ: ${widget.condominioCnpj}
+${widget.unidadeNome}
+    
+Copiado da CondoGaia''';
+
+    Clipboard.setData(ClipboardData(text: texto)).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados copiados para a área de transferência!'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF1976D2),
+        ),
+      );
+    });
+  }
 
   /// Constrói o drawer (menu lateral)
   Widget _buildDrawer() {
@@ -476,9 +498,7 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
                   Padding(
                     padding: const EdgeInsets.only(left: 12.0),
                     child: GestureDetector(
-                      onTap: () {
-                        // TODO: Implementar compartilhamento
-                      },
+                      onTap: _copiarDados,
                       child: Image.asset(
                         'assets/images/Compartilhar.png',
                         height: 35,

@@ -29,6 +29,26 @@ class RepresentanteHomeScreen extends StatefulWidget {
 }
 
 class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
+  /// Copia dados do condomínio para a área de transferência
+  void _copiarDados() {
+    final texto = '''Dados do Condomínio
+    
+Condomínio: ${widget.condominioNome}
+CNPJ: ${widget.condominioCnpj}
+    
+Copiado da CondoGaia''';
+
+    Clipboard.setData(ClipboardData(text: texto)).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dados copiados para a área de transferência!'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF1976D2),
+        ),
+      );
+    });
+  }
+
   Widget _buildMenuCard({
     required String imagePath,
     required String title,
@@ -523,9 +543,7 @@ class _RepresentanteHomeScreenState extends State<RepresentanteHomeScreen> {
                   Padding(
                     padding: const EdgeInsets.only(left: 12.0),
                     child: GestureDetector(
-                      onTap: () {
-                        // TODO: Implementar compartilhamento
-                      },
+                      onTap: _copiarDados,
                       child: Image.asset(
                         'assets/images/Compartilhar.png',
                         height: 35,

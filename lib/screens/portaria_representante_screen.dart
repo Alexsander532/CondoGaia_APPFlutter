@@ -2468,8 +2468,14 @@ class _PortariaRepresentanteScreenState
   }
 
   // Método auxiliar para formatar data
-  String _formatarData(DateTime data) {
-    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+  String _formatarData(dynamic data) {
+    try {
+      // Converter para DateTime se for String
+      final dateTime = data is String ? DateTime.parse(data) : data as DateTime;
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} às ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return 'N/A';
+    }
   }
 
   Widget _buildHistoricoEncomendaTab() {
