@@ -3967,51 +3967,10 @@ class _CadastroRepresentanteScreenState
 
   /// Trata logout
   Future<void> _logout() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Sair'),
-          content: const Text('Deseja realmente sair da sua conta?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                
-                try {
-                  // Fazer logout via Supabase
-                  await SupabaseService.client.auth.signOut();
-                  
-                  // Navegar para a tela de login
-                  if (mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                      (route) => false,
-                    );
-                  }
-                } catch (e) {
-                  print('Erro ao fazer logout: $e');
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao sair: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Sair'),
-            ),
-          ],
-        );
-      },
-    );
+    await SupabaseService.client.auth.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   /// Trata exclusão de conta

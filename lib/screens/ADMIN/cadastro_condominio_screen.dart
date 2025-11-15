@@ -666,152 +666,114 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
 
   Widget _buildDrawer() {
     return Drawer(
-      child: Container(
-        color: Colors.white,
-        child: Column(
-          children: [
-            Container(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Header do drawer
+          DrawerHeader(
+            decoration: const BoxDecoration(
               color: Color(0xFF1976D2),
-              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 40,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
             ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text(
-                      'Sair da conta',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _logout();
-                    },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo_CondoGaia.png',
+                  height: 40,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Menu',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text(
-                      'Excluir conta',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _handleDeleteAccount();
-                    },
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Botão Sair da conta
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text(
+              'Sair da conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _logout();
+            },
+          ),
+          const Divider(),
+          // Botão Excluir conta
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text(
+              'Excluir conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _handleDeleteAccount();
+            },
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Sair da conta'),
-        content: Text('Tem certeza que deseja sair da conta?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Sair', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await SupabaseService.client.auth.signOut();
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao sair: $e')),
-          );
-        }
-      }
+    await SupabaseService.client.auth.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 
+  /// Trata exclusão de conta do admin
   Future<void> _handleDeleteAccount() async {
-    final confirmed = await showDialog<bool>(
+    showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Excluir conta'),
-        content: Text(
-          'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Conta'),
+          content: const Text(
+            'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.',
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  // Implementar lógica de exclusão de conta aqui
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Funcionalidade em desenvolvimento'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir conta: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
-
-    if (confirmed == true) {
-      try {
-        final user = SupabaseService.client.auth.currentUser;
-        if (user != null) {
-          // Primeiro, deletar o registro do admin
-          await SupabaseService.client
-              .from('admins')
-              .delete()
-              .eq('id', user.id);
-
-          // Depois, deletar a conta do Supabase Auth
-          await SupabaseService.client.auth.admin.deleteUser(user.id);
-
-          if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/login');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Conta excluída com sucesso')),
-            );
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao excluir conta: $e')),
-          );
-        }
-      }
-    }
   }
 }
 
