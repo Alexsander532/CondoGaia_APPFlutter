@@ -15,6 +15,7 @@ class _CadastroRepresentanteScreenState
     extends State<CadastroRepresentanteScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Lista de todos os estados brasileiros
   static const List<String> _estadosBrasileiros = [
@@ -80,9 +81,7 @@ class _CadastroRepresentanteScreenState
   String? _emailError;
 
   // Valores dos dropdowns
-  String _condominioSelecionado = 'Cond. Ecoville';
   String _ufSelecionada = 'MS';
-  String _cidadeSelecionada = 'Selvíria';
 
   // Variáveis para dropdowns dinâmicos da aba de pesquisa
   List<String> _ufsRepresentantes = [];
@@ -327,7 +326,9 @@ class _CadastroRepresentanteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
+      drawer: _buildDrawer(),
       body: SafeArea(
         child: Column(
           children: [
@@ -343,7 +344,12 @@ class _CadastroRepresentanteScreenState
               child: Row(
                 children: [
                   // Menu hamburger
-                  const Icon(Icons.menu, size: 24, color: Colors.black),
+                  GestureDetector(
+                    onTap: () {
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                    child: const Icon(Icons.menu, size: 24, color: Colors.black),
+                  ),
                   const SizedBox(width: 16),
                   // Logo
                   Expanded(
@@ -1250,31 +1256,6 @@ class _CadastroRepresentanteScreenState
     );
   }
 
-  Widget _buildCheckbox(
-    String title,
-    bool value,
-    ValueChanged<bool?> onChanged,
-  ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Checkbox(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF1E3A8A),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildModulosSection() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -2021,12 +2002,12 @@ class _CadastroRepresentanteScreenState
         'desp_receita_marcado': _despReceitaMarcado,
       };
 
-      // Salvar representante no Supabase
+      // PASSO 2: SALVAR O REPRESENTANTE (a array condominios_selecionados é apenas um espelho)
       final representanteSalvo = await SupabaseService.saveRepresentante(
         representanteData,
       );
 
-      // Associar condomínios ao representante
+      // Associar condomínios ao representante (para novos representantes)
       if (representanteSalvo != null) {
         final representanteId = representanteSalvo['id'];
         List<String> condominiosParaAssociar = [];
@@ -2035,6 +2016,14 @@ class _CadastroRepresentanteScreenState
         if (_condominiosSelecionados.isNotEmpty) {
           // Usar condomínios selecionados manualmente
           condominiosParaAssociar = _condominiosSelecionados;
+          
+          // ATUALIZAR representante_id na tabela de condomínios para novo representante
+          await SupabaseService.atualizarRepresentanteCondominios(
+            representanteId,
+            condominiosParaAssociar,
+            [],
+          );
+          
           mensagemAssociacao =
               'Representante cadastrado e associado aos condomínios selecionados!';
         } else {
@@ -2042,26 +2031,19 @@ class _CadastroRepresentanteScreenState
           if (_condominios.isNotEmpty) {
             final primeiroCondominio = _condominios.first;
             condominiosParaAssociar = [primeiroCondominio['id']];
+            
+            // ATUALIZAR representante_id na tabela de condomínios
+            await SupabaseService.atualizarRepresentanteCondominios(
+              representanteId,
+              condominiosParaAssociar,
+              [],
+            );
+            
             mensagemAssociacao =
                 'Representante cadastrado e associado automaticamente ao condomínio "${primeiroCondominio['nome_condominio']}"!';
           } else {
             mensagemAssociacao =
                 'Representante cadastrado com sucesso! Nenhum condomínio disponível para associação automática.';
-          }
-        }
-
-        // Realizar as associações
-        for (final condominioId in condominiosParaAssociar) {
-          try {
-            await SupabaseService.associarRepresentanteCondominio(
-              condominioId,
-              representanteId,
-            );
-            print(
-              'Condomínio $condominioId associado ao representante $representanteId',
-            );
-          } catch (e) {
-            print('Erro ao associar condomínio $condominioId: $e');
           }
         }
 
@@ -3554,7 +3536,24 @@ class _CadastroRepresentanteScreenState
         return;
       }
 
-      // Preparar dados para atualização
+      // PASSO 1: BUSCAR CONDOMÍNIOS ANTIGOS E ATUALIZAR representante_id NA TABELA
+      final representanteAntigo = await SupabaseService.getRepresentanteById(representanteId);
+      final condominiosAntigos = 
+          (representanteAntigo?['condominios_selecionados'] as List<dynamic>?)
+              ?.map((id) => id.toString())
+              .toList() ?? [];
+      
+      print('📋 Condomínios antigos: $condominiosAntigos');
+      print('📋 Condomínios novos: $condominiosSelecionados');
+      
+      // Atualizar representante_id na tabela de condomínios (fonte de verdade)
+      await SupabaseService.atualizarRepresentanteCondominios(
+        representanteId,
+        condominiosSelecionados,
+        condominiosAntigos,
+      );
+
+      // PASSO 2: SALVAR O REPRESENTANTE (a array condominios_selecionados é apenas um espelho)
       final representanteData = {
         'nome_completo': nomeCompletoController.text.trim(),
         'cpf': cpfController.text.trim(),
@@ -3904,5 +3903,160 @@ class _CadastroRepresentanteScreenState
         ),
       );
     }
+  }
+
+  /// Constrói o drawer (barra lateral)
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Header do drawer
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1976D2),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo_CondoGaia.png',
+                  height: 40,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Menu',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Botão Sair da conta
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text(
+              'Sair da conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _logout();
+            },
+          ),
+          const Divider(),
+          // Botão Excluir conta
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text(
+              'Excluir conta',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _handleDeleteAccount();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Trata logout
+  Future<void> _logout() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da sua conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  // Fazer logout via Supabase
+                  await SupabaseService.client.auth.signOut();
+                  
+                  // Navegar para a tela de login
+                  if (mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print('Erro ao fazer logout: $e');
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao sair: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Trata exclusão de conta
+  Future<void> _handleDeleteAccount() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Excluir Conta'),
+          content: const Text(
+            'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                
+                try {
+                  // Implementar lógica de exclusão de conta aqui
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Funcionalidade em desenvolvimento'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir conta: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

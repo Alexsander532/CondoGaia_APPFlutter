@@ -9,6 +9,7 @@ class PesquisaCondominiosScreen extends StatefulWidget {
 }
 
 class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String? _ufSelecionada;
   String? _cidadeSelecionada;
   String? _statusSelecionado;
@@ -20,7 +21,6 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
   bool _isLoadingCidades = false;
   
   // Dados reais dos condomínios e representantes
-  List<Map<String, dynamic>> _condominios = [];
   List<Map<String, dynamic>> _condominiosComRepresentantes = [];
   bool _isLoadingPesquisa = false;
   double _totalValor = 0.0;
@@ -230,7 +230,6 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
     try {
       setState(() {
         _isLoadingPesquisa = true;
-        _condominios = [];
         _condominiosComRepresentantes = [];
         _totalValor = 0.0;
       });
@@ -275,7 +274,6 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
       }
       
       setState(() {
-        _condominios = condominios;
         _condominiosComRepresentantes = condominiosComReps;
         _totalValor = total;
         _isLoadingPesquisa = false;
@@ -303,7 +301,9 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
+      drawer: _buildDrawer(),
       body: SafeArea(
         child: Column(
           children: [
@@ -345,10 +345,15 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
       child: Row(
         children: [
           // Menu hamburger
-          const Icon(
-            Icons.menu,
-            size: 24,
-            color: Colors.black,
+          GestureDetector(
+            onTap: () {
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            child: const Icon(
+              Icons.menu,
+              size: 24,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(width: 16),
           // Logo
@@ -791,5 +796,161 @@ class _PesquisaCondominiosScreenState extends State<PesquisaCondominiosScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          children: [
+            Container(
+              color: Color(0xFF1976D2),
+              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'CondoGaia',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Menu',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.logout, color: Colors.red),
+                    title: Text(
+                      'Sair da conta',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: _logout,
+                  ),
+                  Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.delete_forever, color: Colors.red),
+                    title: Text(
+                      'Excluir conta',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: _handleDeleteAccount,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    Navigator.pop(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Sair da conta'),
+        content: Text('Tem certeza que deseja sair da conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Sair', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await SupabaseService.client.auth.signOut();
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao sair: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    Navigator.pop(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir conta'),
+        content: Text(
+          'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final user = SupabaseService.client.auth.currentUser;
+        if (user != null) {
+          // Primeiro, deletar o registro do admin
+          await SupabaseService.client
+              .from('admins')
+              .delete()
+              .eq('id', user.id);
+
+          // Depois, deletar a conta do Supabase Auth
+          await SupabaseService.client.auth.admin.deleteUser(user.id);
+
+          if (mounted) {
+            Navigator.of(context).pushReplacementNamed('/login');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Conta excluída com sucesso')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao excluir conta: $e')),
+          );
+        }
+      }
+    }
   }
 }
