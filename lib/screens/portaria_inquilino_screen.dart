@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'chat_inquilino_v2_screen.dart';
 import '../models/autorizado_inquilino.dart';
 import '../services/autorizado_inquilino_service.dart';
@@ -68,6 +70,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   ); // DOM, SEG, TER, QUA, QUI, SEX, SAB
   String _horarioInicio = '08:00';
   String _horarioFim = '18:00';
+  File? _fotoAutorizado; // Armazena a imagem selecionada/capturada
 
   // Lista de horários disponíveis (00:00 até 23:00)
   final List<String> _horariosDisponiveis = List.generate(24, (index) {
@@ -438,18 +441,68 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         children: [
           Row(
             children: [
-              // Ícone de pessoa
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF4A90E2).withOpacity(0.1),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  size: 30,
-                  color: Color(0xFF4A90E2),
+              // Foto ou ícone de pessoa
+              GestureDetector(
+                onTap: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                    ? () => _mostrarFotoAmpliadaAutorizado(autorizado.fotoUrl!)
+                    : null,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF4A90E2).withOpacity(0.1),
+                    border: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                        ? Border.all(
+                            color: const Color(0xFF4A90E2),
+                            width: 2,
+                          )
+                        : null,
+                  ),
+                  child: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipOval(
+                              child: Image.network(
+                                autorizado.fotoUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 30,
+                                    color: Color(0xFF4A90E2),
+                                  );
+                                },
+                              ),
+                            ),
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF4A90E2),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.zoom_in,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Icon(
+                          Icons.person,
+                          size: 30,
+                          color: Color(0xFF4A90E2),
+                        ),
                 ),
               ),
 
@@ -680,6 +733,81 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     }
   }
 
+  // Método para mostrar foto ampliada do autorizado
+  void _mostrarFotoAmpliadaAutorizado(String fotoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            children: [
+              // Foto ampliada
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Erro ao carregar a foto',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Botão fechar (X)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // Método para salvar autorizado (adicionar ou editar)
   Future<void> _salvarAutorizado([
     AutorizadoInquilino? autorizadoExistente,
@@ -782,6 +910,42 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       print('- _permissaoSelecionada: $_permissaoSelecionada');
       print('- _diasSemana: $_diasSemana');
       print('===================================');
+
+      // Fazer upload da foto se houver uma selecionada
+      if (_fotoAutorizado != null) {
+        try {
+          print('🔵 Iniciando upload da foto do autorizado...');
+          
+          // Gerar nome único para a foto
+          final String nomeArquivo = 'autorizado_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          
+          // Fazer upload para Supabase Storage
+          // Bucket: visitante_adicionado_pelo_inquilino
+          // Caminho: /condominio_id/unidade_id/autorizado_id/foto.jpg
+          final fotoUrlPublica = await AutorizadoInquilinoService.uploadFotoAutorizado(
+            condominioId: widget.condominioId!,
+            unidadeId: widget.unidadeId!,
+            arquivo: _fotoAutorizado!,
+            nomeArquivo: nomeArquivo,
+          );
+          
+          if (fotoUrlPublica != null) {
+            autorizadoData['foto_url'] = fotoUrlPublica;
+            print('✅ Upload da foto realizado com sucesso: $fotoUrlPublica');
+          }
+        } catch (e) {
+          print('⚠️ Erro ao fazer upload da foto: $e');
+          // Continuar mesmo se falhar o upload (foto é opcional)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Aviso: Erro ao fazer upload da foto: $e'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      }
 
       // Salvar no banco de dados
       AutorizadoInquilino? resultado;
@@ -1039,6 +1203,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       if (_placaController.text.isNotEmpty) _placaController.clear();
       if (_modeloController.text.isNotEmpty) _modeloController.clear();
       if (_corController.text.isNotEmpty) _corController.clear();
+      _fotoAutorizado = null; // Limpar a foto também
     } catch (e) {
       print('Erro ao limpar controladores: $e');
       // Em caso de erro, recriar os controladores
@@ -1242,6 +1407,128 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                               controller: _parentescoController,
                               label: 'Parentesco',
                               hint: 'Pai',
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Seção Foto
+                            _buildSectionTitle('Foto do Autorizado'),
+                            const SizedBox(height: 12),
+
+                            // Widget para selecionar/capturar foto
+                            GestureDetector(
+                              onTap: () async {
+                                final ImagePicker picker = ImagePicker();
+                                try {
+                                  // Tentar tirar foto com a câmera
+                                  final XFile? image = await picker.pickImage(
+                                    source: ImageSource.camera,
+                                    maxWidth: 800,
+                                    maxHeight: 600,
+                                    imageQuality: 80,
+                                  );
+                                  
+                                  if (image != null) {
+                                    setModalState(() {
+                                      _fotoAutorizado = File(image.path);
+                                    });
+                                  }
+                                } catch (e) {
+                                  print('Erro ao tirar foto: $e');
+                                  // Fallback para galeria se câmera falhar
+                                  try {
+                                    final XFile? image = await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                      maxWidth: 800,
+                                      maxHeight: 600,
+                                      imageQuality: 80,
+                                    );
+                                    
+                                    if (image != null) {
+                                      setModalState(() {
+                                        _fotoAutorizado = File(image.path);
+                                      });
+                                    }
+                                  } catch (e2) {
+                                    print('Erro ao selecionar da galeria: $e2');
+                                  }
+                                }
+                              },
+                              child: Container(
+                                height: 150,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFF4A90E2),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: _fotoAutorizado == null
+                                    ? Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.camera_alt,
+                                            size: 48,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Toque para tirar foto',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          Text(
+                                            '(ou selecionar da galeria)',
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Image.file(
+                                              _fotoAutorizado!,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: IconButton(
+                                                onPressed: () {
+                                                  setModalState(() {
+                                                    _fotoAutorizado = null;
+                                                  });
+                                                },
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                padding: EdgeInsets.zero,
+                                                constraints: const BoxConstraints(
+                                                  minWidth: 32,
+                                                  minHeight: 32,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
                             const SizedBox(height: 20),
 

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/autorizado_inquilino.dart';
 import 'supabase_service.dart';
@@ -401,6 +402,50 @@ class AutorizadoInquilinoService {
       return AutorizadoInquilino.fromJson(response);
     } catch (e) {
       print('Erro ao reativar autorizado: $e');
+      rethrow;
+    }
+  }
+
+  /// Faz upload da foto do autorizado para Supabase Storage
+  /// Retorna a URL pública da foto ou null se falhar
+  static Future<String?> uploadFotoAutorizado({
+    required String condominioId,
+    required String unidadeId,
+    required File arquivo,
+    required String nomeArquivo,
+  }) async {
+    try {
+      print('📸 Iniciando upload de foto para autorizado...');
+      print('   - Condomínio: $condominioId');
+      print('   - Unidade: $unidadeId');
+      print('   - Arquivo: $nomeArquivo');
+
+      // Caminho no storage: condominio_id/unidade_id/nomeArquivo
+      final caminhoStorage = '$condominioId/$unidadeId/$nomeArquivo';
+
+      // Fazer upload para o bucket 'visitante_adicionado_pelo_inquilino'
+      final response = await _client.storage
+          .from('visitante_adicionado_pelo_inquilino')
+          .upload(
+            caminhoStorage,
+            arquivo,
+            fileOptions: const FileOptions(
+              cacheControl: '3600', // Cache de 1 hora
+              upsert: true, // Sobrescrever se já existir
+            ),
+          );
+
+      print('✅ Upload realizado com sucesso: $response');
+
+      // Gerar URL pública
+      final urlPublica = _client.storage
+          .from('visitante_adicionado_pelo_inquilino')
+          .getPublicUrl(caminhoStorage);
+
+      print('🔗 URL Pública: $urlPublica');
+      return urlPublica;
+    } catch (e) {
+      print('❌ Erro ao fazer upload de foto: $e');
       rethrow;
     }
   }
