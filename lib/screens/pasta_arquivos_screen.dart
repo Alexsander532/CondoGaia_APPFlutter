@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
+import '../utils/download_helper.dart';
 
 class PastaArquivosScreen extends StatefulWidget {
   final String nomePasta;
@@ -84,6 +86,17 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
     return doc.linkExterno != null && doc.linkExterno!.isNotEmpty;
   }
 
+  /// Verifica se é arquivo de imagem
+  bool _isImageFile(String fileName) {
+    final ext = fileName.toLowerCase();
+    return ext.endsWith('.png') || 
+           ext.endsWith('.jpg') || 
+           ext.endsWith('.jpeg') ||
+           ext.endsWith('.gif') ||
+           ext.endsWith('.bmp') ||
+           ext.endsWith('.webp');
+  }
+
   /// Retorna o ícone apropriado baseado na extensão
   IconData _getIconForFile(String fileName) {
     if (fileName.toLowerCase().endsWith('.pdf')) {
@@ -127,7 +140,20 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
   Future<void> _baixarArquivo(Documento documento) async {
     if (!_ehArquivo(documento)) return;
 
+    // Se for imagem, visualizar ao invés de baixar
+    if (_isImageFile(documento.nome)) {
+      _visualizarImagem(documento);
+      return;
+    }
+
+    // Se for PDF, fazer download
     try {
+      // Na web, usar o DownloadHelper
+      if (kIsWeb) {
+        DownloadHelper.downloadPdfFromUrl(documento.url!, documento.nome, context);
+        return;
+      }
+
       // Solicitar permissão de armazenamento
       if (Platform.isAndroid) {
         final status = await Permission.storage.request();
@@ -242,6 +268,77 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
     }
   }
 
+  /// Visualiza a imagem em tela cheia com zoom
+  void _visualizarImagem(Documento documento) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(0),
+          child: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  boundaryMargin: const EdgeInsets.all(80),
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.network(
+                    documento.url ?? '',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error, color: Colors.white, size: 48),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Erro ao carregar imagem',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                          ),
+                        ],
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildArquivoItem(Documento documento) {
     final isArquivo = _ehArquivo(documento);
     final isLink = _ehLink(documento);
@@ -292,13 +389,13 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
               ],
             ),
           ),
-          // Botão de ação (Download ou Copiar)
+          // Botão de ação (Visualizar para imagens, Baixar para PDFs, Copiar para links)
           if (isArquivo)
             GestureDetector(
               onTap: () => _baixarArquivo(documento),
-              child: const Icon(
-                Icons.download,
-                color: Colors.green,
+              child: Icon(
+                _isImageFile(documento.nome) ? Icons.visibility : Icons.download,
+                color: _isImageFile(documento.nome) ? Colors.blue : Colors.green,
                 size: 20,
               ),
             )

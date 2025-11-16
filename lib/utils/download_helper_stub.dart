@@ -19,4 +19,22 @@ class DownloadHelper {
       );
     }
   }
+
+  // Método para download de PDF da web (versão stub para mobile)
+  static Future<void> downloadPdfFromUrl(
+    String pdfUrl,
+    String fileName,
+    BuildContext context,
+  ) async {
+    // Em mobile, os downloads são feitos via DocumentoService
+    // Este método é apenas um placeholder para manter compatibilidade
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Download em progresso...'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
 }

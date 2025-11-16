@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +12,7 @@ import 'nova_pasta_screen.dart';
 import '../models/documento.dart';
 import '../models/balancete.dart';
 import '../services/documento_service.dart';
+import '../utils/download_helper.dart';
 
 class DocumentosScreen extends StatefulWidget {
   final String? condominioId;
@@ -1621,58 +1623,15 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       }
 
       final String pdfUrl = balancete.url!;
-      
-      // Obter o diretório de downloads
-      final Directory? downloadsDir = await _getDownloadsDirectory();
-      
-      if (downloadsDir == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível acessar pasta de downloads'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Garantir que o diretório existe
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
-      // Nome do arquivo (padrão se não tiver)
       final String fileName = balancete.nomeArquivo ?? 'balancete_${balancete.mes}_${balancete.ano}.pdf';
-      final String filePath = '${downloadsDir.path}/$fileName';
 
-      // Fazer download usando Dio
-      final Dio dio = Dio();
-      
-      print('Iniciando download: $pdfUrl → $filePath');
-      
-      await dio.download(
-        pdfUrl,
-        filePath,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            final progress = (received / total * 100).toStringAsFixed(0);
-            print('Download em andamento: $progress%');
-          }
-        },
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✓ PDF "$fileName" salvo em Downloads'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+      // Verificar se é web
+      if (kIsWeb) {
+        _downloadPDFWeb(pdfUrl, fileName);
+      } else {
+        // Para Android e iOS
+        await _downloadPDFMobile(pdfUrl, fileName);
       }
-      
-      print('Download concluído: $filePath');
     } catch (e) {
       print('Erro ao baixar PDF: $e');
       if (mounted) {
@@ -1684,6 +1643,67 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         );
       }
     }
+  }
+
+  // Download para Web
+  void _downloadPDFWeb(String pdfUrl, String fileName) {
+    if (kIsWeb) {
+      // Usar o helper para download de PDF na web
+      DownloadHelper.downloadPdfFromUrl(pdfUrl, fileName, context);
+    }
+  }
+
+  // Download para Mobile (Android e iOS)
+  Future<void> _downloadPDFMobile(String pdfUrl, String fileName) async {
+    // Obter o diretório de downloads
+    final Directory? downloadsDir = await _getDownloadsDirectory();
+    
+    if (downloadsDir == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível acessar pasta de downloads'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Garantir que o diretório existe
+    if (!await downloadsDir.exists()) {
+      await downloadsDir.create(recursive: true);
+    }
+
+    final String filePath = '${downloadsDir.path}/$fileName';
+
+    // Fazer download usando Dio
+    final Dio dio = Dio();
+    
+    print('Iniciando download: $pdfUrl → $filePath');
+    
+    await dio.download(
+      pdfUrl,
+      filePath,
+      onReceiveProgress: (received, total) {
+        if (total != -1) {
+          final progress = (received / total * 100).toStringAsFixed(0);
+          print('Download em andamento: $progress%');
+        }
+      },
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ PDF "$fileName" salvo em Downloads'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+    
+    print('Download concluído: $filePath');
   }
 
   // Obter diretório de Downloads (funciona em Android e iOS)
