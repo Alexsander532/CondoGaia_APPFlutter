@@ -791,8 +791,13 @@ class ConversasService {
               })
               .toList();
 
-          // Ordena por updated_at decrescente
-          filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          // Ordena por ultima_mensagem_data decrescente (mais recente primeiro)
+          // Se não tiver ultima_mensagem_data, usa updated_at como fallback
+          filtered.sort((a, b) {
+            final dataA = a.ultimaMensagemData ?? a.updatedAt;
+            final dataB = b.ultimaMensagemData ?? b.updatedAt;
+            return dataB.compareTo(dataA); // Descendente (mais recente primeiro)
+          });
           return filtered;
         });
   }

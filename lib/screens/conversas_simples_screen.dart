@@ -347,7 +347,7 @@ class _ConversasSimplesState extends State<ConversasSimples> {
                       Row(
                         children: [
                           Text(
-                            _formatarData(conversa.updatedAt),
+                            _formatarData(conversa.ultimaMensagemData),
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.grey[500],
@@ -411,21 +411,27 @@ class _ConversasSimplesState extends State<ConversasSimples> {
   }
 
   /// Formata a data para exibição (similar à foto: "25/11/2023 17:20")
-  String _formatarData(DateTime data) {
-    final agora = DateTime.now();
-    final diferenca = agora.difference(data);
-
-    if (diferenca.inMinutes < 1) {
-      return 'Agora';
-    } else if (diferenca.inMinutes < 60) {
-      return 'Há ${diferenca.inMinutes}m';
-    } else if (diferenca.inHours < 24) {
-      return 'Há ${diferenca.inHours}h';
-    } else if (diferenca.inDays < 7) {
-      return 'Há ${diferenca.inDays}d';
-    } else {
-      // Formato completo
-      return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+  String _formatarData(DateTime? data) {
+    // Se não tiver data, retorna vazio
+    if (data == null) {
+      return '';
+    }
+    
+    // Formata como "15 Nov, 14:30"
+    try {
+      final meses = [
+        'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+      ];
+      
+      final dia = data.day.toString().padLeft(2, '0');
+      final mes = meses[data.month - 1];
+      final hora = data.hour.toString().padLeft(2, '0');
+      final minuto = data.minute.toString().padLeft(2, '0');
+      
+      return '$dia $mes, $hora:$minuto';
+    } catch (e) {
+      return '';
     }
   }
 
