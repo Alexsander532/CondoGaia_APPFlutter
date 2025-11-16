@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/visitante_portaria.dart';
 import 'supabase_service.dart';
@@ -382,5 +383,46 @@ class VisitantePortariaService {
     }
 
     return celular;
+  }
+
+  /// Faz upload de foto de visitante para Supabase Storage
+  static Future<String?> uploadFotoVisitante({
+    required String condominioId,
+    required File arquivo,
+    required String nomeArquivo,
+  }) async {
+    try {
+      print('📸 Iniciando upload de foto para visitante...');
+      print('   - Condomínio: $condominioId');
+      print('   - Arquivo: $nomeArquivo');
+
+      // Caminho no storage: condominio_id/nomeArquivo
+      final caminhoStorage = '$condominioId/$nomeArquivo';
+
+      // Fazer upload para o bucket 'visitante_adicionado_pelo_representante'
+      final response = await _client.storage
+          .from('visitante_adicionado_pelo_representante')
+          .upload(
+            caminhoStorage,
+            arquivo,
+            fileOptions: const FileOptions(
+              cacheControl: '3600', // Cache de 1 hora
+              upsert: true, // Sobrescrever se já existir
+            ),
+          );
+
+      print('✅ Upload realizado com sucesso: $response');
+
+      // Gerar URL pública
+      final urlPublica = _client.storage
+          .from('visitante_adicionado_pelo_representante')
+          .getPublicUrl(caminhoStorage);
+
+      print('🔗 URL Pública: $urlPublica');
+      return urlPublica;
+    } catch (e) {
+      print('❌ Erro ao fazer upload de foto: $e');
+      rethrow;
+    }
   }
 }

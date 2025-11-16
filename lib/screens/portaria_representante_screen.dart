@@ -97,6 +97,7 @@ class _PortariaRepresentanteScreenState
   bool _isUnidadeSelecionada = true; // true = Unidade, false = Condomínio
   bool _isLoading =
       false; // Estado de carregamento para o cadastro de visitante
+  File? _fotoVisitante; // Armazena a imagem selecionada/capturada do visitante
 
   // Variáveis de erro para validação
   String? _cpfError;
@@ -554,39 +555,125 @@ class _PortariaRepresentanteScreenState
 
                       const SizedBox(height: 16),
 
-                      // Botão Anexar foto
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE0E0E0),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt_outlined,
-                              color: Color(0xFF666666),
-                              size: 20,
+                      // Seção Foto do Visitante
+                      _buildSectionTitle('Foto do Visitante'),
+                      const SizedBox(height: 12),
+
+                      // Widget para selecionar/capturar foto
+                      GestureDetector(
+                        onTap: () async {
+                          final ImagePicker picker = ImagePicker();
+                          try {
+                            // Tentar tirar foto com a câmera
+                            final XFile? image = await picker.pickImage(
+                              source: ImageSource.camera,
+                              maxWidth: 800,
+                              maxHeight: 600,
+                              imageQuality: 80,
+                            );
+                            
+                            if (image != null) {
+                              setState(() {
+                                _fotoVisitante = File(image.path);
+                              });
+                            }
+                          } catch (e) {
+                            print('Erro ao tirar foto: $e');
+                            // Fallback para galeria se câmera falhar
+                            try {
+                              final XFile? image = await picker.pickImage(
+                                source: ImageSource.gallery,
+                                maxWidth: 800,
+                                maxHeight: 600,
+                                imageQuality: 80,
+                              );
+                              
+                              if (image != null) {
+                                setState(() {
+                                  _fotoVisitante = File(image.path);
+                                });
+                              }
+                            } catch (e2) {
+                              print('Erro ao selecionar da galeria: $e2');
+                            }
+                          }
+                        },
+                        child: Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF4A90E2),
+                              width: 2,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () {
-                              // TODO: Implementar anexar foto
-                            },
-                            child: const Text(
-                              'Anexar foto',
-                              style: TextStyle(
-                                color: Color(0xFF1976D2),
-                                fontSize: 14,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
+                          child: _fotoVisitante == null
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.camera_alt,
+                                      size: 48,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Toque para tirar foto',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      '(ou selecionar da galeria)',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.file(
+                                        _fotoVisitante!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _fotoVisitante = null;
+                                            });
+                                          },
+                                          icon: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(
+                                            minWidth: 32,
+                                            minHeight: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ],
                   )
@@ -977,6 +1064,33 @@ class _PortariaRepresentanteScreenState
                     ],
                   )
                 : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1976D2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2E3A59),
+            ),
           ),
         ],
       ),
@@ -3985,6 +4099,40 @@ class _PortariaRepresentanteScreenState
       // Preparar dados do visitante
       final visitanteData = _prepararDadosVisitante();
 
+      // Fazer upload da foto se houver uma selecionada
+      if (_fotoVisitante != null) {
+        try {
+          print('🔵 Iniciando upload da foto do visitante...');
+          
+          // Gerar nome único para a foto
+          final String nomeArquivo = 'visitante_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          
+          // Fazer upload para Supabase Storage
+          // Bucket: visitante_adicionado_pelo_representante
+          final fotoUrlPublica = await VisitantePortariaService.uploadFotoVisitante(
+            condominioId: widget.condominioId!,
+            arquivo: _fotoVisitante!,
+            nomeArquivo: nomeArquivo,
+          );
+          
+          if (fotoUrlPublica != null) {
+            visitanteData['foto_url'] = fotoUrlPublica;
+            print('✅ Upload da foto realizado com sucesso: $fotoUrlPublica');
+          }
+        } catch (e) {
+          print('⚠️ Erro ao fazer upload da foto: $e');
+          // Continuar mesmo se falhar o upload (foto é opcional)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Aviso: Erro ao fazer upload da foto: $e'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      }
+
       // Inserir no banco de dados
       final visitante = await VisitantePortariaService.insertVisitante(
         visitanteData,
@@ -4115,6 +4263,7 @@ class _PortariaRepresentanteScreenState
     setState(() {
       _unidadeSelecionadaVisitante = null;
       _isUnidadeSelecionada = true;
+      _fotoVisitante = null; // Limpar foto também
     });
   }
 
