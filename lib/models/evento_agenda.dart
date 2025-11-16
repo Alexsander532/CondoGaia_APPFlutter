@@ -14,6 +14,7 @@ class EventoAgenda {
   final String status;
   final DateTime criadoEm;
   final DateTime atualizadoEm;
+  final String? fotoUrl;
 
   EventoAgenda({
     required this.id,
@@ -31,6 +32,7 @@ class EventoAgenda {
     this.status = 'ativo',
     required this.criadoEm,
     required this.atualizadoEm,
+    this.fotoUrl,
   });
 
   factory EventoAgenda.fromJson(Map<String, dynamic> json) {
@@ -50,6 +52,7 @@ class EventoAgenda {
       status: json['status'] as String? ?? 'ativo',
       criadoEm: DateTime.parse(json['criado_em'] as String),
       atualizadoEm: DateTime.parse(json['atualizado_em'] as String),
+      fotoUrl: json['foto_url'] as String?,
     );
   }
 
@@ -70,6 +73,7 @@ class EventoAgenda {
       'status': status,
       'criado_em': criadoEm.toIso8601String(),
       'atualizado_em': atualizadoEm.toIso8601String(),
+      'foto_url': fotoUrl,
     };
   }
 
@@ -87,6 +91,7 @@ class EventoAgenda {
       'avisar_condominios_email': avisarCondominiosEmail,
       'avisar_representante_email': avisarRepresentanteEmail,
       'status': status,
+      'foto_url': fotoUrl,
     };
   }
 
@@ -106,6 +111,7 @@ class EventoAgenda {
     String? status,
     DateTime? criadoEm,
     DateTime? atualizadoEm,
+    String? fotoUrl,
   }) {
     return EventoAgenda(
       id: id ?? this.id,
@@ -123,6 +129,7 @@ class EventoAgenda {
       status: status ?? this.status,
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
     );
   }
 

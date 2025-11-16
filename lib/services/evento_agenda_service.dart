@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_agenda.dart';
+import 'dart:io';
 
 class EventoAgendaService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -404,5 +405,41 @@ class EventoAgendaService {
     final horas = int.parse(partes[0]);
     final minutos = int.parse(partes[1]);
     return horas * 60 + minutos;
+  }
+
+  /// Faz upload da foto do evento para Supabase Storage
+  /// Bucket: imagens_agenda_representante
+  /// Path: /condominio_id/evento_id/nomeArquivo
+  static Future<String?> uploadFotoEventoAgenda({
+    required String condominioId,
+    required String eventoId,
+    required File arquivo,
+    required String nomeArquivo,
+  }) async {
+    try {
+      print('🔵 [EventoAgendaService] Iniciando upload da foto do evento...');
+      
+      final path = '$condominioId/$eventoId/$nomeArquivo';
+      
+      await _client.storage.from('imagens_agenda_representante').upload(
+            path,
+            arquivo,
+            fileOptions: const FileOptions(
+              cacheControl: '3600',
+              upsert: true,
+            ),
+          );
+
+      // Obter URL pública
+      final publicUrl = _client.storage
+          .from('imagens_agenda_representante')
+          .getPublicUrl(path);
+
+      print('✅ [EventoAgendaService] Upload realizado com sucesso: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      print('❌ [EventoAgendaService] Erro ao fazer upload da foto: $e');
+      return null;
+    }
   }
 }

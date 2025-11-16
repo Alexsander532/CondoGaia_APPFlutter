@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
@@ -592,14 +593,14 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                             tooltip: 'Copiar link',
                           )
                         else if (_isImagem(arquivo) || _isPDF(arquivo))
-                          // Para imagens e PDFs: download
+                          // Para imagens: visualizar com zoom
                           IconButton(
-                            onPressed: _isLoading ? null : () => _downloadArquivo(arquivo),
+                            onPressed: _isLoading ? null : () => _visualizarArquivo(arquivo),
                             icon: const Icon(
-                              Icons.download,
+                              Icons.visibility,
                               color: Colors.blue,
                             ),
-                            tooltip: _isPDF(arquivo) ? 'Baixar PDF' : 'Baixar imagem',
+                            tooltip: _isPDF(arquivo) ? 'Visualizar PDF' : 'Visualizar imagem',
                           ),
                       ],
                       IconButton(
@@ -880,71 +881,6 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     }
   }
 
-  // Método para download de arquivos
-  Future<void> _downloadArquivo(Documento arquivo) async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      String? filePath;
-      String fileName = arquivo.nome;
-
-      if (arquivo.url != null) {
-        // Se for arquivo do Supabase, usar método específico
-        if (arquivo.url!.contains('supabase')) {
-          filePath = await DocumentoService.downloadArquivoSupabase(
-            arquivo.url!,
-            fileName,
-          );
-        } else {
-          // Para outros URLs, usar download direto
-          filePath = await DocumentoService.downloadArquivo(
-            arquivo.url!,
-            fileName,
-          );
-        }
-      } else if (arquivo.linkExterno != null) {
-        // Para links externos, usar download direto
-        filePath = await DocumentoService.downloadArquivo(
-          arquivo.linkExterno!,
-          fileName,
-        );
-      }
-
-      if (filePath != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Arquivo baixado: $fileName'),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'Ver',
-              textColor: Colors.white,
-              onPressed: () {
-                // Aqui poderia abrir o arquivo ou mostrar sua localização
-              },
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao baixar arquivo: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   void _deleteArquivo(Documento arquivo) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -980,6 +916,149 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
           );
         }
       }
+    }
+  }
+
+  // Função para visualizar imagem ou PDF ampliado
+  void _visualizarArquivo(Documento arquivo) {
+    final bool isPDF = _isPDF(arquivo);
+    final bool isImagem = _isImagem(arquivo);
+
+    if (!isImagem && !isPDF) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este arquivo não pode ser visualizado')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(0),
+          child: Stack(
+            children: [
+              Center(
+                child: isPDF
+                    ? _buildPDFViewer(arquivo.url ?? '')
+                    : InteractiveViewer(
+                        boundaryMargin: const EdgeInsets.all(80),
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Image.network(
+                          arquivo.url ?? '',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error, color: Colors.white, size: 48),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Erro ao carregar imagem',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                                ),
+                              ],
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Widget para renderizar PDF
+  Widget _buildPDFViewer(String pdfUrl) {
+    return FutureBuilder<String>(
+      future: _downloadPDFToTemp(pdfUrl),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return PDFView(
+            filePath: snapshot.data,
+            enableSwipe: true,
+            swipeHorizontal: false,
+            autoSpacing: false,
+            pageFling: false,
+            backgroundColor: Colors.black,
+            onError: (error) {
+              print('Erro ao carregar PDF: $error');
+            },
+            onPageError: (page, error) {
+              print('Erro ao carregar página $page: $error');
+            },
+          );
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  'Erro ao baixar PDF',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          );
+        } else {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
+      },
+    );
+  }
+
+  // Função para baixar PDF e salvar temporariamente
+  Future<String> _downloadPDFToTemp(String pdfUrl) async {
+    try {
+      final response = await HttpClient().getUrl(Uri.parse(pdfUrl));
+      final httpResponse = await response.close();
+      final bytes = await httpResponse.expand((s) => s).toList();
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await file.writeAsBytes(bytes);
+      
+      return file.path;
+    } catch (e) {
+      throw Exception('Erro ao baixar PDF: $e');
     }
   }
 }

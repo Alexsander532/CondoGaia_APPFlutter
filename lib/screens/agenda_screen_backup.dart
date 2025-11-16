@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 import '../models/evento_agenda.dart';
 import '../models/evento_diario.dart';
 import '../models/representante.dart';
@@ -87,9 +90,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
   bool _isRecurrent = false;
   int _recurrentMonths = 1;
   bool _notifyAll = false;
+  File? _fotoEvento; // Foto selecionada para o evento
+  File? _fotoDiario; // Foto selecionada para o evento diário
   
   // Condomínios do representante
-  List<Map<String, dynamic>> _condominios = [];
   String? _selectedCondominioId;
   bool _notifyMe = false;
   
@@ -106,12 +110,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
   final TextEditingController _editEndTimeController = TextEditingController();
   
   // Variáveis de estado para o modal de edição
-  String _editEventType = 'Agenda';
   bool _editNotifyAll = false;
   String? _editSelectedCondominioId;
   bool _editNotifyMe = false;
-  DateTime? _editSelectedDate;
   EventoAgenda? _eventBeingEdited;
+  File? _editFotoEvento; // Foto sendo editada para evento agenda
+  bool _removerFotoEvento = false; // Flag para remover foto do evento agenda
   
   @override
   void initState() {
@@ -128,7 +132,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
     try {
       final condominios = await SupabaseService.getCondominiosByRepresentante(widget.representante.id);
       setState(() {
-        _condominios = condominios;
         // Seleciona o primeiro condomínio como padrão, se existir
         if (condominios.isNotEmpty) {
           _selectedCondominioId = condominios.first['id'];
@@ -784,6 +787,264 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     ),
                   ),
               
+              // Widget de seleção de foto para eventos de Agenda
+              if (_eventType == 'Agenda') ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Foto do Evento (Opcional):',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final ImagePicker picker = ImagePicker();
+                    try {
+                      // Tentar usar a câmera primeiro
+                      final XFile? image = await picker.pickImage(
+                        source: ImageSource.camera,
+                        maxWidth: 800,
+                        maxHeight: 600,
+                        imageQuality: 80,
+                      );
+                      
+                      if (image == null) {
+                        // Se cancelar a câmera, usar galeria
+                        final XFile? galleryImage = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 800,
+                          maxHeight: 600,
+                          imageQuality: 80,
+                        );
+                        if (galleryImage != null) {
+                          setModalState(() {
+                            _fotoEvento = File(galleryImage.path);
+                          });
+                        }
+                      } else {
+                        setModalState(() {
+                          _fotoEvento = File(image.path);
+                        });
+                      }
+                    } catch (e) {
+                      print('Erro ao selecionar imagem: $e');
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey[50],
+                    ),
+                    child: _fotoEvento != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  _fotoEvento!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setModalState(() {
+                                      _fotoEvento = null;
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: const Icon(
+                                    Icons.zoom_in,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Clique para adicionar foto',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+              
+              // Widget de seleção de foto para eventos Diários
+              if (_eventType == 'Diário') ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Foto do Evento (Opcional):',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final ImagePicker picker = ImagePicker();
+                    try {
+                      // Tentar usar a câmera primeiro
+                      final XFile? image = await picker.pickImage(
+                        source: ImageSource.camera,
+                        maxWidth: 800,
+                        maxHeight: 600,
+                        imageQuality: 80,
+                      );
+                      
+                      if (image == null) {
+                        // Se cancelar a câmera, usar galeria
+                        final XFile? galleryImage = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 800,
+                          maxHeight: 600,
+                          imageQuality: 80,
+                        );
+                        if (galleryImage != null) {
+                          setModalState(() {
+                            _fotoDiario = File(galleryImage.path);
+                          });
+                        }
+                      } else {
+                        setModalState(() {
+                          _fotoDiario = File(image.path);
+                        });
+                      }
+                    } catch (e) {
+                      print('Erro ao selecionar imagem: $e');
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey[50],
+                    ),
+                    child: _fotoDiario != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  _fotoDiario!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setModalState(() {
+                                      _fotoDiario = null;
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: const Icon(
+                                    Icons.zoom_in,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Clique para adicionar foto',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+              
               // Botão Salvar (fixo na parte inferior)
               SizedBox(
                 width: double.infinity,
@@ -839,11 +1100,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
     _editDescriptionController.text = evento.descricao ?? '';
     _editStartTimeController.text = _formatTimeDisplay(evento.horaInicio);
     _editEndTimeController.text = _formatTimeDisplay(evento.horaFim);
-    _editEventType = 'Agenda'; // Sempre agenda para eventos da agenda
     _editNotifyAll = evento.avisarCondominiosEmail;
     _editNotifyMe = evento.avisarRepresentanteEmail;
     _editSelectedCondominioId = evento.condominioId;
-    _editSelectedDate = evento.dataEvento;
 
     showModalBottomSheet(
       context: context,
@@ -1088,6 +1347,191 @@ class _AgendaScreenState extends State<AgendaScreen> {
                               ),
                             ],
                           ),
+                          
+                          // Widget de seleção/remoção de foto para edição
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Foto do Evento (Opcional):',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF1E3A8A),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () async {
+                              final ImagePicker picker = ImagePicker();
+                              try {
+                                final XFile? image = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  maxWidth: 800,
+                                  maxHeight: 600,
+                                  imageQuality: 80,
+                                );
+                                
+                                if (image == null) {
+                                  final XFile? galleryImage = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    maxWidth: 800,
+                                    maxHeight: 600,
+                                    imageQuality: 80,
+                                  );
+                                  if (galleryImage != null) {
+                                    setModalState(() {
+                                      _editFotoEvento = File(galleryImage.path);
+                                    });
+                                  }
+                                } else {
+                                  setModalState(() {
+                                    _editFotoEvento = File(image.path);
+                                  });
+                                }
+                              } catch (e) {
+                                print('Erro ao selecionar imagem: $e');
+                              }
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.grey[50],
+                              ),
+                              child: _editFotoEvento != null
+                                  ? Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Image.file(
+                                            _editFotoEvento!,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setModalState(() {
+                                                _editFotoEvento = null;
+                                                _removerFotoEvento = false;
+                                              });
+                                            },
+                                            child: Container(
+                                              decoration: const BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              padding: const EdgeInsets.all(4),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 8,
+                                          right: 8,
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              color: Colors.blue,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            padding: const EdgeInsets.all(8),
+                                            child: const Icon(
+                                              Icons.zoom_in,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : (!_removerFotoEvento && _eventBeingEdited?.fotoUrl != null
+                                      ? Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(10),
+                                              child: Image.network(
+                                                _eventBeingEdited!.fotoUrl!,
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    color: Colors.grey[300],
+                                                    child: const Icon(Icons.image_not_supported),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setModalState(() {
+                                                    _removerFotoEvento = true;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.red,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  padding: const EdgeInsets.all(4),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              bottom: 8,
+                                              right: 8,
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.blue,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                padding: const EdgeInsets.all(8),
+                                                child: const Icon(
+                                                  Icons.zoom_in,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.camera_alt,
+                                              size: 48,
+                                              color: Colors.grey[400],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'Clique para adicionar/trocar foto',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1227,6 +1671,40 @@ class _AgendaScreenState extends State<AgendaScreen> {
       
       // Verificar o tipo de evento selecionado
       if (_eventType == 'Diário') {
+        // Fazer upload da foto se houver uma selecionada
+        String? fotoUrl;
+        if (_fotoDiario != null) {
+          try {
+            print('🔵 Iniciando upload da foto do evento diário...');
+            
+            // Gerar nome único para a foto
+            final String nomeArquivo = 'evento_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            
+            // Fazer upload para Supabase Storage
+            fotoUrl = await EventoDiarioService.uploadFotoEventoDiario(
+              condominioId: _selectedCondominioId!,
+              eventoId: DateTime.now().millisecondsSinceEpoch.toString(),
+              arquivo: _fotoDiario!,
+              nomeArquivo: nomeArquivo,
+            );
+            
+            if (fotoUrl != null) {
+              print('✅ Upload da foto realizado com sucesso: $fotoUrl');
+            }
+          } catch (e) {
+            print('⚠️ Erro ao fazer upload da foto: $e');
+            // Continuar mesmo se falhar o upload (foto é opcional)
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Aviso: Erro ao fazer upload da foto: $e'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
+        }
+        
         // Salvar como evento diário
         final eventoDiarioSalvo = await EventoDiarioService.criarEvento(
           representanteId: widget.representante.id,
@@ -1235,6 +1713,21 @@ class _AgendaScreenState extends State<AgendaScreen> {
           descricao: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           dataEvento: dataEvento,
         );
+        
+        // Se o upload foi bem sucedido e temos a URL da foto, atualizar o evento com a foto
+        if (eventoDiarioSalvo != null && fotoUrl != null) {
+          try {
+            // Atualizar o evento com a URL da foto
+            await Supabase.instance.client
+                .from('eventos_diario_representante')
+                .update({'foto_url': fotoUrl})
+                .eq('id', eventoDiarioSalvo.id);
+                
+            print('✅ Foto adicionada ao evento diário com sucesso');
+          } catch (e) {
+            print('⚠️ Erro ao associar foto ao evento diário: $e');
+          }
+        }
         
         if (eventoDiarioSalvo != null) {
           // Sucesso - fechar modal e recarregar eventos
@@ -1262,6 +1755,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
             _recurrentMonths = 1;
             _notifyAll = false;
             _notifyMe = false;
+            _fotoEvento = null;
+            _fotoDiario = null;
           });
         } else {
           throw Exception('Falha ao salvar evento diário');
@@ -1270,6 +1765,42 @@ class _AgendaScreenState extends State<AgendaScreen> {
       }
       
       // Salvar evento de agenda (com suporte a recorrência automática)
+      
+      // Fazer upload da foto se houver uma selecionada
+      String? fotoUrl;
+      if (_fotoEvento != null && _eventType == 'Agenda') {
+        try {
+          print('🔵 Iniciando upload da foto do evento...');
+          
+          // Primeiro, criar um evento temporário para obter um ID
+          // Na verdade, vamos gerar um UUID único para o evento
+          final String nomeArquivo = 'evento_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          
+          // Fazer upload para Supabase Storage
+          fotoUrl = await EventoAgendaService.uploadFotoEventoAgenda(
+            condominioId: _selectedCondominioId!,
+            eventoId: DateTime.now().millisecondsSinceEpoch.toString(),
+            arquivo: _fotoEvento!,
+            nomeArquivo: nomeArquivo,
+          );
+          
+          if (fotoUrl != null) {
+            print('✅ Upload da foto realizado com sucesso: $fotoUrl');
+          }
+        } catch (e) {
+          print('⚠️ Erro ao fazer upload da foto: $e');
+          // Continuar mesmo se falhar o upload (foto é opcional)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Aviso: Erro ao fazer upload da foto: $e'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      }
+      
       final eventoSalvo = await EventoAgendaService.criarEvento(
         representanteId: widget.representante.id,
         condominioId: _selectedCondominioId!,
@@ -1283,6 +1814,21 @@ class _AgendaScreenState extends State<AgendaScreen> {
         avisarCondominiosEmail: _notifyAll,
         avisarRepresentanteEmail: _notifyMe,
       );
+      
+      // Se o upload foi bem sucedido e temos a URL da foto, atualizar o evento com a foto
+      if (eventoSalvo != null && fotoUrl != null) {
+        try {
+          // Atualizar o evento com a URL da foto
+          await Supabase.instance.client
+              .from('eventos_agenda_representante')
+              .update({'foto_url': fotoUrl})
+              .eq('id', eventoSalvo.id);
+              
+          print('✅ Foto adicionada ao evento com sucesso');
+        } catch (e) {
+          print('⚠️ Erro ao associar foto ao evento: $e');
+        }
+      }
       
       // A geração de eventos recorrentes é feita automaticamente dentro de criarEvento()
       // Não é necessário criar eventos em loop aqui
@@ -1319,6 +1865,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           _recurrentMonths = 1;
           _notifyAll = false;
           _notifyMe = false;
+          _fotoEvento = null;
         });
       } else {
         throw Exception('Falha ao salvar evento');
@@ -1408,6 +1955,22 @@ class _AgendaScreenState extends State<AgendaScreen> {
         throw Exception('Evento não encontrado');
       }
 
+      String? novaFotoUrl = _eventBeingEdited!.fotoUrl;
+
+      // Lógica de upload de foto
+      if (_editFotoEvento != null) {
+        // Nova foto foi selecionada
+        novaFotoUrl = await EventoAgendaService.uploadFotoEventoAgenda(
+          condominioId: _eventBeingEdited!.condominioId,
+          eventoId: _eventBeingEdited!.id!,
+          arquivo: _editFotoEvento!,
+          nomeArquivo: 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+      } else if (_removerFotoEvento) {
+        // Foto foi removida
+        novaFotoUrl = null;
+      }
+
       // Criar evento atualizado
       final eventoAtualizado = EventoAgenda(
         id: _eventBeingEdited!.id,
@@ -1426,6 +1989,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
         representanteId: _eventBeingEdited!.representanteId,
         criadoEm: _eventBeingEdited!.criadoEm,
         atualizadoEm: DateTime.now(),
+        fotoUrl: novaFotoUrl,
       );
 
       // Atualizar evento
@@ -1465,10 +2029,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
         _editEndTimeController.clear();
         
         setState(() {
-          _editEventType = 'Agenda';
           _editNotifyAll = false;
           _editNotifyMe = false;
           _eventBeingEdited = null;
+          _editFotoEvento = null;
+          _removerFotoEvento = false;
         });
       } else {
         throw Exception('Falha ao atualizar evento');
@@ -1610,6 +2175,156 @@ class _AgendaScreenState extends State<AgendaScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // Método para mostrar foto ampliada do evento
+  void _mostrarFotoAmpliadaEvento(String fotoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            children: [
+              // Foto ampliada
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Erro ao carregar a foto',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Botão fechar (X)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Método para mostrar foto ampliada do evento diário
+  void _mostrarFotoAmpliadaEventoDiario(String fotoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            children: [
+              // Foto ampliada
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Erro ao carregar a foto',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Botão fechar (X)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
   
   Widget _buildCalendarHeader() {
@@ -1866,6 +2581,61 @@ class _AgendaScreenState extends State<AgendaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Foto do evento (se existir)
+          if (evento.fotoUrl != null && evento.fotoUrl!.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () {
+                _mostrarFotoAmpliadaEvento(evento.fotoUrl!);
+              },
+              child: Container(
+                width: double.infinity,
+                height: 150,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white30),
+                ),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        evento.fotoUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[700],
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.white70,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(
+                          Icons.zoom_in,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -2028,6 +2798,61 @@ class _AgendaScreenState extends State<AgendaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Foto do evento (se existir)
+          if (evento.fotoUrl != null && evento.fotoUrl!.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () {
+                _mostrarFotoAmpliadaEventoDiario(evento.fotoUrl!);
+              },
+              child: Container(
+                width: double.infinity,
+                height: 150,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white30),
+                ),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        evento.fotoUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[700],
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.white70,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(
+                          Icons.zoom_in,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -2162,91 +2987,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   // Método para mostrar modal de edição de evento diário
   void _showEditDiaryEventModal(EventoDiario evento) {
-    final titleController = TextEditingController(text: evento.titulo);
-    final descriptionController = TextEditingController(text: evento.descricao ?? '');
-
-    showDialog(
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Editar Evento Diário'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Título',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrição',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('O título é obrigatório'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                try {
-                  final eventoAtualizado = evento.copyWith(
-                    titulo: titleController.text.trim(),
-                    descricao: descriptionController.text.trim().isEmpty 
-                        ? null 
-                        : descriptionController.text.trim(),
-                  );
-
-                  await EventoDiarioService.atualizarEvento(
-                    eventoId: evento.id,
-                    titulo: titleController.text.trim(),
-                    descricao: descriptionController.text.trim().isEmpty 
-                        ? null 
-                        : descriptionController.text.trim(),
-                  );
-                  
-                  Navigator.of(context).pop();
-                  _loadEvents(); // Recarregar eventos
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Evento diário atualizado com sucesso!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erro ao atualizar evento: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
+        return _EditDiaryEventModalContent(
+          evento: evento,
+          onSave: () {
+            _loadEvents();
+          },
         );
       },
     );
@@ -2298,5 +3047,357 @@ class _AgendaScreenState extends State<AgendaScreen> {
         );
       },
     );
+  }
+}
+
+// StatefulWidget para edição de evento diário com foto
+class _EditDiaryEventModalContent extends StatefulWidget {
+  final EventoDiario evento;
+  final VoidCallback onSave;
+
+  const _EditDiaryEventModalContent({
+    required this.evento,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditDiaryEventModalContent> createState() =>
+      _EditDiaryEventModalContentState();
+}
+
+class _EditDiaryEventModalContentState
+    extends State<_EditDiaryEventModalContent> {
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
+  File? fotoSelecionada;
+  bool removerFoto = false;
+  bool isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    titleController = TextEditingController(text: widget.evento.titulo);
+    descriptionController =
+        TextEditingController(text: widget.evento.descricao ?? '');
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cabeçalho
+            Text(
+              'Editar Evento Diário',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 20),
+
+            // Campo de título
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Título',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.all(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Campo de descrição
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Descrição',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.all(12),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // Label de foto
+            const Text(
+              'Foto do Evento (Opcional):',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF059669),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Widget de foto
+            GestureDetector(
+              onTap: isSaving ? null : _selecionarFoto,
+              child: Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[50],
+                ),
+                child: _buildPhotoWidget(),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Botões
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: isSaving ? null : _salvarEvento,
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoWidget() {
+    // Foto selecionada
+    if (fotoSelecionada != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.file(
+              fotoSelecionada!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  fotoSelecionada = null;
+                  removerFoto = false;
+                });
+              },
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Foto atual não removida
+    if (!removerFoto && widget.evento.fotoUrl != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              widget.evento.fotoUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  removerFoto = true;
+                });
+              },
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Nenhuma foto
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.camera_alt,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Clique para adicionar/trocar foto',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selecionarFoto() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+
+      if (image == null) {
+        final XFile? galleryImage = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 800,
+          maxHeight: 600,
+          imageQuality: 80,
+        );
+        if (galleryImage != null) {
+          setState(() {
+            fotoSelecionada = File(galleryImage.path);
+            removerFoto = false;
+          });
+        }
+      } else {
+        setState(() {
+          fotoSelecionada = File(image.path);
+          removerFoto = false;
+        });
+      }
+    } catch (e) {
+      print('Erro ao selecionar imagem: $e');
+    }
+  }
+
+  Future<void> _salvarEvento() async {
+    if (titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('O título é obrigatório'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      String? novaFotoUrl = widget.evento.fotoUrl;
+
+      // Lógica de upload de foto
+      if (fotoSelecionada != null) {
+        // Nova foto foi selecionada
+        novaFotoUrl = await EventoDiarioService.uploadFotoEventoDiario(
+          condominioId: widget.evento.condominioId,
+          eventoId: widget.evento.id,
+          arquivo: fotoSelecionada!,
+          nomeArquivo: 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+      } else if (removerFoto) {
+        // Foto foi removida
+        novaFotoUrl = null;
+      }
+
+      await EventoDiarioService.atualizarEvento(
+        eventoId: widget.evento.id,
+        titulo: titleController.text.trim(),
+        descricao: descriptionController.text.trim().isEmpty
+            ? null
+            : descriptionController.text.trim(),
+        fotoUrl: novaFotoUrl,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSave();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Evento diário atualizado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar evento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
   }
 }

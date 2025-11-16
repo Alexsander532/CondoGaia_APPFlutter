@@ -8,6 +8,7 @@ class EventoDiario {
   final String status;
   final DateTime criadoEm;
   final DateTime atualizadoEm;
+  final String? fotoUrl;
 
   EventoDiario({
     required this.id,
@@ -19,6 +20,7 @@ class EventoDiario {
     this.status = 'ativo',
     required this.criadoEm,
     required this.atualizadoEm,
+    this.fotoUrl,
   });
 
   factory EventoDiario.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class EventoDiario {
       status: json['status'] as String? ?? 'ativo',
       criadoEm: DateTime.parse(json['criado_em'] as String),
       atualizadoEm: DateTime.parse(json['atualizado_em'] as String),
+      fotoUrl: json['foto_url'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class EventoDiario {
       'status': status,
       'criado_em': criadoEm.toIso8601String(),
       'atualizado_em': atualizadoEm.toIso8601String(),
+      'foto_url': fotoUrl,
     };
   }
 
@@ -57,6 +61,7 @@ class EventoDiario {
       'descricao': descricao,
       'data_evento': dataEvento.toIso8601String().split('T')[0],
       'status': status,
+      'foto_url': fotoUrl,
     };
   }
 
@@ -70,6 +75,7 @@ class EventoDiario {
     String? status,
     DateTime? criadoEm,
     DateTime? atualizadoEm,
+    String? fotoUrl,
   }) {
     return EventoDiario(
       id: id ?? this.id,
@@ -81,6 +87,7 @@ class EventoDiario {
       status: status ?? this.status,
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
     );
   }
 

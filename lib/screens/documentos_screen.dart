@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'dart:io';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
@@ -1459,12 +1460,12 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                         ),
                       )
                     else if (_isImagemBalancete(balancete) || _isPDFBalancete(balancete))
-                      // Para imagens e PDFs: download
+                      // Para imagens e PDFs: visualizar
                       GestureDetector(
-                        onTap: () => _baixarBalancete(balancete),
+                        onTap: () => _visualizarImagemBalancete(balancete),
                         child: const Icon(
-                          Icons.download,
-                          color: Colors.green,
+                          Icons.visibility,
+                          color: Colors.blue,
                           size: 20,
                         ),
                       ),
@@ -1521,5 +1522,148 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         ),
       ),
     );
+  }
+
+  // Função para visualizar imagem ou PDF ampliado
+  void _visualizarImagemBalancete(Balancete balancete) {
+    final bool isPDF = _isPDFBalancete(balancete);
+    final bool isImagem = _isImagemBalancete(balancete);
+
+    if (!isImagem && !isPDF) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este arquivo não pode ser visualizado')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(0),
+          child: Stack(
+            children: [
+              Center(
+                child: isPDF
+                    ? _buildPDFViewer(balancete.url ?? '')
+                    : InteractiveViewer(
+                        boundaryMargin: const EdgeInsets.all(80),
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Image.network(
+                          balancete.url ?? '',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error, color: Colors.white, size: 48),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Erro ao carregar imagem',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                                ),
+                              ],
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Widget para renderizar PDF
+  Widget _buildPDFViewer(String pdfUrl) {
+    return FutureBuilder<String>(
+      future: _downloadPDFToTemp(pdfUrl),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return PDFView(
+            filePath: snapshot.data,
+            enableSwipe: true,
+            swipeHorizontal: false,
+            autoSpacing: false,
+            pageFling: false,
+            backgroundColor: Colors.black,
+            onError: (error) {
+              print('Erro ao carregar PDF: $error');
+            },
+            onPageError: (page, error) {
+              print('Erro ao carregar página $page: $error');
+            },
+          );
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  'Erro ao baixar PDF',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          );
+        } else {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
+      },
+    );
+  }
+
+  // Função para baixar PDF e salvar temporariamente
+  Future<String> _downloadPDFToTemp(String pdfUrl) async {
+    try {
+      final response = await HttpClient().getUrl(Uri.parse(pdfUrl));
+      final httpResponse = await response.close();
+      final bytes = await httpResponse.expand((s) => s).toList();
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await file.writeAsBytes(bytes);
+      
+      return file.path;
+    } catch (e) {
+      throw Exception('Erro ao baixar PDF: $e');
+    }
   }
 }

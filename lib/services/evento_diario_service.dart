@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_diario.dart';
+import 'dart:io';
 
 class EventoDiarioService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -131,6 +132,7 @@ class EventoDiarioService {
     String? descricao,
     DateTime? dataEvento,
     String? status,
+    String? fotoUrl,
   }) async {
     try {
       final updateData = <String, dynamic>{};
@@ -139,6 +141,7 @@ class EventoDiarioService {
       if (descricao != null) updateData['descricao'] = descricao;
       if (dataEvento != null) updateData['data_evento'] = dataEvento.toIso8601String().split('T')[0];
       if (status != null) updateData['status'] = status;
+      if (fotoUrl != null) updateData['foto_url'] = fotoUrl;
 
       if (updateData.isEmpty) {
         throw Exception('Nenhum campo para atualizar foi fornecido');
@@ -279,6 +282,42 @@ class EventoDiarioService {
     } catch (e) {
       print('Erro ao buscar eventos por termo: $e');
       rethrow;
+    }
+  }
+
+  /// Faz upload da foto do evento diário para Supabase Storage
+  /// Bucket: imagens_diario_representante
+  /// Path: /condominio_id/evento_id/nomeArquivo
+  static Future<String?> uploadFotoEventoDiario({
+    required String condominioId,
+    required String eventoId,
+    required File arquivo,
+    required String nomeArquivo,
+  }) async {
+    try {
+      print('🔵 [EventoDiarioService] Iniciando upload da foto do evento diário...');
+      
+      final path = '$condominioId/$eventoId/$nomeArquivo';
+      
+      await _client.storage.from('imagens_diario_representante').upload(
+            path,
+            arquivo,
+            fileOptions: const FileOptions(
+              cacheControl: '3600',
+              upsert: true,
+            ),
+          );
+
+      // Obter URL pública
+      final publicUrl = _client.storage
+          .from('imagens_diario_representante')
+          .getPublicUrl(path);
+
+      print('✅ [EventoDiarioService] Upload realizado com sucesso: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      print('❌ [EventoDiarioService] Erro ao fazer upload da foto: $e');
+      return null;
     }
   }
 }
