@@ -2604,11 +2604,13 @@ class _PortariaRepresentanteScreenState
     );
   }
 
-  // Método auxiliar para formatar data
+  // Método auxiliar para formatar data com horário local
   String _formatarData(dynamic data) {
     try {
       // Converter para DateTime se for String
-      final dateTime = data is String ? DateTime.parse(data) : data as DateTime;
+      DateTime dateTime = data is String ? DateTime.parse(data) : data as DateTime;
+      
+      // Usar o horário como está (sem conversão)
       return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} às ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'N/A';
@@ -3174,7 +3176,7 @@ class _PortariaRepresentanteScreenState
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
                               width:
-                                  800, // Largura mínima para garantir espaço adequado
+                                  1000, // Largura aumentada para melhor espaçamento
                               child: Column(
                                 children: [
                                   // Cabeçalho da tabela
@@ -3187,81 +3189,82 @@ class _PortariaRepresentanteScreenState
                                       color: Color(0xFF1976D2),
                                     ),
                                     child: Row(
-                                      children: const [
+                                      children: [
+                                        SizedBox(
+                                          width: 220,
+                                          child: Center(
+                                            child: Text(
+                                              'NOME',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 120,
+                                          child: Center(
+                                            child: Text(
+                                              'BL/UNID',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                         SizedBox(
                                           width: 200,
-                                          child: Text(
-                                            'NOME',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                          child: Center(
+                                            child: Text(
+                                              'ENTRADA',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 80,
-                                          child: Text(
-                                            'BL/UNID',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                          width: 140,
+                                          child: Center(
+                                            child: Text(
+                                              'PLACA',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 100,
-                                          child: Text(
-                                            'ENTRADA',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                          width: 120,
+                                          child: Center(
+                                            child: Text(
+                                              'FOTO',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 80,
-                                          child: Text(
-                                            'HORA',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 100,
-                                          child: Text(
-                                            'PLACA',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 80,
-                                          child: Text(
-                                            'FOTO',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 80,
-                                          child: Text(
-                                            'SAÍDA',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                          width: 120,
+                                          child: Center(
+                                            child: Text(
+                                              'SAÍDA',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -3297,199 +3300,194 @@ class _PortariaRepresentanteScreenState
                                           child: Row(
                                             children: [
                                               SizedBox(
+                                                width: 220,
+                                                child: Center(
+                                                  child: Text(
+                                                    visitante['nome'] ??
+                                                        'Nome não informado',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Color(0xFF2E3A59),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 120,
+                                                child: Center(
+                                                  child: Text(
+                                                    unidadeInfo,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Color(0xFF2E3A59),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(
                                                 width: 200,
-                                                child: Text(
-                                                  visitante['nome'] ??
-                                                      'Nome não informado',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  unidadeInfo,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 100,
-                                                child: Text(
-                                                  visitante['hora_entrada_real'] !=
-                                                          null
-                                                      ? _formatarHora(
-                                                          visitante['hora_entrada_real'],
-                                                        )
+                                                child: Center(
+                                                  child: Text(
+                                                    visitante['hora_entrada_real'] !=
+                                                            null
+                                                      ? _formatarData(visitante['hora_entrada_real'])
                                                       : 'N/A',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Color(0xFF2E3A59),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
                                               SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  visitante['hora_entrada_real'] !=
-                                                          null
-                                                      ? _formatarHora(
-                                                          visitante['hora_entrada_real'],
-                                                        )
-                                                      : 'N/A',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 100,
-                                                child: Text(
-                                                  visitante['veiculo_placa'] ??
-                                                      '',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
+                                                width: 140,
+                                                child: Center(
+                                                  child: Text(
+                                                    visitante['veiculo_placa'] ??
+                                                        '',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Color(0xFF2E3A59),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
                                               // Foto do visitante
                                               SizedBox(
-                                                width: 80,
-                                                child: GestureDetector(
-                                                  onTap: visitante['foto_url'] != null && 
-                                                          (visitante['foto_url'] as String?)?.isNotEmpty == true
-                                                      ? () => _mostrarFotoAmpliada(
-                                                            visitante['foto_url'] as String,
-                                                            visitante['nome'] ?? 'Visitante',
-                                                          )
-                                                      : null,
-                                                  child: Container(
-                                                    width: 50,
-                                                    height: 50,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: const Color(0xFF4A90E2)
-                                                          .withOpacity(0.1),
-                                                      border: visitante['foto_url'] !=
+                                                width: 120,
+                                                child: Center(
+                                                  child: GestureDetector(
+                                                    onTap: visitante['foto_url'] != null && 
+                                                            (visitante['foto_url'] as String?)?.isNotEmpty == true
+                                                        ? () => _mostrarFotoAmpliada(
+                                                              visitante['foto_url'] as String,
+                                                              visitante['nome'] ?? 'Visitante',
+                                                            )
+                                                        : null,
+                                                    child: Container(
+                                                      width: 50,
+                                                      height: 50,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: const Color(0xFF4A90E2)
+                                                            .withOpacity(0.1),
+                                                        border: visitante['foto_url'] !=
+                                                                    null &&
+                                                                (visitante['foto_url']
+                                                                        as String?)
+                                                                    ?.isNotEmpty ==
+                                                                true
+                                                            ? Border.all(
+                                                                color: const Color(
+                                                                    0xFF4A90E2),
+                                                                width: 2,
+                                                              )
+                                                            : null,
+                                                      ),
+                                                      child: visitante['foto_url'] !=
                                                                   null &&
                                                               (visitante['foto_url']
                                                                       as String?)
                                                                   ?.isNotEmpty ==
                                                               true
-                                                          ? Border.all(
-                                                              color: const Color(
-                                                                  0xFF4A90E2),
-                                                              width: 2,
-                                                            )
-                                                          : null,
-                                                    ),
-                                                    child: visitante['foto_url'] !=
-                                                                null &&
-                                                            (visitante['foto_url']
-                                                                    as String?)
-                                                                ?.isNotEmpty ==
-                                                            true
-                                                        ? Stack(
-                                                            fit: StackFit.expand,
-                                                            children: [
-                                                              ClipOval(
-                                                                child:
-                                                                    Image.network(
-                                                                  visitante[
-                                                                      'foto_url'] as String,
-                                                                  fit:
-                                                                      BoxFit.cover,
-                                                                  errorBuilder:
-                                                                      (context,
-                                                                          error,
-                                                                          stackTrace) {
-                                                                    return const Icon(
-                                                                      Icons
-                                                                          .person,
-                                                                      size: 24,
-                                                                      color: Color(
-                                                                          0xFF4A90E2),
-                                                                    );
-                                                                  },
+                                                          ? Stack(
+                                                              fit: StackFit.expand,
+                                                              children: [
+                                                                ClipOval(
+                                                                  child:
+                                                                      Image.network(
+                                                                    visitante[
+                                                                        'foto_url'] as String,
+                                                                    fit:
+                                                                        BoxFit.cover,
+                                                                    errorBuilder:
+                                                                        (context,
+                                                                            error,
+                                                                            stackTrace) {
+                                                                      return const Icon(
+                                                                        Icons
+                                                                            .person,
+                                                                        size: 24,
+                                                                        color: Color(
+                                                                            0xFF4A90E2),
+                                                                      );
+                                                                    },
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              Positioned(
-                                                                bottom: -2,
-                                                                right: -2,
-                                                                child: Container(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .all(2),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    shape: BoxShape
-                                                                        .circle,
-                                                                    color: const Color(
-                                                                        0xFF4A90E2),
-                                                                    border:
-                                                                        Border.all(
+                                                                Positioned(
+                                                                  bottom: -2,
+                                                                  right: -2,
+                                                                  child: Container(
+                                                                    padding:
+                                                                        const EdgeInsets
+                                                                            .all(2),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      shape: BoxShape
+                                                                          .circle,
+                                                                      color: const Color(
+                                                                          0xFF4A90E2),
+                                                                      border:
+                                                                          Border.all(
+                                                                        color: Colors
+                                                                            .white,
+                                                                        width: 2,
+                                                                      ),
+                                                                    ),
+                                                                    child: const Icon(
+                                                                      Icons.zoom_in,
+                                                                      size: 8,
                                                                       color: Colors
                                                                           .white,
-                                                                      width: 2,
                                                                     ),
                                                                   ),
-                                                                  child: const Icon(
-                                                                    Icons.zoom_in,
-                                                                    size: 8,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
                                                                 ),
-                                                              ),
-                                                            ],
-                                                          )
-                                                        : const Icon(
-                                                            Icons.person,
-                                                            size: 24,
-                                                            color: Color(
-                                                                0xFF4A90E2),
-                                                          ),
+                                                              ],
+                                                            )
+                                                          : const Icon(
+                                                              Icons.person,
+                                                              size: 24,
+                                                              color: Color(
+                                                                  0xFF4A90E2),
+                                                            ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
                                               SizedBox(
-                                                width: 80,
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    _registrarSaida(visitante);
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        const Color(0xFF1976D2),
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 4,
-                                                        ),
-                                                    minimumSize: const Size(
-                                                      60,
-                                                      30,
-                                                    ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            4,
+                                                width: 120,
+                                                child: Center(
+                                                  child: ElevatedButton(
+                                                    onPressed: () {
+                                                      _registrarSaida(visitante);
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          const Color(0xFF1976D2),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
                                                           ),
+                                                      minimumSize: const Size(
+                                                        60,
+                                                        30,
+                                                      ),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                      ),
                                                     ),
-                                                  ),
-                                                  child: const Text(
-                                                    'SAIR',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                    child: const Text(
+                                                      'SAIR',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -3504,7 +3502,7 @@ class _PortariaRepresentanteScreenState
                               ),
                             ),
                           ),
-                  ),
+                        ),
                 ],
               ),
             ),
@@ -3839,21 +3837,55 @@ class _PortariaRepresentanteScreenState
                                       autorizado['nome'] ?? 'Autorizado',
                                     )
                                 : null,
-                            child: CircleAvatar(
-                              backgroundColor: const Color(0xFF1976D2),
-                              backgroundImage: autorizado['foto_url'] != null &&
-                                      (autorizado['foto_url'] as String?)?.isNotEmpty == true
-                                  ? NetworkImage(autorizado['foto_url'] as String)
-                                  : null,
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF1976D2).withOpacity(0.2),
+                                border: autorizado['foto_url'] != null &&
+                                        (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                    ? Border.all(
+                                        color: const Color(0xFF1976D2),
+                                        width: 2,
+                                      )
+                                    : null,
+                              ),
                               child: autorizado['foto_url'] != null &&
                                       (autorizado['foto_url'] as String?)?.isNotEmpty == true
-                                  ? null
-                                  : Text(
-                                      autorizado['nome']
-                                              ?.substring(0, 1)
-                                              .toUpperCase() ??
-                                          'A',
-                                      style: const TextStyle(color: Colors.white),
+                                  ? Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        ClipOval(
+                                          child: Image.network(
+                                            autorizado['foto_url'] as String,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                color: const Color(0xFF1976D2).withOpacity(0.2),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  size: 24,
+                                                  color: Color(0xFF1976D2),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        autorizado['nome']
+                                                ?.substring(0, 1)
+                                                .toUpperCase() ??
+                                            'A',
+                                        style: const TextStyle(
+                                          color: Color(0xFF1976D2),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        ),
+                                      ),
                                     ),
                             ),
                           ),
