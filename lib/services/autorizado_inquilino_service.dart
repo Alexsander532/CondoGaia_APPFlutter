@@ -87,7 +87,17 @@ class AutorizadoInquilinoService {
       final response = await _client
           .from('autorizados_inquilinos')
           .select('''
-            *,
+            id,
+            nome,
+            cpf,
+            parentesco,
+            horario_inicio,
+            horario_fim,
+            dias_semana_permitidos,
+            veiculo_marca,
+            veiculo_modelo,
+            veiculo_placa,
+            foto_url,
             unidades!inner(
               id,
               numero,
@@ -110,7 +120,7 @@ class AutorizadoInquilinoService {
       print(
         '🔍 DEBUG SERVICE: Response recebido: ${response.length} registros',
       );
-      print('🔍 DEBUG SERVICE: Dados brutos: $response');
+      print('🔍 DEBUG SERVICE: Primeiro item (verificando foto_url): ${response.isNotEmpty ? response.first : 'vazio'}');
 
       Map<String, List<Map<String, dynamic>>> autorizadosPorUnidade = {};
 
@@ -200,6 +210,15 @@ class AutorizadoInquilinoService {
               : null,
           'foto_url': item['foto_url'], // Adicionando foto do autorizado
         };
+
+        // Debug: Verificar se foto_url foi corretamente adicionada
+        if (item['foto_url'] != null && (item['foto_url'] as String).isNotEmpty) {
+          print('✅ Foto do autorizado ${item['nome']}: ${item['foto_url']}');
+        }
+
+        print(
+          '🔍 DEBUG SERVICE: Autorizado ${item['nome']} - foto_url: ${item['foto_url']}',
+        );
 
         if (!autorizadosPorUnidade.containsKey(chaveUnidade)) {
           autorizadosPorUnidade[chaveUnidade] = [];

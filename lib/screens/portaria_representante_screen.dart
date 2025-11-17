@@ -3860,7 +3860,27 @@ class _PortariaRepresentanteScreenState
                                           child: Image.network(
                                             autorizado['foto_url'] as String,
                                             fit: BoxFit.cover,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) {
+                                                print('📸 Foto carregada: ${autorizado['nome']}');
+                                                return child;
+                                              }
+                                              return Container(
+                                                color: const Color(0xFF1976D2).withOpacity(0.2),
+                                                child: const Center(
+                                                  child: SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                             errorBuilder: (context, error, stackTrace) {
+                                              print('❌ Erro ao carregar foto ${autorizado['nome']}: $error');
                                               return Container(
                                                 color: const Color(0xFF1976D2).withOpacity(0.2),
                                                 child: const Icon(
