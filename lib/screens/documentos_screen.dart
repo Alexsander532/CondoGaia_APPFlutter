@@ -139,38 +139,65 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   
   String get _periodoAtual => '${_nomesMeses[_mesSelecionado - 1]}/$_anoSelecionado';
   
-  // Método para tirar foto e salvar como balancete
+  // Método para mostrar opções de foto (câmera ou galeria)
   Future<void> _tirarFoto() async {
     try {
-      setState(() {
-        isLoading = true;
-      });
-
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
+      // Mostrar diálogo com opções
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Selecionar Imagem'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Câmera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Galeria'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          );
+        },
       );
 
-      if (image != null) {
-        // Adicionar balancete com upload da imagem
-        await DocumentoService.adicionarBalanceteComUpload(
-          arquivo: File(image.path),
-          nomeArquivo: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
-          mes: _mesSelecionado.toString(),
-          ano: _anoSelecionado.toString(),
-          privado: selectedPrivacy == 'Privado',
-          condominioId: condominioId,
-          representanteId: representanteId,
+      if (source != null) {
+        setState(() {
+          isLoading = true;
+        });
+
+        final ImagePicker picker = ImagePicker();
+        final XFile? image = await picker.pickImage(
+          source: source,
+          imageQuality: 85,
         );
 
-        // Recarregar a lista de balancetes
-        await _carregarBalancetes();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto adicionada com sucesso!')),
+        if (image != null) {
+          // Adicionar balancete com upload da imagem (passar XFile diretamente)
+          await DocumentoService.adicionarBalanceteComUpload(
+            arquivo: image,
+            nomeArquivo: 'Foto_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            mes: _mesSelecionado.toString(),
+            ano: _anoSelecionado.toString(),
+            privado: selectedPrivacy == 'Privado',
+            condominioId: condominioId,
+            representanteId: representanteId,
           );
+
+          // Recarregar a lista de balancetes
+          await _carregarBalancetes();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto adicionada com sucesso!')),
+            );
+          }
         }
       }
     } catch (e) {
@@ -187,7 +214,8 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       }
     }
   }
-  
+
+  // Método para selecionar imagem da galeria (funciona na web e mobile)
   // Método para adicionar link como balancete
   Future<void> _adicionarLink() async {
     // Validar se o link não está vazio

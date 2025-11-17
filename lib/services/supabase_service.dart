@@ -1030,12 +1030,21 @@ class SupabaseService {
 
   /// Upload de arquivo para o storage do Supabase
   static Future<String?> uploadArquivoDocumento(
-    File arquivo,
+    dynamic arquivo,
     String nomeArquivo,
     String condominioId,
   ) async {
     try {
-      final bytes = await arquivo.readAsBytes();
+      late Uint8List bytes;
+      
+      // Converter para bytes - compatível com File e XFile
+      if (arquivo is File) {
+        bytes = await arquivo.readAsBytes();
+      } else {
+        // Web (XFile) ou outro formato
+        bytes = await arquivo.readAsBytes();
+      }
+      
       final sanitizedName = _sanitizeFileName(nomeArquivo);
       final fileName =
           '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
@@ -1220,7 +1229,7 @@ class SupabaseService {
 
   /// Upload de balancete para o storage
   static Future<String?> uploadBalancete(
-    File arquivo,
+    dynamic arquivo,
     String nomeArquivo,
     String condominioId,
     String mes,
@@ -1229,13 +1238,25 @@ class SupabaseService {
     try {
       print('[SupabaseService] Iniciando upload de balancete: $nomeArquivo');
       
-      // Verificar se arquivo existe
-      if (!await arquivo.exists()) {
-        print('[SupabaseService] ERRO: Arquivo não existe em ${arquivo.path}');
-        throw Exception('Arquivo não encontrado: ${arquivo.path}');
+      late Uint8List bytes;
+      
+      // Converter para bytes - compatível com File e XFile
+      if (arquivo is File) {
+        // Mobile/Desktop
+        if (!await arquivo.exists()) {
+          print('[SupabaseService] ERRO: Arquivo não existe em ${arquivo.path}');
+          throw Exception('Arquivo não encontrado: ${arquivo.path}');
+        }
+        bytes = await arquivo.readAsBytes();
+      } else {
+        // Web (XFile) ou outro formato
+        try {
+          bytes = await arquivo.readAsBytes();
+        } catch (e) {
+          throw Exception('Não foi possível ler o arquivo: $e');
+        }
       }
-
-      final bytes = await arquivo.readAsBytes();
+      
       print('[SupabaseService] Arquivo lido: ${bytes.length} bytes');
 
       final sanitizedName = _sanitizeFileName(nomeArquivo);

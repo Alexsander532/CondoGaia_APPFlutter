@@ -508,7 +508,7 @@ class DocumentoService {
 
   /// Adicionar balancete com upload de arquivo
   static Future<Balancete> adicionarBalanceteComUpload({
-    required File arquivo,
+    required dynamic arquivo,
     required String nomeArquivo,
     required String mes,
     required String ano,
