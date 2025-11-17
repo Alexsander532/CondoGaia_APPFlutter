@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/autorizado_inquilino.dart';
 import 'supabase_service.dart';
@@ -197,6 +198,7 @@ class AutorizadoInquilinoService {
               ? '${item['veiculo_marca'] ?? ''} ${item['veiculo_modelo'] ?? ''} - ${item['veiculo_placa']}'
                     .trim()
               : null,
+          'foto_url': item['foto_url'], // Adicionando foto do autorizado
         };
 
         if (!autorizadosPorUnidade.containsKey(chaveUnidade)) {
@@ -411,7 +413,7 @@ class AutorizadoInquilinoService {
   static Future<String?> uploadFotoAutorizado({
     required String condominioId,
     required String unidadeId,
-    required File arquivo,
+    required dynamic arquivo,
     required String nomeArquivo,
   }) async {
     try {
@@ -420,22 +422,38 @@ class AutorizadoInquilinoService {
       print('   - Unidade: $unidadeId');
       print('   - Arquivo: $nomeArquivo');
 
+      late Uint8List bytes;
+      
+      // Tentar obter bytes de forma compatível com web e mobile
+      if (arquivo is File) {
+        // Mobile/Desktop
+        bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      } else {
+        // Web ou XFile (universal)
+        try {
+          final bytesLista = await arquivo.readAsBytes();
+          bytes = Uint8List.fromList(bytesLista);
+        } catch (e) {
+          throw Exception('Não foi possível ler o arquivo: $e');
+        }
+      }
+
       // Caminho no storage: condominio_id/unidade_id/nomeArquivo
       final caminhoStorage = '$condominioId/$unidadeId/$nomeArquivo';
 
-      // Fazer upload para o bucket 'visitante_adicionado_pelo_inquilino'
-      final response = await _client.storage
+      // Fazer upload para o bucket 'visitante_adicionado_pelo_inquilino' usando uploadBinary
+      await _client.storage
           .from('visitante_adicionado_pelo_inquilino')
-          .upload(
+          .uploadBinary(
             caminhoStorage,
-            arquivo,
+            bytes,
             fileOptions: const FileOptions(
               cacheControl: '3600', // Cache de 1 hora
               upsert: true, // Sobrescrever se já existir
             ),
           );
 
-      print('✅ Upload realizado com sucesso: $response');
+      print('✅ Upload realizado com sucesso: $caminhoStorage');
 
       // Gerar URL pública
       final urlPublica = _client.storage

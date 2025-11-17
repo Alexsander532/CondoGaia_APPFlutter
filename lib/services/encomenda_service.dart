@@ -7,6 +7,7 @@
 // =====================================================
 
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/encomenda.dart';
 
@@ -97,7 +98,7 @@ class EncomendaService {
   /// Retorna o ID da encomenda criada
   Future<String> criarEncomendaComFoto(
     Encomenda encomenda, 
-    [File? arquivoFoto]
+    [dynamic arquivoFoto]
   ) async {
     try {
       String? urlFoto;
@@ -528,14 +529,35 @@ class EncomendaService {
   /// [arquivo] - Arquivo da foto a ser enviada
   /// 
   /// Retorna a URL pública da foto ou lança exceção em caso de erro
-  Future<String> _uploadFotoEncomenda(File arquivo) async {
+  Future<String> _uploadFotoEncomenda(dynamic arquivo) async {
     try {
-      // Lê os bytes do arquivo
-      final bytes = await arquivo.readAsBytes();
+      print('📸 Iniciando upload de foto da encomenda...');
+      
+      late Uint8List bytes;
+      late String extensao;
+      late String caminhoDoArquivo;
+      
+      // Tentar obter bytes e extensão de forma compatível com web e mobile
+      if (arquivo is File) {
+        // Mobile/Desktop
+        bytes = Uint8List.fromList(await arquivo.readAsBytes());
+        caminhoDoArquivo = arquivo.path;
+      } else {
+        // Web ou XFile (universal)
+        // XFile tem método readAsBytes() que funciona em qualquer plataforma
+        try {
+          final bytesLista = await arquivo.readAsBytes();
+          bytes = Uint8List.fromList(bytesLista);
+          caminhoDoArquivo = arquivo.path ?? arquivo.name;
+        } catch (e) {
+          throw Exception('Não foi possível ler o arquivo: $e');
+        }
+      }
+      
+      extensao = caminhoDoArquivo.split('.').last.toLowerCase();
       
       // Gera um nome único para o arquivo
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final extensao = arquivo.path.split('.').last.toLowerCase();
       final nomeArquivo = 'encomenda_${timestamp}.$extensao';
       final caminhoCompleto = 'encomendas/$nomeArquivo';
       

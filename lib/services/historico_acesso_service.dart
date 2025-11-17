@@ -201,6 +201,7 @@ class HistoricoAcessoService {
               'nome': visitanteInfo['nome'],
               'cpf': visitanteInfo['cpf'],
               'celular': visitanteInfo['celular'] ?? '',
+              'foto_url': visitanteInfo['foto_url'], // Adicionar foto_url
               'tipo_pessoa': tipoVisitante == 'inquilino' ? 'Inquilino' : 'Visitante',
               'unidades': {
                 'numero': unidadeInfo['numero'],
@@ -426,6 +427,7 @@ class HistoricoAcessoService {
           'veiculo_placa': visitante['veiculo_placa'] ?? '',
           'data_visita': visitante['data_visita'],
           'status_visita': visitante['status_visita'] ?? 'agendado',
+          'foto_url': visitante['foto_url'], // Adicionando foto do visitante
         };
       }).toList();
     } catch (e) {

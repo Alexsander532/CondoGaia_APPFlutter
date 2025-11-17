@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'conversas_simples_screen.dart';
@@ -97,7 +98,7 @@ class _PortariaRepresentanteScreenState
   bool _isUnidadeSelecionada = true; // true = Unidade, false = Condomínio
   bool _isLoading =
       false; // Estado de carregamento para o cadastro de visitante
-  File? _fotoVisitante; // Armazena a imagem selecionada/capturada do visitante
+  XFile? _fotoVisitante; // Usar XFile em vez de File para compatibilidade web
 
   // Variáveis de erro para validação
   String? _cpfError;
@@ -141,7 +142,7 @@ class _PortariaRepresentanteScreenState
   // Variáveis para a seção de Encomendas
   // Variável para encomenda selecionada (removendo a antiga)
   // Unidade? _unidadeSelecionadaEncomenda;
-  File? _imagemEncomenda;
+  XFile? _imagemEncomenda; // Usar XFile em vez de File para compatibilidade web
   bool _notificarUnidade = false;
   
   // Variáveis para o histórico de encomendas
@@ -574,7 +575,7 @@ class _PortariaRepresentanteScreenState
                             
                             if (image != null) {
                               setState(() {
-                                _fotoVisitante = File(image.path);
+                                _fotoVisitante = image;
                               });
                             }
                           } catch (e) {
@@ -590,7 +591,7 @@ class _PortariaRepresentanteScreenState
                               
                               if (image != null) {
                                 setState(() {
-                                  _fotoVisitante = File(image.path);
+                                  _fotoVisitante = image;
                                 });
                               }
                             } catch (e2) {
@@ -639,10 +640,15 @@ class _PortariaRepresentanteScreenState
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(10),
-                                      child: Image.file(
-                                        _fotoVisitante!,
-                                        fit: BoxFit.cover,
-                                      ),
+                                      child: kIsWeb
+                                          ? Image.network(
+                                              _fotoVisitante!.path,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Image.file(
+                                              File(_fotoVisitante!.path),
+                                              fit: BoxFit.cover,
+                                            ),
                                     ),
                                     Positioned(
                                       top: 4,
@@ -2156,7 +2162,7 @@ class _PortariaRepresentanteScreenState
                         
                         if (image != null) {
                           setState(() {
-                            _imagemEncomenda = File(image.path);
+                            _imagemEncomenda = image;
                           });
                         }
                       } catch (e) {
@@ -2172,7 +2178,7 @@ class _PortariaRepresentanteScreenState
                           
                           if (image != null) {
                             setState(() {
-                              _imagemEncomenda = File(image.path);
+                              _imagemEncomenda = image;
                             });
                           }
                         } catch (e2) {
@@ -2211,12 +2217,29 @@ class _PortariaRepresentanteScreenState
                             )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: Image.file(
-                                _imagemEncomenda!,
-                                height: 116,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
+                              child: kIsWeb
+                                  ? Image.network(
+                                      _imagemEncomenda!.path,
+                                      height: 116,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Container(
+                                          height: 116,
+                                          color: Colors.grey[300],
+                                          child: const Center(
+                                            child: Icon(Icons.broken_image),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Image.file(
+                                      File(_imagemEncomenda!.path),
+                                      height: 116,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
                             ),
                     ),
                   ),
@@ -3299,7 +3322,7 @@ class _PortariaRepresentanteScreenState
                                                 child: Text(
                                                   visitante['hora_entrada_real'] !=
                                                           null
-                                                      ? _formatarData(
+                                                      ? _formatarHora(
                                                           visitante['hora_entrada_real'],
                                                         )
                                                       : 'N/A',
@@ -3335,13 +3358,103 @@ class _PortariaRepresentanteScreenState
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(
+                                              // Foto do visitante
+                                              SizedBox(
                                                 width: 80,
-                                                child: Text(
-                                                  '',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF2E3A59),
+                                                child: GestureDetector(
+                                                  onTap: visitante['foto_url'] != null && 
+                                                          (visitante['foto_url'] as String?)?.isNotEmpty == true
+                                                      ? () => _mostrarFotoAmpliada(
+                                                            visitante['foto_url'] as String,
+                                                            visitante['nome'] ?? 'Visitante',
+                                                          )
+                                                      : null,
+                                                  child: Container(
+                                                    width: 50,
+                                                    height: 50,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: const Color(0xFF4A90E2)
+                                                          .withOpacity(0.1),
+                                                      border: visitante['foto_url'] !=
+                                                                  null &&
+                                                              (visitante['foto_url']
+                                                                      as String?)
+                                                                  ?.isNotEmpty ==
+                                                              true
+                                                          ? Border.all(
+                                                              color: const Color(
+                                                                  0xFF4A90E2),
+                                                              width: 2,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    child: visitante['foto_url'] !=
+                                                                null &&
+                                                            (visitante['foto_url']
+                                                                    as String?)
+                                                                ?.isNotEmpty ==
+                                                            true
+                                                        ? Stack(
+                                                            fit: StackFit.expand,
+                                                            children: [
+                                                              ClipOval(
+                                                                child:
+                                                                    Image.network(
+                                                                  visitante[
+                                                                      'foto_url'] as String,
+                                                                  fit:
+                                                                      BoxFit.cover,
+                                                                  errorBuilder:
+                                                                      (context,
+                                                                          error,
+                                                                          stackTrace) {
+                                                                    return const Icon(
+                                                                      Icons
+                                                                          .person,
+                                                                      size: 24,
+                                                                      color: Color(
+                                                                          0xFF4A90E2),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                              Positioned(
+                                                                bottom: -2,
+                                                                right: -2,
+                                                                child: Container(
+                                                                  padding:
+                                                                      const EdgeInsets
+                                                                          .all(2),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    shape: BoxShape
+                                                                        .circle,
+                                                                    color: const Color(
+                                                                        0xFF4A90E2),
+                                                                    border:
+                                                                        Border.all(
+                                                                      color: Colors
+                                                                          .white,
+                                                                      width: 2,
+                                                                    ),
+                                                                  ),
+                                                                  child: const Icon(
+                                                                    Icons.zoom_in,
+                                                                    size: 8,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          )
+                                                        : const Icon(
+                                                            Icons.person,
+                                                            size: 24,
+                                                            color: Color(
+                                                                0xFF4A90E2),
+                                                          ),
                                                   ),
                                                 ),
                                               ),
@@ -3718,14 +3831,30 @@ class _PortariaRepresentanteScreenState
                       ),
                       children: autorizados.map((autorizado) {
                         return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF1976D2),
-                            child: Text(
-                              autorizado['nome']
-                                      ?.substring(0, 1)
-                                      .toUpperCase() ??
-                                  'A',
-                              style: const TextStyle(color: Colors.white),
+                          leading: GestureDetector(
+                            onTap: autorizado['foto_url'] != null && 
+                                    (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                ? () => _mostrarFotoAmpliada(
+                                      autorizado['foto_url'] as String,
+                                      autorizado['nome'] ?? 'Autorizado',
+                                    )
+                                : null,
+                            child: CircleAvatar(
+                              backgroundColor: const Color(0xFF1976D2),
+                              backgroundImage: autorizado['foto_url'] != null &&
+                                      (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                  ? NetworkImage(autorizado['foto_url'] as String)
+                                  : null,
+                              child: autorizado['foto_url'] != null &&
+                                      (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                  ? null
+                                  : Text(
+                                      autorizado['nome']
+                                              ?.substring(0, 1)
+                                              .toUpperCase() ??
+                                          'A',
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
                             ),
                           ),
                           title: Text(
@@ -3813,12 +3942,28 @@ class _PortariaRepresentanteScreenState
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF1976D2),
-                          child: Text(
-                            visitante['nome']?.substring(0, 1).toUpperCase() ??
-                                'V',
-                            style: const TextStyle(color: Colors.white),
+                        leading: GestureDetector(
+                          onTap: visitante['foto_url'] != null && 
+                                  (visitante['foto_url'] as String?)?.isNotEmpty == true
+                              ? () => _mostrarFotoAmpliada(
+                                    visitante['foto_url'] as String,
+                                    visitante['nome'] ?? 'Visitante',
+                                  )
+                              : null,
+                          child: CircleAvatar(
+                            backgroundColor: const Color(0xFF1976D2),
+                            backgroundImage: visitante['foto_url'] != null &&
+                                    (visitante['foto_url'] as String?)?.isNotEmpty == true
+                                ? NetworkImage(visitante['foto_url'] as String)
+                                : null,
+                            child: visitante['foto_url'] != null &&
+                                    (visitante['foto_url'] as String?)?.isNotEmpty == true
+                                ? null
+                                : Text(
+                                    visitante['nome']?.substring(0, 1).toUpperCase() ??
+                                        'V',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
                           ),
                         ),
                         title: Text(visitante['nome'] ?? 'Nome não informado'),
@@ -3896,7 +4041,7 @@ class _PortariaRepresentanteScreenState
                 ),
                 const SizedBox(height: 20),
 
-                // Informações da pessoa
+                // Foto + Informações da pessoa
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -3907,6 +4052,68 @@ class _PortariaRepresentanteScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Foto do visitante
+                      if (pessoa['foto_url'] != null && 
+                          (pessoa['foto_url'] as String?)?.isNotEmpty == true)
+                        Center(
+                          child: GestureDetector(
+                            onTap: () => _mostrarFotoAmpliada(
+                              pessoa['foto_url'] as String,
+                              pessoa['nome'] ?? 'Visitante',
+                            ),
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFF4A90E2),
+                                  width: 3,
+                                ),
+                              ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  ClipOval(
+                                    child: Image.network(
+                                      pessoa['foto_url'] as String,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(
+                                          Icons.person,
+                                          size: 50,
+                                          color: Color(0xFF4A90E2),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF4A90E2),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.zoom_in,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      
                       Text(
                         'Nome: ${pessoa['nome'] ?? 'N/A'}',
                         style: const TextStyle(
@@ -4477,87 +4684,71 @@ class _PortariaRepresentanteScreenState
     }
   }
 
-  /// Mostra a foto ampliada em um diálogo
+  /// Mostra a foto ampliada em um diálogo com zoom
   void _mostrarFotoAmpliada(String fotoUrl, String nome) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: Colors.black,
-          insetPadding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
             children: [
-              // Cabeçalho com nome
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1976D2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        nome,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+              // Foto ampliada com InteractiveViewer
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Erro ao carregar a foto',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-              // Foto ampliada
-              Flexible(
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 500,
-                  ),
-                  child: Image.network(
-                    fotoUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.image_not_supported,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Erro ao carregar a foto',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
+              // Botão fechar (X)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
               ),

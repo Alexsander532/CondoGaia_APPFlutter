@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/visitante_portaria.dart';
 import 'supabase_service.dart';
@@ -388,7 +389,7 @@ class VisitantePortariaService {
   /// Faz upload de foto de visitante para Supabase Storage
   static Future<String?> uploadFotoVisitante({
     required String condominioId,
-    required File arquivo,
+    required dynamic arquivo,
     required String nomeArquivo,
   }) async {
     try {
@@ -396,22 +397,38 @@ class VisitantePortariaService {
       print('   - Condomínio: $condominioId');
       print('   - Arquivo: $nomeArquivo');
 
+      late Uint8List bytes;
+      
+      // Tentar obter bytes de forma compatível com web e mobile
+      if (arquivo is File) {
+        // Mobile/Desktop
+        bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      } else {
+        // Web ou XFile (universal)
+        try {
+          final bytesLista = await arquivo.readAsBytes();
+          bytes = Uint8List.fromList(bytesLista);
+        } catch (e) {
+          throw Exception('Não foi possível ler o arquivo: $e');
+        }
+      }
+
       // Caminho no storage: condominio_id/nomeArquivo
       final caminhoStorage = '$condominioId/$nomeArquivo';
 
-      // Fazer upload para o bucket 'visitante_adicionado_pelo_representante'
-      final response = await _client.storage
+      // Fazer upload para o bucket 'visitante_adicionado_pelo_representante' usando uploadBinary
+      await _client.storage
           .from('visitante_adicionado_pelo_representante')
-          .upload(
+          .uploadBinary(
             caminhoStorage,
-            arquivo,
+            bytes,
             fileOptions: const FileOptions(
               cacheControl: '3600', // Cache de 1 hora
               upsert: true, // Sobrescrever se já existir
             ),
           );
 
-      print('✅ Upload realizado com sucesso: $response');
+      print('✅ Upload realizado com sucesso: $caminhoStorage');
 
       // Gerar URL pública
       final urlPublica = _client.storage

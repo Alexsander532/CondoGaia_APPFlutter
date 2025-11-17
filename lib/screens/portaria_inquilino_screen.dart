@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -70,7 +71,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   ); // DOM, SEG, TER, QUA, QUI, SEX, SAB
   String _horarioInicio = '08:00';
   String _horarioFim = '18:00';
-  File? _fotoAutorizado; // Armazena a imagem selecionada/capturada
+  XFile? _fotoAutorizado; // Usar XFile em vez de File para compatibilidade web
 
   // Lista de horários disponíveis (00:00 até 23:00)
   final List<String> _horariosDisponiveis = List.generate(24, (index) {
@@ -808,6 +809,80 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     );
   }
 
+  void _mostrarFotoAmpliadaEncomenda(String fotoUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            children: [
+              // Foto ampliada
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Erro ao carregar a foto',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Botão fechar (X)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // Método para salvar autorizado (adicionar ou editar)
   Future<void> _salvarAutorizado([
     AutorizadoInquilino? autorizadoExistente,
@@ -1429,7 +1504,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                   
                                   if (image != null) {
                                     setModalState(() {
-                                      _fotoAutorizado = File(image.path);
+                                      _fotoAutorizado = image;
                                     });
                                   }
                                 } catch (e) {
@@ -1445,7 +1520,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                     
                                     if (image != null) {
                                       setModalState(() {
-                                        _fotoAutorizado = File(image.path);
+                                        _fotoAutorizado = image;
                                       });
                                     }
                                   } catch (e2) {
@@ -1494,10 +1569,15 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                         children: [
                                           ClipRRect(
                                             borderRadius: BorderRadius.circular(10),
-                                            child: Image.file(
-                                              _fotoAutorizado!,
-                                              fit: BoxFit.cover,
-                                            ),
+                                            child: kIsWeb
+                                                ? Image.network(
+                                                    _fotoAutorizado!.path,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Image.file(
+                                                    File(_fotoAutorizado!.path),
+                                                    fit: BoxFit.cover,
+                                                  ),
                                           ),
                                           Positioned(
                                             top: 4,
@@ -1869,34 +1949,47 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Foto da encomenda ou ícone padrão
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE0E0E0)),
-                  ),
-                  child: encomenda.temFoto
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            encomenda.fotoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.inventory_2_outlined,
-                                color: Color(0xFF7F8C8D),
-                                size: 24,
-                              );
-                            },
+                GestureDetector(
+                  onTap: encomenda.temFoto
+                      ? () => _mostrarFotoAmpliadaEncomenda(encomenda.fotoUrl!)
+                      : null,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      boxShadow: encomenda.temFoto
+                          ? [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.3),
+                                blurRadius: 4,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: encomenda.temFoto
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              encomenda.fotoUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.inventory_2_outlined,
+                                  color: Color(0xFF7F8C8D),
+                                  size: 24,
+                                );
+                              },
+                            ),
+                          )
+                        : const Icon(
+                            Icons.inventory_2_outlined,
+                            color: Color(0xFF7F8C8D),
+                            size: 24,
                           ),
-                        )
-                      : const Icon(
-                          Icons.inventory_2_outlined,
-                          color: Color(0xFF7F8C8D),
-                          size: 24,
-                        ),
+                  ),
                 ),
                 const SizedBox(width: 12),
 
