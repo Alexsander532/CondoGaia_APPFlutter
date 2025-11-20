@@ -11,6 +11,8 @@ class Ambiente {
   final DateTime? updatedAt; // updated_at - mapeamento correto
   final String? createdBy; // created_by - mapeamento correto
   final String? updatedBy; // updated_by - mapeamento correto
+  final String? fotoUrl; // Foto do ambiente
+  final String? locacaoUrl; // URL do PDF do termo de locação
 
   const Ambiente({
     this.id,
@@ -25,6 +27,8 @@ class Ambiente {
     this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    this.fotoUrl,
+    this.locacaoUrl,
   });
 
   // Construtor para criar uma instância a partir de JSON (Supabase)
@@ -46,6 +50,8 @@ class Ambiente {
           : null,
       createdBy: json['created_by']?.toString(),
       updatedBy: json['updated_by']?.toString(),
+      fotoUrl: json['foto_url'],
+      locacaoUrl: json['locacao_url'],
     );
   }
 
@@ -64,6 +70,8 @@ class Ambiente {
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       if (createdBy != null) 'created_by': createdBy,
       if (updatedBy != null) 'updated_by': updatedBy,
+      if (fotoUrl != null) 'foto_url': fotoUrl,
+      if (locacaoUrl != null) 'locacao_url': locacaoUrl,
     };
   }
 
@@ -81,6 +89,8 @@ class Ambiente {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    String? fotoUrl,
+    String? locacaoUrl,
   }) {
     return Ambiente(
       id: id ?? this.id,
@@ -95,6 +105,8 @@ class Ambiente {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      locacaoUrl: locacaoUrl ?? this.locacaoUrl,
     );
   }
 

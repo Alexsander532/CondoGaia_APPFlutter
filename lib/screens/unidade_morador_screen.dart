@@ -832,6 +832,58 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
               ),
             ),
 
+            // Botão de configuração das unidades
+            Container(
+              width: double.infinity,
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Navegar para a tela de detalhes da unidade
+                  // Se houver unidades carregadas, ir para a primeira
+                  if (_blocosUnidades.isNotEmpty && _blocosUnidades[0].unidades.isNotEmpty) {
+                    final primeiraUnidade = _blocosUnidades[0].unidades[0];
+                    final primeiroBlocoNome = _blocosUnidades[0].bloco.nome;
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetalhesUnidadeScreen(
+                          condominioId: widget.condominioId,
+                          condominioNome: widget.condominioNome,
+                          condominioCnpj: widget.condominioCnpj,
+                          bloco: primeiroBlocoNome,
+                          unidade: primeiraUnidade.numero,
+                        ),
+                      ),
+                    );
+                  } else {
+                    // Se não houver unidades, mostrar mensagem
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nenhuma unidade disponível'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.settings, size: 18),
+                label: const Text('Configuração das Unidades'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFA500),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ),
+
             // Conteúdo principal
             Expanded(
               child: Container(

@@ -466,10 +466,6 @@ class AutorizadoInquilinoService {
           .uploadBinary(
             caminhoStorage,
             bytes,
-            fileOptions: const FileOptions(
-              cacheControl: '3600', // Cache de 1 hora
-              upsert: true, // Sobrescrever se já existir
-            ),
           );
 
       print('✅ Upload realizado com sucesso: $caminhoStorage');

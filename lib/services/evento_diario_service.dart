@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_diario.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 class EventoDiarioService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -299,13 +300,12 @@ class EventoDiarioService {
       
       final path = '$condominioId/$eventoId/$nomeArquivo';
       
-      await _client.storage.from('imagens_diario_representante').upload(
+      // Converter para Uint8List para fazer upload
+      final bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      
+      await _client.storage.from('imagens_diario_representante').uploadBinary(
             path,
-            arquivo,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: true,
-            ),
+            bytes,
           );
 
       // Obter URL pública

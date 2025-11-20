@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_agenda.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 class EventoAgendaService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -421,13 +422,12 @@ class EventoAgendaService {
       
       final path = '$condominioId/$eventoId/$nomeArquivo';
       
-      await _client.storage.from('imagens_agenda_representante').upload(
+      // Converter para Uint8List para fazer upload
+      final bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      
+      await _client.storage.from('imagens_agenda_representante').uploadBinary(
             path,
-            arquivo,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: true,
-            ),
+            bytes,
           );
 
       // Obter URL pública

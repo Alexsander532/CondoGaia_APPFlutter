@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'configurar_ambientes_screen.dart';
 import '../models/ambiente.dart';
 import '../models/representante.dart';
 import '../models/reserva.dart';
+import '../models/unidade.dart';
 import '../services/ambiente_service.dart';
 import '../services/reserva_service.dart';
+import '../services/supabase_service.dart';
+import '../services/excel_service.dart';
 
 class ReservasScreen extends StatefulWidget {
   final Representante? representante;
+  final String? condominioId;
 
   const ReservasScreen({
     super.key,
     this.representante,
+    this.condominioId,
   });
 
   @override
@@ -40,6 +46,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
   // Variáveis para controle do formulário
   bool _isCondominio = true;
   bool _isBlocoUnid = false;
+  bool _termoLocacaoAceito = false;
+  
+  // Unidades para Bloco/Unid
+  List<Unidade> _unidades = [];
+  String? _selectedUnidadeId;
   
   // Ambientes carregados
   List<Ambiente> _ambientes = [];
@@ -50,6 +61,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
   List<Reserva> _reservas = [];
   Set<int> _diasComReservas = {};
   
+  // Arquivo de lista de presentes
+  String? _uploadedFileName;
+  
   @override
   void initState() {
     super.initState();
@@ -58,6 +72,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
     _currentMonthIndex = _selectedDate.month - 1;
     _currentYear = _selectedDate.year;
     _carregarAmbientes();
+    _carregarUnidades();
     _carregarReservas();
   }
   
@@ -84,6 +99,49 @@ class _ReservasScreenState extends State<ReservasScreen> {
           SnackBar(content: Text('Erro ao carregar ambientes: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _carregarUnidades() async {
+    // Se o condomínio ID não está disponível, não carrega unidades
+    if (widget.condominioId == null) return;
+
+    try {
+      // Buscar unidades do condomínio usando Supabase
+      final unidadesResponse = await SupabaseService.client
+          .from('unidades')
+          .select()
+          .eq('condominio_id', widget.condominioId!)
+          .eq('ativo', true)
+          .order('numero');
+
+      final unidades = unidadesResponse
+          .map<Unidade>((json) => Unidade.fromJson(json))
+          .toList();
+
+      setState(() {
+        _unidades = unidades;
+        if (unidades.isNotEmpty) {
+          _selectedUnidadeId = unidades.first.id;
+        }
+      });
+    } catch (e) {
+      print('❌ Erro ao carregar unidades: $e');
+    }
+  }
+
+  Future<Unidade?> _getUnidadeById(String unidadeId) async {
+    try {
+      final response = await SupabaseService.client
+          .from('unidades')
+          .select()
+          .eq('id', unidadeId)
+          .single();
+
+      return Unidade.fromJson(response);
+    } catch (e) {
+      print('❌ Erro ao buscar unidade: $e');
+      return null;
     }
   }
 
@@ -240,6 +298,16 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
+      // Validar se unidade foi selecionada quando é Bloco/Unid
+      if (_isBlocoUnid && _selectedUnidadeId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selecione uma unidade para continuar')),
+          );
+        }
+        return;
+      }
+
       // Criar a reserva
       print('🔵 [ReservasScreen] Iniciando save da reserva...');
       print('🔵 [ReservasScreen] Representante ID: ${widget.representante!.id}');
@@ -257,6 +325,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
         listaPresentes: _listaPresentesController.text.isNotEmpty 
             ? _listaPresentesController.text 
             : null,
+        termoLocacao: _termoLocacaoAceito,
+        blocoUnidadeId: _isBlocoUnid ? _selectedUnidadeId : null,
       );
 
       // Fechar o diálogo de carregamento
@@ -937,9 +1007,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
     _horaInicioController.clear();
     _horaFimController.clear();
     _listaPresentesController.clear();
+    _listaPresentesController.clear();
     _valorController.clear();
+    _uploadedFileName = null;
     _isCondominio = true;
     _isBlocoUnid = false;
+    _termoLocacaoAceito = false;
     _selectedAmbienteId = _ambientes.isNotEmpty ? _ambientes.first.id : null;
     if (_selectedAmbienteId != null) {
       final ambiente = _ambientes.firstWhere(
@@ -1065,6 +1138,28 @@ class _ReservasScreenState extends State<ReservasScreen> {
                   fontSize: 13.0,
                 ),
               ),
+              
+              // Exibir unidade se for Bloco/Unid
+              if (reserva.para == 'Bloco/Unid' && reserva.blocoUnidadeId != null)
+                FutureBuilder<Unidade?>(
+                  future: _getUnidadeById(reserva.blocoUnidadeId!),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done && snapshot.data != null) {
+                      final unidade = snapshot.data!;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          'Unidade: ${unidade.bloco} - ${unidade.numero}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13.0,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
               
               if (reserva.local.isNotEmpty)
                 Padding(
@@ -1195,10 +1290,97 @@ class _ReservasScreenState extends State<ReservasScreen> {
             ],
           ),
           const SizedBox(height: 16.0),
+          // Campo Bloco/Unidade (mostrado apenas quando Bloco/Unid está selecionado)
+          if (_isBlocoUnid)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Bloco/Unidade:',
+                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                    ),
+                    const Text(
+                      ' *',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8.0),
+                if (_unidades.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.orange),
+                      borderRadius: BorderRadius.circular(4.0),
+                      color: Colors.orange[50],
+                    ),
+                    child: const Text(
+                      '⚠️ Nenhuma unidade disponível no condomínio.',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedUnidadeId,
+                        hint: const Text('Selecione uma unidade'),
+                        items: _unidades.map<DropdownMenuItem<String>>((Unidade unidade) {
+                          return DropdownMenuItem<String>(
+                            value: unidade.id,
+                            child: Text('${unidade.bloco} - ${unidade.numero}'),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          if (setModalState != null) {
+                            setModalState(() {
+                              _selectedUnidadeId = value;
+                            });
+                          } else {
+                            setState(() {
+                              _selectedUnidadeId = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16.0),
+              ],
+            ),
           // Campo Local
-          const Text(
-            'Local:',
-            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+          Row(
+            children: [
+              const Text(
+                'Local:',
+                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+              ),
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.red,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8.0),
           Container(
@@ -1255,9 +1437,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
           ),
           const SizedBox(height: 16.0),
           // Valor da locação
-          const Text(
-            'Valor da locação:',
-            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+          Row(
+            children: [
+              const Text(
+                'Valor da locação:',
+                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+              ),
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.red,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8.0),
           TextField(
@@ -1278,9 +1472,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hora de Início',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                    Row(
+                      children: [
+                        const Text(
+                          'Hora de Início',
+                          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                        ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8.0),
                     TextField(
@@ -1307,9 +1513,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hora de Fim',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                    Row(
+                      children: [
+                        const Text(
+                          'Hora de Fim',
+                          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                        ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8.0),
                     TextField(
@@ -1349,6 +1567,195 @@ class _ReservasScreenState extends State<ReservasScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               hintText: 'Ex: Reserva da área da churrasqueira para a unidade 201/A',
             ),
+          ),
+          const SizedBox(height: 8.0),
+          GestureDetector(
+            onTap: () async {
+              try {
+                FilePickerResult? result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['xlsx', 'xls'],
+                );
+
+                if (result != null) {
+                  // Mostrar indicador de carregamento
+                  if (setModalState != null) {
+                    setModalState(() {
+                      _uploadedFileName = '${result.files.single.name} (lendo...)';
+                    });
+                  } else {
+                    setState(() {
+                      _uploadedFileName = '${result.files.single.name} (lendo...)';
+                    });
+                  }
+
+                  try {
+                    // Ler os nomes do arquivo Excel
+                    // Passar o PlatformFile direto (funciona em web e mobile)
+                    final nomes = await ExcelService.lerColuna(result.files.single);
+
+                    if (nomes.isNotEmpty) {
+                      // Formatar os nomes como: 1. Pessoa 1, 2. Pessoa 2, etc
+                      final listaNumerada = StringBuffer();
+                      for (int i = 0; i < nomes.length; i++) {
+                        listaNumerada.write('${i + 1}. ${nomes[i]}');
+                        if (i < nomes.length - 1) {
+                          listaNumerada.write('\n');
+                        }
+                      }
+
+                      // Atualizar o controller com a lista formatada
+                      if (setModalState != null) {
+                        setModalState(() {
+                          _listaPresentesController.text = listaNumerada.toString();
+                          _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
+                        });
+                      } else {
+                        setState(() {
+                          _listaPresentesController.text = listaNumerada.toString();
+                          _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
+                        });
+                      }
+
+                      // Mostrar sucesso
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✓ ${nomes.length} nome(s) importado(s) com sucesso!'),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    } else {
+                      // Nenhum nome encontrado
+                      if (setModalState != null) {
+                        setModalState(() {
+                          _uploadedFileName = null;
+                        });
+                      } else {
+                        setState(() {
+                          _uploadedFileName = null;
+                        });
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('❌ Nenhum nome encontrado na coluna A'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    print('Erro ao ler Excel: $e');
+                    
+                    if (setModalState != null) {
+                      setModalState(() {
+                        _uploadedFileName = null;
+                      });
+                    } else {
+                      setState(() {
+                        _uploadedFileName = null;
+                      });
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('❌ Erro ao ler arquivo: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                print('Erro ao selecionar arquivo: $e');
+              }
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.cloud_upload_outlined, color: Color(0xFF003E7E)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _uploadedFileName ?? 'Fazer Upload da Lista',
+                    style: TextStyle(
+                      color: _uploadedFileName != null && _uploadedFileName!.contains('✓')
+                          ? Colors.green
+                          : Colors.black87,
+                      fontSize: 14,
+                      fontWeight: _uploadedFileName != null && _uploadedFileName!.contains('✓')
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_uploadedFileName != null)
+                  GestureDetector(
+                    onTap: () {
+                      if (setModalState != null) {
+                        setModalState(() {
+                          _uploadedFileName = null;
+                          _listaPresentesController.clear();
+                        });
+                      } else {
+                        setState(() {
+                          _uploadedFileName = null;
+                          _listaPresentesController.clear();
+                        });
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(Icons.close, size: 18, color: Colors.red),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          // Checkbox para aceitar termo de locação
+          StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Termo de Locação',
+                        style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                      ),
+                      const Text(
+                        ' *',
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  CheckboxListTile(
+                    title: const Text(
+                      'Aceitar termos e condições',
+                      style: TextStyle(fontSize: 14.0),
+                    ),
+                    subtitle: const Text(
+                      'Declaro que aceito os termos e condições de locação',
+                      style: TextStyle(fontSize: 12.0),
+                    ),
+                    value: _termoLocacaoAceito,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _termoLocacaoAceito = value ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 0.0),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16.0),
           // Botão de reservar (apenas na criação, não na edição)

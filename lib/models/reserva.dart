@@ -9,6 +9,8 @@ class Reserva {
   final String local; // Local da reserva
   final double valorLocacao; // Valor da locação
   final String? listaPresentes; // Lista de presentes (opcional)
+  final bool termoLocacao; // Aceitação do termo de locação
+  final String? blocoUnidadeId; // ID da unidade (quando para = 'Bloco/Unid')
   final DateTime? criadoEm;
   final DateTime? atualizadoEm;
 
@@ -23,6 +25,8 @@ class Reserva {
     required this.local,
     required this.valorLocacao,
     this.listaPresentes,
+    this.termoLocacao = false,
+    this.blocoUnidadeId,
     this.criadoEm,
     this.atualizadoEm,
   });
@@ -40,6 +44,8 @@ class Reserva {
       local: json['local'] ?? '',
       valorLocacao: (json['valor_locacao'] ?? 0.0).toDouble(),
       listaPresentes: json['lista_presentes'],
+      termoLocacao: json['termo_locacao'] ?? false,
+      blocoUnidadeId: json['bloco_unidade_id']?.toString(),
       criadoEm: json['created_at'] != null 
           ? DateTime.parse(json['created_at'])
           : null,
@@ -61,6 +67,8 @@ class Reserva {
       'para': para,
       'local': local,
       'valor_locacao': valorLocacao,
+      'termo_locacao': termoLocacao,
+      if (blocoUnidadeId != null) 'bloco_unidade_id': blocoUnidadeId,
       if (listaPresentes != null) 'lista_presentes': listaPresentes,
       if (criadoEm != null) 'created_at': criadoEm!.toIso8601String(),
       if (atualizadoEm != null) 'updated_at': atualizadoEm!.toIso8601String(),
@@ -79,6 +87,8 @@ class Reserva {
     String? local,
     double? valorLocacao,
     String? listaPresentes,
+    bool? termoLocacao,
+    String? blocoUnidadeId,
     DateTime? criadoEm,
     DateTime? atualizadoEm,
   }) {
@@ -93,6 +103,8 @@ class Reserva {
       local: local ?? this.local,
       valorLocacao: valorLocacao ?? this.valorLocacao,
       listaPresentes: listaPresentes ?? this.listaPresentes,
+      termoLocacao: termoLocacao ?? this.termoLocacao,
+      blocoUnidadeId: blocoUnidadeId ?? this.blocoUnidadeId,
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
     );

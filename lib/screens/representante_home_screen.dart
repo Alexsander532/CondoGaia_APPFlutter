@@ -441,6 +441,7 @@ Copiado da CondoGaia''';
                           MaterialPageRoute(
                             builder: (context) => ReservasScreen(
                               representante: widget.representante,
+                              condominioId: widget.condominioId,
                             ),
                           ),
                         );

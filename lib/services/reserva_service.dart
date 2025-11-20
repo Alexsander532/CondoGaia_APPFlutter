@@ -79,6 +79,8 @@ class ReservaService {
     required String para,
     required String local,
     String? listaPresentes,
+    bool termoLocacao = false,
+    String? blocoUnidadeId,
   }) async {
     try {
       print('🔵 [ReservaService] Iniciando criarReserva...');
@@ -109,6 +111,8 @@ class ReservaService {
         'valor_locacao': valorLocacao,
         'para': para,
         'local': local,
+        'termo_locacao': termoLocacao,
+        if (blocoUnidadeId != null) 'bloco_unidade_id': blocoUnidadeId,
       };
       
       print('🔵 [ReservaService] Dados preparados: $dados');
@@ -162,6 +166,8 @@ class ReservaService {
           local: local,
           valorLocacao: valorLocacao,
           listaPresentes: listaPresentes,
+          termoLocacao: termoLocacao,
+          blocoUnidadeId: blocoUnidadeId,
         );
       }
       
@@ -185,6 +191,8 @@ class ReservaService {
     double? valorLocacao,
     String? para,
     String? local,
+    bool? termoLocacao,
+    String? blocoUnidadeId,
   }) async {
     try {
       final dados = <String, dynamic>{
@@ -201,6 +209,8 @@ class ReservaService {
       }
       if (para != null) dados['para'] = para;
       if (local != null) dados['local'] = local;
+      if (termoLocacao != null) dados['termo_locacao'] = termoLocacao;
+      if (blocoUnidadeId != null) dados['bloco_unidade_id'] = blocoUnidadeId;
 
       // Validar horário se foi alterado
       if (horaInicio != null && horaFim != null) {
