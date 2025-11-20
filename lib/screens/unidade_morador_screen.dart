@@ -992,7 +992,28 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
     }
 
-    // Exibir mensagem informativa em vez dos dados dos blocos e unidades
+    // Se há unidades carregadas, exibir a listagem de blocos e unidades
+    if (_blocosUnidadesFiltrados.isNotEmpty) {
+      // Filtrar apenas blocos que têm unidades
+      final blocoComUnidadesValidas = _blocosUnidadesFiltrados
+          .where((bloco) => bloco.unidades.isNotEmpty)
+          .toList();
+
+      if (blocoComUnidadesValidas.isNotEmpty) {
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+            child: Column(
+              children: blocoComUnidadesValidas
+                  .map((blocoComUnidades) => _buildBlocoSection(blocoComUnidades))
+                  .toList(),
+            ),
+          ),
+        );
+      }
+    }
+
+    // Se não há unidades, exibir template de instrução
     return SingleChildScrollView(
       child: ConstrainedBox(
         constraints: BoxConstraints(

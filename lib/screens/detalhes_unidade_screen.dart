@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../services/unidade_detalhes_service.dart';
+import '../models/unidade.dart';
+import '../models/proprietario.dart';
+import '../models/inquilino.dart';
+import '../models/imobiliaria.dart';
 
 class DetalhesUnidadeScreen extends StatefulWidget {
   final String? condominioId;
@@ -26,6 +31,17 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   bool _proprietarioExpanded = false;
   bool _inquilinoExpanded = false;
   bool _imobiliariaExpanded = false;
+
+  // Serviço
+  final UnidadeDetalhesService _service = UnidadeDetalhesService();
+
+  // Dados carregados
+  Unidade? _unidade;
+  Proprietario? _proprietario;
+  Inquilino? _inquilino;
+  Imobiliaria? _imobiliaria;
+  bool _isLoadingDados = true;
+  String? _errorMessage;
 
   // Controladores dos campos de texto
   final TextEditingController _unidadeController = TextEditingController();
@@ -95,6 +111,123 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   bool _isLoadingProprietario = false;
   bool _isLoadingInquilino = false;
   bool _isLoadingImobiliaria = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarDados();
+  }
+
+  Future<void> _carregarDados() async {
+    if (widget.condominioId == null) {
+      setState(() {
+        _errorMessage = 'ID do condomínio não informado';
+        _isLoadingDados = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _isLoadingDados = true;
+        _errorMessage = null;
+      });
+
+      final dados = await _service.buscarDetalhesUnidade(
+        condominioId: widget.condominioId!,
+        numero: widget.unidade,
+        bloco: widget.bloco,
+      );
+
+      if (mounted) {
+        setState(() {
+          _unidade = dados['unidade'];
+          _proprietario = dados['proprietario'];
+          _inquilino = dados['inquilino'];
+          _imobiliaria = dados['imobiliaria'];
+          _isLoadingDados = false;
+
+          // Preencher campos de unidade
+          _unidadeController.text = _unidade?.numero ?? '';
+          _blocoController.text = _unidade?.bloco ?? '';
+          _fracaoIdealController.text = _unidade?.fracaoIdeal?.toString() ?? '';
+          _areaController.text = _unidade?.areaM2?.toString() ?? '';
+          _vencimentoDiferenteController.text = _unidade?.vencimentoDiaDiferente?.toString() ?? '';
+          _valorDiferenteController.text = _unidade?.pagarValorDiferente?.toString() ?? '';
+          _tipoSelecionado = _unidade?.tipoUnidade ?? 'A';
+          _observacaoController.text = _unidade?.observacoes ?? '';
+
+          // Preencher estado das isenções
+          _isencaoSelecionada = _unidade?.isencaoTotal == true
+              ? 'total'
+              : _unidade?.isencaoCota == true
+                  ? 'cota'
+                  : _unidade?.isencaoFundoReserva == true
+                      ? 'fundo_reserva'
+                      : 'nenhum';
+
+          // Preencher outros estados de unidade
+          _acaoJudicialSelecionada = (_unidade?.acaoJudicial ?? false) ? 'sim' : 'nao';
+          _correiosSelecionado = (_unidade?.correios ?? false) ? 'sim' : 'nao';
+          _pagadorBoletoSelecionado = _unidade?.nomePagadorBoleto ?? 'proprietario';
+
+          // Preencher campos de proprietário
+          if (_proprietario != null) {
+            _proprietarioNomeController.text = _proprietario?.nome ?? '';
+            _proprietarioCpfCnpjController.text = _proprietario?.cpfCnpj ?? '';
+            _proprietarioCepController.text = _proprietario?.cep ?? '';
+            _proprietarioEnderecoController.text = _proprietario?.endereco ?? '';
+            _proprietarioNumeroController.text = _proprietario?.numero ?? '';
+            _proprietarioBairroController.text = _proprietario?.bairro ?? '';
+            _proprietarioCidadeController.text = _proprietario?.cidade ?? '';
+            _proprietarioEstadoController.text = _proprietario?.estado ?? '';
+            _proprietarioTelefoneController.text = _proprietario?.telefone ?? '';
+            _proprietarioCelularController.text = _proprietario?.celular ?? '';
+            _proprietarioEmailController.text = _proprietario?.email ?? '';
+            _proprietarioConjugeController.text = _proprietario?.conjuge ?? '';
+            _proprietarioMultiproprietariosController.text = _proprietario?.multiproprietarios ?? '';
+            _proprietarioMoradoresController.text = _proprietario?.moradores ?? '';
+          }
+
+          // Preencher campos de inquilino
+          if (_inquilino != null) {
+            _inquilinoNomeController.text = _inquilino?.nome ?? '';
+            _inquilinoCpfCnpjController.text = _inquilino?.cpfCnpj ?? '';
+            _inquilinoCepController.text = _inquilino?.cep ?? '';
+            _inquilinoEnderecoController.text = _inquilino?.endereco ?? '';
+            _inquilinoNumeroController.text = _inquilino?.numero ?? '';
+            _inquilinoBairroController.text = _inquilino?.bairro ?? '';
+            _inquilinoCidadeController.text = _inquilino?.cidade ?? '';
+            _inquilinoEstadoController.text = _inquilino?.estado ?? '';
+            _inquilinoTelefoneController.text = _inquilino?.telefone ?? '';
+            _inquilinoCelularController.text = _inquilino?.celular ?? '';
+            _inquilinoEmailController.text = _inquilino?.email ?? '';
+            _inquilinoConjugeController.text = _inquilino?.conjuge ?? '';
+            _inquilinoMultiproprietariosController.text = _inquilino?.multiproprietarios ?? '';
+            _inquilinoMoradoresController.text = _inquilino?.moradores ?? '';
+            _receberBoletoEmailSelecionado = (_inquilino?.receberBoletoEmail ?? true) ? 'sim' : 'nao';
+            _controleLocacaoSelecionado = (_inquilino?.controleLocacao ?? true) ? 'sim' : 'nao';
+          }
+
+          // Preencher campos de imobiliária
+          if (_imobiliaria != null) {
+            _imobiliariaNomeController.text = _imobiliaria?.nome ?? '';
+            _imobiliariaCnpjController.text = _imobiliaria?.cnpj ?? '';
+            _imobiliariaTelefoneController.text = _imobiliaria?.telefone ?? '';
+            _imobiliariaCelularController.text = _imobiliaria?.celular ?? '';
+            _imobiliariaEmailController.text = _imobiliaria?.email ?? '';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Erro ao carregar dados: $e';
+          _isLoadingDados = false;
+        });
+      }
+    }
+  }
 
   // Métodos de salvamento para cada seção
   Future<void> _salvarUnidade() async {
@@ -3345,26 +3478,62 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
             // Conteúdo principal
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
-                    
-                    // Seção principal com número da unidade
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4A90E2),
-                        borderRadius: BorderRadius.circular(12),
+              child: _isLoadingDados
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Carregando dados...',
+                            style: TextStyle(fontSize: 16, color: Color(0xFF666666)),
+                          ),
+                        ],
                       ),
-                      child: Center(
-                        child: Text(
-                          '${widget.bloco}/${widget.unidade}',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                    )
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                              const SizedBox(height: 16),
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(fontSize: 16, color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _carregarDados,
+                                child: const Text('Tentar Novamente'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
+                              
+                              // Seção principal com número da unidade
+                              Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4A90E2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${widget.bloco}/${widget.unidade}',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                           ),
                         ),
                       ),
@@ -3420,7 +3589,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                     const SizedBox(height: 24),
                   ],
                 ),
-              ),
+                        ),
             ),
           ],
         ),
