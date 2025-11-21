@@ -11,6 +11,7 @@ class DetalhesUnidadeScreen extends StatefulWidget {
   final String? condominioCnpj;
   final String bloco;
   final String unidade;
+  final String modo; // 'criar' ou 'editar' (padrão)
 
   const DetalhesUnidadeScreen({
     super.key,
@@ -19,6 +20,7 @@ class DetalhesUnidadeScreen extends StatefulWidget {
     this.condominioCnpj,
     required this.bloco,
     required this.unidade,
+    this.modo = 'editar',
   });
 
   @override
@@ -115,7 +117,24 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   @override
   void initState() {
     super.initState();
-    _carregarDados();
+    
+    // Se é modo criação, inicializar com valores padrão
+    // Se é modo edição, carrega dados do banco
+    if (widget.modo == 'criar') {
+      _inicializarParaCriacao();
+    } else {
+      _carregarDados();
+    }
+  }
+
+  /// Inicializa a tela para criação de nova unidade
+  void _inicializarParaCriacao() {
+    setState(() {
+      _unidadeController.text = widget.unidade;
+      _blocoController.text = widget.bloco;
+      _isLoadingDados = false;
+      _errorMessage = null;
+    });
   }
 
   Future<void> _carregarDados() async {
@@ -3475,6 +3494,42 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
               ),
             ),
+
+            // ⚠️ Aviso para modo criação
+            if (widget.modo == 'criar')
+              Container(
+                color: Colors.orange.shade50,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Modo Criação: Nova Unidade',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Você deve salvar a unidade antes de preencher proprietário/inquilino.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Conteúdo principal
             Expanded(

@@ -4,16 +4,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:convert';
 // Importação condicional para download
 import '../utils/download_helper_stub.dart'
     if (dart.library.html) '../utils/download_helper_web.dart';
 import 'detalhes_unidade_screen.dart';
 import '../services/unidade_service.dart';
 import '../models/bloco_com_unidades.dart';
+import '../models/bloco.dart';
 import '../widgets/editable_text_widget.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../widgets/importacao_modal_widget.dart';
+import '../widgets/modal_criar_unidade_widget.dart';
 
 class UnidadeMoradorScreen extends StatefulWidget {
   final String? condominioId;
@@ -279,6 +280,101 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       setState(() {
         _unidadesExcluindo.remove(unidadeId);
       });
+    }
+  }
+
+  /// Abre o modal para criar uma nova unidade
+  Future<void> _abrirModalCriarUnidade() async {
+    if (widget.condominioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID do condomínio não informado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final resultado = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => ModalCriarUnidadeWidget(
+        condominioId: widget.condominioId!,
+        blocosExistentes: _blocosUnidades,
+      ),
+    );
+
+    if (resultado != null && mounted) {
+      _processarCriacaoUnidade(resultado);
+    }
+  }
+
+  /// Processa a criação da unidade após seleção no modal
+  Future<void> _processarCriacaoUnidade(Map<String, dynamic> dados) async {
+    try {
+      final numero = dados['numero'] as String;
+      final bloco = dados['bloco'] as Bloco;
+
+      // Mostrar loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text('Criando unidade...'),
+            ],
+          ),
+          duration: Duration(minutes: 5), // Mantém até navegar
+        ),
+      );
+
+      // Criar unidade rápida
+      await _unidadeService.criarUnidadeRapida(
+        condominioId: widget.condominioId!,
+        numero: numero,
+        bloco: bloco,
+      );
+
+      if (mounted) {
+        // Fecha o snackbar
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        // Recarrega os dados para mostrar a nova unidade
+        await _carregarDados();
+
+        // Navega para DetalhesUnidadeScreen em modo criação
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetalhesUnidadeScreen(
+              condominioId: widget.condominioId,
+              condominioNome: widget.condominioNome,
+              condominioCnpj: widget.condominioCnpj,
+              bloco: bloco.nome,
+              unidade: numero,
+              modo: 'criar', // Modo criação
+            ),
+          ),
+        ).then((_) {
+          // Recarrega dados ao voltar de DetalhesUnidadeScreen
+          _carregarDados();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao criar unidade: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -832,45 +928,17 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
               ),
             ),
 
-            // Botão de configuração das unidades
+            // Botão Adicionar Unidade ✨ NOVO
             Container(
               width: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Navegar para a tela de detalhes da unidade
-                  // Se houver unidades carregadas, ir para a primeira
-                  if (_blocosUnidades.isNotEmpty && _blocosUnidades[0].unidades.isNotEmpty) {
-                    final primeiraUnidade = _blocosUnidades[0].unidades[0];
-                    final primeiroBlocoNome = _blocosUnidades[0].bloco.nome;
-                    
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetalhesUnidadeScreen(
-                          condominioId: widget.condominioId,
-                          condominioNome: widget.condominioNome,
-                          condominioCnpj: widget.condominioCnpj,
-                          bloco: primeiroBlocoNome,
-                          unidade: primeiraUnidade.numero,
-                        ),
-                      ),
-                    );
-                  } else {
-                    // Se não houver unidades, mostrar mensagem
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Nenhuma unidade disponível'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.settings, size: 18),
-                label: const Text('Configuração das Unidades'),
+                onPressed: _abrirModalCriarUnidade,
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: const Text('➕ ADICIONAR UNIDADE'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFA500),
+                  backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,

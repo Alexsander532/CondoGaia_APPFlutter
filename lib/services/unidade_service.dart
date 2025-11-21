@@ -317,6 +317,46 @@ class UnidadeService {
     }
   }
 
+  /// Cria uma unidade rápida com bloco automático ou selecionado
+  /// Se o bloco não existe, cria um novo bloco "A"
+  /// Usado no fluxo de modal de criação
+  Future<Unidade> criarUnidadeRapida({
+    required String condominioId,
+    required String numero,
+    required Bloco bloco,
+  }) async {
+    try {
+      // Verificar se o bloco já existe no banco
+      late final Bloco blocoCriado;
+
+      if (bloco.id.isEmpty) {
+        // Bloco é novo, precisa criar
+        blocoCriado = await criarBloco(bloco);
+      } else {
+        // Bloco já existe
+        blocoCriado = bloco;
+      }
+
+      // Criar a unidade com o bloco
+      final unidade = Unidade.nova(
+        condominioId: condominioId,
+        numero: numero,
+        bloco: blocoCriado.nome,
+        tipoUnidade: 'A', // Padrão
+      );
+
+      final response = await _supabase
+          .from('unidades')
+          .insert(unidade.toJson())
+          .select()
+          .single();
+
+      return Unidade.fromJson(response);
+    } catch (e) {
+      throw Exception('Erro ao criar unidade rápida: $e');
+    }
+  }
+
   /// Verifica se ainda existem unidades no condomínio
   Future<bool> verificarSeExistemUnidades(String condominioId) async {
     try {
