@@ -6,13 +6,28 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
 import '../models/documento.dart';
 import '../models/balancete.dart';
 import '../services/documento_service.dart';
 import '../utils/download_helper.dart';
+
+// Importação condicional de dart:io para mobile/desktop
+import 'dart:io' if (kIsWeb) 'dart:async' as io;
+
+// Classe ArquivoTemporario já está definida em editar_documentos_screen.dart
+// mas precisamos redefinir aqui para esta tela
+class ArquivoTemporarioBalancete {
+  final String nome;
+  final Uint8List bytes;
+
+  ArquivoTemporarioBalancete({
+    required this.nome,
+    required this.bytes,
+  });
+}
 
 class DocumentosScreen extends StatefulWidget {
   final String? condominioId;
@@ -50,8 +65,9 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   final TextEditingController _linkController = TextEditingController();
   
   // Controle de arquivos temporários
-  List<File> _imagensTemporarias = [];
-  List<File> _pdfsTemporarios = [];
+  // Usar dynamic para compatibilidade com Web (File não está disponível na web)
+  List<dynamic> _imagensTemporarias = []; // Pode ser File (mobile) ou ArquivoTemporarioBalancete (web)
+  List<dynamic> _pdfsTemporarios = []; // Pode ser File (mobile) ou ArquivoTemporarioBalancete (web)
   bool _linkValido = false;
   bool _isUploadingFile = false;
   final ImagePicker _picker = ImagePicker();
@@ -562,10 +578,22 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         );
 
         if (image != null) {
-          final File imageFile = File(image.path);
-          setState(() {
-            _imagensTemporarias.add(imageFile);
-          });
+          // Na web, usar bytes; no mobile, usar File
+          if (kIsWeb) {
+            final bytes = await image.readAsBytes();
+            setState(() {
+              _imagensTemporarias.add(ArquivoTemporarioBalancete(
+                nome: image.name,
+                bytes: bytes,
+              ));
+            });
+          } else {
+            // No mobile, criar File dinamicamente
+            final imageFile = (io.File as dynamic)(image.path);
+            setState(() {
+              _imagensTemporarias.add(imageFile);
+            });
+          }
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -602,55 +630,104 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
         try {
-          // Obter o arquivo original
-          final File originalFile = File(result.files.single.path!);
+          final fileName = result.files.single.name;
           
-          // Verificar se o arquivo existe
-          if (!await originalFile.exists()) {
-            print('Erro: Arquivo não encontrado em ${result.files.single.path}');
+          // Na web, armazenar bytes diretamente
+          if (kIsWeb) {
+            final bytes = result.files.single.bytes;
+            if (bytes != null) {
+              print('[DocumentosScreen] PDF selecionado na WEB: $fileName (${bytes.length} bytes)');
+              setState(() {
+                _pdfsTemporarios.add(ArquivoTemporarioBalancete(
+                  nome: fileName,
+                  bytes: bytes,
+                ));
+              });
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✓ PDF "$fileName" selecionado!'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+              return;
+            } else {
+              throw Exception('Não foi possível ler os bytes do arquivo na web');
+            }
+          }
+          
+          // No mobile/desktop, usar caminho do arquivo
+          if (result.files.single.path != null) {
+            // Obter o arquivo original
+            final originalFile = (io.File as dynamic)(result.files.single.path!);
+            
+            // Verificar se o arquivo existe
+            bool fileExists = false;
+            try {
+              fileExists = await (originalFile as dynamic).exists();
+            } catch (e) {
+              print('[DocumentosScreen] Não foi possível verificar existência: $e');
+              fileExists = true; // Assumir que existe
+            }
+            
+            if (!fileExists) {
+              print('[DocumentosScreen] ERRO: Arquivo não encontrado em ${result.files.single.path}');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              return;
+            }
+
+            // Copiar arquivo para diretório temporário da app (necessário no Android)
+            final appDocDir = await getApplicationDocumentsDirectory();
+            final tempDir = (io.Directory as dynamic)('${appDocDir.path}/pdf_temporarios');
+            
+            bool tempDirExists = false;
+            try {
+              tempDirExists = await (tempDir as dynamic).exists();
+            } catch (e) {
+              tempDirExists = false;
+            }
+            
+            if (!tempDirExists) {
+              await (tempDir as dynamic).create(recursive: true);
+            }
+
+            final copiedFile = (io.File as dynamic)('${(tempDir as dynamic).path}/$fileName');
+            
+            // Copiar conteúdo do arquivo
+            final bytes = await (originalFile as dynamic).readAsBytes();
+            await (copiedFile as dynamic).writeAsBytes(bytes);
+
+            print('[DocumentosScreen] PDF copiado com sucesso');
+            print('[DocumentosScreen] Tamanho do arquivo: ${bytes.length} bytes');
+
+            // Adicionar arquivo copiado à lista
+            setState(() {
+              _pdfsTemporarios.add(copiedFile);
+            });
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
-                  backgroundColor: Colors.red,
+                SnackBar(
+                  content: Text('✓ PDF "$fileName" selecionado!\nClique em "Salvar" para importar o PDF selecionado.'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 4),
                 ),
               );
             }
-            return;
-          }
-
-          // Copiar arquivo para diretório temporário da app (necessário no Android)
-          final appDocDir = await getApplicationDocumentsDirectory();
-          final tempDir = Directory('${appDocDir.path}/pdf_temporarios');
-          if (!await tempDir.exists()) {
-            await tempDir.create(recursive: true);
-          }
-
-          final fileName = result.files.single.name;
-          final copiedFile = File('${tempDir.path}/$fileName');
-          
-          // Copiar conteúdo do arquivo
-          final bytes = await originalFile.readAsBytes();
-          await copiedFile.writeAsBytes(bytes);
-
-          print('PDF copiado com sucesso: ${copiedFile.path}');
-          print('Tamanho do arquivo: ${bytes.length} bytes');
-
-          // Adicionar arquivo copiado à lista
-          setState(() {
-            _pdfsTemporarios.add(copiedFile);
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✓ PDF "$fileName" selecionado!\nClique em "Salvar" para importar o PDF selecionado.'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 4),
-              ),
-            );
+          } else {
+            throw Exception('Caminho do arquivo não disponível no mobile');
           }
         } catch (copyError) {
           print('Erro ao copiar PDF: $copyError');
@@ -683,11 +760,25 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   }
 
   // Método para remover arquivo temporário
-  void _removerArquivoTemporario(File arquivo) {
+  void _removerArquivoTemporario(dynamic arquivo) {
     setState(() {
       _imagensTemporarias.remove(arquivo);
       _pdfsTemporarios.remove(arquivo);
     });
+  }
+
+  // Método para obter nome do arquivo (compatível com File e ArquivoTemporarioBalancete)
+  String _obterNomeArquivo(dynamic arquivo) {
+    if (arquivo is ArquivoTemporarioBalancete) {
+      return arquivo.nome;
+    } else {
+      // No mobile, é File - tentar acessar o path
+      try {
+        return (arquivo as dynamic).path.split('/').last;
+      } catch (e) {
+        return 'Arquivo desconhecido';
+      }
+    }
   }
 
   // Método aprimorado para salvar todos os arquivos
@@ -732,18 +823,34 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       // Salvar imagens
       print('[DocumentosScreen] Processando ${_imagensTemporarias.length} imagens...');
 
-      for (File imagem in _imagensTemporarias) {
+      for (dynamic imagem in _imagensTemporarias) {
         try {
-          print('[DocumentosScreen] Salvando imagem: ${imagem.path}');
-          await DocumentoService.adicionarBalanceteComUpload(
-            arquivo: imagem,
-            nomeArquivo: 'Imagem_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            mes: _mesSelecionado.toString(),
-            ano: _anoSelecionado.toString(),
-            privado: selectedPrivacy == 'Privado',
-            condominioId: condominioId,
-            representanteId: representanteId,
-          );
+          // Na web, será ArquivoTemporarioBalancete; no mobile, será File
+          if (kIsWeb && imagem is ArquivoTemporarioBalancete) {
+            print('[DocumentosScreen] Salvando imagem (Web): ${imagem.nome}');
+            await DocumentoService.adicionarBalanceteComUploadBytes(
+              bytes: imagem.bytes,
+              nomeArquivo: imagem.nome,
+              mes: _mesSelecionado.toString(),
+              ano: _anoSelecionado.toString(),
+              privado: selectedPrivacy == 'Privado',
+              condominioId: condominioId,
+              representanteId: representanteId,
+            );
+          } else if (!kIsWeb) {
+            // No mobile
+            final imagePath = (imagem as dynamic).path;
+            print('[DocumentosScreen] Salvando imagem (Mobile): $imagePath');
+            await DocumentoService.adicionarBalanceteComUpload(
+              arquivo: imagem,
+              nomeArquivo: 'Imagem_${DateTime.now().millisecondsSinceEpoch}.jpg',
+              mes: _mesSelecionado.toString(),
+              ano: _anoSelecionado.toString(),
+              privado: selectedPrivacy == 'Privado',
+              condominioId: condominioId,
+              representanteId: representanteId,
+            );
+          }
           print('[DocumentosScreen] Imagem salva com sucesso!');
         } catch (e) {
           print('[DocumentosScreen] ERRO ao salvar imagem: $e');
@@ -753,20 +860,35 @@ class _DocumentosScreenState extends State<DocumentosScreen>
 
       // Salvar PDFs
       print('[DocumentosScreen] Processando ${_pdfsTemporarios.length} PDFs...');
-      for (File pdf in _pdfsTemporarios) {
+      for (dynamic pdf in _pdfsTemporarios) {
         try {
-          print('[DocumentosScreen] Salvando PDF: ${pdf.path}');
-          // Usar o nome original do arquivo ao invés de renomear
-          final nomeOriginalPDF = pdf.path.split('/').last;
-          await DocumentoService.adicionarBalanceteComUpload(
-            arquivo: pdf,
-            nomeArquivo: nomeOriginalPDF,
-            mes: _mesSelecionado.toString(),
-            ano: _anoSelecionado.toString(),
-            privado: selectedPrivacy == 'Privado',
-            condominioId: condominioId,
-            representanteId: representanteId,
-          );
+          // Na web, será ArquivoTemporarioBalancete; no mobile, será File
+          if (kIsWeb && pdf is ArquivoTemporarioBalancete) {
+            print('[DocumentosScreen] Salvando PDF (Web): ${pdf.nome}');
+            await DocumentoService.adicionarBalanceteComUploadBytes(
+              bytes: pdf.bytes,
+              nomeArquivo: pdf.nome,
+              mes: _mesSelecionado.toString(),
+              ano: _anoSelecionado.toString(),
+              privado: selectedPrivacy == 'Privado',
+              condominioId: condominioId,
+              representanteId: representanteId,
+            );
+          } else if (!kIsWeb) {
+            // No mobile
+            final pdfPath = (pdf as dynamic).path;
+            final nomeOriginalPDF = pdfPath.split('/').last;
+            print('[DocumentosScreen] Salvando PDF (Mobile): $nomeOriginalPDF');
+            await DocumentoService.adicionarBalanceteComUpload(
+              arquivo: pdf,
+              nomeArquivo: nomeOriginalPDF,
+              mes: _mesSelecionado.toString(),
+              ano: _anoSelecionado.toString(),
+              privado: selectedPrivacy == 'Privado',
+              condominioId: condominioId,
+              representanteId: representanteId,
+            );
+          }
           print('[DocumentosScreen] PDF salvo com sucesso!');
         } catch (e) {
           print('[DocumentosScreen] ERRO ao salvar PDF: $e');
@@ -1378,7 +1500,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        pdf.path.split('/').last,
+                        _obterNomeArquivo(pdf),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black87,
@@ -1684,7 +1806,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   // Download para Mobile (Android e iOS)
   Future<void> _downloadPDFMobile(String pdfUrl, String fileName) async {
     // Obter o diretório de downloads
-    final Directory? downloadsDir = await _getDownloadsDirectory();
+    final dynamic downloadsDir = await _getDownloadsDirectory();
     
     if (downloadsDir == null) {
       if (mounted) {
@@ -1735,18 +1857,31 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   }
 
   // Obter diretório de Downloads (funciona em Android e iOS)
-  Future<Directory?> _getDownloadsDirectory() async {
+  Future<dynamic> _getDownloadsDirectory() async {
+    if (kIsWeb) {
+      return null; // Na web não há diretório de downloads
+    }
+    
     try {
       // No Android, usa Documents directory que funciona melhor
       // No iOS, usa Documents também
-      if (Platform.isAndroid) {
+      final platformCheck = await _isAndroid();
+      if (platformCheck) {
         // Tenta obter o diretório de downloads
         final directory = await getExternalStorageDirectory();
         if (directory != null) {
           // Tenta retornar /storage/emulated/0/Download se possível
           final downloadPath = '/storage/emulated/0/Download';
-          if (await Directory(downloadPath).exists()) {
-            return Directory(downloadPath);
+          final downloadDir = (io.Directory as dynamic)(downloadPath);
+          bool exists = false;
+          try {
+            exists = await (downloadDir as dynamic).exists();
+          } catch (e) {
+            exists = false;
+          }
+          
+          if (exists) {
+            return downloadDir;
           }
           // Fallback para app documents
           return directory;
@@ -1757,6 +1892,16 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     } catch (e) {
       print('Erro ao obter diretório de downloads: $e');
       return null;
+    }
+  }
+
+  // Método auxiliar para verificar se é Android
+  Future<bool> _isAndroid() async {
+    if (kIsWeb) return false;
+    try {
+      return (io.Platform as dynamic).isAndroid;
+    } catch (e) {
+      return false;
     }
   }
 }

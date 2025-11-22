@@ -286,13 +286,21 @@ class SupabaseService {
 
       final response = await query;
 
-      // Extrai cidades únicas e remove duplicatas
-      final cidades = response
-          .map((item) => item['cidade'] as String)
-          .where((cidade) => cidade.isNotEmpty)
-          .toSet()
-          .toList();
+      // Extrai cidades únicas e remove duplicatas (com normalização case-insensitive)
+      // Usa um Set com lowercase para comparação, mas preserva o valor original
+      final cidadesMap = <String, String>{};
+      for (final item in response) {
+        final cidade = (item['cidade'] as String).trim();
+        if (cidade.isNotEmpty) {
+          // Usa lowercase como chave para deduplicação, mas preserva original
+          final chave = cidade.toLowerCase();
+          if (!cidadesMap.containsKey(chave)) {
+            cidadesMap[chave] = cidade;
+          }
+        }
+      }
 
+      final cidades = cidadesMap.values.toList();
       cidades.sort(); // Ordena alfabeticamente
       return cidades;
     } catch (e) {
@@ -316,13 +324,21 @@ class SupabaseService {
 
       final response = await query;
 
-      // Extrai cidades únicas e remove duplicatas
-      final cidades = response
-          .map((item) => item['cidade'] as String)
-          .where((cidade) => cidade.isNotEmpty)
-          .toSet()
-          .toList();
+      // Extrai cidades únicas e remove duplicatas (com normalização case-insensitive)
+      // Usa um Set com lowercase para comparação, mas preserva o valor original
+      final cidadesMap = <String, String>{};
+      for (final item in response) {
+        final cidade = (item['cidade'] as String).trim();
+        if (cidade.isNotEmpty) {
+          // Usa lowercase como chave para deduplicação, mas preserva original
+          final chave = cidade.toLowerCase();
+          if (!cidadesMap.containsKey(chave)) {
+            cidadesMap[chave] = cidade;
+          }
+        }
+      }
 
+      final cidades = cidadesMap.values.toList();
       cidades.sort(); // Ordena alfabeticamente
       return cidades;
     } catch (e) {
@@ -1284,6 +1300,47 @@ class SupabaseService {
       return null;
     } catch (e) {
       print('[SupabaseService] ERRO ao fazer upload do balancete: $e');
+      rethrow;
+    }
+  }
+
+  /// Upload de balancete usando bytes diretamente (compatível com web)
+  static Future<String?> uploadBalanceteBytes(
+    Uint8List bytes,
+    String nomeArquivo,
+    String condominioId,
+    String mes,
+    String ano,
+  ) async {
+    try {
+      print('[SupabaseService] Iniciando upload de balancete (bytes): $nomeArquivo');
+      print('[SupabaseService] Tamanho: ${bytes.length} bytes');
+
+      final sanitizedName = _sanitizeFileName(nomeArquivo);
+      final fileName =
+          '${condominioId}/balancetes/${ano}_${mes}_${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
+
+      print('[SupabaseService] Caminho no storage: $fileName');
+      print('[SupabaseService] Iniciando upload binário...');
+
+      final response = await client.storage
+          .from('documentos')
+          .uploadBinary(fileName, bytes);
+
+      if (response.isNotEmpty) {
+        // Retorna a URL pública do arquivo
+        final publicUrl = client.storage
+            .from('documentos')
+            .getPublicUrl(fileName);
+        print('[SupabaseService] Upload concluído com sucesso!');
+        print('[SupabaseService] URL pública: $publicUrl');
+        return publicUrl;
+      }
+
+      print('[SupabaseService] ERRO: Resposta vazia do upload');
+      return null;
+    } catch (e) {
+      print('[SupabaseService] ERRO ao fazer upload do balancete (bytes): $e');
       rethrow;
     }
   }

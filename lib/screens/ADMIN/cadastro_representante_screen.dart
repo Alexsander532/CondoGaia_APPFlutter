@@ -1,4 +1,6 @@
 import 'package:condogaiaapp/services/supabase_service.dart';
+import 'package:condogaiaapp/models/cidade.dart';
+import 'package:condogaiaapp/widgets/cidade_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -57,7 +59,6 @@ class _CadastroRepresentanteScreenState
   final _emailController = TextEditingController();
   final _enderecoController = TextEditingController();
   final _pesquisaController = TextEditingController();
-  final _cidadeController = TextEditingController();
 
   // Máscaras de formatação
   final _cpfMask = MaskTextInputFormatter(
@@ -83,6 +84,7 @@ class _CadastroRepresentanteScreenState
 
   // Valores dos dropdowns
   String _ufSelecionada = 'MS';
+  Cidade? _cidadeSelecionada;
 
   // Variáveis para dropdowns dinâmicos da aba de pesquisa
   List<String> _ufsRepresentantes = [];
@@ -157,7 +159,6 @@ class _CadastroRepresentanteScreenState
     _emailController.dispose();
     _enderecoController.dispose();
     _pesquisaController.dispose();
-    _cidadeController.dispose();
     super.dispose();
   }
 
@@ -251,8 +252,11 @@ class _CadastroRepresentanteScreenState
                 : _pesquisaController.text.trim(),
           );
 
+      // Deduplica resultados por condominio_id
+      final resultadosDeduplic = _deduplicarResultados(resultados);
+
       setState(() {
-        _resultadosPesquisa = resultados;
+        _resultadosPesquisa = resultadosDeduplic;
         _pesquisaRealizada = true;
         _isLoadingPesquisa = false;
       });
@@ -265,6 +269,23 @@ class _CadastroRepresentanteScreenState
       });
       print('Erro na pesquisa de representantes: $e');
     }
+  }
+
+  /// Deduplica resultados por condominio_id, mantendo apenas a primeira ocorrência
+  List<Map<String, dynamic>> _deduplicarResultados(
+      List<Map<String, dynamic>> resultados) {
+    final condominiosVistos = <String>{};
+    final resultadosDeduplic = <Map<String, dynamic>>[];
+
+    for (final resultado in resultados) {
+      final condominioId = resultado['condominio_id'] as String?;
+      if (condominioId != null && !condominiosVistos.contains(condominioId)) {
+        condominiosVistos.add(condominioId);
+        resultadosDeduplic.add(resultado);
+      }
+    }
+
+    return resultadosDeduplic;
   }
 
   // Método para pesquisar/recarregar representantes
@@ -510,10 +531,15 @@ class _CadastroRepresentanteScreenState
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: _buildTextField(
-                  'Cidade:',
-                  _cidadeController,
-                  'Digite a cidade',
+                child: CidadeDropdown(
+                  label: 'Cidade:',
+                  selectedCidade: _cidadeSelecionada,
+                  estadoSelecionado: _ufSelecionada,
+                  onChanged: (cidade) {
+                    setState(() {
+                      _cidadeSelecionada = cidade;
+                    });
+                  },
                   required: true,
                 ),
               ),
@@ -1944,6 +1970,11 @@ class _CadastroRepresentanteScreenState
       return;
     }
 
+    if (_cidadeSelecionada == null) {
+      _showErrorMessage('Cidade é obrigatória');
+      return;
+    }
+
     // Validação removida - condomínios podem ser associados posteriormente
 
     try {
@@ -1966,7 +1997,7 @@ class _CadastroRepresentanteScreenState
         'email': _emailController.text.trim(),
         'endereco': _enderecoController.text.trim(),
         'uf': _ufSelecionada,
-        'cidade': _cidadeController.text.trim(),
+        'cidade': _cidadeSelecionada!.nome,
         // Adicionar campo condominios_selecionados com os IDs dos condomínios
         'condominios_selecionados': condominiosParaSalvar,
 
@@ -2091,10 +2122,10 @@ class _CadastroRepresentanteScreenState
       _celularController.clear();
       _emailController.clear();
       _enderecoController.clear();
-      _cidadeController.clear();
 
       // Resetar dropdowns
       _ufSelecionada = 'MS';
+      _cidadeSelecionada = null;
       _condominiosSelecionados.clear();
 
       // Resetar todos os checkboxes

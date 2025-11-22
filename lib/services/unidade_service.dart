@@ -345,9 +345,13 @@ class UnidadeService {
         tipoUnidade: 'A', // Padrão
       );
 
+      // Converter para JSON e remover ID vazio (deixar banco gerar)
+      final json = unidade.toJson();
+      json.remove('id'); // Remove ID nulo para que o banco gere
+
       final response = await _supabase
           .from('unidades')
-          .insert(unidade.toJson())
+          .insert(json)
           .select()
           .single();
 

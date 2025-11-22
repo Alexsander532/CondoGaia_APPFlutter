@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
 import '../../services/supabase_service.dart';
+import '../../models/cidade.dart';
+import '../../widgets/cidade_dropdown.dart';
 import '../login_screen.dart';
 
 class CadastroCondominioScreen extends StatefulWidget {
@@ -46,6 +48,7 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
 
   // Estado selecionado
   String? _estadoSelecionado; // Permitir seleção vazia inicialmente
+  Cidade? _cidadeSelecionada; // Cidade selecionada da API IBGE
   bool _isLoading = false;
 
   // Lista de estados brasileiros
@@ -218,7 +221,19 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('Cidade:', _cidadeController, '', required: true),
+                          child: CidadeDropdown(
+                            label: 'Cidade:',
+                            selectedCidade: _cidadeSelecionada,
+                            estadoSelecionado: _estadoSelecionado,
+                            onChanged: (cidade) {
+                              print('🟢 [CadastroCondominioScreen] Cidade selecionada no callback: ${cidade?.nome}');
+                              setState(() {
+                                _cidadeSelecionada = cidade;
+                                print('   - _cidadeSelecionada atualizada para: ${_cidadeSelecionada?.nome}');
+                              });
+                            },
+                            required: true,
+                          ),
                         ),
                       ],
                     ),
@@ -498,8 +513,10 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
               );
             }).toList(),
             onChanged: (String? newValue) {
+              print('🟢 [CadastroCondominioScreen] Estado selecionado: $newValue');
               setState(() {
                 _estadoSelecionado = newValue;
+                print('   - _estadoSelecionado atualizado para: $_estadoSelecionado');
               });
             },
           ),
@@ -538,7 +555,7 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
         _enderecoController.text.isEmpty ||
         _numeroController.text.isEmpty ||
         _bairroController.text.isEmpty ||
-        _cidadeController.text.isEmpty ||
+        _cidadeSelecionada == null ||
         _estadoSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -603,7 +620,7 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
         'endereco': _enderecoController.text,
         'numero': _numeroController.text,
         'bairro': _bairroController.text,
-        'cidade': _cidadeController.text,
+        'cidade': _cidadeSelecionada!.nome,
         'estado': _estadoSelecionado,
         'plano_assinatura': _planoAssinaturaController.text.isEmpty ? null : _planoAssinaturaController.text,
         'pagamento': _pagamentoController.text.isEmpty ? null : _pagamentoController.text,
@@ -662,6 +679,7 @@ class _CadastroCondominioScreenState extends State<CadastroCondominioScreen> {
     _tokenUnidadeController.clear();
     setState(() {
       _estadoSelecionado = null;
+      _cidadeSelecionada = null;
     });
   }
 

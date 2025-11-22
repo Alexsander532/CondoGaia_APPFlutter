@@ -5,10 +5,24 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
 import '../utils/download_helper.dart';
+
+// Importação condicional de dart:io para mobile/desktop
+import 'dart:io' if (kIsWeb) 'dart:async' as io;
+
+// Classe simples para armazenar arquivo na web ou dados binários
+class ArquivoTemporario {
+  final String nome;
+  final Uint8List bytes;
+
+  ArquivoTemporario({
+    required this.nome,
+    required this.bytes,
+  });
+}
 
 class EditarDocumentosScreen extends StatefulWidget {
   final Documento pasta;
@@ -756,16 +770,31 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
       );
 
       if (image != null) {
-        // Fazer upload da imagem
-        await DocumentoService.adicionarArquivoComUpload(
-          nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
-          arquivo: File(image.path),
-          descricao: 'Foto capturada pela câmera',
-          privado: _privacidade == 'Privado',
-          pastaId: widget.pasta.id,
-          condominioId: widget.condominioId,
-          representanteId: widget.representanteId,
-        );
+        // Na web, usar bytes diretamente; no mobile, usar File
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          await DocumentoService.adicionarArquivoComUploadBytes(
+            nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+            bytes: bytes,
+            descricao: 'Foto capturada pela câmera',
+            privado: _privacidade == 'Privado',
+            pastaId: widget.pasta.id,
+            condominioId: widget.condominioId,
+            representanteId: widget.representanteId,
+          );
+        } else {
+          // No mobile, converter para File
+          final imageFile = (io.File as dynamic)(image.path);
+          await DocumentoService.adicionarArquivoComUpload(
+            nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+            arquivo: imageFile,
+            descricao: 'Foto capturada pela câmera',
+            privado: _privacidade == 'Privado',
+            pastaId: widget.pasta.id,
+            condominioId: widget.condominioId,
+            representanteId: widget.representanteId,
+          );
+        }
 
         // Recarregar a lista de arquivos
         await _carregarArquivos();
@@ -804,67 +833,124 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
         try {
-          // Obter o arquivo original
-          final File originalFile = File(result.files.single.path!);
+          final fileName = result.files.single.name;
           
-          // Verificar se o arquivo existe
-          if (!await originalFile.exists()) {
-            print('Erro: Arquivo não encontrado em ${result.files.single.path}');
+          // Na web, armazenar bytes diretamente
+          if (kIsWeb) {
+            final bytes = result.files.single.bytes;
+            if (bytes != null) {
+              print('[EditarDocumentosScreen] PDF selecionado na WEB: $fileName (${bytes.length} bytes)');
+              
+              // Fazer upload direto com bytes
+              await DocumentoService.adicionarArquivoComUploadBytes(
+                nome: fileName,
+                bytes: bytes,
+                descricao: 'Documento PDF enviado do dispositivo',
+                privado: _privacidade == 'Privado',
+                pastaId: widget.pasta.id,
+                condominioId: widget.condominioId,
+                representanteId: widget.representanteId,
+              );
+
+              // Recarregar a lista de arquivos
+              await _carregarArquivos();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✓ PDF "$fileName" importado com sucesso!'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+              return;
+            } else {
+              throw Exception('Não foi possível ler os bytes do arquivo na web');
+            }
+          }
+          
+          // No mobile/desktop, usar caminho do arquivo
+          if (result.files.single.path != null) {
+            // Obter o arquivo original
+            final originalFile = (io.File as dynamic)(result.files.single.path!);
+            
+            // Verificar se o arquivo existe
+            bool fileExists = false;
+            try {
+              fileExists = await (originalFile as dynamic).exists();
+            } catch (e) {
+              print('[EditarDocumentosScreen] Não foi possível verificar existência: $e');
+              fileExists = true; // Assumir que existe
+            }
+            
+            if (!fileExists) {
+              print('[EditarDocumentosScreen] ERRO: Arquivo não encontrado em ${result.files.single.path}');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              return;
+            }
+
+            // Copiar arquivo para diretório temporário (necessário no Android)
+            final appDocDir = await getApplicationDocumentsDirectory();
+            final tempDir = (io.Directory as dynamic)('${appDocDir.path}/pdf_temporarios');
+            
+            bool tempDirExists = false;
+            try {
+              tempDirExists = await (tempDir as dynamic).exists();
+            } catch (e) {
+              tempDirExists = false;
+            }
+            
+            if (!tempDirExists) {
+              await (tempDir as dynamic).create(recursive: true);
+            }
+
+            final copiedFile = (io.File as dynamic)('${(tempDir as dynamic).path}/$fileName');
+            
+            // Copiar conteúdo do arquivo
+            final bytes = await (originalFile as dynamic).readAsBytes();
+            await (copiedFile as dynamic).writeAsBytes(bytes);
+
+            print('[EditarDocumentosScreen] PDF copiado com sucesso');
+            print('[EditarDocumentosScreen] Tamanho do arquivo: ${bytes.length} bytes');
+
+            // Fazer upload do arquivo
+            await DocumentoService.adicionarArquivoComUpload(
+              nome: fileName,
+              arquivo: copiedFile,
+              descricao: 'Documento PDF enviado do dispositivo',
+              privado: _privacidade == 'Privado',
+              pastaId: widget.pasta.id,
+              condominioId: widget.condominioId,
+              representanteId: widget.representanteId,
+            );
+
+            // Recarregar a lista de arquivos
+            await _carregarArquivos();
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Erro: Arquivo não encontrado no caminho especificado.'),
-                  backgroundColor: Colors.red,
+                SnackBar(
+                  content: Text('✓ PDF "$fileName" importado com sucesso!'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 4),
                 ),
               );
             }
-            return;
-          }
-
-          // Copiar arquivo para diretório temporário da app (necessário no Android)
-          final appDocDir = await getApplicationDocumentsDirectory();
-          final tempDir = Directory('${appDocDir.path}/pdf_temporarios');
-          if (!await tempDir.exists()) {
-            await tempDir.create(recursive: true);
-          }
-
-          final fileName = result.files.single.name;
-          final copiedFile = File('${tempDir.path}/$fileName');
-          
-          // Copiar conteúdo do arquivo
-          final bytes = await originalFile.readAsBytes();
-          await copiedFile.writeAsBytes(bytes);
-
-          print('PDF copiado com sucesso: ${copiedFile.path}');
-          print('Tamanho do arquivo: ${bytes.length} bytes');
-
-          // Fazer upload do arquivo
-          await DocumentoService.adicionarArquivoComUpload(
-            nome: fileName,
-            arquivo: copiedFile,
-            descricao: 'Documento PDF enviado do dispositivo',
-            privado: _privacidade == 'Privado',
-            pastaId: widget.pasta.id,
-            condominioId: widget.condominioId,
-            representanteId: widget.representanteId,
-          );
-
-          // Recarregar a lista de arquivos
-          await _carregarArquivos();
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✓ PDF "$fileName" importado com sucesso!'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 4),
-              ),
-            );
+          } else {
+            throw Exception('Caminho do arquivo não disponível no mobile');
           }
         } catch (uploadError) {
-          print('Erro ao fazer upload do PDF: $uploadError');
+          print('[EditarDocumentosScreen] Erro ao fazer upload do PDF: $uploadError');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -876,6 +962,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         }
       }
     } catch (e) {
+      print('[EditarDocumentosScreen] Erro ao selecionar PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1051,7 +1138,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
   // Download para Mobile (Android e iOS)
   Future<void> _downloadPDFMobile(String pdfUrl, String fileName) async {
     // Obter o diretório de downloads
-    final Directory? downloadsDir = await _getDownloadsDirectory();
+    final dynamic downloadsDir = await _getDownloadsDirectory();
     
     if (downloadsDir == null) {
       if (mounted) {
@@ -1102,18 +1189,31 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
   }
 
   // Obter diretório de Downloads (funciona em Android e iOS)
-  Future<Directory?> _getDownloadsDirectory() async {
+  Future<dynamic> _getDownloadsDirectory() async {
+    if (kIsWeb) {
+      return null; // Na web não há diretório de downloads
+    }
+    
     try {
       // No Android, usa Documents directory que funciona melhor
       // No iOS, usa Documents também
-      if (Platform.isAndroid) {
+      final platformCheck = await _isAndroid();
+      if (platformCheck) {
         // Tenta obter o diretório de downloads
         final directory = await getExternalStorageDirectory();
         if (directory != null) {
           // Tenta retornar /storage/emulated/0/Download se possível
           final downloadPath = '/storage/emulated/0/Download';
-          if (await Directory(downloadPath).exists()) {
-            return Directory(downloadPath);
+          final downloadDir = (io.Directory as dynamic)(downloadPath);
+          bool exists = false;
+          try {
+            exists = await (downloadDir as dynamic).exists();
+          } catch (e) {
+            exists = false;
+          }
+          
+          if (exists) {
+            return downloadDir;
           }
           // Fallback para app documents
           return directory;
@@ -1124,6 +1224,16 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     } catch (e) {
       print('Erro ao obter diretório de downloads: $e');
       return null;
+    }
+  }
+
+  // Método auxiliar para verificar se é Android
+  Future<bool> _isAndroid() async {
+    if (kIsWeb) return false;
+    try {
+      return (io.Platform as dynamic).isAndroid;
+    } catch (e) {
+      return false;
     }
   }
 }

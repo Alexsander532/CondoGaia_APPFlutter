@@ -546,6 +546,47 @@ class DocumentoService {
     
     throw Exception('Erro ao adicionar balancete');
   }
+
+  /// Adicionar balancete com upload de bytes (compatível com web)
+  static Future<Balancete> adicionarBalanceteComUploadBytes({
+    required Uint8List bytes,
+    required String nomeArquivo,
+    required String mes,
+    required String ano,
+    required bool privado,
+    required String condominioId,
+    required String representanteId,
+  }) async {
+    // Primeiro fazer upload dos bytes
+    final url = await SupabaseService.uploadBalanceteBytes(
+      bytes,
+      nomeArquivo,
+      condominioId,
+      mes,
+      ano,
+    );
+    
+    if (url == null) {
+      throw Exception('Erro ao fazer upload do arquivo');
+    }
+    
+    // Depois adicionar o balancete com a URL
+    final response = await SupabaseService.adicionarBalancete(
+      nomeArquivo: nomeArquivo,
+      url: url,
+      mes: mes,
+      ano: ano,
+      privado: privado,
+      condominioId: condominioId,
+      representanteId: representanteId,
+    );
+    
+    if (response != null) {
+      return Balancete.fromJson(response);
+    }
+    
+    throw Exception('Erro ao adicionar balancete');
+  }
   
   /// Atualizar balancete
   static Future<Balancete> atualizarBalancete(
