@@ -38,15 +38,63 @@ CNPJ: ${widget.condominioCnpj}
     
 Copiado da CondoGaia''';
 
-    Clipboard.setData(ClipboardData(text: texto)).then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dados copiados para a área de transferência!'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Color(0xFF1976D2),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Dados para compartilhamento',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
-      );
-    });
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                texto,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: texto)).then((_) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Dados copiados para a área de transferência!'),
+                    duration: Duration(seconds: 2),
+                    backgroundColor: Color(0xFF1976D2),
+                  ),
+                );
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1976D2),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Copiar dados'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMenuCard({
