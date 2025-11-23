@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 import 'chat_inquilino_v2_screen.dart';
 import '../models/autorizado_inquilino.dart';
@@ -72,6 +73,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   String _horarioInicio = '08:00';
   String _horarioFim = '18:00';
   XFile? _fotoAutorizado; // Usar XFile em vez de File para compatibilidade web
+
+  // 🆕 Variáveis para seleção de dias/horários (Passo 2)
+  String _tipoSelecaoDias = 'dias_semana'; // 'dias_semana' ou 'dias_especificos'
+  List<bool> _diasSemanasSelecionados = List.filled(7, false); // Dias da semana selecionados
+  List<DateTime> _diasEspecificosSelecionados = []; // Datas selecionadas (DateTime, convertidas para ISO ao salvar)
 
   // Lista de horários disponíveis (00:00 até 23:00)
   final List<String> _horariosDisponiveis = List.generate(24, (index) {
@@ -603,12 +609,13 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
           // Informações adicionais (horários, veículo, etc.)
           if ((autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ||
+              (autorizado.diasEspecificos?.isNotEmpty ?? false) ||
               autorizado.temVeiculo) ...[
             const SizedBox(height: 12),
             const Divider(color: Color(0xFFE0E0E0)),
             const SizedBox(height: 8),
 
-            // Horários permitidos
+            // Horários permitidos - Dias da semana
             if (autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ...[
               Row(
                 children: [
@@ -621,6 +628,30 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                   Expanded(
                     child: Text(
                       '${autorizado.diasSemanaFormatados} - ${autorizado.horarioFormatado}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+
+            // Horários permitidos - Datas específicas
+            if (autorizado.diasEspecificos?.isNotEmpty ?? false) ...[
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${autorizado.diasEspecificosFormatados} - ${autorizado.horarioFormatado}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF666666),
@@ -884,6 +915,40 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   }
 
   // Método para salvar autorizado (adicionar ou editar)
+  // ========== MÉTODOS DE VALIDAÇÃO ==========
+
+  /// Valida se dias foram selecionados de acordo com o tipo escolhido
+  bool _validarPermissoes() {
+    if (_permissaoSelecionada == 'determinado') {
+      // Validar tipo de seleção de dias
+      if (_tipoSelecaoDias == 'dias_semana') {
+        // Verificar se pelo menos um dia da semana foi selecionado
+        final diasSelecionados = _diasSemana.where((dia) => dia == true).toList();
+        if (diasSelecionados.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Selecione pelo menos um dia da semana'),
+              backgroundColor: Color(0xFFE74C3C),
+            ),
+          );
+          return false;
+        }
+      } else if (_tipoSelecaoDias == 'dias_especificos') {
+        // Verificar se pelo menos uma data específica foi selecionada
+        if (_diasEspecificosSelecionados.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Selecione pelo menos uma data específica'),
+              backgroundColor: Color(0xFFE74C3C),
+            ),
+          );
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   Future<void> _salvarAutorizado([
     AutorizadoInquilino? autorizadoExistente,
   ]) async {
@@ -911,6 +976,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       return;
     }
 
+    // 🆕 Validar permissões (dias/horários)
+    if (!_validarPermissoes()) {
+      return;
+    }
+
     if (widget.unidadeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -923,6 +993,15 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
     try {
       // Criar o mapa de dados para o autorizado
+      
+      // 🆕 Preparar datas específicas em formato ISO
+      List<String> diasEspecificosISO = [];
+      if (_tipoSelecaoDias == 'dias_especificos' && _diasEspecificosSelecionados.isNotEmpty) {
+        diasEspecificosISO = _diasEspecificosSelecionados
+            .map((date) => date.toIso8601String().split('T')[0]) // Formato YYYY-MM-DD
+            .toList();
+      }
+
       final autorizadoData = {
         'unidade_id': widget.unidadeId!,
         'inquilino_id': widget.inquilinoId,
@@ -947,6 +1026,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         'horario_fim': _permissaoSelecionada == 'determinado'
             ? _horarioFim
             : null,
+        // 🆕 Tipo de seleção de dias e datas específicas
+        'tipo_selecao_dias': _permissaoSelecionada == 'determinado'
+            ? _tipoSelecaoDias
+            : 'dias_semana', // Valor padrão se não for 'determinado'
+        'dias_especificos': diasEspecificosISO,
         // Dados do veículo
         'veiculo_marca': _marcaController.text.trim().isEmpty
             ? null
@@ -1367,11 +1451,25 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
             _horarioInicio = horarioInicioFormatado;
             _horarioFim = horarioFimFormatado;
+
+            // 🆕 Carregar tipo de seleção de dias e datas específicas
+            _tipoSelecaoDias = autorizado.tipoSelecaoDias ?? 'dias_semana';
+            
+            if (autorizado.diasEspecificos != null && autorizado.diasEspecificos!.isNotEmpty) {
+              _diasEspecificosSelecionados = autorizado.diasEspecificos!
+                  .map((dateStr) => DateTime.parse(dateStr))
+                  .toList();
+            } else {
+              _diasEspecificosSelecionados = [];
+            }
           } else {
             _permissaoSelecionada = 'qualquer';
             _diasSemana = List.filled(7, false);
             _horarioInicio = '08:00';
             _horarioFim = '18:00';
+            // 🆕 Resetar também os novos campos
+            _tipoSelecaoDias = 'dias_semana';
+            _diasEspecificosSelecionados = [];
           }
         });
       }
@@ -1492,41 +1590,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                             // Widget para selecionar/capturar foto
                             GestureDetector(
                               onTap: () async {
-                                final ImagePicker picker = ImagePicker();
-                                try {
-                                  // Tentar tirar foto com a câmera
-                                  final XFile? image = await picker.pickImage(
-                                    source: ImageSource.camera,
-                                    maxWidth: 800,
-                                    maxHeight: 600,
-                                    imageQuality: 80,
-                                  );
-                                  
-                                  if (image != null) {
-                                    setModalState(() {
-                                      _fotoAutorizado = image;
-                                    });
-                                  }
-                                } catch (e) {
-                                  print('Erro ao tirar foto: $e');
-                                  // Fallback para galeria se câmera falhar
-                                  try {
-                                    final XFile? image = await picker.pickImage(
-                                      source: ImageSource.gallery,
-                                      maxWidth: 800,
-                                      maxHeight: 600,
-                                      imageQuality: 80,
-                                    );
-                                    
-                                    if (image != null) {
-                                      setModalState(() {
-                                        _fotoAutorizado = image;
-                                      });
-                                    }
-                                  } catch (e2) {
-                                    print('Erro ao selecionar da galeria: $e2');
-                                  }
-                                }
+                                await _mostrarDialogSelecaoFotoAutorizado(setModalState);
                               },
                               child: Container(
                                 height: 150,
@@ -1648,6 +1712,63 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                               ],
                             ),
 
+                            // 🆕 Seção para escolher tipo de seleção de dias (só aparece se "determinado" estiver selecionado)
+                            if (_permissaoSelecionada == 'determinado') ...[
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Como deseja selecionar os dias?',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: const Color(0xFFE0E0E0),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  children: [
+                                    RadioListTile<String>(
+                                      title: const Text('Dias da Semana'),
+                                      value: 'dias_semana',
+                                      groupValue: _tipoSelecaoDias,
+                                      onChanged: (value) {
+                                        setModalState(() {
+                                          _tipoSelecaoDias = value!;
+                                          // Limpar dias específicos quando mudar para dias_semana
+                                          _diasEspecificosSelecionados.clear();
+                                        });
+                                      },
+                                      activeColor: const Color(0xFF4A90E2),
+                                    ),
+                                    Container(
+                                      height: 1,
+                                      color: const Color(0xFFE0E0E0),
+                                    ),
+                                    RadioListTile<String>(
+                                      title: const Text('Datas específicas'),
+                                      subtitle: const Text('Permissão por data'),
+                                      value: 'dias_especificos',
+                                      groupValue: _tipoSelecaoDias,
+                                      onChanged: (value) {
+                                        setModalState(() {
+                                          _tipoSelecaoDias = value!;
+                                          // Limpar dias semana quando mudar para dias_especificos
+                                          _diasSemana.fillRange(0, 7, false);
+                                        });
+                                      },
+                                      activeColor: const Color(0xFF4A90E2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
                             // Horários permitidos (só aparece se "determinado" estiver selecionado)
                             if (_permissaoSelecionada == 'determinado') ...[
                               const SizedBox(height: 16),
@@ -1693,29 +1814,36 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                               ),
                               const SizedBox(height: 16),
 
-                              // Dias da semana
-                              const Text(
-                                'Dias da Semana:',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              // 🆕 Dias da semana - condicional (só aparece se selecionado modo dias_semana)
+                              if (_tipoSelecaoDias == 'dias_semana') ...[
+                                const Text(
+                                  'Dias da Semana:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 12),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildDiaCheckbox('DOM', 0, setModalState),
+                                    _buildDiaCheckbox('SEG', 1, setModalState),
+                                    _buildDiaCheckbox('TER', 2, setModalState),
+                                    _buildDiaCheckbox('QUA', 3, setModalState),
+                                    _buildDiaCheckbox('QUI', 4, setModalState),
+                                    _buildDiaCheckbox('SEX', 5, setModalState),
+                                    _buildDiaCheckbox('SAB', 6, setModalState),
+                                  ],
+                                ),
+                              ],
 
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildDiaCheckbox('DOM', 0, setModalState),
-                                  _buildDiaCheckbox('SEG', 1, setModalState),
-                                  _buildDiaCheckbox('TER', 2, setModalState),
-                                  _buildDiaCheckbox('QUA', 3, setModalState),
-                                  _buildDiaCheckbox('QUI', 4, setModalState),
-                                  _buildDiaCheckbox('SEX', 5, setModalState),
-                                  _buildDiaCheckbox('SAB', 6, setModalState),
-                                ],
-                              ),
+                              // 🆕 Datas específicas - condicional (só aparece se selecionado modo dias_especificos)
+                              // 🆕 Datas específicas - condicional (só aparece se selecionado modo dias_especificos)
+                              if (_tipoSelecaoDias == 'dias_especificos') ...[
+                                _buildDiasEspecificosUI(setModalState),
+                              ],
                             ],
 
                             const SizedBox(height: 20),
@@ -2194,5 +2322,434 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         ),
       ),
     );
+  }
+
+  // ========== MÉTODOS PARA DATAS ESPECÍFICAS (PASSO 4) ==========
+
+  /// Widget para seleção de datas específicas
+  Widget _buildDiasEspecificosUI(StateSetter setModalState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.calendar_today),
+          label: const Text('Selecionar Datas'),
+          onPressed: () => _abrirCalendario(setModalState),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4A90E2),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Exibir datas selecionadas
+        if (_diasEspecificosSelecionados.isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Datas selecionadas (${_diasEspecificosSelecionados.length}):',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _diasEspecificosSelecionados
+                      .map(
+                        (data) {
+                          final formatted = DateFormat('dd/MM/yyyy').format(data);
+                          return Chip(
+                            label: Text(formatted),
+                            onDeleted: () {
+                              setModalState(() {
+                                _diasEspecificosSelecionados.remove(data);
+                              });
+                            },
+                            backgroundColor: const Color(0xFF4A90E2),
+                            labelStyle: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            deleteIcon: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Colors.grey[600],
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Nenhuma data selecionada',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Abre o calendário para seleção de datas
+  Future<void> _abrirCalendario(StateSetter setModalState) async {
+    final result = await showDialog<List<DateTime>>(
+      context: context,
+      builder: (context) => _buildCalendarioDialog(),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setModalState(() {
+        _diasEspecificosSelecionados = result;
+      });
+    }
+  }
+
+  /// Constrói o dialog do calendário com seleção de múltiplas datas
+  Widget _buildCalendarioDialog() {
+    List<DateTime> selectedDates = List.from(_diasEspecificosSelecionados);
+    late DateTime _focusedDay = DateTime.now();
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          title: const Text('Selecionar Datas'),
+          contentPadding: const EdgeInsets.all(20),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Calendário com TableCalendar
+                  TableCalendar(
+                    firstDay: DateTime(2020),
+                    lastDay: DateTime(2030),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) {
+                      return selectedDates.any((date) =>
+                          date.year == day.year &&
+                          date.month == day.month &&
+                          date.day == day.day);
+                    },
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _focusedDay = focusedDay;
+                        final isSelected = selectedDates.any((date) =>
+                            date.year == selectedDay.year &&
+                            date.month == selectedDay.month &&
+                            date.day == selectedDay.day);
+
+                        if (isSelected) {
+                          selectedDates.removeWhere((date) =>
+                              date.year == selectedDay.year &&
+                              date.month == selectedDay.month &&
+                              date.day == selectedDay.day);
+                        } else {
+                          selectedDates.add(selectedDay);
+                        }
+                      });
+                    },
+                    calendarStyle: CalendarStyle(
+                      selectedDecoration: BoxDecoration(
+                        color: const Color(0xFF4A90E2),
+                        shape: BoxShape.circle,
+                      ),
+                      selectedTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      todayDecoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        shape: BoxShape.circle,
+                      ),
+                      defaultDecoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                      ),
+                      weekendDecoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    headerStyle: HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Datas selecionadas
+                  if (selectedDates.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${selectedDates.length} data(s) selecionada(s):',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: Color(0xFF2C3E50),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: selectedDates
+                                .map(
+                                  (date) => Chip(
+                                    label: Text(
+                                      DateFormat('dd/MM').format(date),
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    onDeleted: () {
+                                      setState(() {
+                                        selectedDates.remove(date);
+                                      });
+                                    },
+                                    backgroundColor: const Color(0xFF4A90E2),
+                                    labelStyle: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                    ),
+                                    deleteIcon: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      'Clique nos dias para selecionar datas',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Color(0xFF7F8C8D)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Ordenar datas antes de confirmar
+                selectedDates.sort();
+                Navigator.pop(context, selectedDates);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4A90E2),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ========== MÉTODOS PARA SELEÇÃO DE FOTO DO AUTORIZADO ==========
+
+  /// Mostra diálogo perguntando se quer usar câmera ou galeria
+  Future<void> _mostrarDialogSelecaoFotoAutorizado(
+    StateSetter setModalState,
+  ) async {
+    // Na web, usar apenas galeria
+    if (kIsWeb) {
+      await _selecionarFotoAutorizadoGaleria(setModalState);
+      return;
+    }
+
+    // Em mobile, mostrar diálogo com opções
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            'Selecionar Foto',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2E3A59),
+            ),
+          ),
+          content: const Text(
+            'De onde você gostaria de tirar a foto?',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF666666),
+            ),
+          ),
+          actions: [
+            // Botão Câmera
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _selecionarFotoAutorizadoCamera(setModalState);
+              },
+              icon: const Icon(
+                Icons.camera_alt,
+                color: Color(0xFF1976D2),
+                size: 24,
+              ),
+              label: const Text(
+                'Câmera',
+                style: TextStyle(
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            // Botão Galeria
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _selecionarFotoAutorizadoGaleria(setModalState);
+              },
+              icon: const Icon(
+                Icons.image,
+                color: Color(0xFF1976D2),
+                size: 24,
+              ),
+              label: const Text(
+                'Galeria',
+                style: TextStyle(
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Tirar foto com a câmera do celular
+  Future<void> _selecionarFotoAutorizadoCamera(StateSetter setModalState) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setModalState(() {
+          _fotoAutorizado = image;
+        });
+      }
+    } catch (e) {
+      print('Erro ao tirar foto da câmera: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao tirar foto: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Selecionar foto da galeria
+  Future<void> _selecionarFotoAutorizadoGaleria(
+    StateSetter setModalState,
+  ) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setModalState(() {
+          _fotoAutorizado = image;
+        });
+      }
+    } catch (e) {
+      print('Erro ao selecionar foto da galeria: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar foto: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }

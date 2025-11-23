@@ -276,6 +276,9 @@ class AutorizadoInquilinoService {
         );
       }
 
+      // Validar tipo de seleção de dias
+      _validarTipoSelecaoDias(autorizadoData);
+
       // Validar se já existe autorizado com mesmo CPF na unidade
       final cpfExistente = await _verificarCPFExistente(
         autorizadoData['cpf'],
@@ -523,6 +526,25 @@ class AutorizadoInquilinoService {
     if (RegExp(r'^(\d)\1{10}$').hasMatch(cpfLimpo)) return false;
 
     return true;
+  }
+
+  /// Valida o tipo de seleção de dias e garante que pelo menos um dia foi selecionado
+  static void _validarTipoSelecaoDias(Map<String, dynamic> data) {
+    final tipoSelecao = data['tipo_selecao_dias'] ?? 'dias_semana';
+    
+    if (tipoSelecao == 'dias_semana') {
+      // Validar se tem dias da semana selecionados
+      final diasSemana = data['dias_semana_permitidos'];
+      if (diasSemana == null || (diasSemana is List && diasSemana.isEmpty)) {
+        throw Exception('Selecione pelo menos um dia da semana');
+      }
+    } else if (tipoSelecao == 'dias_especificos') {
+      // Validar se tem datas específicas selecionadas
+      final diasEspecificos = data['dias_especificos'];
+      if (diasEspecificos == null || (diasEspecificos is List && diasEspecificos.isEmpty)) {
+        throw Exception('Selecione pelo menos uma data específica');
+      }
+    }
   }
 
   /// Verifica se já existe um autorizado com o mesmo CPF na unidade

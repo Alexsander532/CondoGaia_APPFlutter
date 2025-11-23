@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 /// Modelo de dados para autorizados de inquilinos/proprietários
 class AutorizadoInquilino {
   final String id;
@@ -10,6 +12,8 @@ class AutorizadoInquilino {
   final String? horarioInicio;
   final String? horarioFim;
   final List<int>? diasSemanaPermitidos;
+  final String? tipoSelecaoDias;
+  final List<String>? diasEspecificos;
   final String? veiculoMarca;
   final String? veiculoModelo;
   final String? veiculoCor;
@@ -30,6 +34,8 @@ class AutorizadoInquilino {
     this.horarioInicio,
     this.horarioFim,
     this.diasSemanaPermitidos,
+    this.tipoSelecaoDias,
+    this.diasEspecificos,
     this.veiculoMarca,
     this.veiculoModelo,
     this.veiculoCor,
@@ -63,6 +69,10 @@ class AutorizadoInquilino {
       diasSemanaPermitidos: json['dias_semana_permitidos'] != null
           ? List<int>.from(json['dias_semana_permitidos'] as List)
           : null,
+      tipoSelecaoDias: json['tipo_selecao_dias'] as String?,
+      diasEspecificos: json['dias_especificos'] != null
+          ? List<String>.from(json['dias_especificos'] as List)
+          : null,
       veiculoMarca: json['veiculo_marca'] as String?,
       veiculoModelo: json['veiculo_modelo'] as String?,
       veiculoCor: json['veiculo_cor'] as String?,
@@ -87,6 +97,8 @@ class AutorizadoInquilino {
       'horario_inicio': horarioInicio,
       'horario_fim': horarioFim,
       'dias_semana_permitidos': diasSemanaPermitidos,
+      'tipo_selecao_dias': tipoSelecaoDias,
+      'dias_especificos': diasEspecificos,
       'veiculo_marca': veiculoMarca,
       'veiculo_modelo': veiculoModelo,
       'veiculo_cor': veiculoCor,
@@ -110,6 +122,8 @@ class AutorizadoInquilino {
     String? horarioInicio,
     String? horarioFim,
     List<int>? diasSemanaPermitidos,
+    String? tipoSelecaoDias,
+    List<String>? diasEspecificos,
     String? veiculoMarca,
     String? veiculoModelo,
     String? veiculoCor,
@@ -129,6 +143,8 @@ class AutorizadoInquilino {
       horarioInicio: horarioInicio ?? this.horarioInicio,
       horarioFim: horarioFim ?? this.horarioFim,
       diasSemanaPermitidos: diasSemanaPermitidos ?? this.diasSemanaPermitidos,
+      tipoSelecaoDias: tipoSelecaoDias ?? this.tipoSelecaoDias,
+      diasEspecificos: diasEspecificos ?? this.diasEspecificos,
       veiculoMarca: veiculoMarca ?? this.veiculoMarca,
       veiculoModelo: veiculoModelo ?? this.veiculoModelo,
       veiculoCor: veiculoCor ?? this.veiculoCor,
@@ -201,6 +217,42 @@ class AutorizadoInquilino {
     }
     
     return 'Até às $horarioFim';
+  }
+
+  /// Retorna as datas específicas formatadas
+  String get diasEspecificosFormatados {
+    if (diasEspecificos == null || diasEspecificos!.isEmpty) {
+      return '';
+    }
+
+    try {
+      // Importar intl para formatação
+      // ignore: import_of_legacy_library_into_null_safe
+      final DateFormat formatter = DateFormat('dd/MM/yyyy');
+      
+      List<String> datasFormatadas = diasEspecificos!
+          .map((dateStr) {
+            try {
+              final date = DateTime.parse(dateStr);
+              return formatter.format(date);
+            } catch (e) {
+              return dateStr; // Se não conseguir parsear, retorna a string original
+            }
+          })
+          .toList();
+      
+      // Ordenar as datas
+      datasFormatadas.sort();
+      
+      // Se tiver muitas datas, mostrar as primeiras e contar o total
+      if (datasFormatadas.length > 3) {
+        return '${datasFormatadas.take(3).join(", ")} +${datasFormatadas.length - 3}';
+      }
+      
+      return datasFormatadas.join(', ');
+    } catch (e) {
+      return 'Datas específicas';
+    }
   }
 
   /// Verifica se o autorizado tem veículo cadastrado
