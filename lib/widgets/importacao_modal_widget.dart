@@ -181,12 +181,9 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
         _mensagemErro = null;
       });
 
-      // Avançar para resultado (Passo 4 - Execução)
+      // Avançar para Passo 4 (Preview dos dados mapeados)
+      // User deve clicar "Confirmar Importação" para executar de verdade
       _avancarPasso();
-      
-      // Iniciar importação automaticamente (Passo 4)
-      await Future.delayed(const Duration(milliseconds: 500));
-      await _executarImportacaoCompleta();
       
     } catch (e) {
       _adicionarLog('❌ ERRO ao mapear: $e');
@@ -1258,6 +1255,84 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                 ),
                 const SizedBox(height: 24),
 
+                // Preview dos dados mapeados (se disponível)
+                if (_dadosMapeados != null && _dadosMapeados!.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Preview dos Dados',
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            // Exibir primeiras 3 linhas como preview
+                            ..._dadosMapeados!.entries.take(3).map((entry) {
+                              final chave = entry.key;
+                              final valor = entry.value;
+                              final displayValue = valor != null ? valor.toString() : '(vazio)';
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      chave,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[700],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        displayValue.length > 30
+                                            ? '${displayValue.substring(0, 27)}...'
+                                            : displayValue,
+                                        style: TextStyle(
+                                          color: Colors.grey[800],
+                                          fontSize: 12,
+                                        ),
+                                        textAlign: TextAlign.end,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            if (_dadosMapeados!.length > 3) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  '+ ${_dadosMapeados!.length - 3} campos',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 11,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+
                 // Confirmation message
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -1903,15 +1978,11 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
             )
           else if (_passoAtual == 4)
             ElevatedButton.icon(
-              onPressed: () async {
-                if (widget.onImportarConfirmado != null && _dadosMapeados != null) {
-                  await widget.onImportarConfirmado!(_dadosMapeados!);
-                }
-              },
+              onPressed: _dadosMapeados == null ? null : _executarImportacaoCompleta,
               icon: const Icon(Icons.cloud_upload),
-              label: const Text('Importar Agora'),
+              label: const Text('Confirmar Importação'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: _dadosMapeados == null ? Colors.grey : Colors.green,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(

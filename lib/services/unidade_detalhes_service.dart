@@ -261,6 +261,38 @@ class UnidadeDetalhesService {
     }
   }
 
+  /// Cria uma nova imobiliária
+  Future<Imobiliaria> criarImobiliaria({
+    required String condominioId,
+    required String nome,
+    required String cnpj,
+    String? telefone,
+    String? celular,
+    String? email,
+    String? fotoUrl,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('imobiliarias')
+          .insert({
+            'condominio_id': condominioId,
+            'nome': nome,
+            'cnpj': cnpj,
+            'telefone': telefone,
+            'celular': celular,
+            'email': email,
+            'foto_url': fotoUrl,
+            'ativo': true,
+          })
+          .select()
+          .single();
+
+      return Imobiliaria.fromJson(response);
+    } catch (e) {
+      throw Exception('Erro ao criar imobiliária: $e');
+    }
+  }
+
   /// Busca todas as imobiliárias do condomínio
   Future<List<Imobiliaria>> buscarImobiliariasCondominio(String condominioId) async {
     try {

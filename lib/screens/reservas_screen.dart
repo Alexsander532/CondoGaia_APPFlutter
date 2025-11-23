@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 import 'configurar_ambientes_screen.dart';
 import '../models/ambiente.dart';
 import '../models/representante.dart';
@@ -63,7 +65,39 @@ class _ReservasScreenState extends State<ReservasScreen> {
   
   // Arquivo de lista de presentes
   String? _uploadedFileName;
+  List<String> _listaPresentesArray = []; // Lista de presença como array para salvar no banco
   
+  // Formata a lista de presença para exibição no MODAL (numerado)
+  String _formatarListaPresencaModal(List<String> nomes) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < nomes.length; i++) {
+      buffer.write('${i + 1} - ${nomes[i]};');
+      if (i < nomes.length - 1) {
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
+  // Formata a lista de presença para exibição no CARD (simples, separado por vírgula)
+  String _formatarListaPresencaCard(List<String> nomes) {
+    return nomes.join(', ');
+  }
+
+  // Renderiza lista de presença para o CARD (formato simples)
+  String _renderListaPresencaCard(String valor) {
+    try {
+      final decoded = jsonDecode(valor);
+      if (decoded is List) {
+        final nomes = decoded.map((e) => e.toString()).toList();
+        return _formatarListaPresencaCard(nomes);
+      }
+    } catch (_) {
+      // Ignora erro e retorna valor cru
+    }
+    return valor;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -227,6 +261,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
+      // Validar se o termo de locação foi aceito
+      if (!_termoLocacaoAceito) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Você deve aceitar os termos e condições de locação'),
+              backgroundColor: Color(0xFFE74C3C),
+            ),
+          );
+        }
+        return;
+      }
+
       // Validar se a data é no futuro (usando horário de Brasília)
       final agora = DateTime.now().toUtc();
       final agoraBrasilia = agora.add(const Duration(hours: -3));
@@ -313,6 +360,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
       print('🔵 [ReservasScreen] Representante ID: ${widget.representante!.id}');
       print('🔵 [ReservasScreen] Ambiente ID: $_selectedAmbienteId');
       
+      // Converter lista de presentes em JSON se houver
+      String? listaPresEntesJson;
+      if (_listaPresentesArray.isNotEmpty) {
+        listaPresEntesJson = jsonEncode(_listaPresentesArray);
+      }
+
       await ReservaService.criarReserva(
         representanteId: widget.representante!.id,
         ambienteId: _selectedAmbienteId!,
@@ -322,9 +375,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
         valorLocacao: valorLocacao,
         para: _isCondominio ? 'Condomínio' : 'Bloco/Unid',
         local: ambiente.titulo,
-        listaPresentes: _listaPresentesController.text.isNotEmpty 
+        listaPresentes: listaPresEntesJson ?? 
+            (_listaPresentesController.text.isNotEmpty 
             ? _listaPresentesController.text 
-            : null,
+            : null),
         termoLocacao: _termoLocacaoAceito,
         blocoUnidadeId: _isBlocoUnid ? _selectedUnidadeId : null,
       );
@@ -354,6 +408,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       _horaInicioController.clear();
       _horaFimController.clear();
       _listaPresentesController.clear();
+  _listaPresentesArray = [];
       _valorController.text = 'R\$ 100,00';
       
       // Fechar o modal após um curto delay
@@ -395,7 +450,28 @@ class _ReservasScreenState extends State<ReservasScreen> {
     
     _horaInicioController.text = horaInicio;
     _horaFimController.text = horaFim;
-    _listaPresentesController.text = reserva.listaPresentes ?? '';
+
+    _listaPresentesArray = [];
+    if (reserva.listaPresentes != null && reserva.listaPresentes!.isNotEmpty) {
+      final rawLista = reserva.listaPresentes!;
+      bool conseguiuConverter = false;
+      try {
+        final decoded = jsonDecode(rawLista);
+        if (decoded is List) {
+          _listaPresentesArray = decoded.map((e) => e.toString()).toList();
+          _listaPresentesController.text = _formatarListaPresencaModal(_listaPresentesArray);
+          conseguiuConverter = true;
+        }
+      } catch (_) {
+        conseguiuConverter = false;
+      }
+
+      if (!conseguiuConverter) {
+        _listaPresentesController.text = rawLista;
+      }
+    } else {
+      _listaPresentesController.clear();
+    }
     
     final ambiente = _ambientes.firstWhere(
       (a) => a.id == reserva.ambienteId,
@@ -549,6 +625,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       final valorLocacao = ambiente.valor;
 
+      // Converter lista de presença em JSON se houver upload estruturado
+      String? listaPresencaJson;
+      if (_listaPresentesArray.isNotEmpty) {
+        listaPresencaJson = jsonEncode(_listaPresentesArray);
+      }
+
       // Atualizar a reserva
       await ReservaService.atualizarReserva(
         reserva.id ?? '',
@@ -559,9 +641,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
         valorLocacao: valorLocacao,
         para: _isCondominio ? 'Condomínio' : 'Bloco/Unid',
         local: ambiente.titulo,
-        listaPresentes: _listaPresentesController.text.isNotEmpty
-            ? _listaPresentesController.text
-            : null,
+    listaPresentes: listaPresencaJson ??
+      (_listaPresentesController.text.isNotEmpty
+        ? _listaPresentesController.text
+        : null),
       );
 
       // Fechar o diálogo de carregamento
@@ -731,6 +814,49 @@ class _ReservasScreenState extends State<ReservasScreen> {
   // Função para obter o primeiro dia da semana do mês (0 = Domingo, 1 = Segunda, ...)
   int _getFirstDayOfWeekFromMonth(int month, int year) {
     return DateTime(year, month, 1).weekday % 7;
+  }
+
+  // Função para abrir o termo de locação em PDF
+  Future<void> _abrirTermoLocacao(String? locacaoUrl) async {
+    if (locacaoUrl == null || locacaoUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhum termo de locação disponível'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final Uri url = Uri.parse(locacaoUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o termo de locação'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir documento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Função para navegar para o mês anterior
@@ -1175,12 +1301,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
               
               const SizedBox(height: 12.0),
               
-              // Observações (se houver)
+              // Lista de Presentes (se houver)
               if (reserva.listaPresentes != null && reserva.listaPresentes!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: Text(
-                    reserva.listaPresentes!,
+                    _renderListaPresencaCard(reserva.listaPresentes!),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12.0,
@@ -1553,12 +1679,16 @@ class _ReservasScreenState extends State<ReservasScreen> {
           ),
           const SizedBox(height: 16.0),
           const Text(
-            'Observações (Digite o nome e descrição da reserva)',
+            'Lista de Presentes',
             style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8.0),
           TextField(
             controller: _listaPresentesController,
+            onChanged: (_) {
+              // Quando usuário edita manualmente, limpar array para evitar dados inconsistentes
+              _listaPresentesArray = [];
+            },
             maxLines: 4,
             decoration: InputDecoration(
               border: OutlineInputBorder(
@@ -1595,24 +1725,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     final nomes = await ExcelService.lerColuna(result.files.single);
 
                     if (nomes.isNotEmpty) {
-                      // Formatar os nomes como: 1. Pessoa 1, 2. Pessoa 2, etc
-                      final listaNumerada = StringBuffer();
-                      for (int i = 0; i < nomes.length; i++) {
-                        listaNumerada.write('${i + 1}. ${nomes[i]}');
-                        if (i < nomes.length - 1) {
-                          listaNumerada.write('\n');
-                        }
-                      }
+                      final listaNumerada = _formatarListaPresencaModal(nomes);
 
-                      // Atualizar o controller com a lista formatada
+                      // Atualizar o controller com a lista formatada e guardar o array
                       if (setModalState != null) {
                         setModalState(() {
-                          _listaPresentesController.text = listaNumerada.toString();
+                          _listaPresentesController.text = listaNumerada;
+                          _listaPresentesArray = nomes; // Guardar o array de nomes
                           _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
                         });
                       } else {
                         setState(() {
-                          _listaPresentesController.text = listaNumerada.toString();
+                          _listaPresentesController.text = listaNumerada;
+                          _listaPresentesArray = nomes; // Guardar o array de nomes
                           _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
                         });
                       }
@@ -1695,11 +1820,13 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         setModalState(() {
                           _uploadedFileName = null;
                           _listaPresentesController.clear();
+                          _listaPresentesArray = [];
                         });
                       } else {
                         setState(() {
                           _uploadedFileName = null;
                           _listaPresentesController.clear();
+                          _listaPresentesArray = [];
                         });
                       }
                     },
@@ -1715,15 +1842,43 @@ class _ReservasScreenState extends State<ReservasScreen> {
           // Checkbox para aceitar termo de locação
           StatefulBuilder(
             builder: (context, setState) {
+              // Obter o ambiente selecionado
+              final ambienteSelecionado = _ambientes.firstWhere(
+                (a) => a.id == _selectedAmbienteId,
+                orElse: () => Ambiente(titulo: '', valor: 0),
+              );
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Termo de Locação',
-                        style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
-                      ),
+                      // Título clicável se houver URL de termo de locação
+                      if (ambienteSelecionado.locacaoUrl != null && 
+                          ambienteSelecionado.locacaoUrl!.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => _abrirTermoLocacao(ambienteSelecionado.locacaoUrl),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Text(
+                              'Termo de Locação',
+                              style: const TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF4A90E2), // Azul
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        const Text(
+                          'Termo de Locação',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       const Text(
                         ' *',
                         style: TextStyle(

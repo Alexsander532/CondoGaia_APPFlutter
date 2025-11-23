@@ -7,6 +7,7 @@ class Imobiliaria {
   final String? telefone;
   final String? celular;
   final String? email;
+  final String? fotoUrl;
   final bool? ativo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -19,6 +20,7 @@ class Imobiliaria {
     this.telefone,
     this.celular,
     this.email,
+    this.fotoUrl,
     this.ativo,
     this.createdAt,
     this.updatedAt,
@@ -33,6 +35,7 @@ class Imobiliaria {
       telefone: json['telefone'] as String?,
       celular: json['celular'] as String?,
       email: json['email'] as String?,
+      fotoUrl: json['foto_url'] as String?,
       ativo: json['ativo'] as bool?,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : null,
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
@@ -48,6 +51,7 @@ class Imobiliaria {
       'telefone': telefone,
       'celular': celular,
       'email': email,
+      'foto_url': fotoUrl,
       'ativo': ativo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -62,6 +66,7 @@ class Imobiliaria {
     String? telefone,
     String? celular,
     String? email,
+    String? fotoUrl,
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -74,6 +79,7 @@ class Imobiliaria {
       telefone: telefone ?? this.telefone,
       celular: celular ?? this.celular,
       email: email ?? this.email,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

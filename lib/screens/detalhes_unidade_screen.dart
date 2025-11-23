@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../services/unidade_detalhes_service.dart';
+import '../services/supabase_service.dart';
 import '../models/unidade.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/imobiliaria.dart';
+import '../utils/formatters.dart';
 
 class DetalhesUnidadeScreen extends StatefulWidget {
   final String? condominioId;
@@ -107,6 +112,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   // Estados para a seção Inquilino
   String _receberBoletoEmailSelecionado = 'nao';
   String _controleLocacaoSelecionado = 'nao';
+
+  // Estados para Imobiliária - Foto
+  final ImagePicker _imagePicker = ImagePicker();
+  Uint8List? _fotoImobiliariaBytes;
+  bool _isUploadingFotoImobiliaria = false;
 
   // Estados de loading para os botões de salvar
   bool _isLoadingUnidade = false;
@@ -250,32 +260,96 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Métodos de salvamento para cada seção
   Future<void> _salvarUnidade() async {
+    // Validação: deve haver uma unidade carregada com ID
+    if (_unidade == null || _unidade!.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: Unidade não foi carregada corretamente.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoadingUnidade = true;
     });
 
     try {
-      // Aqui você implementará a lógica de salvamento da unidade
-      // Por exemplo: await _unidadeService.salvar(dados);
-      
-      // Simulando delay de API
-      await Future.delayed(const Duration(seconds: 1));
-      
+      // Coletar os dados do formulário
+      final dadosAtualizacao = <String, dynamic>{
+        'numero': _unidadeController.text.trim(),
+        'bloco': _blocoController.text.trim(),
+        'fracao_ideal': _fracaoIdealController.text.isNotEmpty 
+            ? double.tryParse(_fracaoIdealController.text.replaceAll(',', '.'))
+            : null,
+        'area_m2': _areaController.text.isNotEmpty
+            ? double.tryParse(_areaController.text.replaceAll(',', '.'))
+            : null,
+        'vencto_dia_diferente': _vencimentoDiferenteController.text.isNotEmpty
+            ? int.tryParse(_vencimentoDiferenteController.text)
+            : null,
+        'pagar_valor_diferente': _valorDiferenteController.text.isNotEmpty
+            ? double.tryParse(_valorDiferenteController.text.replaceAll('R\$ ', '').replaceAll(',', '.'))
+            : null,
+        'tipo_unidade': _tipoSelecionado ?? 'A',
+        'isencao_nenhum': _isencaoSelecionada == 'nenhum',
+        'isencao_total': _isencaoSelecionada == 'total',
+        'isencao_cota': _isencaoSelecionada == 'cota',
+        'isencao_fundo_reserva': _isencaoSelecionada == 'fundo_reserva',
+        'acao_judicial': _acaoJudicialSelecionada == 'sim',
+        'correios': _correiosSelecionado == 'sim',
+        'nome_pagador_boleto': _pagadorBoletoSelecionado,
+        'observacoes': _observacaoController.text.trim().isEmpty 
+            ? null 
+            : _observacaoController.text.trim(),
+      };
+
+      // Chamar o serviço para atualizar
+      await _service.atualizarUnidade(
+        unidadeId: _unidade!.id,
+        dados: dadosAtualizacao,
+      );
+
+      // Atualizar os dados em memória (para refletir na interface)
+      setState(() {
+        _unidade = _unidade!.copyWith(
+          numero: dadosAtualizacao['numero'] as String,
+          bloco: dadosAtualizacao['bloco'] as String?,
+          fracaoIdeal: dadosAtualizacao['fracao_ideal'] as double?,
+          areaM2: dadosAtualizacao['area_m2'] as double?,
+          vencimentoDiaDiferente: dadosAtualizacao['vencto_dia_diferente'] as int?,
+          pagarValorDiferente: dadosAtualizacao['pagar_valor_diferente'] as double?,
+          tipoUnidade: dadosAtualizacao['tipo_unidade'] as String,
+          isencaoNenhum: dadosAtualizacao['isencao_nenhum'] as bool,
+          isencaoTotal: dadosAtualizacao['isencao_total'] as bool,
+          isencaoCota: dadosAtualizacao['isencao_cota'] as bool,
+          isencaoFundoReserva: dadosAtualizacao['isencao_fundo_reserva'] as bool,
+          acaoJudicial: dadosAtualizacao['acao_judicial'] as bool,
+          correios: dadosAtualizacao['correios'] as bool,
+          nomePagadorBoleto: dadosAtualizacao['nome_pagador_boleto'] as String,
+          observacoes: dadosAtualizacao['observacoes'] as String?,
+        );
+      });
+
       // Mostrar feedback de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Dados da unidade salvos com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
-      // Mostrar feedback de erro
+      // Mostrar feedback de erro detalhado
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao salvar dados da unidade: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
+      print('Erro ao salvar unidade: $e');
     } finally {
       setState(() {
         _isLoadingUnidade = false;
@@ -284,22 +358,52 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   Future<void> _salvarProprietario() async {
+    // Se não tem proprietário, não faz nada
+    if (_proprietario == null || _proprietario!.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhum proprietário cadastrado para esta unidade.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoadingProprietario = true;
     });
 
     try {
-      // Aqui você implementará a lógica de salvamento do proprietário
-      // Por exemplo: await _proprietarioService.salvar(dados);
-      
-      // Simulando delay de API
-      await Future.delayed(const Duration(seconds: 1));
-      
+      // Coletar os dados do formulário
+      final dadosAtualizacao = <String, dynamic>{
+        'nome': _proprietarioNomeController.text.trim(),
+        'cpf_cnpj': _proprietarioCpfCnpjController.text.trim(),
+        'cep': _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
+        'endereco': _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
+        'numero': _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
+        'bairro': _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
+        'cidade': _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
+        'estado': _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
+        'telefone': _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
+        'celular': _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
+        'email': _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
+        'conjuge': _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
+        'multiproprietarios': _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
+        'moradores': _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
+      };
+
+      // Chamar o serviço para atualizar
+      await _service.atualizarProprietario(
+        proprietarioId: _proprietario!.id,
+        dados: dadosAtualizacao,
+      );
+
       // Mostrar feedback de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Dados do proprietário salvos com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -308,8 +412,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         SnackBar(
           content: Text('Erro ao salvar dados do proprietário: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
+      print('Erro ao salvar proprietário: $e');
     } finally {
       setState(() {
         _isLoadingProprietario = false;
@@ -318,22 +424,54 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   Future<void> _salvarInquilino() async {
+    // Se não tem inquilino, não faz nada
+    if (_inquilino == null || _inquilino!.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhum inquilino cadastrado para esta unidade.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoadingInquilino = true;
     });
 
     try {
-      // Aqui você implementará a lógica de salvamento do inquilino
-      // Por exemplo: await _inquilinoService.salvar(dados);
-      
-      // Simulando delay de API
-      await Future.delayed(const Duration(seconds: 1));
-      
+      // Coletar os dados do formulário
+      final dadosAtualizacao = <String, dynamic>{
+        'nome': _inquilinoNomeController.text.trim(),
+        'cpf_cnpj': _inquilinoCpfCnpjController.text.trim(),
+        'cep': _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
+        'endereco': _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
+        'numero': _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
+        'bairro': _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
+        'cidade': _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
+        'estado': _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
+        'telefone': _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
+        'celular': _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
+        'email': _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
+        'conjuge': _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
+        'multiproprietarios': _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
+        'moradores': _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
+        'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
+        'controle_locacao': _controleLocacaoSelecionado == 'sim',
+      };
+
+      // Chamar o serviço para atualizar
+      await _service.atualizarInquilino(
+        inquilinoId: _inquilino!.id,
+        dados: dadosAtualizacao,
+      );
+
       // Mostrar feedback de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Dados do inquilino salvos com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -342,8 +480,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         SnackBar(
           content: Text('Erro ao salvar dados do inquilino: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
+      print('Erro ao salvar inquilino: $e');
     } finally {
       setState(() {
         _isLoadingInquilino = false;
@@ -357,17 +497,113 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     });
 
     try {
-      // Aqui você implementará a lógica de salvamento da imobiliária
-      // Por exemplo: await _imobiliariaService.salvar(dados);
+      String imobiliariaId;
       
-      // Simulando delay de API
-      await Future.delayed(const Duration(seconds: 1));
+      // Se não tem imobiliária cadastrada, criar uma nova
+      if (_imobiliaria == null || _imobiliaria!.id.isEmpty) {
+        // Validar dados obrigatórios
+        if (_imobiliariaNomeController.text.trim().isEmpty || 
+            _imobiliariaCnpjController.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Preencha Nome e CNPJ para criar a imobiliária.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          setState(() {
+            _isLoadingImobiliaria = false;
+          });
+          return;
+        }
+
+        // Validar formato do CNPJ
+        if (!Formatters.isValidCNPJ(_imobiliariaCnpjController.text.trim())) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CNPJ inválido. Verifique se o número está correto.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          setState(() {
+            _isLoadingImobiliaria = false;
+          });
+          return;
+        }
+
+        // Criar imobiliária
+        final novaImobiliaria = await _service.criarImobiliaria(
+          condominioId: widget.condominioId ?? '',
+          nome: _imobiliariaNomeController.text.trim(),
+          cnpj: _imobiliariaCnpjController.text.trim(),
+          telefone: _imobiliariaTelefoneController.text.trim().isEmpty ? null : _imobiliariaTelefoneController.text.trim(),
+          celular: _imobiliariaCelularController.text.trim().isEmpty ? null : _imobiliariaCelularController.text.trim(),
+          email: _imobiliariaEmailController.text.trim().isEmpty ? null : _imobiliariaEmailController.text.trim(),
+        );
+
+        imobiliariaId = novaImobiliaria.id;
+        
+        // Atualizar state com a nova imobiliária
+        setState(() {
+          _imobiliaria = novaImobiliaria;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Imobiliária criada com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        imobiliariaId = _imobiliaria!.id;
+      }
+
+      // Se tem foto selecionada (em bytes), fazer upload
+      String? fotoUrl = _imobiliaria?.fotoUrl;
       
+      if (_fotoImobiliariaBytes != null) {
+        // Fazer upload da foto para o Supabase Storage
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'imobiliaria_${imobiliariaId}_$timestamp.jpg';
+        
+        fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
+          _fotoImobiliariaBytes!,
+          fileName,
+          widget.condominioId ?? '',
+        );
+
+        if (fotoUrl == null) {
+          throw Exception('Falha ao fazer upload da foto');
+        }
+      }
+
+      // Coletar os dados do formulário
+      final dadosAtualizacao = <String, dynamic>{
+        'nome': _imobiliariaNomeController.text.trim(),
+        'cnpj': _imobiliariaCnpjController.text.trim(),
+        'telefone': _imobiliariaTelefoneController.text.trim().isEmpty ? null : _imobiliariaTelefoneController.text.trim(),
+        'celular': _imobiliariaCelularController.text.trim().isEmpty ? null : _imobiliariaCelularController.text.trim(),
+        'email': _imobiliariaEmailController.text.trim().isEmpty ? null : _imobiliariaEmailController.text.trim(),
+        'foto_url': fotoUrl,
+      };
+
+      // Chamar o serviço para atualizar
+      await _service.atualizarImobiliaria(
+        imobiliariaId: imobiliariaId,
+        dados: dadosAtualizacao,
+      );
+
+      // Limpar bytes após salvar
+      setState(() {
+        _fotoImobiliariaBytes = null;
+      });
+
       // Mostrar feedback de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Dados da imobiliária salvos com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -376,13 +612,140 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         SnackBar(
           content: Text('Erro ao salvar dados da imobiliária: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
+      print('Erro ao salvar imobiliária: $e');
     } finally {
       setState(() {
         _isLoadingImobiliaria = false;
       });
     }
+  }
+
+  // ============================================================================
+  // FUNÇÕES PARA GERENCIAR FOTO DA IMOBILIÁRIA
+  // ============================================================================
+
+  /// Abre dialog para selecionar câmera ou galeria
+  void _showImageSourceDialogImobiliaria() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageImobiliaria(ImageSource.gallery);
+                },
+              ),
+              // Mostrar câmera apenas em plataformas móveis
+              if (!kIsWeb)
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Câmera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageImobiliaria(ImageSource.camera);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Seleciona uma imagem de câmera ou galeria
+  Future<void> _pickImageImobiliaria(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        
+        setState(() {
+          _fotoImobiliariaBytes = bytes;
+        });
+
+        // Mostrar feedback que foto foi selecionada
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto selecionada. Clique em "SALVAR IMOBILIÁRIA" para confirmar.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar imagem: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Exibe a foto em modo ampliado com zoom
+  void _showFotoImobiliariaZoom() {
+    if (_imobiliaria?.fotoUrl == null || _imobiliaria!.fotoUrl!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma foto disponível'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: InteractiveViewer(
+          child: Image.network(
+            _imobiliaria!.fotoUrl!,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.black87,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[800],
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   // Método para editar unidade
@@ -3152,32 +3515,97 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           margin: const EdgeInsets.only(bottom: 16),
         ),
         
-        // Seção para anexar foto
-        Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
+        // Seção para anexar/visualizar foto
+        if (_imobiliaria?.fotoUrl != null && _imobiliaria!.fotoUrl!.isNotEmpty)
+          // Se já tem foto salva no banco, mostrar a foto com opção de zoom
+          GestureDetector(
+            onTap: _showFotoImobiliariaZoom,
+            child: Container(
+              width: 120,
+              height: 120,
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFE0E0E0)),
                 borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: NetworkImage(_imobiliaria!.fotoUrl!),
+                  fit: BoxFit.cover,
+                ),
               ),
-              child: const Icon(
-                Icons.camera_alt_outlined,
-                color: Color(0xFF999999),
-                size: 24,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.zoom_in,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Anexar foto',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
+          )
+        else if (_fotoImobiliariaBytes != null)
+          // Se tem foto selecionada mas não salva, mostrar a preview com opção de trocar
+          GestureDetector(
+            onTap: _showImageSourceDialogImobiliaria,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF2E3A59), width: 2),
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: MemoryImage(_fotoImobiliariaBytes!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.edit,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
             ),
-          ],
-        ),
+          )
+        else
+          // Se não tem foto, mostrar botão para adicionar
+          GestureDetector(
+            onTap: _showImageSourceDialogImobiliaria,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[100],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isUploadingFotoImobiliaria 
+                        ? Icons.hourglass_empty 
+                        : Icons.camera_alt_outlined,
+                    color: Color(0xFF999999),
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isUploadingFotoImobiliaria ? 'Enviando...' : 'Anexar foto',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         
         const SizedBox(height: 24),
         
@@ -3239,10 +3667,12 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               child: TextField(
                 controller: _imobiliariaCnpjController,
+                inputFormatters: [Formatters.cnpjFormatter],
+                keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: 'Digite o CNPJ',
+                  hintText: '00.000.000/0000-00',
                   hintStyle: TextStyle(
                     color: Color(0xFF999999),
                     fontSize: 14,
