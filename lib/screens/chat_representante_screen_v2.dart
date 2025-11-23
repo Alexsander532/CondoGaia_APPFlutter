@@ -44,6 +44,7 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
   late ConversasService _conversasService;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isSending = false; // Indica se está enviando mensagem
 
   @override
   void initState() {
@@ -108,6 +109,15 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
       return;
     }
 
+    // Captura o texto antes de limpar
+    final textoMensagem = _messageController.text.trim();
+
+    // Limpa o campo imediatamente e mostra estado de envio
+    setState(() {
+      _isSending = true;
+      _messageController.clear();
+    });
+
     try {
       debugPrint(' [CHAT_REP_V2] Chamando MensagensService.enviar()...');
       
@@ -117,7 +127,7 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
         remetenteTipo: 'representante',
         remententeId: widget.representanteId,
         remetenteName: widget.representanteName,
-        conteudo: _messageController.text.trim(),
+        conteudo: textoMensagem,
         tipoConteudo: 'texto',
       );
       
@@ -129,12 +139,18 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
       // Atualiza última mensagem na conversa
       await _conversasService.atualizarUltimaMensagem(
         widget.conversaId,
-        _messageController.text.trim(),
+        textoMensagem,
         'representante',
       );
       debugPrint('[CHAT_REP_V2] OK: Conversa atualizada');
 
-      _messageController.clear();
+      // Força rebuild para mostrar a mensagem enviada
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+      
       _scrollToBottom();
     } catch (e, stackTrace) {
       debugPrint('[CHAT_REP_V2] ERRO ao enviar mensagem!');
@@ -142,7 +158,13 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
       debugPrint('   📌 Stack: $stackTrace');
       debugPrint('═' * 80);
       
+      // Restaurar o texto se falhar
       if (mounted) {
+        setState(() {
+          _isSending = false;
+          _messageController.text = textoMensagem;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(' Erro ao enviar: $e')),
         );
@@ -389,18 +411,6 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
             ),
             child: Row(
               children: [
-                // Botão anexo
-                IconButton(
-                  icon: const Icon(Icons.attach_file),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Anexos em desenvolvimento')),
-                    );
-                  },
-                  color: Colors.grey[600],
-                ),
-
                 // Input
                 Expanded(
                   child: TextField(
@@ -434,15 +444,37 @@ class _ChatRepresentanteScreenV2State extends State<ChatRepresentanteScreenV2> {
 
                 const SizedBox(width: 8),
 
+                // Botão anexo
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey[200],
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.attach_file),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Recurso de anexo em desenvolvimento'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    color: Colors.grey[600],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
                 // Botão enviar
                 Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.blue,
+                    color: _isSending ? Colors.grey[300] : Colors.blue,
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.send),
-                    onPressed: _enviarMensagem,
+                    onPressed: _isSending ? null : _enviarMensagem,
                     color: Colors.white,
                   ),
                 ),

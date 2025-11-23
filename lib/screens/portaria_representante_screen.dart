@@ -562,43 +562,7 @@ class _PortariaRepresentanteScreenState
 
                       // Widget para selecionar/capturar foto
                       GestureDetector(
-                        onTap: () async {
-                          final ImagePicker picker = ImagePicker();
-                          try {
-                            // Tentar tirar foto com a câmera
-                            final XFile? image = await picker.pickImage(
-                              source: ImageSource.camera,
-                              maxWidth: 800,
-                              maxHeight: 600,
-                              imageQuality: 80,
-                            );
-                            
-                            if (image != null) {
-                              setState(() {
-                                _fotoVisitante = image;
-                              });
-                            }
-                          } catch (e) {
-                            print('Erro ao tirar foto: $e');
-                            // Fallback para galeria se câmera falhar
-                            try {
-                              final XFile? image = await picker.pickImage(
-                                source: ImageSource.gallery,
-                                maxWidth: 800,
-                                maxHeight: 600,
-                                imageQuality: 80,
-                              );
-                              
-                              if (image != null) {
-                                setState(() {
-                                  _fotoVisitante = image;
-                                });
-                              }
-                            } catch (e2) {
-                              print('Erro ao selecionar da galeria: $e2');
-                            }
-                          }
-                        },
+                        onTap: _mostrarDialogSelecaoFotoVisitante,
                         child: Container(
                           height: 150,
                           decoration: BoxDecoration(
@@ -4546,6 +4510,145 @@ class _PortariaRepresentanteScreenState
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  /// Mostra diálogo para selecionar fonte de foto (câmera ou galeria)
+  /// Só funciona em plataformas mobile (Android/iOS)
+  Future<void> _mostrarDialogSelecaoFotoVisitante() async {
+    // Na web, usar apenas galeria
+    if (kIsWeb) {
+      await _selecionarFotoVisitanteGaleria();
+      return;
+    }
+
+    // Em mobile, mostrar diálogo com opções
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            'Selecionar Foto',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2E3A59),
+            ),
+          ),
+          content: const Text(
+            'De onde você gostaria de tirar a foto?',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF666666),
+            ),
+          ),
+          actions: [
+            // Botão Câmera
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _selecionarFotoVisitanteCamera();
+              },
+              icon: const Icon(
+                Icons.camera_alt,
+                color: Color(0xFF1976D2),
+                size: 24,
+              ),
+              label: const Text(
+                'Câmera',
+                style: TextStyle(
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            // Botão Galeria
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _selecionarFotoVisitanteGaleria();
+              },
+              icon: const Icon(
+                Icons.image,
+                color: Color(0xFF1976D2),
+                size: 24,
+              ),
+              label: const Text(
+                'Galeria',
+                style: TextStyle(
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Tirar foto com a câmera do celular
+  Future<void> _selecionarFotoVisitanteCamera() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setState(() {
+          _fotoVisitante = image;
+        });
+      }
+    } catch (e) {
+      print('Erro ao tirar foto da câmera: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao tirar foto: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Selecionar foto da galeria
+  Future<void> _selecionarFotoVisitanteGaleria() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setState(() {
+          _fotoVisitante = image;
+        });
+      }
+    } catch (e) {
+      print('Erro ao selecionar foto da galeria: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar foto: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   // Validação de CPF em tempo real
