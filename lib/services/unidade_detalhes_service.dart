@@ -65,17 +65,14 @@ class UnidadeDetalhesService {
         // Continuar mesmo se não encontrar inquilino
       }
 
-      // 4. Buscar a imobiliária (se necessário)
-      // A imobiliária pode ser buscada a partir do inquilino ou proprietário
+      // 4. Buscar a imobiliária (associada à unidade específica)
       Imobiliaria? imobiliaria;
       try {
-        // Por enquanto, não temos relação direta entre unidade e imobiliária
-        // Você pode buscar todas as imobiliárias do condomínio
+        // Buscar imobiliária ESPECÍFICA da unidade (não do condomínio todo)
         final imobiliariaData = await _supabase
             .from('imobiliarias')
             .select()
-            .eq('condominio_id', condominioId)
-            .limit(1)
+            .eq('unidade_id', unidade.id)
             .maybeSingle();
 
         if (imobiliariaData != null) {
@@ -261,9 +258,10 @@ class UnidadeDetalhesService {
     }
   }
 
-  /// Cria uma nova imobiliária
+  /// Cria uma nova imobiliária associada a uma unidade específica
   Future<Imobiliaria> criarImobiliaria({
     required String condominioId,
+    required String unidadeId,
     required String nome,
     required String cnpj,
     String? telefone,
@@ -276,6 +274,7 @@ class UnidadeDetalhesService {
           .from('imobiliarias')
           .insert({
             'condominio_id': condominioId,
+            'unidade_id': unidadeId,
             'nome': nome,
             'cnpj': cnpj,
             'telefone': telefone,

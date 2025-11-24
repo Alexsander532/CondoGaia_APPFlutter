@@ -2,6 +2,7 @@
 class Imobiliaria {
   final String id;
   final String condominioId;
+  final String? unidadeId;
   final String nome;
   final String cnpj;
   final String? telefone;
@@ -15,6 +16,7 @@ class Imobiliaria {
   const Imobiliaria({
     required this.id,
     required this.condominioId,
+    this.unidadeId,
     required this.nome,
     required this.cnpj,
     this.telefone,
@@ -30,6 +32,7 @@ class Imobiliaria {
     return Imobiliaria(
       id: json['id'] as String,
       condominioId: json['condominio_id'] as String,
+      unidadeId: json['unidade_id'] as String?,
       nome: json['nome'] as String,
       cnpj: json['cnpj'] as String,
       telefone: json['telefone'] as String?,
@@ -46,6 +49,7 @@ class Imobiliaria {
     return {
       'id': id,
       'condominio_id': condominioId,
+      'unidade_id': unidadeId,
       'nome': nome,
       'cnpj': cnpj,
       'telefone': telefone,
@@ -61,6 +65,7 @@ class Imobiliaria {
   Imobiliaria copyWith({
     String? id,
     String? condominioId,
+    String? unidadeId,
     String? nome,
     String? cnpj,
     String? telefone,
@@ -74,6 +79,7 @@ class Imobiliaria {
     return Imobiliaria(
       id: id ?? this.id,
       condominioId: condominioId ?? this.condominioId,
+      unidadeId: unidadeId ?? this.unidadeId,
       nome: nome ?? this.nome,
       cnpj: cnpj ?? this.cnpj,
       telefone: telefone ?? this.telefone,

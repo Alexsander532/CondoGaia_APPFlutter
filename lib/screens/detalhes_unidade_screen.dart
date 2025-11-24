@@ -533,6 +533,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         // Criar imobiliária
         final novaImobiliaria = await _service.criarImobiliaria(
           condominioId: widget.condominioId ?? '',
+          unidadeId: widget.unidade,
           nome: _imobiliariaNomeController.text.trim(),
           cnpj: _imobiliariaCnpjController.text.trim(),
           telefone: _imobiliariaTelefoneController.text.trim().isEmpty ? null : _imobiliariaTelefoneController.text.trim(),
