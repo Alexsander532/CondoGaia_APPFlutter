@@ -11,6 +11,7 @@ import '../models/autorizado_inquilino.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../models/encomenda.dart';
 import '../services/encomenda_service.dart';
+import '../widgets/qr_code_widget.dart';
 
 class PortariaInquilinoScreen extends StatefulWidget {
   final String? condominioId;
@@ -429,265 +430,278 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
   // Widget do card de pessoa autorizada usando o modelo
   Widget _buildAutorizadoCardFromModel(AutorizadoInquilino autorizado) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return Column(
+      children: [
+        // Card com informações do autorizado
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Foto ou ícone de pessoa
-              GestureDetector(
-                onTap: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
-                    ? () => _mostrarFotoAmpliadaAutorizado(autorizado.fotoUrl!)
-                    : null,
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF4A90E2).withOpacity(0.1),
-                    border: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
-                        ? Border.all(
-                            color: const Color(0xFF4A90E2),
-                            width: 2,
-                          )
+              Row(
+                children: [
+                  // Foto ou ícone de pessoa
+                  GestureDetector(
+                    onTap: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                        ? () => _mostrarFotoAmpliadaAutorizado(autorizado.fotoUrl!)
                         : null,
-                  ),
-                  child: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            ClipOval(
-                              child: Image.network(
-                                autorizado.fotoUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
-                                    Icons.person,
-                                    size: 30,
-                                    color: Color(0xFF4A90E2),
-                                  );
-                                },
-                              ),
-                            ),
-                            Positioned(
-                              bottom: -2,
-                              right: -2,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF4A90E2),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF4A90E2).withOpacity(0.1),
+                        border: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                            ? Border.all(
+                                color: const Color(0xFF4A90E2),
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ClipOval(
+                                  child: Image.network(
+                                    autorizado.fotoUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.person,
+                                        size: 30,
+                                        color: Color(0xFF4A90E2),
+                                      );
+                                    },
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.zoom_in,
-                                  size: 12,
-                                  color: Colors.white,
+                                Positioned(
+                                  bottom: -2,
+                                  right: -2,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: const Color(0xFF4A90E2),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.zoom_in,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 30,
+                              color: Color(0xFF4A90E2),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Informações da pessoa
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nome
+                        Text(
+                          autorizado.nome,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2E3A59),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // CPF (primeiros 3 dígitos)
+                        if (autorizado.cpf.isNotEmpty)
+                          Text(
+                            'CPF: ${autorizado.cpf.substring(0, 3)}***',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF666666),
+                            ),
+                          ),
+                        // Parentesco
+                        if (autorizado.parentesco?.isNotEmpty == true) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Text(
+                                'Parentesco: ',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF666666),
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : const Icon(
-                          Icons.person,
-                          size: 30,
-                          color: Color(0xFF4A90E2),
-                        ),
-                ),
-              ),
-
-              const SizedBox(width: 16),
-
-              // Informações da pessoa
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nome
-                    Text(
-                      autorizado.nome,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2E3A59),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // CPF (primeiros 3 dígitos)
-                    if (autorizado.cpf.isNotEmpty)
-                      Text(
-                        'CPF: ${autorizado.cpf.substring(0, 3)}***',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF666666),
-                        ),
-                      ),
-                    // Parentesco
-                    if (autorizado.parentesco?.isNotEmpty == true) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Text(
-                            'Parentesco: ',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF666666),
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          Text(
-                            autorizado.parentesco!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2E3A59),
-                              fontWeight: FontWeight.w500,
-                            ),
+                              Text(
+                                autorizado.parentesco!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF2E3A59),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
+                      ],
+                    ),
+                  ),
+
+                  // Ícones de ação
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Ícone de editar
+                      GestureDetector(
+                        onTap: () {
+                          _editarAutorizado(autorizado);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 20,
+                            color: Color(0xFF4A90E2),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Ícone de excluir
+                      GestureDetector(
+                        onTap: () {
+                          _showDeleteConfirmationFromModel(context, autorizado);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Color(0xFFE74C3C),
+                          ),
+                        ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-
-              // Ícones de ação
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Ícone de editar
-                  GestureDetector(
-                    onTap: () {
-                      _editarAutorizado(autorizado);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.edit_outlined,
-                        size: 20,
-                        color: Color(0xFF4A90E2),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Ícone de excluir
-                  GestureDetector(
-                    onTap: () {
-                      _showDeleteConfirmationFromModel(context, autorizado);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: Color(0xFFE74C3C),
-                      ),
-                    ),
                   ),
                 ],
               ),
+
+              // Informações adicionais (horários, veículo, etc.)
+              if ((autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ||
+                  (autorizado.diasEspecificos?.isNotEmpty ?? false) ||
+                  autorizado.temVeiculo) ...[
+                const SizedBox(height: 12),
+                const Divider(color: Color(0xFFE0E0E0)),
+                const SizedBox(height: 8),
+
+                // Horários permitidos - Dias da semana
+                if (autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: Color(0xFF666666),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${autorizado.diasSemanaFormatados} - ${autorizado.horarioFormatado}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
+
+                // Horários permitidos - Datas específicas
+                if (autorizado.diasEspecificos?.isNotEmpty ?? false) ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Color(0xFF666666),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${autorizado.diasEspecificosFormatados} - ${autorizado.horarioFormatado}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
+
+                // Informações do veículo
+                if (autorizado.temVeiculo) ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.directions_car,
+                        size: 16,
+                        color: Color(0xFF666666),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          autorizado.veiculoFormatado,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ],
           ),
-
-          // Informações adicionais (horários, veículo, etc.)
-          if ((autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ||
-              (autorizado.diasEspecificos?.isNotEmpty ?? false) ||
-              autorizado.temVeiculo) ...[
-            const SizedBox(height: 12),
-            const Divider(color: Color(0xFFE0E0E0)),
-            const SizedBox(height: 8),
-
-            // Horários permitidos - Dias da semana
-            if (autorizado.diasSemanaPermitidos?.isNotEmpty ?? false) ...[
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${autorizado.diasSemanaFormatados} - ${autorizado.horarioFormatado}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-            ],
-
-            // Horários permitidos - Datas específicas
-            if (autorizado.diasEspecificos?.isNotEmpty ?? false) ...[
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${autorizado.diasEspecificosFormatados} - ${autorizado.horarioFormatado}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-            ],
-
-            // Informações do veículo
-            if (autorizado.temVeiculo) ...[
-              Row(
-                children: [
-                  const Icon(
-                    Icons.directions_car,
-                    size: 16,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      autorizado.veiculoFormatado,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ],
-      ),
+        ),
+        // QR Code Widget abaixo do card
+        QrCodeWidget(
+          dados: autorizado.gerarDadosQR(
+            unidade: widget.unidadeId,
+            tipoAutorizado: 'inquilino',
+          ),
+          nome: autorizado.nome,
+        ),
+      ],
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'conversas_simples_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
@@ -14,6 +15,7 @@ import '../services/visitante_portaria_service.dart';
 import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
 import '../utils/formatters.dart';
+import '../widgets/qr_code_widget.dart';
 
 // Classe para unificar proprietários e inquilinos
 class PessoaUnidade {
@@ -2875,121 +2877,144 @@ class _PortariaRepresentanteScreenState
 
   // Widget para card de autorizado
   Widget _buildAutorizadoCard(Map<String, dynamic> autorizado) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Linha principal com nome e CPF
-          Row(
+    // Gerar dados JSON para QR Code
+    final dados = jsonEncode({
+      'id': autorizado['id'] ?? '',
+      'nome': autorizado['nome'] ?? '',
+      'cpf': autorizado['cpf'] ?? '',
+      'parentesco': autorizado['parentesco'],
+      'tipo': 'representante',
+      'unidade': autorizado['unidade'] ?? '',
+      'data_autorizacao': autorizado['dataCriacao'] ?? DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toIso8601String(),
+      'veiculo': autorizado['veiculo'],
+      'horario': autorizado['diasHorarios'] ?? 'Sem restrição',
+    });
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF1976D2).withOpacity(0.1),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF1976D2),
-                  size: 28,
-                ),
+              // Linha principal com nome e CPF
+              Row(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF1976D2).withOpacity(0.1),
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: Color(0xFF1976D2),
+                      size: 28,
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Informações principais
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nome do autorizado
+                        Text(
+                          autorizado['nome'],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2E3A59),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // CPF (3 primeiros dígitos)
+                        if (autorizado['cpfTresPrimeiros'].isNotEmpty)
+                          Text(
+                            'CPF: ${autorizado['cpfTresPrimeiros']}***',
+                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
-              const SizedBox(width: 12),
+              const SizedBox(height: 12),
 
-              // Informações principais
-              Expanded(
+              // Informações adicionais
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nome do autorizado
-                    Text(
-                      autorizado['nome'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2E3A59),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    // Nome do criador (inquilino/proprietário)
+                    _buildInfoRow(
+                      icon: Icons.person_outline,
+                      label: 'Criado por:',
+                      value: autorizado['nomeCriador'],
                     ),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
 
-                    // CPF (3 primeiros dígitos)
-                    if (autorizado['cpfTresPrimeiros'].isNotEmpty)
-                      Text(
-                        'CPF: ${autorizado['cpfTresPrimeiros']}***',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    // Dias e horários
+                    _buildInfoRow(
+                      icon: Icons.schedule,
+                      label: 'Acesso:',
+                      value: autorizado['diasHorarios'],
+                    ),
+
+                    // Parentesco (se houver)
+                    if (autorizado['parentesco'] != null &&
+                        autorizado['parentesco'].isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        icon: Icons.family_restroom,
+                        label: 'Parentesco:',
+                        value: autorizado['parentesco'],
                       ),
+                    ],
+
+                    // Veículo (se houver)
+                    if (autorizado['veiculo'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        icon: Icons.directions_car,
+                        label: 'Veículo:',
+                        value: autorizado['veiculo'],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Informações adicionais
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Nome do criador (inquilino/proprietário)
-                _buildInfoRow(
-                  icon: Icons.person_outline,
-                  label: 'Criado por:',
-                  value: autorizado['nomeCriador'],
-                ),
-
-                const SizedBox(height: 8),
-
-                // Dias e horários
-                _buildInfoRow(
-                  icon: Icons.schedule,
-                  label: 'Acesso:',
-                  value: autorizado['diasHorarios'],
-                ),
-
-                // Parentesco (se houver)
-                if (autorizado['parentesco'] != null &&
-                    autorizado['parentesco'].isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  _buildInfoRow(
-                    icon: Icons.family_restroom,
-                    label: 'Parentesco:',
-                    value: autorizado['parentesco'],
-                  ),
-                ],
-
-                // Veículo (se houver)
-                if (autorizado['veiculo'] != null) ...[
-                  const SizedBox(height: 8),
-                  _buildInfoRow(
-                    icon: Icons.directions_car,
-                    label: 'Veículo:',
-                    value: autorizado['veiculo'],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+        // QR Code Widget
+        QrCodeWidget(
+          dados: dados,
+          nome: autorizado['nome'] ?? 'Autorizado',
+        ),
+      ],
     );
   }
 

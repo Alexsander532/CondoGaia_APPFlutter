@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'dart:convert';
 
 /// Modelo de dados para autorizados de inquilinos/proprietários
 class AutorizadoInquilino {
@@ -275,5 +276,26 @@ class AutorizadoInquilino {
     if (veiculoPlaca != null) partes.add('- ${veiculoPlaca!}');
     
     return partes.join(' ');
+  }
+
+  /// Gera dados JSON para codificar no QR Code
+  String gerarDadosQR({
+    String? unidade,
+    String tipoAutorizado = 'inquilino',
+  }) {
+    final mapa = {
+      'id': id,
+      'nome': nome,
+      'cpf': cpf,
+      'parentesco': parentesco,
+      'tipo': tipoAutorizado,
+      'unidade': unidade ?? unidadeId,
+      'data_autorizacao': createdAt?.toIso8601String(),
+      'timestamp': DateTime.now().toIso8601String(),
+      'veiculo': temVeiculo ? veiculoFormatado : null,
+      'horario': horarioFormatado,
+    };
+    
+    return jsonEncode(mapa);
   }
 }
