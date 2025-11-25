@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/qr_code_helper.dart';
 
 class QrCodeWidget extends StatefulWidget {
   final String dados;
   final String nome;
+  final String? qrCodeUrl;
+  final String? autorizadoId;
   final VoidCallback? onCompartilhar;
 
   const QrCodeWidget({
     Key? key,
     required this.dados,
     required this.nome,
+    this.qrCodeUrl,
+    this.autorizadoId,
     this.onCompartilhar,
   }) : super(key: key);
 
@@ -26,7 +31,19 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
   @override
   void initState() {
     super.initState();
-    _gerarESalvarQR();
+    
+    // Se já tem URL salva na tabela, usar direto
+    if (widget.qrCodeUrl != null && widget.qrCodeUrl!.isNotEmpty) {
+      print('[Widget] Usando QR Code salvo: ${widget.qrCodeUrl}');
+      setState(() {
+        _urlQr = widget.qrCodeUrl;
+        _gerando = false;
+      });
+    } else {
+      // Se não tem, gerar novo
+      print('[Widget] Gerando novo QR Code (sem URL salva)...');
+      _gerarESalvarQR();
+    }
   }
 
   /// Gera e salva QR Code no Supabase
@@ -55,6 +72,28 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
           _gerando = false;
         });
         print('[Widget] QR Code salvo com sucesso: $urlQr');
+        
+        // 🆕 Salvar URL na tabela do autorizado
+        if (widget.autorizadoId != null && widget.autorizadoId!.isNotEmpty) {
+          try {
+            print('[Widget] Salvando URL na tabela para autorizado: ${widget.autorizadoId}');
+            final supabase = Supabase.instance.client;
+            
+            await supabase
+                .from('autorizados_inquilinos')
+                .update({'qr_code_url': urlQr})
+                .eq('id', widget.autorizadoId!)
+                .then((_) {
+              print('[Widget] ✅ URL salva na tabela com sucesso!');
+            }).catchError((e) {
+              print('[Widget] ⚠️ Erro ao salvar URL na tabela: $e');
+              // Não quebra o fluxo se falhar
+            });
+          } catch (e) {
+            print('[Widget] ⚠️ Erro ao salvar URL na tabela: $e');
+            // Não quebra o fluxo se falhar salvar na tabela
+          }
+        }
       } else {
         setState(() {
           _erro = 'Erro ao gerar QR Code. Tente novamente.';

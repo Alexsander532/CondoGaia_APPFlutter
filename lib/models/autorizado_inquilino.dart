@@ -20,6 +20,7 @@ class AutorizadoInquilino {
   final String? veiculoCor;
   final String? veiculoPlaca;
   final String? fotoUrl;
+  final String? qrCodeUrl;
   final bool ativo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -42,6 +43,7 @@ class AutorizadoInquilino {
     this.veiculoCor,
     this.veiculoPlaca,
     this.fotoUrl,
+    this.qrCodeUrl,
     this.ativo = true,
     this.createdAt,
     this.updatedAt,
@@ -79,6 +81,7 @@ class AutorizadoInquilino {
       veiculoCor: json['veiculo_cor'] as String?,
       veiculoPlaca: json['veiculo_placa'] as String?,
       fotoUrl: json['foto_url'] as String?,
+      qrCodeUrl: json['qr_code_url'] as String?,
       ativo: json['ativo'] as bool? ?? true,
       createdAt: parseDateTime(json['created_at']),
       updatedAt: parseDateTime(json['updated_at']),
@@ -105,6 +108,7 @@ class AutorizadoInquilino {
       'veiculo_cor': veiculoCor,
       'veiculo_placa': veiculoPlaca,
       'foto_url': fotoUrl,
+      'qr_code_url': qrCodeUrl,
       'ativo': ativo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -129,6 +133,8 @@ class AutorizadoInquilino {
     String? veiculoModelo,
     String? veiculoCor,
     String? veiculoPlaca,
+    String? fotoUrl,
+    String? qrCodeUrl,
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -150,6 +156,8 @@ class AutorizadoInquilino {
       veiculoModelo: veiculoModelo ?? this.veiculoModelo,
       veiculoCor: veiculoCor ?? this.veiculoCor,
       veiculoPlaca: veiculoPlaca ?? this.veiculoPlaca,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

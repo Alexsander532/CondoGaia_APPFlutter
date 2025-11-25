@@ -703,6 +703,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
             tipoAutorizado: 'inquilino',
           ),
           nome: autorizado.nome,
+          qrCodeUrl: autorizado.qrCodeUrl,
         ),
         const SizedBox(height: 24),
         const Divider(color: Color(0xFFE0E0E0)),
@@ -944,8 +945,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       // Validar tipo de seleção de dias
       if (_tipoSelecaoDias == 'dias_semana') {
         // Verificar se pelo menos um dia da semana foi selecionado
-        final diasSelecionados = _diasSemana.where((dia) => dia == true).toList();
-        if (diasSelecionados.isEmpty) {
+        // 🔧 Usar _diasSemanasSelecionados (a variável que a UI realmente modifica)
+        if (_diasSemanasSelecionados.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Selecione pelo menos um dia da semana'),
@@ -1347,6 +1348,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           onTap: () {
             setModalState(() {
               _diasSemana[index] = !_diasSemana[index];
+              
+              // 🔧 Sincronizar com _diasSemanasSelecionados também
+              _diasSemanasSelecionados[index] = !_diasSemanasSelecionados[index];
+              
+              print('[DEBUG] Dias selecionados: $_diasSemanasSelecionados');
             });
           },
           child: Container(
@@ -1414,6 +1420,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         _diasSemana = List.filled(7, false);
         _horarioInicio = '08:00';
         _horarioFim = '18:00';
+        // 🔧 Resetar também as novas variáveis
+        _tipoSelecaoDias = 'dias_semana';
+        _diasSemanasSelecionados = List.filled(7, false);
+        _diasEspecificosSelecionados = [];
       });
     }
   }
@@ -1451,10 +1461,12 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
             // Converter lista de inteiros para lista de booleans
             _diasSemana = List.filled(7, false);
+            _diasSemanasSelecionados = List.filled(7, false); // 🔧 Sincronizar
 
             for (int dia in autorizado.diasSemanaPermitidos!) {
               if (dia >= 0 && dia < 7) {
                 _diasSemana[dia] = true;
+                _diasSemanasSelecionados[dia] = true; // 🔧 Sincronizar
               }
             }
 
@@ -1486,6 +1498,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           } else {
             _permissaoSelecionada = 'qualquer';
             _diasSemana = List.filled(7, false);
+            _diasSemanasSelecionados = List.filled(7, false); // 🔧 Sincronizar
             _horarioInicio = '08:00';
             _horarioFim = '18:00';
             // 🆕 Resetar também os novos campos
@@ -1713,6 +1726,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                   onChanged: (value) {
                                     setModalState(() {
                                       _permissaoSelecionada = value!;
+                                      // Resetar quando muda para 'qualquer'
+                                      _diasSemana.fillRange(0, 7, false);
+                                      _diasSemanasSelecionados.fillRange(0, 7, false);
+                                      _diasEspecificosSelecionados.clear();
                                     });
                                   },
                                   activeColor: const Color(0xFF4A90E2),
@@ -1726,6 +1743,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                   onChanged: (value) {
                                     setModalState(() {
                                       _permissaoSelecionada = value!;
+                                      // Garantir que tipo de seleção está definido
+                                      if (_tipoSelecaoDias.isEmpty) {
+                                        _tipoSelecaoDias = 'dias_semana';
+                                      }
                                     });
                                   },
                                   activeColor: const Color(0xFF4A90E2),

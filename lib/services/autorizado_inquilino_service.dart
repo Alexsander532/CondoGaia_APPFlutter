@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/autorizado_inquilino.dart';
+import '../utils/qr_code_helper.dart';
 import 'supabase_service.dart';
 
 class AutorizadoInquilinoService {
@@ -289,13 +290,42 @@ class AutorizadoInquilinoService {
         throw Exception('Já existe um autorizado com este CPF nesta unidade');
       }
 
+      // 1️⃣ Inserir autorizado na tabela
       final response = await _client
           .from('autorizados_inquilinos')
           .insert(autorizadoData)
           .select()
           .single();
 
-      return AutorizadoInquilino.fromJson(response);
+      final autorizado = AutorizadoInquilino.fromJson(response);
+
+      // 2️⃣ Gerar QR Code UMA VEZ após criar (novo fluxo!)
+      print('[Service] Gerando QR Code para novo autorizado: ${autorizado.nome}');
+      final qrUrl = await QrCodeHelper.gerarESalvarQRNoSupabase(
+        autorizado.gerarDadosQR(
+          unidade: autorizadoData['unidade_id'],
+          tipoAutorizado: 'inquilino',
+        ),
+        nomeAutorizado: autorizado.nome,
+      );
+
+      // 3️⃣ Atualizar registro com URL do QR Code
+      if (qrUrl != null) {
+        print('[Service] QR Code gerado com sucesso, salvando URL: $qrUrl');
+        final respuestaAtualizado = await _client
+            .from('autorizados_inquilinos')
+            .update({'qr_code_url': qrUrl})
+            .eq('id', autorizado.id)
+            .select()
+            .single();
+
+        // 4️⃣ Retornar autorizado com URL preenchida
+        return AutorizadoInquilino.fromJson(respuestaAtualizado);
+      } else {
+        print('[Service] Aviso: QR Code retornou null, retornando sem URL');
+        // Se falhar geração de QR, retorna autorizado sem URL (para não quebrar o fluxo)
+        return autorizado;
+      }
     } catch (e) {
       print('Erro ao inserir autorizado: $e');
       rethrow;
@@ -529,13 +559,21 @@ class AutorizadoInquilinoService {
   }
 
   /// Valida o tipo de seleção de dias e garante que pelo menos um dia foi selecionado
+  /// Só valida se a permissão for "determinado"
   static void _validarTipoSelecaoDias(Map<String, dynamic> data) {
+    // 🔧 Só valida se dias_semana_permitidos está preenchido (ou seja, é "determinado")
+    // Se for "qualquer", dias_semana_permitidos será null e não precisa validar
+    final diasSemana = data['dias_semana_permitidos'];
+    if (diasSemana == null) {
+      // Permissão é "qualquer", não precisa validar
+      return;
+    }
+
     final tipoSelecao = data['tipo_selecao_dias'] ?? 'dias_semana';
     
     if (tipoSelecao == 'dias_semana') {
       // Validar se tem dias da semana selecionados
-      final diasSemana = data['dias_semana_permitidos'];
-      if (diasSemana == null || (diasSemana is List && diasSemana.isEmpty)) {
+      if (diasSemana is List && diasSemana.isEmpty) {
         throw Exception('Selecione pelo menos um dia da semana');
       }
     } else if (tipoSelecao == 'dias_especificos') {
