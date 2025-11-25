@@ -2,6 +2,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class QrCodeHelper {
   /// Gera uma imagem PNG do QR Code a partir de dados
@@ -30,6 +31,66 @@ class QrCodeHelper {
       return bytes;
     } catch (e) {
       print('[QR] Erro ao gerar imagem QR: $e');
+      return null;
+    }
+  }
+
+  /// Gera QR Code, salva no Supabase Storage e retorna URL pública
+  static Future<String?> gerarESalvarQRNoSupabase(
+    String dados, {
+    String? nomeAutorizado,
+    int tamanho = 200,
+  }) async {
+    try {
+      print('[QR] Iniciando geração e salvamento no Supabase...');
+
+      // Validar dados
+      if (!validarDados(dados)) {
+        print('[QR] Erro: Dados inválidos para QR Code');
+        return null;
+      }
+
+      // Gerar imagem PNG
+      final imagemBytes = await gerarImagemQR(dados, tamanho: tamanho);
+      if (imagemBytes == null) {
+        print('[QR] Erro: Falha ao gerar imagem QR');
+        return null;
+      }
+
+      // Gerar nome único para arquivo
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final nomeArquivo =
+          'qr_${nomeAutorizado ?? 'autorizado'}_$timestamp.png';
+
+      print('[QR] Salvando arquivo: $nomeArquivo');
+
+      // Obter cliente Supabase
+      final supabase = Supabase.instance.client;
+
+      // Fazer upload para Supabase Storage
+      final response = await supabase.storage
+          .from('qr_codes')
+          .uploadBinary(
+            nomeArquivo,
+            imagemBytes,
+            fileOptions: const FileOptions(
+              cacheControl: '3600',
+              upsert: false,
+            ),
+          );
+
+      print('[QR] Upload bem-sucedido: $response');
+
+      // Gerar URL pública
+      final urlPublica = supabase.storage
+          .from('qr_codes')
+          .getPublicUrl(nomeArquivo);
+
+      print('[QR] URL pública gerada: $urlPublica');
+
+      return urlPublica;
+    } catch (e) {
+      print('[QR] Erro ao salvar QR no Supabase: $e');
       return null;
     }
   }
