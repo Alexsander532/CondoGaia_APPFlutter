@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'inquilino_home_screen.dart';
 import '../models/inquilino.dart';
 import '../services/auth_service.dart';
+import '../services/unidade_detalhes_service.dart';
 import '../screens/login_screen.dart';
 
 class InquilinoDashboardScreen extends StatefulWidget {
@@ -116,32 +117,31 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 try {
-                  // Excluir a conta
-                  await SupabaseService.client
-                      .from('inquilinos')
-                      .delete()
-                      .eq('id', widget.inquilino.id);
+                  final service = UnidadeDetalhesService();
+                  
+                  // Deletar o inquilino
+                  print('🗑️ Deletando inquilino: ${widget.inquilino.id}');
+                  await service.deletarInquilino(inquilinoId: widget.inquilino.id);
+                  print('✅ Inquilino deletado com sucesso!');
                   
                   // Fazer logout
+                  print('🚪 Realizando logout...');
                   await _authService.logout();
+                  print('✅ Logout realizado!');
                   
+                  // Navegar para login (SEM usar ScaffoldMessenger pois a tela foi destruída)
                   if (mounted) {
+                    print('🔄 Navegando para login...');
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
+                        builder: (context) => LoginScreen(usuarioDeletado: 'Inquilino'),
                       ),
                       (route) => false,
                     );
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao excluir conta: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  print('❌ ERRO ao excluir conta: $e');
+                  // NÃO mostrar snackbar aqui pois a tela já foi destruída
                 }
               },
               child: const Text('Excluir', style: TextStyle(color: Colors.red)),
@@ -151,6 +151,7 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
       },
     );
   }
+
 
   Widget _buildProfileImage() {
     if (widget.inquilino.temFotoPerfil) {

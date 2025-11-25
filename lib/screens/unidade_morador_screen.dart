@@ -340,29 +340,26 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
 
       if (mounted) {
-        // Fecha o snackbar
+        // Fecha o snackbar de carregamento
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         // Recarrega os dados para mostrar a nova unidade
         await _carregarDados();
 
-        // Navega para DetalhesUnidadeScreen em modo criação
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetalhesUnidadeScreen(
-              condominioId: widget.condominioId,
-              condominioNome: widget.condominioNome,
-              condominioCnpj: widget.condominioCnpj,
-              bloco: bloco.nome,
-              unidade: numero,
-              modo: 'criar', // Modo criação
+        // Mostra mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Unidade ${numero} criada com sucesso!'),
+              ],
             ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
-        ).then((_) {
-          // Recarrega dados ao voltar de DetalhesUnidadeScreen
-          _carregarDados();
-        });
+        );
       }
     } catch (e) {
       if (mounted) {

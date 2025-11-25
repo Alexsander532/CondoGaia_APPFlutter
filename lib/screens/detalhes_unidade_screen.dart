@@ -9,6 +9,7 @@ import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/imobiliaria.dart';
 import '../utils/formatters.dart';
+import '../widgets/qr_code_display_widget.dart';
 
 class DetalhesUnidadeScreen extends StatefulWidget {
   final String? condominioId;
@@ -145,6 +146,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       _isLoadingDados = false;
       _errorMessage = null;
     });
+    
+    // Aguardar um pouco para o QR code ser salvo no banco (300ms da criação + buffer)
+    // Depois recarregar os dados para pegar o QR code
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        _carregarDados();
+      }
+    });
   }
 
   Future<void> _carregarDados() async {
@@ -216,6 +225,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             _proprietarioConjugeController.text = _proprietario?.conjuge ?? '';
             _proprietarioMultiproprietariosController.text = _proprietario?.multiproprietarios ?? '';
             _proprietarioMoradoresController.text = _proprietario?.moradores ?? '';
+            // Carregar estados dos radio buttons do banco
+            _agruparBoletosSelecionado = (_proprietario?.agruparBoletos ?? false) ? 'Sim' : 'Não';
+            _matriculaImovelSelecionado = (_proprietario?.matriculaImovel ?? false) ? 'Fazer Upload' : 'Não';
           }
 
           // Preencher campos de inquilino
@@ -358,11 +370,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   Future<void> _salvarProprietario() async {
-    // Se não tem proprietário, não faz nada
-    if (_proprietario == null || _proprietario!.id.isEmpty) {
+    // Validar campos obrigatórios
+    final nome = _proprietarioNomeController.text.trim();
+    final cpfCnpj = _proprietarioCpfCnpjController.text.trim();
+    final email = _proprietarioEmailController.text.trim();
+
+    if (nome.isEmpty || cpfCnpj.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nenhum proprietário cadastrado para esta unidade.'),
+          content: Text('Nome*, CPF/CNPJ* e Email* são obrigatórios!'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -374,43 +390,89 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     });
 
     try {
-      // Coletar os dados do formulário
-      final dadosAtualizacao = <String, dynamic>{
-        'nome': _proprietarioNomeController.text.trim(),
-        'cpf_cnpj': _proprietarioCpfCnpjController.text.trim(),
-        'cep': _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
-        'endereco': _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
-        'numero': _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
-        'bairro': _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
-        'cidade': _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
-        'estado': _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
-        'telefone': _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
-        'celular': _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
-        'email': _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
-        'conjuge': _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
-        'multiproprietarios': _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
-        'moradores': _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
-      };
+      // Se não tem proprietário, criar um novo
+      if (_proprietario == null || _proprietario!.id.isEmpty) {
+        print('📝 Criando novo proprietário...');
+        
+        final novoPropietario = await _service.criarProprietario(
+          condominioId: widget.condominioId ?? '',
+          unidadeId: _unidade?.id ?? '',
+          nome: nome,
+          cpfCnpj: cpfCnpj,
+          cep: _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
+          endereco: _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
+          numero: _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
+          bairro: _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
+          cidade: _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
+          estado: _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
+          telefone: _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
+          celular: _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
+          email: _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
+          conjuge: _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
+          multiproprietarios: _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
+          moradores: _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
+        );
 
-      // Chamar o serviço para atualizar
-      await _service.atualizarProprietario(
-        proprietarioId: _proprietario!.id,
-        dados: dadosAtualizacao,
-      );
+        // Atualizar estado com o novo proprietário
+        setState(() {
+          _proprietario = novoPropietario;
+        });
 
-      // Mostrar feedback de sucesso
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dados do proprietário salvos com sucesso!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        // Mostrar sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Proprietário criado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // 🔄 Recarregar dados para mostrar QR code atualizado
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _carregarDados();
+      } else {
+        // Se já tem proprietário, atualizar dados
+        print('♻️ Atualizando proprietário existente...');
+        
+        final dadosAtualizacao = <String, dynamic>{
+          'nome': nome,
+          'cpf_cnpj': cpfCnpj,
+          'cep': _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
+          'endereco': _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
+          'numero': _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
+          'bairro': _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
+          'cidade': _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
+          'estado': _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
+          'telefone': _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
+          'celular': _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
+          'email': _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
+          'conjuge': _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
+          'multiproprietarios': _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
+          'moradores': _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
+          'agrupar_boletos': _agruparBoletosSelecionado == 'Sim',
+          'matricula_imovel': _matriculaImovelSelecionado == 'Fazer Upload',
+        };
+
+        await _service.atualizarProprietario(
+          proprietarioId: _proprietario!.id,
+          dados: dadosAtualizacao,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Dados do proprietário atualizados com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // 🔄 Recarregar dados para mostrar QR code atualizado
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _carregarDados();
+      }
     } catch (e) {
-      // Mostrar feedback de erro
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao salvar dados do proprietário: $e'),
+          content: Text('❌ Erro ao salvar proprietário: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),
         ),
@@ -424,11 +486,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   Future<void> _salvarInquilino() async {
-    // Se não tem inquilino, não faz nada
-    if (_inquilino == null || _inquilino!.id.isEmpty) {
+    // Validar campos obrigatórios
+    final nome = _inquilinoNomeController.text.trim();
+    final cpfCnpj = _inquilinoCpfCnpjController.text.trim();
+    final email = _inquilinoEmailController.text.trim();
+
+    if (nome.isEmpty || cpfCnpj.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nenhum inquilino cadastrado para esta unidade.'),
+          content: Text('Nome*, CPF/CNPJ* e Email* são obrigatórios!'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -440,45 +506,88 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     });
 
     try {
-      // Coletar os dados do formulário
-      final dadosAtualizacao = <String, dynamic>{
-        'nome': _inquilinoNomeController.text.trim(),
-        'cpf_cnpj': _inquilinoCpfCnpjController.text.trim(),
-        'cep': _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
-        'endereco': _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
-        'numero': _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
-        'bairro': _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
-        'cidade': _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
-        'estado': _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
-        'telefone': _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
-        'celular': _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
-        'email': _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
-        'conjuge': _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
-        'multiproprietarios': _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
-        'moradores': _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
-        'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
-        'controle_locacao': _controleLocacaoSelecionado == 'sim',
-      };
+      // Se não tem inquilino, criar um novo
+      if (_inquilino == null || _inquilino!.id.isEmpty) {
+        print('📝 Criando novo inquilino...');
+        
+        final novoInquilino = await _service.criarInquilino(
+          condominioId: widget.condominioId ?? '',
+          unidadeId: _unidade?.id ?? '',
+          nome: nome,
+          cpfCnpj: cpfCnpj,
+          cep: _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
+          endereco: _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
+          numero: _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
+          bairro: _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
+          cidade: _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
+          estado: _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
+          telefone: _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
+          celular: _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
+          email: _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
+          conjuge: _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
+          multiproprietarios: _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
+          moradores: _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
+        );
 
-      // Chamar o serviço para atualizar
-      await _service.atualizarInquilino(
-        inquilinoId: _inquilino!.id,
-        dados: dadosAtualizacao,
-      );
+        // Atualizar estado com o novo inquilino
+        setState(() {
+          _inquilino = novoInquilino;
+        });
 
-      // Mostrar feedback de sucesso
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dados do inquilino salvos com sucesso!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        // Mostrar sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Inquilino criado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // 🔄 Recarregar dados para mostrar QR code atualizado
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _carregarDados();
+      } else {
+        // Se já tem inquilino, atualizar dados
+        print('♻️ Atualizando inquilino existente...');
+        
+        final dadosAtualizacao = <String, dynamic>{
+          'nome': nome,
+          'cpf_cnpj': cpfCnpj,
+          'cep': _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
+          'endereco': _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
+          'numero': _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
+          'bairro': _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
+          'cidade': _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
+          'estado': _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
+          'telefone': _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
+          'celular': _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
+          'email': _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
+          'conjuge': _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
+          'multiproprietarios': _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
+          'moradores': _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
+          'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
+          'controle_locacao': _controleLocacaoSelecionado == 'sim',
+        };
+
+        await _service.atualizarInquilino(
+          inquilinoId: _inquilino!.id,
+          dados: dadosAtualizacao,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Dados do inquilino atualizados com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // 🔄 Recarregar dados para mostrar QR code atualizado
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _carregarDados();
+      }
     } catch (e) {
-      // Mostrar feedback de erro
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao salvar dados do inquilino: $e'),
+          content: Text('❌ Erro ao salvar inquilino: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),
         ),
@@ -555,6 +664,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             duration: Duration(seconds: 2),
           ),
         );
+        // 🔄 Recarregar dados para mostrar QR code atualizado
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _carregarDados();
       } else {
         imobiliariaId = _imobiliaria!.id;
       }
@@ -607,6 +719,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           duration: Duration(seconds: 2),
         ),
       );
+      // 🔄 Recarregar dados para mostrar QR code atualizado
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _carregarDados();
     } catch (e) {
       // Mostrar feedback de erro
       ScaffoldMessenger.of(context).showSnackBar(
@@ -720,6 +835,100 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         child: InteractiveViewer(
           child: Image.network(
             _imobiliaria!.fotoUrl!,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.black87,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[800],
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFotoProprietarioZoom() {
+    if (_proprietario?.fotoPerfil == null || _proprietario!.fotoPerfil!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma foto disponível'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: InteractiveViewer(
+          child: Image.network(
+            _proprietario!.fotoPerfil!,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.black87,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[800],
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFotoInquilinoZoom() {
+    if (_inquilino?.fotoPerfil == null || _inquilino!.fotoPerfil!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma foto disponível'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: InteractiveViewer(
+          child: Image.network(
+            _inquilino!.fotoPerfil!,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return Container(
@@ -1553,6 +1762,69 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ],
         ),
         
+        const SizedBox(height: 24),
+        
+        // QR Code da Unidade (se existir ou está carregando)
+        if (_unidade != null)
+          if (_unidade!.qrCodeUrl != null && _unidade!.qrCodeUrl!.isNotEmpty)
+            QrCodeDisplayWidget(
+              qrCodeUrl: _unidade!.qrCodeUrl,
+              visitanteNome: 'Unidade',
+              visitanteCpf: _unidade!.id,
+              unidade: '${_unidade!.bloco}-${_unidade!.numero}',
+            )
+          else
+            // Mostrar loading enquanto o QR code é gerado
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.blue[300]!,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blue[600]!,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Gerando QR Code...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Aguarde enquanto o código é gerado e salvo no banco',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        
+        const SizedBox(height: 24),
+        
         // Botão de salvar para a seção Unidade
         _buildSaveButton(
           text: 'SALVAR UNIDADE',
@@ -1569,31 +1841,79 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       children: [
         const SizedBox(height: 16),
         
-        // Seção Anexar foto
-        Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                borderRadius: BorderRadius.circular(8),
+        // Seção Anexar foto - Foto do Proprietário
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Se houver foto, exibir em círculo
+              if (_proprietario?.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty)
+                GestureDetector(
+                  onTap: _showFotoProprietarioZoom,
+                  child: ClipOval(
+                    child: Image.network(
+                      _proprietario!.fotoPerfil!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Se falhar ao carregar, mostrar ícone padrão
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE0E0E0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Color(0xFF666666),
+                            size: 32,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              else
+                // Se não houver foto, mostrar ícone padrão
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                      top: BorderSide(color: Color(0xFFE0E0E0)),
+                      left: BorderSide(color: Color(0xFFE0E0E0)),
+                      right: BorderSide(color: Color(0xFFE0E0E0)),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Color(0xFF666666),
+                    size: 32,
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const Text(
+                'Anexar foto',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF666666),
+                ),
               ),
-              child: const Icon(
-                Icons.camera_alt_outlined,
-                color: Color(0xFF999999),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Anexar foto',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         
         const SizedBox(height: 24),
@@ -1602,12 +1922,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Nome*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Nome',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -1639,12 +1973,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'CPF/CNPJ*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'CPF/CNPJ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -1986,12 +2334,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Email:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Email',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -2639,6 +3001,90 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
        
        const SizedBox(height: 24),
        
+       // QR Code do Proprietário (se existir ou está carregando)
+       if (_proprietario != null)
+         if (_proprietario!.qrCodeUrl != null && _proprietario!.qrCodeUrl!.isNotEmpty)
+           Container(
+             width: double.infinity,
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               border: Border.all(color: const Color(0xFFE0E0E0)),
+               borderRadius: BorderRadius.circular(8),
+               color: const Color(0xFFFAFAFA),
+             ),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.center,
+               children: [
+                 const Text(
+                   'QR Code do Proprietário',
+                   style: TextStyle(
+                     fontSize: 14,
+                     fontWeight: FontWeight.w600,
+                     color: Color(0xFF333333),
+                   ),
+                 ),
+                 const SizedBox(height: 12),
+                 QrCodeDisplayWidget(
+                   qrCodeUrl: _proprietario!.qrCodeUrl,
+                   visitanteNome: _proprietario!.nome,
+                   visitanteCpf: _proprietario!.cpfCnpj,
+                   unidade: '${widget.bloco}-${widget.unidade}',
+                 ),
+               ],
+             ),
+           )
+         else
+           // Mostrar loading enquanto o QR code é gerado
+           Container(
+             width: double.infinity,
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               border: Border.all(color: Colors.blue[300]!),
+               borderRadius: BorderRadius.circular(8),
+               color: Colors.blue[50],
+             ),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.center,
+               children: [
+                 const Text(
+                   'QR Code do Proprietário',
+                   style: TextStyle(
+                     fontSize: 14,
+                     fontWeight: FontWeight.w600,
+                     color: Color(0xFF333333),
+                   ),
+                 ),
+                 const SizedBox(height: 12),
+                 Row(
+                   mainAxisAlignment: MainAxisAlignment.center,
+                   children: [
+                     SizedBox(
+                       width: 18,
+                       height: 18,
+                       child: CircularProgressIndicator(
+                         strokeWidth: 2,
+                         valueColor: AlwaysStoppedAnimation<Color>(
+                           Colors.blue[600]!,
+                         ),
+                       ),
+                     ),
+                     const SizedBox(width: 10),
+                     Text(
+                       'Gerando QR Code...',
+                       style: TextStyle(
+                         fontSize: 13,
+                         color: Colors.blue[700],
+                         fontWeight: FontWeight.w500,
+                       ),
+                     ),
+                   ],
+                 ),
+               ],
+             ),
+           ),
+       
+       const SizedBox(height: 24),
+       
        // Botão de salvar para a seção Proprietário
        _buildSaveButton(
          text: 'SALVAR PROPRIETÁRIO',
@@ -2655,25 +3101,71 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Seção para anexar foto
+          // Seção para anexar foto - Foto do Inquilino
           Container(
             width: double.infinity,
-            height: 120,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFE0E0E0)),
             ),
-            child: const Column(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.camera_alt_outlined,
-                  size: 32,
-                  color: Color(0xFF666666),
-                ),
-                SizedBox(height: 8),
-                Text(
+                // Se houver foto, exibir em círculo
+                if (_inquilino?.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty)
+                  GestureDetector(
+                    onTap: _showFotoInquilinoZoom,
+                    child: ClipOval(
+                      child: Image.network(
+                        _inquilino!.fotoPerfil!,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Se falhar ao carregar, mostrar ícone padrão
+                          return Container(
+                            width: 100,
+                            height: 100,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE0E0E0),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_outlined,
+                              color: Color(0xFF666666),
+                              size: 32,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                else
+                  // Se não houver foto, mostrar ícone padrão
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                        top: BorderSide(color: Color(0xFFE0E0E0)),
+                        left: BorderSide(color: Color(0xFFE0E0E0)),
+                        right: BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Color(0xFF666666),
+                      size: 32,
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                const Text(
                   'Anexar foto',
                   style: TextStyle(
                     fontSize: 14,
@@ -3085,12 +3577,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           const SizedBox(height: 24),
 
           // Campo Nome
-          const Text(
-            'Nome*',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Nome',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -3117,12 +3623,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           const SizedBox(height: 16),
 
           // Campo CPF/CNPJ
-          const Text(
-            'CPF/CNPJ*',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'CPF/CNPJ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -3149,12 +3669,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           const SizedBox(height: 16),
 
           // Campo CEP
-          const Text(
-            'CEP*',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'CEP',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -3464,12 +3998,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           const SizedBox(height: 16),
 
           // Campo Email
-          const Text(
-            'Email:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Email',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -3495,6 +4043,90 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
           const SizedBox(height: 24),
           
+          // QR Code do Inquilino (se existir ou está carregando)
+          if (_inquilino != null)
+            if (_inquilino!.qrCodeUrl != null && _inquilino!.qrCodeUrl!.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFFAFAFA),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'QR Code do Inquilino',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    QrCodeDisplayWidget(
+                      qrCodeUrl: _inquilino!.qrCodeUrl,
+                      visitanteNome: _inquilino!.nome,
+                      visitanteCpf: _inquilino!.cpfCnpj,
+                      unidade: '${widget.bloco}-${widget.unidade}',
+                    ),
+                  ],
+                ),
+              )
+            else
+              // Mostrar loading enquanto o QR code é gerado
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.blue[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.blue[50],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'QR Code do Inquilino',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blue[600]!,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Gerando QR Code...',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          
+          const SizedBox(height: 24),
+          
           // Botão de salvar para a seção Inquilino
           _buildSaveButton(
             text: 'SALVAR INQUILINO',
@@ -3516,97 +4148,99 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           margin: const EdgeInsets.only(bottom: 16),
         ),
         
-        // Seção para anexar/visualizar foto
-        if (_imobiliaria?.fotoUrl != null && _imobiliaria!.fotoUrl!.isNotEmpty)
-          // Se já tem foto salva no banco, mostrar a foto com opção de zoom
-          GestureDetector(
-            onTap: _showFotoImobiliariaZoom,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: NetworkImage(_imobiliaria!.fotoUrl!),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.zoom_in,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          )
-        else if (_fotoImobiliariaBytes != null)
-          // Se tem foto selecionada mas não salva, mostrar a preview com opção de trocar
-          GestureDetector(
-            onTap: _showImageSourceDialogImobiliaria,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF2E3A59), width: 2),
-                borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: MemoryImage(_fotoImobiliariaBytes!),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.edit,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          )
-        else
-          // Se não tem foto, mostrar botão para adicionar
-          GestureDetector(
-            onTap: _showImageSourceDialogImobiliaria,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.grey[100],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _isUploadingFotoImobiliaria 
-                        ? Icons.hourglass_empty 
-                        : Icons.camera_alt_outlined,
-                    color: Color(0xFF999999),
-                    size: 32,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isUploadingFotoImobiliaria ? 'Enviando...' : 'Anexar foto',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF666666),
+        // Seção para anexar/visualizar foto em círculo
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (_imobiliaria?.fotoUrl != null && _imobiliaria!.fotoUrl!.isNotEmpty)
+                // Se já tem foto salva no banco, mostrar a foto circular com opção de zoom
+                GestureDetector(
+                  onTap: _showFotoImobiliariaZoom,
+                  child: ClipOval(
+                    child: Image.network(
+                      _imobiliaria!.fotoUrl!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE0E0E0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Color(0xFF999999),
+                            size: 40,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ],
-              ),
-            ),
+                )
+              else if (_fotoImobiliariaBytes != null)
+                // Se tem foto selecionada mas não salva, mostrar a preview circular
+                GestureDetector(
+                  onTap: _showImageSourceDialogImobiliaria,
+                  child: ClipOval(
+                    child: Image.memory(
+                      _fotoImobiliariaBytes!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                )
+              else
+                // Se não tem foto, mostrar botão circular para adicionar
+                GestureDetector(
+                  onTap: _showImageSourceDialogImobiliaria,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE0E0E0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isUploadingFotoImobiliaria 
+                              ? Icons.hourglass_empty 
+                              : Icons.camera_alt_outlined,
+                          color: const Color(0xFF999999),
+                          size: 40,
+                        ),
+                        if (!_isUploadingFotoImobiliaria)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Anexar foto',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF666666),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
+        ),
         
         const SizedBox(height: 24),
         
@@ -3794,6 +4428,92 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
+        
+        const SizedBox(height: 24),
+        
+        // QR Code da Imobiliária (se existir ou está carregando)
+        if (_imobiliaria != null)
+          if (_imobiliaria!.qrCodeUrl != null && _imobiliaria!.qrCodeUrl!.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFFAFAFA),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'QR Code da Imobiliária',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  QrCodeDisplayWidget(
+                    qrCodeUrl: _imobiliaria!.qrCodeUrl,
+                    visitanteNome: _imobiliaria!.nome,
+                    visitanteCpf: _imobiliaria!.cnpj,
+                    unidade: '${widget.bloco}-${widget.unidade}',
+                  ),
+                ],
+              ),
+            )
+          else
+            // Mostrar loading enquanto o QR code é gerado
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue[300]!),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.blue[50],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'QR Code da Imobiliária',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blue[600]!,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Gerando QR Code...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+        
+        const SizedBox(height: 24),
         
         // Botão de salvar para a seção Imobiliária
         _buildSaveButton(

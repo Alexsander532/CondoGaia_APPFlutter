@@ -12,6 +12,7 @@ class Imobiliaria {
   final bool? ativo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? qrCodeUrl;
 
   const Imobiliaria({
     required this.id,
@@ -26,6 +27,7 @@ class Imobiliaria {
     this.ativo,
     this.createdAt,
     this.updatedAt,
+    this.qrCodeUrl,
   });
 
   factory Imobiliaria.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class Imobiliaria {
       ativo: json['ativo'] as bool?,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : null,
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
+      qrCodeUrl: json['qr_code_url'] as String?,
     );
   }
 
@@ -59,9 +62,9 @@ class Imobiliaria {
       'ativo': ativo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'qr_code_url': qrCodeUrl,
     };
   }
-
   Imobiliaria copyWith({
     String? id,
     String? condominioId,
@@ -75,6 +78,7 @@ class Imobiliaria {
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? qrCodeUrl,
   }) {
     return Imobiliaria(
       id: id ?? this.id,
@@ -89,6 +93,7 @@ class Imobiliaria {
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
     );
   }
 

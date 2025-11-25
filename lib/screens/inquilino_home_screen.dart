@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
 import 'portaria_inquilino_screen.dart';
 import 'login_screen.dart';
 import 'proprietario_dashboard_screen.dart';
 import '../services/auth_service.dart';
+import '../services/unidade_detalhes_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -217,31 +217,49 @@ Copiado da CondoGaia''';
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                
                 try {
-                  // Excluir a conta
-                  await Supabase.instance.client
-                      .from('inquilinos')
-                      .delete()
-                      .eq('id', widget.inquilinoId ?? widget.proprietarioId ?? '');
+                  final service = UnidadeDetalhesService();
+                  
+                  // Deletar o inquilino ou proprietário
+                  if (widget.inquilinoId != null && widget.inquilinoId!.isNotEmpty) {
+                    print('🗑️ Deletando inquilino: ${widget.inquilinoId}');
+                    await service.deletarInquilino(inquilinoId: widget.inquilinoId!);
+                    print('✅ Inquilino deletado com sucesso!');
+                  } else if (widget.proprietarioId != null && widget.proprietarioId!.isNotEmpty) {
+                    print('🗑️ Deletando proprietário: ${widget.proprietarioId}');
+                    await service.deletarProprietario(proprietarioId: widget.proprietarioId!);
+                    print('✅ Proprietário deletado com sucesso!');
+                  } else {
+                    throw Exception('Nenhum ID fornecido para deletar');
+                  }
                   
                   // Fazer logout
+                  print('🚪 Realizando logout...');
                   await _authService.logout();
+                  print('✅ Logout realizado!');
                   
+                  // Navegar para login (SEM usar ScaffoldMessenger pois a tela foi destruída)
                   if (mounted) {
+                    print('🔄 Navegando para login...');
+                    // Determinar o tipo de usuário para a mensagem
+                    String nomeUsuario = 'Usuário';
+                    if (widget.inquilinoId != null && widget.inquilinoId!.isNotEmpty) {
+                      nomeUsuario = 'Inquilino';
+                    } else if (widget.proprietarioId != null && widget.proprietarioId!.isNotEmpty) {
+                      nomeUsuario = 'Proprietário';
+                    }
+                    
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => LoginScreen(usuarioDeletado: nomeUsuario),
+                      ),
                       (route) => false,
                     );
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao excluir conta: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                  print('❌ ERRO ao excluir conta: $e');
+                  // NÃO mostrar snackbar aqui pois a tela já foi destruída
                 }
               },
               child: const Text('Excluir', style: TextStyle(color: Colors.red)),
@@ -251,6 +269,7 @@ Copiado da CondoGaia''';
       },
     );
   }
+
 
   Widget _buildMenuCard({
     required String imagePath,

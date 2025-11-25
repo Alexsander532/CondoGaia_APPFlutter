@@ -24,6 +24,7 @@ class Inquilino {
   final String? fotoPerfil;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? qrCodeUrl;
 
   const Inquilino({
     required this.id,
@@ -50,6 +51,7 @@ class Inquilino {
     this.fotoPerfil,
     this.createdAt,
     this.updatedAt,
+    this.qrCodeUrl,
   });
 
   /// Cria uma instância de Inquilino a partir de um Map (JSON)
@@ -83,6 +85,7 @@ class Inquilino {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      qrCodeUrl: json['qr_code_url'] as String?,
     );
   }
 
@@ -113,9 +116,9 @@ class Inquilino {
       'foto_perfil': fotoPerfil,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'qr_code_url': qrCodeUrl,
     };
   }
-
   /// Cria uma cópia do inquilino com campos modificados
   Inquilino copyWith({
     String? id,
@@ -142,6 +145,7 @@ class Inquilino {
     String? fotoPerfil,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? qrCodeUrl,
   }) {
     return Inquilino(
       id: id ?? this.id,
@@ -168,6 +172,7 @@ class Inquilino {
       fotoPerfil: fotoPerfil ?? this.fotoPerfil,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
     );
   }
 

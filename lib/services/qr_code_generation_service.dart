@@ -293,4 +293,125 @@ class QrCodeGenerationService {
       return null;
     }
   }
+
+  /// ✨ NOVO MÉTODO GENÉRICO
+  /// Gera QR code para qualquer tipo de entidade (unidade, proprietário, inquilino, imobiliária)
+  /// 
+  /// Parâmetros:
+  /// - [tipo]: 'unidade', 'proprietario', 'inquilino', 'imobiliaria'
+  /// - [id]: ID da entidade
+  /// - [nome]: Nome/número da entidade
+  /// - [tabelaNome]: Nome da tabela no banco (onde salvar a URL)
+  /// - [dados]: Map com dados adicionais para codificar no QR code
+  static Future<String?> gerarESalvarQRCodeGenerico({
+    required String tipo,
+    required String id,
+    required String nome,
+    required String tabelaNome,
+    required Map<String, dynamic> dados,
+  }) async {
+    try {
+      print('🔄 [QR Code] Iniciando geração genérica para tipo: $tipo, nome: $nome');
+
+      // 1️⃣ Montar dados do QR Code
+      final dadosQR = {
+        'tipo': tipo,
+        ...dados, // Incluir dados adicionais
+        'data_geracao': DateTime.now().toIso8601String(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      final jsonString = jsonEncode(dadosQR);
+      print('📋 [QR Code] Dados: $jsonString');
+
+      // 2️⃣ Gerar imagem PNG do QR Code
+      print('🖼️ [QR Code] Gerando imagem...');
+      final pngBytes = await _gerarImagemQRCode(jsonString);
+
+      if (pngBytes == null) {
+        print('❌ [QR Code] Falha ao gerar imagem PNG');
+        return null;
+      }
+
+      // 3️⃣ Preparar nome do arquivo
+      final nomeArquivo = _gerarNomeArquivoGenerico(tipo, nome);
+      print('📁 [QR Code] Nome do arquivo: $nomeArquivo');
+
+      // 4️⃣ Upload para Supabase Storage
+      print('☁️ [QR Code] Uploadando para bucket "$_bucketName"...');
+      final urlPublica = await _uploadParaStorage(nomeArquivo, pngBytes);
+
+      if (urlPublica == null) {
+        print('❌ [QR Code] Falha ao fazer upload');
+        return null;
+      }
+
+      // 5️⃣ Salvar URL no banco de dados
+      print('💾 [QR Code] Salvando URL na tabela "$tabelaNome"...');
+      final sucesso = await _salvarURLnaBancoDadosGenerico(
+        tabelaNome,
+        id,
+        urlPublica,
+      );
+
+      if (sucesso) {
+        print('✅ [QR Code] Geração concluída para $tipo: $urlPublica');
+        return urlPublica;
+      } else {
+        print('❌ [QR Code] Falha ao salvar URL no banco');
+        return null;
+      }
+    } catch (e) {
+      print('❌ [QR Code] ERRO: $e');
+      return null;
+    }
+  }
+
+  /// Gera nome único para o arquivo (versão genérica)
+  static String _gerarNomeArquivoGenerico(String tipo, String identificador) {
+    final identificadorSanitizado = identificador
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final uuid = const Uuid().v4().substring(0, 8);
+
+    return 'qr_${tipo}_${identificadorSanitizado}_${timestamp}_$uuid.png';
+  }
+
+  /// Salva URL no banco de dados (versão genérica para qualquer tabela)
+  static Future<bool> _salvarURLnaBancoDadosGenerico(
+    String tabelaNome,
+    String id,
+    String qrCodeUrl,
+  ) async {
+    try {
+      print('💾 [BD] Salvando URL para $tabelaNome ID: $id');
+
+      // Limpar URL antes de salvar - remover duplicações
+      String urlLimpa = qrCodeUrl;
+      while (urlLimpa.contains('/qr_codes/qr_codes/')) {
+        urlLimpa = urlLimpa.replaceAll('/qr_codes/qr_codes/', '/qr_codes/');
+      }
+
+      if (urlLimpa != qrCodeUrl) {
+        print('🧹 [BD] URL corrigida de duplicação');
+      }
+
+      final supabase = SupabaseService.client;
+
+      await supabase
+          .from(tabelaNome)
+          .update({'qr_code_url': urlLimpa})
+          .eq('id', id);
+
+      print('✅ [BD] URL salva com sucesso em $tabelaNome');
+      return true;
+    } catch (e) {
+      print('❌ [BD] Erro ao salvar URL: $e');
+      return false;
+    }
+  }
 }

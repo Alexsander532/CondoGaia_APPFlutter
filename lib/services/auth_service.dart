@@ -173,6 +173,9 @@ class AuthService {
           final proprietario = Proprietario.fromJson(proprietarioResponse);
           print('DEBUG AUTH: Proprietário encontrado: ${proprietario.nome}');
           print('DEBUG AUTH: Verificando senha...');
+          print('DEBUG AUTH: Senha fornecida: "$password"');
+          print('DEBUG AUTH: Senha no banco: "${proprietario.senhaAcesso}"');
+          print('DEBUG AUTH: Senhas são iguais? ${proprietario.senhaAcesso == password}');
 
           // Verificar senha diretamente (proprietários usam senha simples)
           if (proprietario.senhaAcesso == password) {

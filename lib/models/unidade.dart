@@ -12,7 +12,7 @@ class Unidade {
   final String condominioId;              // Referência ao condomínio
   
   // Campos opcionais da interface principal
-  final String? bloco;                    // Bloco
+  final String? bloco;                    // Bloco (nome, para exibição)
   final double? fracaoIdeal;              // Fração Ideal (ex: 0.014)
   final double? areaM2;                   // Área (m²)
   final int? vencimentoDiaDiferente;      // Vencto dia diferente (1-31)
@@ -36,6 +36,9 @@ class Unidade {
   
   // Campo de Observação
   final String? observacoes;              // Observação (texto livre)
+  
+  // Campo de QR Code
+  final String? qrCodeUrl;                // URL do QR Code gerado
   
   // Campos de controle do sistema
   final bool ativo;
@@ -64,6 +67,7 @@ class Unidade {
     this.correios = false,
     this.nomePagadorBoleto = 'proprietario',
     this.observacoes,
+    this.qrCodeUrl,
     this.ativo = true,
     required this.createdAt,
     required this.updatedAt,
@@ -90,6 +94,7 @@ class Unidade {
     this.correios = false,
     this.nomePagadorBoleto = 'proprietario',
     this.observacoes,
+    this.qrCodeUrl,
     this.ativo = true,
   })  : id = '',
         createdAt = DateTime.now(),
@@ -118,6 +123,7 @@ class Unidade {
       correios: json['correios'] ?? false,
       nomePagadorBoleto: json['nome_pagador_boleto'] ?? 'proprietario',
       observacoes: json['observacoes'],
+      qrCodeUrl: json['qr_code_url'],
       ativo: json['ativo'] ?? true,
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
@@ -143,6 +149,7 @@ class Unidade {
       'correios': correios,
       'nome_pagador_boleto': nomePagadorBoleto,
       'observacoes': observacoes,
+      'qr_code_url': qrCodeUrl,
       'ativo': ativo,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -171,6 +178,7 @@ class Unidade {
     bool? correios,
     String? nomePagadorBoleto,
     String? observacoes,
+    String? qrCodeUrl,
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -193,6 +201,7 @@ class Unidade {
       correios: correios ?? this.correios,
       nomePagadorBoleto: nomePagadorBoleto ?? this.nomePagadorBoleto,
       observacoes: observacoes ?? this.observacoes,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

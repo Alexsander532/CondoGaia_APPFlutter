@@ -12,7 +12,12 @@ import '../screens/upload_foto_perfil_proprietario_screen.dart';
 import '../screens/upload_foto_perfil_inquilino_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? usuarioDeletado;  // Nome do usuário que foi deletado
+
+  const LoginScreen({
+    super.key,
+    this.usuarioDeletado,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -27,6 +32,23 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _autoLogin = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Mostrar mensagem se um usuário foi deletado
+    if (widget.usuarioDeletado != null && widget.usuarioDeletado!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Usuário "${ widget.usuarioDeletado}" foi deletado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {

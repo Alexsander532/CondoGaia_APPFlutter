@@ -7,7 +7,7 @@ import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'gestao_screen.dart';
 import 'login_screen.dart';
-
+import '../services/unidade_detalhes_service.dart';
 import 'representante_dashboard_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
@@ -282,13 +282,34 @@ Copiado da CondoGaia''';
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                // TODO: Implementar exclusão de conta via API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Excluindo conta...'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                try {
+                  final service = UnidadeDetalhesService();
+                  
+                  // Deletar o representante
+                  print('🗑️ Deletando representante: ${widget.representante.id}');
+                  await service.deletarRepresentante(representanteId: widget.representante.id);
+                  print('✅ Representante deletado com sucesso!');
+                  
+                  // Fazer logout
+                  print('🚪 Realizando logout...');
+                  final supabase = Supabase.instance.client;
+                  await supabase.auth.signOut();
+                  print('✅ Logout realizado!');
+                  
+                  // Navegar para login (SEM usar ScaffoldMessenger pois a tela foi destruída)
+                  if (mounted) {
+                    print('🔄 Navegando para login...');
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => LoginScreen(usuarioDeletado: 'Representante'),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print('❌ ERRO ao excluir conta: $e');
+                  // NÃO mostrar snackbar aqui pois a tela já foi destruída
+                }
               },
               child: const Text(
                 'Excluir',

@@ -23,6 +23,9 @@ class Proprietario {
   final DateTime? updatedAt;
   final String? senhaAcesso;
   final String? fotoPerfil;
+  final String? qrCodeUrl;
+  final bool? agruparBoletos;
+  final bool? matriculaImovel;
 
   const Proprietario({
     required this.id,
@@ -48,6 +51,9 @@ class Proprietario {
     this.updatedAt,
     this.senhaAcesso,
     this.fotoPerfil,
+    this.qrCodeUrl,
+    this.agruparBoletos,
+    this.matriculaImovel,
   });
 
   /// Cria uma instância de Proprietario a partir de um Map (JSON)
@@ -76,6 +82,9 @@ class Proprietario {
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
       senhaAcesso: json['senha_acesso'] as String?,
       fotoPerfil: json['foto_perfil'] as String?,
+      qrCodeUrl: json['qr_code_url'] as String?,
+      agruparBoletos: json['agrupar_boletos'] as bool?,
+      matriculaImovel: json['matricula_imovel'] as bool?,
     );
   }
 
@@ -105,6 +114,9 @@ class Proprietario {
       'updated_at': updatedAt?.toIso8601String(),
       'senha_acesso': senhaAcesso,
       'foto_perfil': fotoPerfil,
+      'qr_code_url': qrCodeUrl,
+      'agrupar_boletos': agruparBoletos,
+      'matricula_imovel': matriculaImovel,
     };
   }
 
@@ -133,6 +145,7 @@ class Proprietario {
     DateTime? updatedAt,
     String? senhaAcesso,
     String? fotoPerfil,
+    String? qrCodeUrl,
   }) {
     return Proprietario(
       id: id ?? this.id,
@@ -158,6 +171,7 @@ class Proprietario {
       updatedAt: updatedAt ?? this.updatedAt,
       senhaAcesso: senhaAcesso ?? this.senhaAcesso,
       fotoPerfil: fotoPerfil ?? this.fotoPerfil,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
     );
   }
 

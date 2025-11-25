@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/bloco.dart';
 import '../models/unidade.dart';
 import '../models/bloco_com_unidades.dart';
+import 'qr_code_generation_service.dart';
 
 class UnidadeService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -123,9 +124,47 @@ class UnidadeService {
           .select()
           .single();
 
-      return Unidade.fromJson(response);
+      final unidadeCriada = Unidade.fromJson(response);
+      
+      // ✅ Aguardar geração do QR code antes de retornar
+      await _gerarQRCodeUnidadeAsync(unidadeCriada);
+      
+      return unidadeCriada;
     } catch (e) {
       throw Exception('Erro ao criar unidade: $e');
+    }
+  }
+
+  /// Gera QR code para a unidade
+  /// Aguarda a conclusão da geração antes de retornar
+  Future<void> _gerarQRCodeUnidadeAsync(Unidade unidade) async {
+    // Aguardar um pouco para garantir que os dados foram salvos no banco
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    try {
+      print('🔄 [Unidade] Iniciando geração de QR Code para unidade: ${unidade.numero}');
+
+      final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+        tipo: 'unidade',
+        id: unidade.id,
+        nome: unidade.numero,
+        tabelaNome: 'unidades',
+        dados: {
+          'id': unidade.id,
+          'numero': unidade.numero,
+          'bloco': unidade.bloco ?? '',
+          'condominio_id': unidade.condominioId,
+          'data_criacao': DateTime.now().toIso8601String(),
+        },
+      );
+
+      if (qrCodeUrl != null) {
+        print('✅ [Unidade] QR Code gerado e salvo: $qrCodeUrl');
+      } else {
+        print('❌ [Unidade] Falha ao gerar QR Code');
+      }
+    } catch (e) {
+      print('❌ [Unidade] Erro ao gerar QR Code: $e');
     }
   }
 
@@ -348,6 +387,9 @@ class UnidadeService {
       // Converter para JSON e remover ID vazio (deixar banco gerar)
       final json = unidade.toJson();
       json.remove('id'); // Remove ID nulo para que o banco gere
+      
+      // ✅ IMPORTANTE: Adicionar bloco_id para a constraint da tabela
+      json['bloco_id'] = blocoCriado.id;
 
       final response = await _supabase
           .from('unidades')
@@ -355,7 +397,12 @@ class UnidadeService {
           .select()
           .single();
 
-      return Unidade.fromJson(response);
+      final unidadeCriada = Unidade.fromJson(response);
+      
+      // ✅ NOVO: Gerar QR code em background
+      _gerarQRCodeUnidadeAsync(unidadeCriada);
+      
+      return unidadeCriada;
     } catch (e) {
       throw Exception('Erro ao criar unidade rápida: $e');
     }
