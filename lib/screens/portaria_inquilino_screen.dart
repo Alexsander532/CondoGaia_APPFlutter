@@ -693,7 +693,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
             ],
           ),
         ),
-        // QR Code Widget abaixo do card
+        // QR Code Widget integrado dentro do card
+        const SizedBox(height: 2),
+        //const Divider(color: Color(0xFFE0E0E0)),
+        const SizedBox(height: 2),
         QrCodeWidget(
           dados: autorizado.gerarDadosQR(
             unidade: widget.unidadeId,
@@ -701,6 +704,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           ),
           nome: autorizado.nome,
         ),
+        const SizedBox(height: 24),
+        const Divider(color: Color(0xFFE0E0E0)),
+        const SizedBox(height: 8),
+
       ],
     );
   }

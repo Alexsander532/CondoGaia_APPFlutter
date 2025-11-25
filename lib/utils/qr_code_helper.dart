@@ -118,7 +118,63 @@ class QrCodeHelper {
     }
   }
 
-  /// Compartilha a imagem QR usando Share Plus
+  /// Compartilha a imagem do QR Code baixando da URL do Supabase
+  static Future<bool> compartilharQRURL(String urlQr, String nome) async {
+    try {
+      print('[QR] Iniciando compartilhamento da imagem do QR Code...');
+
+      if (urlQr.isEmpty) {
+        print('[QR] Erro: URL do QR Code está vazia');
+        return false;
+      }
+
+      print('[QR] Baixando imagem do QR Code de: $urlQr');
+
+      // Baixar imagem da URL usando HttpClient
+      final httpClient = HttpClient();
+      final request = await httpClient.getUrl(Uri.parse(urlQr));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        print('[QR] Erro ao baixar: Status ${response.statusCode}');
+        return false;
+      }
+
+      // Obter bytes da imagem
+      final bytes = await response.fold<List<int>>(
+        <int>[],
+        (List<int> previous, List<int> element) => previous + element,
+      );
+
+      print('[QR] Imagem baixada com sucesso: ${bytes.length} bytes');
+
+      // Salvar em arquivo temporário
+      final tempDir = Directory.systemTemp;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final nomeArquivo = 'qr_code_${nome}_$timestamp.png';
+      final caminhoArquivo = '${tempDir.path}/$nomeArquivo';
+      
+      final file = File(caminhoArquivo);
+      await file.writeAsBytes(bytes);
+
+      print('[QR] Arquivo salvo em: $caminhoArquivo');
+
+      // Compartilhar usando share_plus
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'QR Code de: $nome',
+        subject: 'QR Code de Autorização - $nome',
+      );
+
+      print('[QR] QR Code compartilhado com sucesso');
+      return true;
+    } catch (e) {
+      print('[QR] Erro ao compartilhar QR Code: $e');
+      return false;
+    }
+  }
+
+  /// Compartilha a imagem QR usando Share Plus (método antigo - mantido para compatibilidade)
   static Future<bool> compartilharQR(String dados, String nome) async {
     try {
       print('[QR] Iniciando compartilhamento do QR Code...');

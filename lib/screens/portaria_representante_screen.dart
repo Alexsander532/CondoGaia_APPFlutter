@@ -3009,11 +3009,16 @@ class _PortariaRepresentanteScreenState
             ],
           ),
         ),
-        // QR Code Widget
+        // QR Code Widget integrado dentro do card
+        const SizedBox(height: 16),
+        const Divider(color: Color(0xFFE0E0E0)),
+        const SizedBox(height: 16),
         QrCodeWidget(
           dados: dados,
           nome: autorizado['nome'] ?? 'Autorizado',
         ),
+        const SizedBox(height: 24),
+        const Divider(color: Color(0xFFE0E0E0)),
       ],
     );
   }
