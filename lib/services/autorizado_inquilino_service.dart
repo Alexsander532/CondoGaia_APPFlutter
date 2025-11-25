@@ -107,11 +107,15 @@ class AutorizadoInquilinoService {
             ),
             inquilinos(
               id,
-              nome
+              nome,
+              telefone,
+              celular
             ),
             proprietarios(
               id,
-              nome
+              nome,
+              telefone,
+              celular
             )
           ''')
           .eq('unidades.condominio_id', condominioId)
@@ -191,14 +195,34 @@ class AutorizadoInquilinoService {
 
         // Obter os 3 primeiros dígitos do CPF
         String cpfTresPrimeiros = '';
+        String cpfCompleto = '';
         if (item['cpf'] != null && item['cpf'].toString().length >= 3) {
           cpfTresPrimeiros = item['cpf'].toString().substring(0, 3);
+          cpfCompleto = item['cpf'].toString();
+        }
+
+        // Formatar unidade
+        String unidadeFormatada = chaveUnidade;
+
+        // 🔧 Obter telefone do inquilino ou proprietário
+        String telefoneFormatado = 'N/A';
+        if (inquilino != null && inquilino['telefone'] != null) {
+          telefoneFormatado = inquilino['telefone'] as String;
+        } else if (inquilino != null && inquilino['celular'] != null) {
+          telefoneFormatado = inquilino['celular'] as String;
+        } else if (proprietario != null && proprietario['telefone'] != null) {
+          telefoneFormatado = proprietario['telefone'] as String;
+        } else if (proprietario != null && proprietario['celular'] != null) {
+          telefoneFormatado = proprietario['celular'] as String;
         }
 
         Map<String, dynamic> autorizadoFormatado = {
           'id': item['id'],
           'nome': item['nome'] ?? 'N/A',
+          'cpf': cpfCompleto, // 🔧 CPF completo
           'cpfTresPrimeiros': cpfTresPrimeiros,
+          'telefone': telefoneFormatado, // 🔧 Telefone do inquilino/proprietário
+          'unidade': unidadeFormatada, // 🔧 Unidade formatada
           'nomeCriador': nomeCriador,
           'diasHorarios': '$diasFormatados • $horariosFormatados',
           'parentesco': item['parentesco'] ?? '',

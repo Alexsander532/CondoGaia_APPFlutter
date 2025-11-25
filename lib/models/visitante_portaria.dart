@@ -19,6 +19,7 @@ class VisitantePortaria {
   final String? veiculoCor;
   final String? veiculoPlaca;
   final String? fotoUrl;
+  final String? qrCodeUrl;
   final bool ativo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -43,6 +44,7 @@ class VisitantePortaria {
     this.veiculoCor,
     this.veiculoPlaca,
     this.fotoUrl,
+    this.qrCodeUrl,
     this.ativo = true,
     this.createdAt,
     this.updatedAt,
@@ -70,6 +72,7 @@ class VisitantePortaria {
       veiculoCor: json['veiculo_cor'] as String?,
       veiculoPlaca: json['veiculo_placa'] as String?,
       fotoUrl: json['foto_url'] as String?,
+      qrCodeUrl: json['qr_code_url'] as String?,
       ativo: json['ativo'] as bool? ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -104,6 +107,7 @@ class VisitantePortaria {
       'veiculo_cor': veiculoCor,
       'veiculo_placa': veiculoPlaca,
       'foto_url': fotoUrl,
+      'qr_code_url': qrCodeUrl,
       'ativo': ativo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -140,6 +144,7 @@ class VisitantePortaria {
     String? veiculoCor,
     String? veiculoPlaca,
     String? fotoUrl,
+    String? qrCodeUrl,
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -164,6 +169,7 @@ class VisitantePortaria {
       veiculoCor: veiculoCor ?? this.veiculoCor,
       veiculoPlaca: veiculoPlaca ?? this.veiculoPlaca,
       fotoUrl: fotoUrl ?? this.fotoUrl,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

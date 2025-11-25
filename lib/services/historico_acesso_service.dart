@@ -428,6 +428,7 @@ class HistoricoAcessoService {
           'data_visita': visitante['data_visita'],
           'status_visita': visitante['status_visita'] ?? 'agendado',
           'foto_url': visitante['foto_url'], // Adicionando foto do visitante
+          'qr_code_url': visitante['qr_code_url'], // ✅ Adicionando URL do QR Code
         };
       }).toList();
     } catch (e) {

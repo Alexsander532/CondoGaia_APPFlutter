@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/visitante_portaria.dart';
 import 'supabase_service.dart';
+import 'qr_code_generation_service.dart';
 
 /// Serviço para gerenciar visitantes da portaria do representante
 class VisitantePortariaService {
@@ -53,7 +54,12 @@ class VisitantePortariaService {
           .select()
           .single();
 
-      return VisitantePortaria.fromJson(response);
+      final visitante = VisitantePortaria.fromJson(response);
+
+      // 🆕 Gerar e salvar QR Code após inserir
+      _gerarQRCodeAsync(visitante);
+
+      return visitante;
     } catch (e) {
       print('Erro ao inserir visitante: $e');
       rethrow;
@@ -438,4 +444,36 @@ class VisitantePortariaService {
       rethrow;
     }
   }
+
+  // 🆕 Gera QR Code de forma assíncrona (sem bloquear o fluxo principal)
+  static void _gerarQRCodeAsync(VisitantePortaria visitante) {
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      try {
+        print('🔄 [Visitante] Iniciando geração de QR Code para: ${visitante.nome}');
+
+        final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCode(
+          visitanteId: visitante.id,
+          visitanteNome: visitante.nome,
+          visitanteCpf: visitante.cpf,
+          unidade: visitante.unidadeId ?? 'N/A',
+          celular: visitante.celular,
+          diasPermitidos: 'Sem restrição',
+        );
+
+        if (qrCodeUrl != null) {
+          // Salvar URL na tabela
+          await QrCodeGenerationService.salvarURLnaBancoDados(
+            visitante.id,
+            qrCodeUrl,
+          );
+          print('✅ [Visitante] QR Code gerado e salvo: $qrCodeUrl');
+        } else {
+          print('❌ [Visitante] Falha ao gerar QR Code');
+        }
+      } catch (e) {
+        print('❌ [Visitante] Erro ao gerar QR Code: $e');
+      }
+    });
+  }
 }
+

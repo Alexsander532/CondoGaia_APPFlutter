@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:convert';
 import 'conversas_simples_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
@@ -14,8 +13,9 @@ import '../services/autorizado_inquilino_service.dart';
 import '../services/visitante_portaria_service.dart';
 import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
+import '../services/qr_code_generation_service.dart';
 import '../utils/formatters.dart';
-import '../widgets/qr_code_widget.dart';
+import '../widgets/qr_code_display_widget.dart';
 
 // Classe para unificar proprietários e inquilinos
 class PessoaUnidade {
@@ -167,6 +167,14 @@ class _PortariaRepresentanteScreenState
     _carregarVisitantesNoCondominio();
     _carregarVisitantesCadastrados();
     _carregarHistoricoEncomendas();
+    
+    // ✅ Corrigir URLs duplicadas ao carregar a tela
+    _corrigirURLsQRCode();
+  }
+  
+  /// Corrige URLs duplicadas do QR Code no banco de dados
+  void _corrigirURLsQRCode() {
+    QrCodeGenerationService.corrigirURLsDuplicadas();
   }
 
   @override
@@ -2877,20 +2885,6 @@ class _PortariaRepresentanteScreenState
 
   // Widget para card de autorizado
   Widget _buildAutorizadoCard(Map<String, dynamic> autorizado) {
-    // Gerar dados JSON para QR Code
-    final dados = jsonEncode({
-      'id': autorizado['id'] ?? '',
-      'nome': autorizado['nome'] ?? '',
-      'cpf': autorizado['cpf'] ?? '',
-      'parentesco': autorizado['parentesco'],
-      'tipo': 'representante',
-      'unidade': autorizado['unidade'] ?? '',
-      'data_autorizacao': autorizado['dataCriacao'] ?? DateTime.now().toIso8601String(),
-      'timestamp': DateTime.now().toIso8601String(),
-      'veiculo': autorizado['veiculo'],
-      'horario': autorizado['diasHorarios'] ?? 'Sem restrição',
-    });
-
     return Column(
       children: [
         Container(
@@ -3009,16 +3003,18 @@ class _PortariaRepresentanteScreenState
             ],
           ),
         ),
-        // QR Code Widget integrado dentro do card
+        // 🆕 QR Code Display Widget integrado dentro do card
         const SizedBox(height: 16),
-        const Divider(color: Color(0xFFE0E0E0)),
-        const SizedBox(height: 16),
-        QrCodeWidget(
-          dados: dados,
-          nome: autorizado['nome'] ?? 'Autorizado',
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: QrCodeDisplayWidget(
+            qrCodeUrl: autorizado['qr_code_url'],
+            visitanteNome: autorizado['nome'] ?? 'Autorizado',
+            visitanteCpf: autorizado['cpf'] ?? '',
+            unidade: autorizado['unidade'] ?? '',
+          ),
         ),
         const SizedBox(height: 24),
-        const Divider(color: Color(0xFFE0E0E0)),
       ],
     );
   }
@@ -3822,112 +3818,154 @@ class _PortariaRepresentanteScreenState
                         ),
                       ),
                       children: autorizados.map((autorizado) {
-                        return ListTile(
-                          leading: GestureDetector(
-                            onTap: autorizado['foto_url'] != null && 
-                                    (autorizado['foto_url'] as String?)?.isNotEmpty == true
-                                ? () => _mostrarFotoAmpliada(
-                                      autorizado['foto_url'] as String,
-                                      autorizado['nome'] ?? 'Autorizado',
-                                    )
-                                : null,
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF1976D2).withOpacity(0.2),
-                                border: autorizado['foto_url'] != null &&
-                                        (autorizado['foto_url'] as String?)?.isNotEmpty == true
-                                    ? Border.all(
-                                        color: const Color(0xFF1976D2),
-                                        width: 2,
-                                      )
-                                    : null,
-                              ),
-                              child: autorizado['foto_url'] != null &&
-                                      (autorizado['foto_url'] as String?)?.isNotEmpty == true
-                                  ? Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        ClipOval(
-                                          child: Image.network(
-                                            autorizado['foto_url'] as String,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) {
-                                                print('📸 Foto carregada: ${autorizado['nome']}');
-                                                return child;
-                                              }
-                                              return Container(
-                                                color: const Color(0xFF1976D2).withOpacity(0.2),
-                                                child: const Center(
-                                                  child: SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFE0E0E0)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Primeira linha: Avatar + Nome + Botão
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Avatar
+                                    GestureDetector(
+                                      onTap: autorizado['foto_url'] != null && 
+                                              (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                          ? () => _mostrarFotoAmpliada(
+                                                autorizado['foto_url'] as String,
+                                                autorizado['nome'] ?? 'Autorizado',
+                                              )
+                                          : null,
+                                      child: Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFF1976D2).withOpacity(0.2),
+                                          border: autorizado['foto_url'] != null &&
+                                                  (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                              ? Border.all(
+                                                  color: const Color(0xFF1976D2),
+                                                  width: 2,
+                                                )
+                                              : null,
+                                        ),
+                                        child: autorizado['foto_url'] != null &&
+                                                (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                            ? Stack(
+                                                fit: StackFit.expand,
+                                                children: [
+                                                  ClipOval(
+                                                    child: Image.network(
+                                                      autorizado['foto_url'] as String,
+                                                      fit: BoxFit.cover,
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return Container(
+                                                          color: const Color(0xFF1976D2).withOpacity(0.2),
+                                                          child: const Center(
+                                                            child: SizedBox(
+                                                              width: 20,
+                                                              height: 20,
+                                                              child: CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Container(
+                                                          color: const Color(0xFF1976D2).withOpacity(0.2),
+                                                          child: const Icon(
+                                                            Icons.person,
+                                                            size: 24,
+                                                            color: Color(0xFF1976D2),
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                                   ),
+                                                ],
+                                              )
+                                            : Center(
+                                                child: Text(
+                                                  autorizado['nome']
+                                                          ?.substring(0, 1)
+                                                          .toUpperCase() ??
+                                                      'A',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF1976D2),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 20,
+                                                  ),
                                                 ),
-                                              );
-                                            },
-                                            errorBuilder: (context, error, stackTrace) {
-                                              print('❌ Erro ao carregar foto ${autorizado['nome']}: $error');
-                                              return Container(
-                                                color: const Color(0xFF1976D2).withOpacity(0.2),
-                                                child: const Icon(
-                                                  Icons.person,
-                                                  size: 24,
-                                                  color: Color(0xFF1976D2),
-                                                ),
-                                              );
-                                            },
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Nome e Botão
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            autorizado['nome'] ?? 'Nome não informado',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              color: Color(0xFF2E3A59),
+                                            ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Botão Selecionar
+                                    SizedBox(
+                                      height: 36,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                          _showRegistroEntradaDialog(autorizado, unidade);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF2E7D32),
+                                          padding: const EdgeInsets.symmetric(horizontal: 16),
                                         ),
-                                      ],
-                                    )
-                                  : Center(
-                                      child: Text(
-                                        autorizado['nome']
-                                                ?.substring(0, 1)
-                                                .toUpperCase() ??
-                                            'A',
-                                        style: const TextStyle(
-                                          color: Color(0xFF1976D2),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
+                                        child: const Text(
+                                          'Selecionar',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
                                     ),
-                            ),
-                          ),
-                          title: Text(
-                            autorizado['nome'] ?? 'Nome não informado',
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Criado por: ${autorizado['criado_por'] ?? 'N/A'}',
-                              ),
-                              Text(
-                                'Dias permitidos: ${autorizado['dias_permitidos'] ?? 'N/A'}',
-                              ),
-                            ],
-                          ),
-                          trailing: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              _showRegistroEntradaDialog(autorizado, unidade);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2E7D32),
-                            ),
-                            child: const Text(
-                              'Selecionar',
-                              style: TextStyle(color: Colors.white),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                // Informações em coluna única
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildInfoLine('CPF:', autorizado['cpf'] ?? 'N/A'),
+                                    const SizedBox(height: 6),
+                                    _buildInfoLine('Criado por:', autorizado['criado_por'] ?? 'N/A'),
+                                    const SizedBox(height: 6),
+                                    _buildInfoLine('Dias:', autorizado['dias_permitidos'] ?? 'N/A'),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -3986,8 +4024,8 @@ class _PortariaRepresentanteScreenState
                     final visitante = _visitantesCadastrados[index];
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ExpansionTile(
                         leading: GestureDetector(
                           onTap: visitante['foto_url'] != null && 
                                   (visitante['foto_url'] as String?)?.isNotEmpty == true
@@ -4024,22 +4062,42 @@ class _PortariaRepresentanteScreenState
                               ),
                           ],
                         ),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            _showRegistroEntradaDialog(
-                              visitante,
-                              'Visitante Cadastrado',
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E7D32),
+                        children: [
+                          // 🆕 QR Code Display Widget
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                QrCodeDisplayWidget(
+                                  qrCodeUrl: visitante['qr_code_url'],
+                                  visitanteNome: visitante['nome'] ?? 'Visitante',
+                                  visitanteCpf: visitante['cpf'] ?? '',
+                                  unidade: visitante['unidade_numero']?.toString() ?? '',
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      _showRegistroEntradaDialog(
+                                        visitante,
+                                        'Visitante Cadastrado',
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2E7D32),
+                                    ),
+                                    child: const Text(
+                                      'Selecionar para Entrada',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: const Text(
-                            'Selecionar',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -4457,11 +4515,22 @@ class _PortariaRepresentanteScreenState
   Map<String, dynamic> _prepararDadosVisitante() {
     final now = DateTime.now();
 
+    // 🆕 Validar e obter unidade_id
+    String? unidadeId;
+    if (_isUnidadeSelecionada && _unidadeSelecionadaVisitante != null) {
+      unidadeId = _unidadeSelecionadaVisitante!.id;
+      print('[Visitante] Unidade selecionada: $unidadeId');
+    } else if (_isUnidadeSelecionada && _unidadeSelecionadaVisitante == null) {
+      print('❌ [Visitante] ERRO: Unidade marcada como selecionada mas está nula!');
+      unidadeId = null;
+    } else {
+      print('[Visitante] Sem unidade selecionada (Condomínio)');
+      unidadeId = null;
+    }
+
     return {
       'condominio_id': widget.condominioId!,
-      'unidade_id': _isUnidadeSelecionada
-          ? _unidadeSelecionadaVisitante?.id
-          : null,
+      'unidade_id': unidadeId,
       'nome': _visitanteNomeController.text.trim(),
       'cpf': VisitantePortariaService.formatarCPF(
         _visitanteCpfCnpjController.text.trim(),
@@ -4521,7 +4590,7 @@ class _PortariaRepresentanteScreenState
   }
 
   // Mostrar mensagem de sucesso
-  void _mostrarMensagemSucesso() {
+  Future<void> _mostrarMensagemSucesso() async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Visitante cadastrado com sucesso!'),
@@ -4529,6 +4598,13 @@ class _PortariaRepresentanteScreenState
         duration: Duration(seconds: 3),
       ),
     );
+    
+    // ✅ Recarregar a lista de visitantes cadastrados automaticamente
+    // Esperar um pouco para garantir que o QR Code foi salvo no banco
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      _carregarVisitantesCadastrados();
+    }
   }
 
   // Mostrar mensagem de erro
@@ -4739,20 +4815,6 @@ class _PortariaRepresentanteScreenState
       }
     });
   }
-
-  // Método para formatar hora no padrão HH:MM
-  String _formatarHora(String dataHora) {
-    try {
-      // Parse da string ISO e conversão para horário local
-      final dateTime = DateTime.parse(dataHora);
-      // Se a data já está em UTC, converte para local, senão usa como está
-      final localDateTime = dateTime.isUtc ? dateTime.toLocal() : dateTime;
-      return '${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return 'N/A';
-    }
-  }
-
   // Método para salvar encomenda
   Future<void> _salvarEncomenda() async {
     if (_pessoaSelecionadaEncomenda == null) return;
@@ -4867,6 +4929,36 @@ class _PortariaRepresentanteScreenState
         );
       }
     }
+  }
+
+  /// Constrói uma linha de informação com label e valor formatados
+  Widget _buildInfoLine(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF666666),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF2E3A59),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 
   /// Mostra a foto ampliada em um diálogo com zoom
