@@ -132,6 +132,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   bool _isLoadingInquilino = false;
   bool _isLoadingImobiliaria = false;
 
+  // Timer para verificar se QR Code foi gerado
+  int _qrCheckCount = 0;
+  static const int _maxQrChecks = 20; // Máximo 10 segundos (20 * 500ms)
+
   @override
   void initState() {
     super.initState();
@@ -155,12 +159,41 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     });
     
     // Aguardar um pouco para o QR code ser salvo no banco (300ms da criação + buffer)
-    // Depois recarregar os dados para pegar o QR code
+    // Depois recarregar os dados e continuar verificando até que o QR seja gerado
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        _carregarDados();
+        _qrCheckCount = 0;
+        _carregarDadosComVerificacaoQR();
       }
     });
+  }
+
+  /// Carrega dados e verifica se QR Code foi gerado
+  /// Se não foi, recarrega novamente até 20 vezes (máximo 10 segundos)
+  Future<void> _carregarDadosComVerificacaoQR() async {
+    await _carregarDados();
+    
+    if (mounted) {
+      // Verificar se todos os QR codes foram gerados
+      final proprietarioTemQR = _proprietario?.qrCodeUrl != null && _proprietario!.qrCodeUrl!.isNotEmpty;
+      final inquilinoTemQR = _inquilino?.qrCodeUrl != null && _inquilino!.qrCodeUrl!.isNotEmpty;
+      final imobiliariaTemQR = _imobiliaria?.qrCodeUrl != null && _imobiliaria!.qrCodeUrl!.isNotEmpty;
+
+      // Se faltam QR codes e ainda temos tentativas, recarregar novamente
+      if ((_proprietario != null && !proprietarioTemQR) ||
+          (_inquilino != null && !inquilinoTemQR) ||
+          (_imobiliaria != null && !imobiliariaTemQR)) {
+        
+        _qrCheckCount++;
+        if (_qrCheckCount < _maxQrChecks) {
+          // Aguardar 500ms e tentar novamente
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            _carregarDadosComVerificacaoQR();
+          }
+        }
+      }
+    }
   }
 
   Future<void> _carregarDados() async {
@@ -3382,14 +3415,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
              ),
            )
          else
-           // Mostrar loading enquanto o QR code é gerado
+           // Mostrar mensagem simples de processamento
            Container(
              width: double.infinity,
              padding: const EdgeInsets.all(16),
              decoration: BoxDecoration(
-               border: Border.all(color: Colors.blue[300]!),
+               border: Border.all(color: const Color(0xFFE0E0E0)),
                borderRadius: BorderRadius.circular(8),
-               color: Colors.blue[50],
+               color: const Color(0xFFFAFAFA),
              ),
              child: Column(
                crossAxisAlignment: CrossAxisAlignment.center,
@@ -3403,29 +3436,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                    ),
                  ),
                  const SizedBox(height: 12),
-                 Row(
-                   mainAxisAlignment: MainAxisAlignment.center,
-                   children: [
-                     SizedBox(
-                       width: 18,
-                       height: 18,
-                       child: CircularProgressIndicator(
-                         strokeWidth: 2,
-                         valueColor: AlwaysStoppedAnimation<Color>(
-                           Colors.blue[600]!,
-                         ),
-                       ),
-                     ),
-                     const SizedBox(width: 10),
-                     Text(
-                       'Gerando QR Code...',
-                       style: TextStyle(
-                         fontSize: 13,
-                         color: Colors.blue[700],
-                         fontWeight: FontWeight.w500,
-                       ),
-                     ),
-                   ],
+                 Text(
+                   'ℹ️ QR Code em processamento...\nActualizando em breve',
+                   textAlign: TextAlign.center,
+                   style: TextStyle(
+                     fontSize: 13,
+                     color: Colors.grey[600],
+                     fontWeight: FontWeight.w400,
+                   ),
                  ),
                ],
              ),
@@ -3556,6 +3574,432 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Campo Nome (OBRIGATÓRIO)
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Nome',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoNomeController,
+            decoration: InputDecoration(
+              hintText: 'Digite o nome do inquilino',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campo CPF/CNPJ (OBRIGATÓRIO)
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'CPF/CNPJ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoCpfCnpjController,
+            decoration: InputDecoration(
+              hintText: 'Digite o CPF ou CNPJ',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campo CEP
+          const Text(
+            'CEP:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoCepController,
+            decoration: InputDecoration(
+              hintText: 'Digite o CEP',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campos Endereço e Número
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Endereço:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _inquilinoEnderecoController,
+                      decoration: InputDecoration(
+                        hintText: 'Digite o endereço',
+                        hintStyle: const TextStyle(color: Color(0xFF999999)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Número:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _inquilinoNumeroController,
+                      decoration: InputDecoration(
+                        hintText: 'Digite o número',
+                        hintStyle: const TextStyle(color: Color(0xFF999999)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Campo Bairro
+          const Text(
+            'Bairro:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoBairroController,
+            decoration: InputDecoration(
+              hintText: 'Digite o bairro',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campos Cidade e Estado
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Cidade:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _inquilinoCidadeController,
+                      decoration: InputDecoration(
+                        hintText: 'Digite a cidade',
+                        hintStyle: const TextStyle(color: Color(0xFF999999)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Estado:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _inquilinoEstadoController,
+                      decoration: InputDecoration(
+                        hintText: 'Digite o estado',
+                        hintStyle: const TextStyle(color: Color(0xFF999999)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Campo Telefone
+          const Text(
+            'Telefone:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoTelefoneController,
+            decoration: InputDecoration(
+              hintText: 'Digite o telefone',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campo Celular
+          const Text(
+            'Celular:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoCelularController,
+            decoration: InputDecoration(
+              hintText: 'Digite o celular',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campo Email (OBRIGATÓRIO)
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Email',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoEmailController,
+            decoration: InputDecoration(
+              hintText: 'Digite o email',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             ),
           ),
           const SizedBox(height: 24),
@@ -3958,473 +4402,6 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // Campo Nome
-          RichText(
-            text: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Nome',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                TextSpan(
-                  text: '*',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoNomeController,
-            decoration: InputDecoration(
-              hintText: 'Digite o nome completo',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Campo CPF/CNPJ
-          RichText(
-            text: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'CPF/CNPJ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                TextSpan(
-                  text: '*',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoCpfCnpjController,
-            decoration: InputDecoration(
-              hintText: 'Digite o CPF ou CNPJ',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Campo CEP
-          RichText(
-            text: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'CEP',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                TextSpan(
-                  text: '*',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _inquilinoCepController,
-                  decoration: InputDecoration(
-                    hintText: 'Digite o CEP',
-                    hintStyle: const TextStyle(color: Color(0xFF999999)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E3A59),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Buscar no\nCadastro',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Campo Endereço
-          const Text(
-            'Endereço*',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoEnderecoController,
-            decoration: InputDecoration(
-              hintText: 'Digite o endereço',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Linha com Número e Bairro
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Número:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _inquilinoNumeroController,
-                      decoration: InputDecoration(
-                        hintText: 'Nº',
-                        hintStyle: const TextStyle(color: Color(0xFF999999)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bairro:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _inquilinoBairroController,
-                      decoration: InputDecoration(
-                        hintText: 'Digite o bairro',
-                        hintStyle: const TextStyle(color: Color(0xFF999999)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Linha com Cidade e Estado
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Cidade:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _inquilinoCidadeController,
-                      decoration: InputDecoration(
-                        hintText: 'Digite a cidade',
-                        hintStyle: const TextStyle(color: Color(0xFF999999)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Estado:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _inquilinoEstadoController,
-                      decoration: InputDecoration(
-                        hintText: 'UF',
-                        hintStyle: const TextStyle(color: Color(0xFF999999)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Campo Telefone
-          const Text(
-            'Telefone:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoTelefoneController,
-            decoration: InputDecoration(
-              hintText: 'Digite o telefone',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Campo Celular
-          const Text(
-            'Celular:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoCelularController,
-            decoration: InputDecoration(
-              hintText: 'Digite o celular',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Campo Email
-          RichText(
-            text: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Email',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                TextSpan(
-                  text: '*:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoEmailController,
-            decoration: InputDecoration(
-              hintText: 'Digite o email',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 24),
           
           // QR Code do Inquilino (se existir ou está carregando)
           if (_inquilino != null)
@@ -4459,14 +4436,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
               )
             else
-              // Mostrar loading enquanto o QR code é gerado
+              // Mostrar mensagem simples de processamento
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue[300]!),
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.blue[50],
+                  color: const Color(0xFFFAFAFA),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -4480,29 +4457,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.blue[600]!,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Gerando QR Code...',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.blue[700],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'ℹ️ QR Code em processamento...\nActualizando em breve',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ],
                 ),
@@ -4847,14 +4809,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             )
           else
-            // Mostrar loading enquanto o QR code é gerado
+            // Mostrar mensagem simples de processamento
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue[300]!),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.blue[50],
+                color: const Color(0xFFFAFAFA),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -4868,29 +4830,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blue[600]!,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Gerando QR Code...',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'ℹ️ QR Code em processamento...\nActualizando em breve',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
               ),
