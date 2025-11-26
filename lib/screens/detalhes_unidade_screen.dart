@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
+import 'dart:io';
 import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
 import '../models/unidade.dart';
@@ -118,6 +119,12 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   Uint8List? _fotoImobiliariaBytes;
   bool _isUploadingFotoImobiliaria = false;
+
+  // Estados para Proprietário - Foto (Upload)
+  bool _isUploadingProprietarioFoto = false;
+
+  // Estados para Inquilino - Foto (Upload)
+  bool _isUploadingInquilinoFoto = false;
 
   // Estados de loading para os botões de salvar
   bool _isLoadingUnidade = false;
@@ -956,6 +963,312 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         ),
       ),
     );
+  }
+
+  // Funções para upload de foto do Proprietário
+  void _showImageSourceDialogProprietario() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadProprietarioFoto(ImageSource.gallery);
+                },
+              ),
+              // Mostrar câmera apenas em plataformas móveis
+              if (!kIsWeb)
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Câmera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndUploadProprietarioFoto(ImageSource.camera);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadProprietarioFoto(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploadingProprietarioFoto = true;
+      });
+
+      try {
+        // Para Web: usar Uint8List diretamente
+        // Para Mobile: converter XFile para File
+        late Map<String, dynamic>? uploadedProprietario;
+
+        if (kIsWeb) {
+          // Web: usar bytes diretamente
+          final bytes = await image.readAsBytes();
+          uploadedProprietario =
+              await _uploadProprietarioFotoWeb(_proprietario!.id, bytes, image.name);
+        } else {
+          // Mobile: converter para File
+          final imageFile = File(image.path);
+          uploadedProprietario = await SupabaseService.uploadProprietarioFotoPerfil(
+            _proprietario!.id,
+            imageFile,
+          );
+        }
+
+        if (uploadedProprietario != null) {
+          setState(() {
+            _proprietario = _proprietario?.copyWith(
+              fotoPerfil: uploadedProprietario?['foto_perfil'] as String?,
+            );
+            _isUploadingProprietarioFoto = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto do proprietário atualizada com sucesso!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isUploadingProprietarioFoto = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao atualizar foto: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingProprietarioFoto = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar imagem: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Upload para Web (usando Uint8List)
+  Future<Map<String, dynamic>?> _uploadProprietarioFotoWeb(
+    String proprietarioId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      // Detectar extensão
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+
+      // Gerar nome único
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'proprietarios/$proprietarioId/$timestamp.$extension';
+
+      // Upload
+      await SupabaseService.client.storage
+          .from('fotos_perfil')
+          .uploadBinary(storagePath, bytes);
+
+      // Obter URL pública
+      final imageUrl =
+          SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+
+      // Atualizar banco
+      final response = await SupabaseService.client
+          .from('proprietarios')
+          .update({'foto_perfil': imageUrl})
+          .eq('id', proprietarioId)
+          .select()
+          .single();
+
+      return response;
+    } catch (e) {
+      print('Erro ao fazer upload da foto de perfil do proprietário (Web): $e');
+      rethrow;
+    }
+  }
+
+  // Funções para upload de foto do Inquilino
+  void _showImageSourceDialogInquilino() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadInquilinoFoto(ImageSource.gallery);
+                },
+              ),
+              // Mostrar câmera apenas em plataformas móveis
+              if (!kIsWeb)
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Câmera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndUploadInquilinoFoto(ImageSource.camera);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadInquilinoFoto(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploadingInquilinoFoto = true;
+      });
+
+      try {
+        // Para Web: usar Uint8List diretamente
+        // Para Mobile: converter XFile para File
+        late Map<String, dynamic>? uploadedInquilino;
+
+        if (kIsWeb) {
+          // Web: usar bytes diretamente
+          final bytes = await image.readAsBytes();
+          uploadedInquilino =
+              await _uploadInquilinoFotoWeb(_inquilino!.id, bytes, image.name);
+        } else {
+          // Mobile: converter para File
+          final imageFile = File(image.path);
+          uploadedInquilino = await SupabaseService.uploadInquilinoFotoPerfil(
+            _inquilino!.id,
+            imageFile,
+          );
+        }
+
+        if (uploadedInquilino != null) {
+          setState(() {
+            _inquilino = _inquilino?.copyWith(
+              fotoPerfil: uploadedInquilino?['foto_perfil'] as String?,
+            );
+            _isUploadingInquilinoFoto = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto do inquilino atualizada com sucesso!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isUploadingInquilinoFoto = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao atualizar foto: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingInquilinoFoto = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar imagem: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Upload para Web (usando Uint8List)
+  Future<Map<String, dynamic>?> _uploadInquilinoFotoWeb(
+    String inquilinoId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      // Detectar extensão
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+
+      // Gerar nome único
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'inquilinos/$inquilinoId/$timestamp.$extension';
+
+      // Upload
+      await SupabaseService.client.storage
+          .from('fotos_perfil')
+          .uploadBinary(storagePath, bytes);
+
+      // Obter URL pública
+      final imageUrl =
+          SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+
+      // Atualizar banco
+      final response = await SupabaseService.client
+          .from('inquilinos')
+          .update({'foto_perfil': imageUrl})
+          .eq('id', inquilinoId)
+          .select()
+          .single();
+
+      return response;
+    } catch (e) {
+      print('Erro ao fazer upload da foto de perfil do inquilino (Web): $e');
+      rethrow;
+    }
   }
 
   // Método para editar unidade
@@ -1854,59 +2167,94 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Se houver foto, exibir em círculo
-              if (_proprietario?.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty)
-                GestureDetector(
-                  onTap: _showFotoProprietarioZoom,
-                  child: ClipOval(
-                    child: Image.network(
-                      _proprietario!.fotoPerfil!,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Se falhar ao carregar, mostrar ícone padrão
-                        return Container(
+              // Foto + Botão Editar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Se houver foto, exibir em círculo
+                  if (_proprietario?.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty)
+                    GestureDetector(
+                      onTap: _showFotoProprietarioZoom,
+                      child: ClipOval(
+                        child: Image.network(
+                          _proprietario!.fotoPerfil!,
                           width: 100,
                           height: 100,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE0E0E0),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_outlined,
-                            color: Color(0xFF666666),
-                            size: 32,
-                          ),
-                        );
-                      },
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Se falhar ao carregar, mostrar ícone padrão
+                            return Container(
+                              width: 100,
+                              height: 100,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE0E0E0),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_outlined,
+                                color: Color(0xFF666666),
+                                size: 32,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  else
+                    // Se não houver foto, mostrar ícone padrão
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border(
+                          bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                          top: BorderSide(color: Color(0xFFE0E0E0)),
+                          left: BorderSide(color: Color(0xFFE0E0E0)),
+                          right: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: Color(0xFF666666),
+                        size: 32,
+                      ),
                     ),
+                  const SizedBox(width: 16),
+                  // Botão Editar Foto
+                  Column(
+                    children: [
+                      FloatingActionButton(
+                        onPressed: _isUploadingProprietarioFoto ? null : _showImageSourceDialogProprietario,
+                        mini: true,
+                        backgroundColor: _isUploadingProprietarioFoto ? Colors.grey : const Color(0xFF2E3A59),
+                        child: _isUploadingProprietarioFoto
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.edit, size: 18),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isUploadingProprietarioFoto ? 'Enviando...' : 'Editar',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                    ],
                   ),
-                )
-              else
-                // Se não houver foto, mostrar ícone padrão
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border(
-                      bottom: BorderSide(color: Color(0xFFE0E0E0)),
-                      top: BorderSide(color: Color(0xFFE0E0E0)),
-                      left: BorderSide(color: Color(0xFFE0E0E0)),
-                      right: BorderSide(color: Color(0xFFE0E0E0)),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt_outlined,
-                    color: Color(0xFF666666),
-                    size: 32,
-                  ),
-                ),
+                ],
+              ),
               const SizedBox(height: 12),
               const Text(
-                'Anexar foto',
+                'Foto do Proprietário',
                 style: TextStyle(
                   fontSize: 14,
                   color: Color(0xFF666666),
@@ -3114,59 +3462,94 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Se houver foto, exibir em círculo
-                if (_inquilino?.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty)
-                  GestureDetector(
-                    onTap: _showFotoInquilinoZoom,
-                    child: ClipOval(
-                      child: Image.network(
-                        _inquilino!.fotoPerfil!,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          // Se falhar ao carregar, mostrar ícone padrão
-                          return Container(
+                // Foto + Botão Editar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Se houver foto, exibir em círculo
+                    if (_inquilino?.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty)
+                      GestureDetector(
+                        onTap: _showFotoInquilinoZoom,
+                        child: ClipOval(
+                          child: Image.network(
+                            _inquilino!.fotoPerfil!,
                             width: 100,
                             height: 100,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE0E0E0),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt_outlined,
-                              color: Color(0xFF666666),
-                              size: 32,
-                            ),
-                          );
-                        },
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Se falhar ao carregar, mostrar ícone padrão
+                              return Container(
+                                width: 100,
+                                height: 100,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE0E0E0),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_outlined,
+                                  color: Color(0xFF666666),
+                                  size: 32,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      // Se não houver foto, mostrar ícone padrão
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                            top: BorderSide(color: Color(0xFFE0E0E0)),
+                            left: BorderSide(color: Color(0xFFE0E0E0)),
+                            right: BorderSide(color: Color(0xFFE0E0E0)),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          color: Color(0xFF666666),
+                          size: 32,
+                        ),
                       ),
+                    const SizedBox(width: 16),
+                    // Botão Editar Foto
+                    Column(
+                      children: [
+                        FloatingActionButton(
+                          onPressed: _isUploadingInquilinoFoto ? null : _showImageSourceDialogInquilino,
+                          mini: true,
+                          backgroundColor: _isUploadingInquilinoFoto ? Colors.grey : const Color(0xFF2E3A59),
+                          child: _isUploadingInquilinoFoto
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.edit, size: 18),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _isUploadingInquilinoFoto ? 'Enviando...' : 'Editar',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ],
                     ),
-                  )
-                else
-                  // Se não houver foto, mostrar ícone padrão
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border(
-                        bottom: BorderSide(color: Color(0xFFE0E0E0)),
-                        top: BorderSide(color: Color(0xFFE0E0E0)),
-                        left: BorderSide(color: Color(0xFFE0E0E0)),
-                        right: BorderSide(color: Color(0xFFE0E0E0)),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_outlined,
-                      color: Color(0xFF666666),
-                      size: 32,
-                    ),
-                  ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Anexar foto',
+                  'Foto do Inquilino',
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF666666),

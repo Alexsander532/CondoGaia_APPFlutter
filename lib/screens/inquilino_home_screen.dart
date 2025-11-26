@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'dart:io';
 import 'documentos_inquilino_screen.dart';
 import 'agenda_inquilino_screen.dart';
 import 'portaria_inquilino_screen.dart';
@@ -7,6 +11,7 @@ import 'login_screen.dart';
 import 'proprietario_dashboard_screen.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
+import '../services/supabase_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -39,6 +44,15 @@ class InquilinoHomeScreen extends StatefulWidget {
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
   final AuthService _authService = AuthService();
+  final ImagePicker _imagePicker = ImagePicker();
+  
+  String? _inquilinoFotoPerfil;
+  bool _isUploadingFoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   /// Copia dados do condomínio e unidade para a área de transferência
   void _copiarDados() {
@@ -109,6 +123,156 @@ Copiado da CondoGaia''';
     );
   }
 
+  // Funções para upload de foto do Inquilino
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadFoto(ImageSource.gallery);
+                },
+              ),
+              // Mostrar câmera apenas em plataformas móveis
+              if (!kIsWeb)
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Câmera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndUploadFoto(ImageSource.camera);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadFoto(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploadingFoto = true;
+      });
+
+      try {
+        // Para Web: usar Uint8List diretamente
+        // Para Mobile: converter XFile para File
+        late Map<String, dynamic>? uploadedInquilino;
+
+        if (kIsWeb) {
+          // Web: usar bytes diretamente
+          final bytes = await image.readAsBytes();
+          uploadedInquilino = await _uploadFotoWeb(widget.inquilinoId ?? widget.proprietarioId!, bytes, image.name);
+        } else {
+          // Mobile: converter para File
+          final imageFile = File(image.path);
+          uploadedInquilino = await SupabaseService.uploadInquilinoFotoPerfil(
+            widget.inquilinoId ?? widget.proprietarioId!,
+            imageFile,
+          );
+        }
+
+        if (uploadedInquilino != null) {
+          setState(() {
+            _inquilinoFotoPerfil = uploadedInquilino?['foto_perfil'] as String?;
+            _isUploadingFoto = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto atualizada com sucesso!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isUploadingFoto = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao atualizar foto: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingFoto = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar imagem: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Upload para Web (usando Uint8List)
+  Future<Map<String, dynamic>?> _uploadFotoWeb(
+    String inquilinoId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      // Detectar extensão
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+
+      // Gerar nome único
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = 'inquilinos/$inquilinoId/$timestamp.$extension';
+
+      // Upload
+      await SupabaseService.client.storage
+          .from('fotos_perfil')
+          .uploadBinary(storagePath, bytes);
+
+      // Obter URL pública
+      final imageUrl =
+          SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+
+      // Atualizar banco
+      final response = await SupabaseService.client
+          .from('inquilinos')
+          .update({'foto_perfil': imageUrl})
+          .eq('id', inquilinoId)
+          .select()
+          .single();
+
+      return response;
+    } catch (e) {
+      print('Erro ao fazer upload da foto do inquilino (Web): $e');
+      rethrow;
+    }
+  }
+
   /// Constrói o drawer (menu lateral)
   Widget _buildDrawer() {
     return Drawer(
@@ -123,9 +287,67 @@ Copiado da CondoGaia''';
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/logo_CondoGaia.png',
-                  height: 40,
+                // Foto do Inquilino com botão de editar
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    // Foto circular
+                    if (_inquilinoFotoPerfil != null && _inquilinoFotoPerfil!.isNotEmpty)
+                      ClipOval(
+                        child: Image.network(
+                          _inquilinoFotoPerfil!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 80,
+                              height: 80,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.grey,
+                                size: 40,
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    else
+                      // Placeholder sem foto
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.grey,
+                          size: 40,
+                        ),
+                      ),
+                    // Botão de editar flutuante
+                    FloatingActionButton(
+                      onPressed: _isUploadingFoto ? null : _showImageSourceDialog,
+                      mini: true,
+                      backgroundColor: _isUploadingFoto ? Colors.grey : Colors.white,
+                      child: _isUploadingFoto
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                              ),
+                            )
+                          : const Icon(Icons.edit, size: 16, color: Color(0xFF1976D2)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 const Text(

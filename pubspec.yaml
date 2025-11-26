@@ -77,7 +77,6 @@ dependencies:
   
   # Para QR Code
   qr_flutter: ^4.1.0
-  image_gallery_saver: ^2.0.0
   share_plus: ^7.0.0
 
 dev_dependencies:
