@@ -406,9 +406,6 @@ class UnidadeService {
       // Converter para JSON e remover ID vazio (deixar banco gerar)
       final json = unidade.toJson();
       json.remove('id'); // Remove ID nulo para que o banco gere
-      
-      // ✅ IMPORTANTE: Adicionar bloco_id para a constraint da tabela
-      json['bloco_id'] = blocoCriado.id;
 
       final response = await _supabase
           .from('unidades')
