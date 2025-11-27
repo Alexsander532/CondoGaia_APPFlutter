@@ -43,12 +43,15 @@ class _ModalCriarBlocoWidgetState extends State<ModalCriarBlocoWidget> {
     });
 
     try {
+      // Obter o próximo número de ordem para este condomínio
+      final proximaOrdem = await _unidadeService.obterProximaOrdemBloco(widget.condominioId);
+      
       // Criar bloco no serviço
       final novoBloco = Bloco.novo(
         condominioId: widget.condominioId,
         nome: nome,
         codigo: nome.toUpperCase(),
-        ordem: 0,
+        ordem: proximaOrdem,
       );
 
       final blocoRetorno = await _unidadeService.criarBloco(novoBloco);

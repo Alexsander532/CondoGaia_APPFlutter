@@ -119,6 +119,28 @@ class UnidadeService {
   // OPERAÇÕES CRUD INDIVIDUAIS
   // =====================================================
 
+  /// Obtém a próxima ordem disponível para um bloco no condomínio
+  Future<int> obterProximaOrdemBloco(String condominioId) async {
+    try {
+      final response = await _supabase
+          .from('blocos')
+          .select('ordem')
+          .eq('condominio_id', condominioId)
+          .order('ordem', ascending: false)
+          .limit(1);
+
+      if (response.isEmpty) {
+        return 1; // Primeiro bloco
+      }
+
+      final maxOrdem = response[0]['ordem'] as int;
+      return maxOrdem + 1;
+    } catch (e) {
+      print('Erro ao obter próxima ordem: $e');
+      return 1; // Fallback para 1 em caso de erro
+    }
+  }
+
   /// Cria um novo bloco
   Future<Bloco> criarBloco(Bloco bloco) async {
     try {
