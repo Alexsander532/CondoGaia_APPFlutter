@@ -14,6 +14,7 @@ import '../services/visitante_portaria_service.dart';
 import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
 import '../services/qr_code_generation_service.dart';
+import '../services/unidade_service.dart';
 import '../utils/formatters.dart';
 import '../widgets/qr_code_display_widget.dart';
 
@@ -43,6 +44,7 @@ class PortariaRepresentanteScreen extends StatefulWidget {
   final String? condominioNome;
   final String? condominioCnpj;
   final String? representanteId;
+  final bool temBlocos;
 
   const PortariaRepresentanteScreen({
     super.key,
@@ -50,6 +52,7 @@ class PortariaRepresentanteScreen extends StatefulWidget {
     this.condominioNome,
     this.condominioCnpj,
     this.representanteId,
+    this.temBlocos = true,
   });
 
   @override
@@ -156,11 +159,37 @@ class _PortariaRepresentanteScreenState
   dynamic _representanteAtual;
   bool _isLoadingRepresentante = true;
 
+  // Variável para armazenar temBlocos do condomínio
+  bool _temBlocos = true;
+
   @override
   void initState() {
     super.initState();
+    debugPrint('═' * 80);
+    debugPrint('🔵 [PORTARIA] ═══ INIT STATE ═══');
+    debugPrint('═' * 80);
+    debugPrint('[PORTARIA] ⚡ initState() CHAMADO');
+    debugPrint('[PORTARIA] widget.temBlocos (parâmetro recebido): ${widget.temBlocos}');
+    debugPrint('[PORTARIA] Tipo de widget.temBlocos: ${widget.temBlocos.runtimeType}');
+    
     _tabController = TabController(length: 6, vsync: this);
     _encomendasTabController = TabController(length: 2, vsync: this);
+    
+    // Carregar temBlocos do parâmetro ou do banco de dados
+    debugPrint('[PORTARIA] Definindo _temBlocos = widget.temBlocos');
+    _temBlocos = widget.temBlocos;
+    debugPrint('[PORTARIA] _temBlocos APÓS atribuição: $_temBlocos');
+    debugPrint('[PORTARIA] Chamando _carregarTemBlocos()...');
+    
+    _carregarTemBlocos();
+    debugPrint('[PORTARIA] _carregarTemBlocos() retornou');
+    debugPrint('[PORTARIA] _temBlocos APÓS _carregarTemBlocos(): $_temBlocos');
+    debugPrint('═' * 80);
+    
+    debugPrint('[PORTARIA] _temBlocos DEPOIS de _carregarTemBlocos: $_temBlocos');
+    debugPrint('[PORTARIA] Iniciando carregamento de dados...');
+    debugPrint('═' * 80);
+    
     _carregarRepresentanteAtual();
     _carregarDadosPropInq();
     _carregarAutorizados();
@@ -870,7 +899,9 @@ class _PortariaRepresentanteScreenState
                                         size: 20,
                                       ),
                                       title: Text(
-                                        '${unidade.bloco != null && unidade.bloco!.isNotEmpty ? "${unidade.bloco}/" : ""}${unidade.numero}',
+                                        _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
+                                          ? '${unidade.bloco}/${unidade.numero}'
+                                          : unidade.numero,
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: isSelected
@@ -1183,6 +1214,23 @@ class _PortariaRepresentanteScreenState
 
   // Widget para a aba Mensagem - INTEGRADA COM DADOS REAIS
   /// Carrega dados do representante atual autenticado
+  // Carregar temBlocos do condomínio
+  void _carregarTemBlocos() {
+    debugPrint('═' * 80);
+    debugPrint('🔵 [PORTARIA] ═══ MÉTODO _carregarTemBlocos() ═══');
+    debugPrint('═' * 80);
+    debugPrint('[PORTARIA] ⚡ _carregarTemBlocos() CHAMADO');
+    debugPrint('[PORTARIA] widget.temBlocos recebido: ${widget.temBlocos}');
+    debugPrint('[PORTARIA] widget.condominioId: ${widget.condominioId}');
+    debugPrint('[PORTARIA] _temBlocos ANTES: $_temBlocos');
+    
+    // Sempre usar o valor passado pelo widget (que foi carregado em gestao_screen)
+    _temBlocos = widget.temBlocos;
+    debugPrint('[PORTARIA] ✓ _temBlocos APÓS atribuição: $_temBlocos');
+    debugPrint('[PORTARIA] Este valor veio de: gestao_screen.dart (_carregarTemBlocosDoCondominio)');
+    debugPrint('═' * 80);
+  }
+
   Future<void> _carregarRepresentanteAtual() async {
     debugPrint('═' * 80);
     debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO REPRESENTANTE ═══');
@@ -1390,8 +1438,14 @@ class _PortariaRepresentanteScreenState
 
       // Ordenar por unidade e depois por nome
       _pessoasUnidade.sort((a, b) {
-        final unidadeComparison = '${a.unidadeNumero}/${a.unidadeBloco}'
-            .compareTo('${b.unidadeNumero}/${b.unidadeBloco}');
+        String chaveA = _temBlocos && a.unidadeBloco != 'N/A'
+            ? '${a.unidadeNumero}/${a.unidadeBloco}'
+            : a.unidadeNumero;
+        String chaveB = _temBlocos && b.unidadeBloco != 'N/A'
+            ? '${b.unidadeNumero}/${b.unidadeBloco}'
+            : b.unidadeNumero;
+        
+        final unidadeComparison = chaveA.compareTo(chaveB);
         if (unidadeComparison != 0) return unidadeComparison;
         return a.nome.compareTo(b.nome);
       });
@@ -1543,7 +1597,7 @@ class _PortariaRepresentanteScreenState
         ),
       );
 
-      String chaveUnidade = unidade.bloco != null && unidade.bloco!.isNotEmpty
+      String chaveUnidade = _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
           ? '${unidade.bloco}/${unidade.numero}'
           : unidade.numero;
 
@@ -1583,7 +1637,7 @@ class _PortariaRepresentanteScreenState
         ),
       );
 
-      String chaveUnidade = unidade.bloco != null && unidade.bloco!.isNotEmpty
+      String chaveUnidade = _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
           ? '${unidade.bloco}/${unidade.numero}'
           : unidade.numero;
 
@@ -1717,13 +1771,41 @@ class _PortariaRepresentanteScreenState
             size: 20,
           ),
         ),
-        title: Text(
-          'Unidade $unidade',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF2E3A59),
-          ),
+        title: Builder(
+          builder: (context) {
+            // Se temBlocos = true e tem '/', formata como "Unidade Bloco A - 101"
+            // Se temBlocos = false, extrai apenas o número (depois da '/')
+            final bool temBlocosCheck = _temBlocos && unidade.contains('/');
+            
+            String label;
+            if (temBlocosCheck) {
+              // Com blocos: "A/101" → "Unidade Bloco A - 101"
+              label = 'Unidade Bloco ${unidade.replaceAll('/', ' - ')}';
+            } else if (unidade.contains('/')) {
+              // Sem blocos mas a unidade tem formato "A/101": extrai apenas "101"
+              final partes = unidade.split('/');
+              label = 'Unidade ${partes[1]}';
+            } else {
+              // Sem blocos e sem '/': mostra como está (já é apenas número)
+              label = 'Unidade $unidade';
+            }
+            
+            debugPrint('[PORTARIA] _buildUnidadeExpandible() - Label formatting:');
+            debugPrint('[PORTARIA]   - unidade: $unidade');
+            debugPrint('[PORTARIA]   - _temBlocos: $_temBlocos');
+            debugPrint('[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}');
+            debugPrint('[PORTARIA]   - temBlocosCheck: $temBlocosCheck');
+            debugPrint('[PORTARIA]   - label final: $label');
+            
+            return Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF2E3A59),
+              ),
+            );
+          },
         ),
         subtitle: Text(
           '${pessoas.length} ${pessoas.length == 1 ? 'pessoa' : 'pessoas'}',
@@ -2053,7 +2135,9 @@ class _PortariaRepresentanteScreenState
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    '${pessoa.unidadeNumero}/${pessoa.unidadeBloco}',
+                                    _temBlocos && pessoa.unidadeBloco != 'N/A'
+                                      ? '${pessoa.unidadeNumero}/${pessoa.unidadeBloco}'
+                                      : pessoa.unidadeNumero,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -2849,13 +2933,41 @@ class _PortariaRepresentanteScreenState
             size: 20,
           ),
         ),
-        title: Text(
-          'Unidade $unidade',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2E3A59),
-          ),
+        title: Builder(
+          builder: (context) {
+            // Se temBlocos = true e tem '/', formata como "Unidade Bloco A - 101"
+            // Se temBlocos = false, extrai apenas o número (depois da '/')
+            final bool temBlocosCheck = _temBlocos && unidade.contains('/');
+            
+            String label;
+            if (temBlocosCheck) {
+              // Com blocos: "A/101" → "Unidade Bloco A - 101"
+              label = 'Unidade Bloco ${unidade.replaceAll('/', ' - ')}';
+            } else if (unidade.contains('/')) {
+              // Sem blocos mas a unidade tem formato "A/101": extrai apenas "101"
+              final partes = unidade.split('/');
+              label = 'Unidade ${partes[1]}';
+            } else {
+              // Sem blocos e sem '/': mostra como está (já é apenas número)
+              label = 'Unidade $unidade';
+            }
+            
+            debugPrint('[PORTARIA] _buildUnidadeAutorizadosExpandible() - Label formatting:');
+            debugPrint('[PORTARIA]   - unidade: $unidade');
+            debugPrint('[PORTARIA]   - _temBlocos: $_temBlocos');
+            debugPrint('[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}');
+            debugPrint('[PORTARIA]   - temBlocosCheck: $temBlocosCheck');
+            debugPrint('[PORTARIA]   - label final: $label');
+            
+            return Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2E3A59),
+              ),
+            );
+          },
         ),
         subtitle: Text(
           '${autorizados.length} ${autorizados.length == 1 ? 'autorizado' : 'autorizados'}',
@@ -4897,10 +5009,14 @@ class _PortariaRepresentanteScreenState
         
         // Mostrar mensagem de sucesso
         if (mounted) {
+          final unidadeDisplay = _temBlocos && _pessoaSelecionadaEncomenda!.unidadeBloco != 'N/A'
+              ? '${_pessoaSelecionadaEncomenda!.unidadeNumero}/${_pessoaSelecionadaEncomenda!.unidadeBloco}'
+              : _pessoaSelecionadaEncomenda!.unidadeNumero;
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Encomenda cadastrada para ${_pessoaSelecionadaEncomenda!.nome} - ${_pessoaSelecionadaEncomenda!.unidadeNumero}/${_pessoaSelecionadaEncomenda!.unidadeBloco}' +
+                'Encomenda cadastrada para ${_pessoaSelecionadaEncomenda!.nome} - $unidadeDisplay' +
                     (_notificarUnidade ? ' - Unidade notificada' : ''),
               ),
               backgroundColor: Colors.green,

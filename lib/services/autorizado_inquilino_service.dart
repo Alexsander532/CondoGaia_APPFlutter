@@ -134,11 +134,12 @@ class AutorizadoInquilinoService {
         final inquilino = item['inquilinos'];
         final proprietario = item['proprietarios'];
 
-        // Criar chave da unidade (Bloco/Número ou apenas Número)
+        // Criar chave da unidade: sempre com bloco/número se houver bloco
+        // A formatação para display (com "Bloco" ou não) é feita na UI conforme _temBlocos
         String chaveUnidade;
         if (unidade['bloco'] != null &&
             unidade['bloco'].toString().isNotEmpty) {
-          chaveUnidade = 'Bloco ${unidade['bloco']} - ${unidade['numero']}';
+          chaveUnidade = '${unidade['bloco']}/${unidade['numero']}';
         } else {
           chaveUnidade = unidade['numero'].toString();
         }

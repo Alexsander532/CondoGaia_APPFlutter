@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'unidade_morador_screen.dart';
 import 'portaria_representante_screen.dart';
+import 'package:condogaiaapp/services/unidade_service.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -19,6 +20,10 @@ class GestaoScreen extends StatefulWidget {
 }
 
 class _GestaoScreenState extends State<GestaoScreen> {
+  
+  final UnidadeService _unidadeService = UnidadeService();
+  bool? _temBlocos;
+  bool _loadingTemBlocos = false;
   
   // Lista de itens de gestão baseada na imagem
   final List<Map<String, dynamic>> gestaoItems = [
@@ -211,16 +216,60 @@ class _GestaoScreenState extends State<GestaoScreen> {
                             ),
                           );
                         } else if (item['title'] == 'Portaria') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PortariaRepresentanteScreen(
-                                condominioId: widget.condominioId,
-                                condominioNome: widget.condominioNome,
-                                condominioCnpj: widget.condominioCnpj,
+                          debugPrint('═' * 80);
+                          debugPrint('🔴 [GESTAO] ═══ NAVEGANDO PARA PORTARIA ═══');
+                          debugPrint('═' * 80);
+                          debugPrint('[GESTAO] Clicou em: Portaria');
+                          debugPrint('[GESTAO] widget.condominioId: ${widget.condominioId}');
+                          debugPrint('[GESTAO] widget.condominioNome: ${widget.condominioNome}');
+                          debugPrint('[GESTAO] widget.condominioCnpj: ${widget.condominioCnpj}');
+                          
+                          // Carrega temBlocos do banco ANTES de navegar
+                          _carregarTemBlocosDoCondominio().then((temBlocosValue) {
+                            debugPrint('[GESTAO] ═' * 40);
+                            debugPrint('[GESTAO] .then() EXECUTADO - Navegando');
+                            debugPrint('[GESTAO] temBlocos retornado de _carregarTemBlocosDoCondominio(): $temBlocosValue');
+                            debugPrint('[GESTAO] Tipo: ${temBlocosValue.runtimeType}');
+                            debugPrint('[GESTAO] ✓ Navegando para Portaria com temBlocos: $temBlocosValue');
+                            debugPrint('[GESTAO] Criando PortariaRepresentanteScreen...');
+                            debugPrint('[GESTAO] ═' * 40);
+                            
+                            final screen = PortariaRepresentanteScreen(
+                              condominioId: widget.condominioId,
+                              condominioNome: widget.condominioNome,
+                              condominioCnpj: widget.condominioCnpj,
+                              temBlocos: temBlocosValue, // Usando valor do banco!
+                            );
+                            
+                            debugPrint('[GESTAO] ✓ Screen criada com temBlocos = $temBlocosValue');
+                            
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => screen,
                               ),
-                            ),
-                          );
+                            );
+                            
+                            debugPrint('[GESTAO] ✓ Navigator.push() chamado');
+                            debugPrint('═' * 80);
+                          }).catchError((e) {
+                            debugPrint('[GESTAO] ❌ ERRO NO .catchError()');
+                            debugPrint('[GESTAO] Erro: $e');
+                            debugPrint('[GESTAO] Navegando com padrão (true)');
+                            debugPrint('═' * 80);
+                            
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PortariaRepresentanteScreen(
+                                  condominioId: widget.condominioId,
+                                  condominioNome: widget.condominioNome,
+                                  condominioCnpj: widget.condominioCnpj,
+                                  temBlocos: true, // Padrão: true em caso de erro
+                                ),
+                              ),
+                            );
+                          });
                         } else {
                           // TODO: Implementar navegação para ${item['title']}
                           print('Clicou em: ${item['title']}');
@@ -235,5 +284,74 @@ class _GestaoScreenState extends State<GestaoScreen> {
         ),
       ),
     );
+  }
+
+  /// Carrega temBlocos do banco de dados antes de navegar para Portaria
+  Future<bool> _carregarTemBlocosDoCondominio() async {
+    debugPrint('═' * 80);
+    debugPrint('🔵 [GESTAO] ═══ CARREGANDO TEM_BLOCOS DO CONDOMINIO ═══');
+    debugPrint('═' * 80);
+    debugPrint('[GESTAO] Início da função _carregarTemBlocosDoCondominio()');
+    debugPrint('[GESTAO] widget.condominioId: ${widget.condominioId}');
+    
+    if (widget.condominioId == null || widget.condominioId!.isEmpty) {
+      debugPrint('[GESTAO] ❌ condominioId é nulo/vazio, usando padrão (true)');
+      _temBlocos = true;
+      debugPrint('[GESTAO] _temBlocos definido como: true (padrão por ID vazio)');
+      debugPrint('═' * 80);
+      return true;
+    }
+
+    try {
+      debugPrint('[GESTAO] 🔄 Chamando _unidadeService.obterCondominioById()');
+      debugPrint('[GESTAO] Aguardando resposta do banco...');
+      _loadingTemBlocos = true;
+      
+      final condominio = await _unidadeService.obterCondominioById(widget.condominioId!);
+      
+      debugPrint('[GESTAO] ✓ Resposta recebida do banco');
+      
+      if (condominio != null) {
+        debugPrint('[GESTAO] ✓ Condominio NÃO é nulo');
+        debugPrint('[GESTAO] Nome: ${condominio.nomeCondominio}');
+        debugPrint('[GESTAO] ID: ${condominio.id}');
+        debugPrint('[GESTAO] CNPJ: ${condominio.cnpj}');
+        debugPrint('[GESTAO] temBlocos DO OBJETO: ${condominio.temBlocos}');
+        debugPrint('[GESTAO] Tipo de temBlocos: ${condominio.temBlocos.runtimeType}');
+        
+        final novoValor = condominio.temBlocos;
+        debugPrint('[GESTAO] Atribuindo: _temBlocos = $novoValor');
+        
+        setState(() {
+          _temBlocos = novoValor;
+          debugPrint('[GESTAO] setState() chamado com _temBlocos = $_temBlocos');
+        });
+        
+        debugPrint('[GESTAO] ✓ _temBlocos atualmente: $_temBlocos');
+        debugPrint('[GESTAO] ✓ Retornando valor: $novoValor');
+        debugPrint('═' * 80);
+        return novoValor;
+      } else {
+        debugPrint('[GESTAO] ❌ Condominio é NULO (não encontrado no banco)');
+        _temBlocos = true;
+        debugPrint('[GESTAO] _temBlocos definido como: true (padrão por condominio nulo)');
+        debugPrint('[GESTAO] Retornando valor: true');
+        debugPrint('═' * 80);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[GESTAO] ❌ EXCEÇÃO ao carregar condominio');
+      debugPrint('[GESTAO] Tipo da exceção: ${e.runtimeType}');
+      debugPrint('[GESTAO] Mensagem: $e');
+      debugPrint('[GESTAO] Stack trace: ${StackTrace.current}');
+      _temBlocos = true; // Padrão: true
+      debugPrint('[GESTAO] _temBlocos definido como: true (padrão por erro)');
+      debugPrint('[GESTAO] Retornando valor: true');
+      debugPrint('═' * 80);
+      return true;
+    } finally {
+      _loadingTemBlocos = false;
+      debugPrint('[GESTAO] [FINALLY] _loadingTemBlocos = false');
+    }
   }
 }
