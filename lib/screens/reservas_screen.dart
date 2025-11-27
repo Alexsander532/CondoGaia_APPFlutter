@@ -1275,7 +1275,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(top: 2.0),
                         child: Text(
-                          'Unidade: ${unidade.bloco} - ${unidade.numero}',
+                          'Unidade: ${unidade.bloco != null && unidade.bloco!.isNotEmpty ? "${unidade.bloco} - " : ""}${unidade.numero}',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13.0,
@@ -1471,7 +1471,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         items: _unidades.map<DropdownMenuItem<String>>((Unidade unidade) {
                           return DropdownMenuItem<String>(
                             value: unidade.id,
-                            child: Text('${unidade.bloco} - ${unidade.numero}'),
+                            child: Text('${unidade.bloco != null && unidade.bloco!.isNotEmpty ? "${unidade.bloco} - " : ""}${unidade.numero}'),
                           );
                         }).toList(),
                         onChanged: (String? value) {

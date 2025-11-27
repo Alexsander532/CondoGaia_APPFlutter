@@ -7,11 +7,13 @@ import 'modal_criar_bloco_widget.dart';
 class ModalCriarUnidadeWidget extends StatefulWidget {
   final String condominioId;
   final List<BlocoComUnidades> blocosExistentes;
+  final bool temBlocos; // Flag para saber se o condomínio usa blocos
 
   const ModalCriarUnidadeWidget({
     super.key,
     required this.condominioId,
     required this.blocosExistentes,
+    this.temBlocos = true, // Default true para compatibilidade
   });
 
   @override
@@ -177,67 +179,101 @@ class _ModalCriarUnidadeWidgetState extends State<ModalCriarUnidadeWidget> {
             ),
             const SizedBox(height: 20),
 
-            // Dropdown Bloco
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Selecione ou crie um Bloco *',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<Bloco>(
-                  value: _blocoselecionado,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+            // Dropdown Bloco - apenas se tem_blocos = true
+            if (widget.temBlocos) ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Selecione ou crie um Bloco *',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
-                    prefixIcon: const Icon(Icons.domain),
                   ),
-                  items: [
-                    ..._blocos.map((bloco) {
-                      return DropdownMenuItem<Bloco>(
-                        value: bloco,
-                        child: Text(bloco.nome),
-                      );
-                    }).toList(),
-                    // Opção para criar novo bloco
-                    DropdownMenuItem<Bloco>(
-                      enabled: false,
-                      child: GestureDetector(
-                        onTap: _abrirModalCriarBloco,
-                        child: const Row(
-                          children: [
-                            Icon(Icons.add, size: 20),
-                            SizedBox(width: 8),
-                            Text('+ Criar Novo Bloco'),
-                          ],
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<Bloco>(
+                    value: _blocoselecionado,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.domain),
+                    ),
+                    items: [
+                      ..._blocos.map((bloco) {
+                        return DropdownMenuItem<Bloco>(
+                          value: bloco,
+                          child: Text(bloco.nome),
+                        );
+                      }).toList(),
+                      // Opção para criar novo bloco
+                      DropdownMenuItem<Bloco>(
+                        enabled: false,
+                        child: GestureDetector(
+                          onTap: _abrirModalCriarBloco,
+                          child: const Row(
+                            children: [
+                              Icon(Icons.add, size: 20),
+                              SizedBox(width: 8),
+                              Text('+ Criar Novo Bloco'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (bloco) {
+                      if (bloco != null) {
+                        setState(() {
+                          _blocoselecionado = bloco;
+                          _errorMessage = null;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Botão para criar novo bloco (alternativa)
+              TextButton.icon(
+                onPressed: _isLoading ? null : _abrirModalCriarBloco,
+                icon: const Icon(Icons.add),
+                label: const Text('+ Criar Novo Bloco'),
+              ),
+            ] else ...[
+              // Informativo quando sem blocos
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                  border: Border.all(
+                    color: const Color(0xFF4A90E2),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.info,
+                      color: Color(0xFF4A90E2),
+                      size: 20,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Condomínio sem blocos\nUnidade será criada sem agrupamento',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2E3A59),
                         ),
                       ),
                     ),
                   ],
-                  onChanged: (bloco) {
-                    if (bloco != null) {
-                      setState(() {
-                        _blocoselecionado = bloco;
-                        _errorMessage = null;
-                      });
-                    }
-                  },
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Botão para criar novo bloco (alternativa)
-            TextButton.icon(
-              onPressed: _isLoading ? null : _abrirModalCriarBloco,
-              icon: const Icon(Icons.add),
-              label: const Text('+ Criar Novo Bloco'),
-            ),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Mensagem de Erro (se houver)

@@ -15,6 +15,7 @@ import '../widgets/editable_text_widget.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../widgets/importacao_modal_widget.dart';
 import '../widgets/modal_criar_unidade_widget.dart';
+import '../services/condominio_init_service.dart';
 
 class UnidadeMoradorScreen extends StatefulWidget {
   final String? condominioId;
@@ -35,11 +36,14 @@ class UnidadeMoradorScreen extends StatefulWidget {
 class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   final TextEditingController _searchController = TextEditingController();
   final UnidadeService _unidadeService = UnidadeService();
+  final CondominioInitService _condominioInitService = CondominioInitService();
 
   List<BlocoComUnidades> _blocosUnidades = [];
   List<BlocoComUnidades> _blocosUnidadesFiltrados = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _temBlocos = true; // Flag que vem do banco
+  bool _atualizandoTemBlocos = false; // Flag para indicar que está atualizando
 
   // Controle de operações em andamento
   Set<String> _blocosEditando = {};
@@ -92,8 +96,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         widget.condominioId!,
       );
       
+      // Carrega o flag tem_blocos do condomínio
+      final temBlocos = await _carregarTemBlocos();
+      
       print('✅ [UnidadeMoradorScreen] Dados carregados com sucesso!');
       print('📊 [UnidadeMoradorScreen] Total de blocos retornados: ${blocosUnidades.length}');
+      print('📊 [UnidadeMoradorScreen] tem_blocos: $temBlocos');
       
       // Log detalhado de cada bloco
       for (int i = 0; i < blocosUnidades.length; i++) {
@@ -108,6 +116,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       setState(() {
         _blocosUnidades = blocosUnidades;
         _blocosUnidadesFiltrados = blocosUnidades;
+        _temBlocos = temBlocos;
         _isLoading = false;
       });
       print('✅ [UnidadeMoradorScreen] Estado atualizado com sucesso!');
@@ -118,6 +127,70 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         _errorMessage = 'Erro ao carregar dados: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  /// Carrega o flag tem_blocos do banco de dados
+  Future<bool> _carregarTemBlocos() async {
+    try {
+      if (widget.condominioId == null) return true; // Default true se não houver ID
+      
+      final condominio = await _unidadeService.obterCondominioById(widget.condominioId!);
+      return condominio?.temBlocos ?? true; // Default true se não encontrar
+    } catch (e) {
+      print('⚠️ Erro ao carregar tem_blocos: $e');
+      return true; // Fallback para true em caso de erro
+    }
+  }
+
+  /// Atualiza o flag tem_blocos no banco
+  Future<void> _alternarTemBlocos(bool novoValor) async {
+    if (widget.condominioId == null) return;
+    
+    setState(() {
+      _atualizandoTemBlocos = true;
+    });
+
+    try {
+      print('🔄 Alternando tem_blocos para $novoValor');
+      
+      await _condominioInitService.atualizarTemBlocos(
+        widget.condominioId!,
+        novoValor,
+      );
+      
+      setState(() {
+        _temBlocos = novoValor;
+        _atualizandoTemBlocos = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              novoValor 
+                ? '✅ Condomínio com blocos ativado' 
+                : '✅ Exibição sem blocos ativada',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Erro ao atualizar tem_blocos: $e');
+      setState(() {
+        _atualizandoTemBlocos = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar configuração: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -328,6 +401,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       builder: (context) => ModalCriarUnidadeWidget(
         condominioId: widget.condominioId!,
         blocosExistentes: _blocosUnidades,
+        temBlocos: _temBlocos,
       ),
     );
 
@@ -703,6 +777,51 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     );
   }
 
+  /// Constrói grid de unidades sem blocos
+  Widget _buildUnidadesGridSemBlocos(List<BlocoComUnidades> blocos) {
+    // Extrai todas as unidades de todos os blocos
+    final todasAsUnidades = <(String numero, String blocoId, String unidadeId, String blocoNome)>[];
+    
+    for (var blocoComUnidades in blocos) {
+      for (var unidade in blocoComUnidades.unidades) {
+        todasAsUnidades.add((
+          unidade.numero,
+          blocoComUnidades.bloco.id,
+          unidade.id,
+          blocoComUnidades.bloco.nome,
+        ));
+      }
+    }
+    
+    // Ordena por número de unidade
+    todasAsUnidades.sort((a, b) {
+      final numA = int.tryParse(a.$1) ?? 0;
+      final numB = int.tryParse(b.$1) ?? 0;
+      return numA.compareTo(numB);
+    });
+
+    if (todasAsUnidades.isEmpty) {
+      return const Center(
+        child: Text('Nenhuma unidade encontrada'),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: todasAsUnidades.map((unidadeData) {
+          final numero = unidadeData.$1;
+          final unidadeId = unidadeData.$3;
+          final blocoNome = unidadeData.$4;
+          
+          return _buildUnidadeButton(numero, blocoNome, unidadeId, blocoNome);
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildBlocoSection(BlocoComUnidades blocoComUnidades) {
     final bloco = blocoComUnidades.bloco;
     final unidades = blocoComUnidades.unidades;
@@ -953,27 +1072,36 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
               ),
             ),
 
-            // Botão Adicionar Unidade ✨ NOVO
+            // Botões de Ação e Configuração
             Container(
               width: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: ElevatedButton.icon(
-                onPressed: _abrirModalCriarUnidade,
-                icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text('➕ ADICIONAR UNIDADE'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+              child: Column(
+                children: [
+                  // Botão Adicionar Unidade
+                  ElevatedButton.icon(
+                    onPressed: _abrirModalCriarUnidade,
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('➕ ADICIONAR UNIDADE'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                ),
+                  const SizedBox(height: 12),
+                  // Card de Configuração de Blocos
+                  _buildConfiguracaoBlocosCard(),
+                ],
               ),
             ),
 
@@ -1044,6 +1172,190 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     );
   }
 
+  /// Constrói o card de configuração de blocos
+  Widget _buildConfiguracaoBlocosCard() {
+    return GestureDetector(
+      onTap: _atualizandoTemBlocos ? null : () => _alternarTemBlocos(!_temBlocos),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 200),
+        scale: _atualizandoTemBlocos ? 0.98 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          decoration: BoxDecoration(
+            color: _temBlocos 
+              ? const Color(0xFF4A90E2).withOpacity(0.06)
+              : const Color(0xFFFF9800).withOpacity(0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: _temBlocos 
+                ? const Color(0xFF4A90E2).withOpacity(0.4)
+                : const Color(0xFFFF9800).withOpacity(0.4),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _temBlocos
+                  ? const Color(0xFF4A90E2).withOpacity(0.15)
+                  : const Color(0xFFFF9800).withOpacity(0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          child: Row(
+            children: [
+              // Ícone indicador com gradiente
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: _temBlocos
+                      ? [
+                          const Color(0xFF4A90E2).withOpacity(0.12),
+                          const Color(0xFF4A90E2).withOpacity(0.04),
+                        ]
+                      : [
+                          const Color(0xFFFF9800).withOpacity(0.12),
+                          const Color(0xFFFF9800).withOpacity(0.04),
+                        ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _temBlocos
+                      ? const Color(0xFF4A90E2).withOpacity(0.2)
+                      : const Color(0xFFFF9800).withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(
+                  _temBlocos ? Icons.layers_rounded : Icons.list_alt_rounded,
+                  size: 32,
+                  color: _temBlocos 
+                    ? const Color(0xFF4A90E2)
+                    : const Color(0xFFFF9800),
+                ),
+              ),
+              const SizedBox(width: 18),
+              // Texto explicativo com melhor tipografia
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _temBlocos ? 'Com Blocos' : 'Sem Blocos',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: _temBlocos 
+                          ? const Color(0xFF2E5C9F)
+                          : const Color(0xFFE65100),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _temBlocos
+                        ? 'Unidades organizadas por blocos'
+                        : 'Lista simplificada de unidades',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF555555),
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Status badge com efeito pulse
+              if (_atualizandoTemBlocos)
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _temBlocos
+                      ? const Color(0xFF4A90E2).withOpacity(0.1)
+                      : const Color(0xFFFF9800).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _temBlocos
+                            ? const Color(0xFF4A90E2)
+                            : const Color(0xFFFF9800),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _temBlocos
+                        ? [
+                            const Color(0xFF4A90E2),
+                            const Color(0xFF357ABD),
+                          ]
+                        : [
+                            const Color(0xFFFF9800),
+                            const Color(0xFFF57C00),
+                          ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _temBlocos
+                          ? const Color(0xFF4A90E2).withOpacity(0.3)
+                          : const Color(0xFFFF9800).withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _temBlocos ? Icons.check_circle : Icons.cancel,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _temBlocos ? 'Ativo' : 'Inativo',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildConteudoPrincipal() {
     if (_isLoading) {
       return const Center(
@@ -1097,9 +1409,11 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
             child: Column(
-              children: blocoComUnidadesValidas
-                  .map((blocoComUnidades) => _buildBlocoSection(blocoComUnidades))
-                  .toList(),
+              children: _temBlocos
+                  ? blocoComUnidadesValidas
+                      .map((blocoComUnidades) => _buildBlocoSection(blocoComUnidades))
+                      .toList()
+                  : [_buildUnidadesGridSemBlocos(blocoComUnidadesValidas)],
             ),
           ),
         );

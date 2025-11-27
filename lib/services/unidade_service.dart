@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/bloco.dart';
 import '../models/unidade.dart';
 import '../models/bloco_com_unidades.dart';
+import '../models/condominio.dart';
 import 'qr_code_generation_service.dart';
 
 class UnidadeService {
@@ -550,6 +551,22 @@ class UnidadeService {
           .eq('condominio_id', condominioId);
     } catch (e) {
       throw Exception('Erro ao atualizar configuração: $e');
+    }
+  }
+
+  /// Obtém um condomínio pelo ID
+  Future<Condominio?> obterCondominioById(String condominioId) async {
+    try {
+      final response = await _supabase
+          .from('condominios')
+          .select()
+          .eq('id', condominioId)
+          .single();
+
+      return Condominio.fromJson(response);
+    } catch (e) {
+      print('⚠️ Erro ao obter condomínio: $e');
+      return null;
     }
   }
 }

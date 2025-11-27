@@ -18,6 +18,7 @@ class Condominio {
   final String? instituicaoFinanceiroUnidade;
   final String? tokenFinanceiroUnidade;
   final String? representanteId; // Nova coluna para relacionamento 1:N
+  final bool temBlocos; // Define se o condomínio utiliza blocos
   final bool ativo;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -41,6 +42,7 @@ class Condominio {
     this.instituicaoFinanceiroUnidade,
     this.tokenFinanceiroUnidade,
     this.representanteId,
+    this.temBlocos = true,
     this.ativo = true,
     required this.createdAt,
     required this.updatedAt,
@@ -71,6 +73,7 @@ class Condominio {
       instituicaoFinanceiroUnidade: json['instituicao_financeiro_unidade'] as String?,
       tokenFinanceiroUnidade: json['token_financeiro_unidade'] as String?,
       representanteId: json['representante_id'] as String?,
+      temBlocos: json['tem_blocos'] as bool? ?? true,
       ativo: json['ativo'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -98,6 +101,7 @@ class Condominio {
       'instituicao_financeiro_unidade': instituicaoFinanceiroUnidade,
       'token_financeiro_unidade': tokenFinanceiroUnidade,
       'representante_id': representanteId,
+      'tem_blocos': temBlocos,
       'ativo': ativo,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -124,6 +128,7 @@ class Condominio {
     String? instituicaoFinanceiroUnidade,
     String? tokenFinanceiroUnidade,
     String? representanteId,
+    bool? temBlocos,
     bool? ativo,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -147,6 +152,7 @@ class Condominio {
       instituicaoFinanceiroUnidade: instituicaoFinanceiroUnidade ?? this.instituicaoFinanceiroUnidade,
       tokenFinanceiroUnidade: tokenFinanceiroUnidade ?? this.tokenFinanceiroUnidade,
       representanteId: representanteId ?? this.representanteId,
+      temBlocos: temBlocos ?? this.temBlocos,
       ativo: ativo ?? this.ativo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
