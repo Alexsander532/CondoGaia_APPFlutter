@@ -49,6 +49,10 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
   @override
   void initState() {
+    print('📱 [UnidadeMoradorScreen] initState() chamado');
+    print('📱 [UnidadeMoradorScreen] condominioId recebido: ${widget.condominioId}');
+    print('📱 [UnidadeMoradorScreen] condominioNome recebido: ${widget.condominioNome}');
+    print('📱 [UnidadeMoradorScreen] condominioCnpj recebido: ${widget.condominioCnpj}');
     super.initState();
     _carregarDados();
     _searchController.addListener(_filtrarUnidades);
@@ -62,7 +66,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   }
 
   Future<void> _carregarDados() async {
+    print('📱 [UnidadeMoradorScreen] ===== INICIANDO CARREGAMENTO DE DADOS =====');
+    print('📱 [UnidadeMoradorScreen] condominioId: ${widget.condominioId}');
+    print('📱 [UnidadeMoradorScreen] condominioNome: ${widget.condominioNome}');
+    
     if (widget.condominioId == null) {
+      print('❌ [UnidadeMoradorScreen] ERRO: ID do condomínio é NULL');
       setState(() {
         _isLoading = false;
         _errorMessage = 'ID do condomínio não informado';
@@ -76,16 +85,35 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     });
 
     try {
+      print('🔄 [UnidadeMoradorScreen] Chamando listarUnidadesCondominio com ID: ${widget.condominioId!}');
+      
       // Carrega os dados do banco
       final blocosUnidades = await _unidadeService.listarUnidadesCondominio(
         widget.condominioId!,
       );
+      
+      print('✅ [UnidadeMoradorScreen] Dados carregados com sucesso!');
+      print('📊 [UnidadeMoradorScreen] Total de blocos retornados: ${blocosUnidades.length}');
+      
+      // Log detalhado de cada bloco
+      for (int i = 0; i < blocosUnidades.length; i++) {
+        final bloco = blocosUnidades[i];
+        print('   Bloco $i: ${bloco.bloco.nome} - ${bloco.unidades.length} unidades');
+        for (int j = 0; j < bloco.unidades.length; j++) {
+          final unidade = bloco.unidades[j];
+          print('      Unidade ${j + 1}: ${unidade.numero} (${unidade.id})');
+        }
+      }
+      
       setState(() {
         _blocosUnidades = blocosUnidades;
         _blocosUnidadesFiltrados = blocosUnidades;
         _isLoading = false;
       });
-    } catch (e) {
+      print('✅ [UnidadeMoradorScreen] Estado atualizado com sucesso!');
+    } catch (e, stackTrace) {
+      print('❌ [UnidadeMoradorScreen] ERRO ao carregar dados: $e');
+      print('📋 [UnidadeMoradorScreen] Stack trace: $stackTrace');
       setState(() {
         _errorMessage = 'Erro ao carregar dados: $e';
         _isLoading = false;

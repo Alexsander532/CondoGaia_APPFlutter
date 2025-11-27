@@ -45,17 +45,36 @@ class UnidadeService {
   /// Usa a função listar_unidades_condominio do banco
   Future<List<BlocoComUnidades>> listarUnidadesCondominio(String condominioId) async {
     try {
+      print('🔍 [UnidadeService] Iniciando listarUnidadesCondominio');
+      print('🔍 [UnidadeService] condominioId: $condominioId');
+      
       final response = await _supabase.rpc('listar_unidades_condominio', params: {
         'p_condominio_id': condominioId,
       });
 
+      print('🔍 [UnidadeService] Response recebido: ${response.runtimeType}');
+      print('🔍 [UnidadeService] Response é null: ${response == null}');
+      
       if (response == null) {
+        print('⚠️  [UnidadeService] Response é null, retornando lista vazia');
         return [];
       }
 
+      print('🔍 [UnidadeService] Response value: $response');
+      
       final List<dynamic> data = response as List<dynamic>;
-      return data.map((item) => BlocoComUnidades.fromJson(item)).toList();
-    } catch (e) {
+      print('📊 [UnidadeService] Quantidade de blocos na resposta: ${data.length}');
+      
+      final resultado = data.map((item) {
+        print('🔍 [UnidadeService] Processando item: $item');
+        return BlocoComUnidades.fromJson(item);
+      }).toList();
+      
+      print('✅ [UnidadeService] Total de blocos processados: ${resultado.length}');
+      return resultado;
+    } catch (e, stackTrace) {
+      print('❌ [UnidadeService] ERRO: $e');
+      print('📋 [UnidadeService] Stack trace: $stackTrace');
       throw Exception('Erro ao listar unidades: $e');
     }
   }

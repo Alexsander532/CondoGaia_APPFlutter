@@ -196,6 +196,10 @@ class _GestaoScreenState extends State<GestaoScreen> {
                       imagePath: item['imagePath'],
                       onTap: () {
                         if (item['title'] == 'Morador/Unidade') {
+                          print('🚀 [GestaoScreen] Navegando para UnidadeMoradorScreen');
+                          print('   condominioId: ${widget.condominioId}');
+                          print('   condominioNome: ${widget.condominioNome}');
+                          print('   condominioCnpj: ${widget.condominioCnpj}');
                           Navigator.push(
                             context,
                             MaterialPageRoute(
