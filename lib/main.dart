@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
 import 'screens/ADMIN/home_screen.dart';
@@ -16,10 +17,13 @@ import 'services/supabase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inicializar Supabase
+  // Carregar variáveis de ambiente do arquivo .env
+  await dotenv.load();
+  
+  // Inicializar Supabase com credenciais do .env
   await Supabase.initialize(
-    url: 'https://tukpgefrddfchmvtiujp.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a3BnZWZyZGRmY2htdnRpdWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MTg1NTEsImV4cCI6MjA2ODA5NDU1MX0.dZ1Pna1_dwelIJTlhrSN0iiH5nhuzL0y4p6llYJsLp8',
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
   
   runApp(const CondoGaiaApp());

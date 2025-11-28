@@ -1,0 +1,81 @@
+=================================================================
+                   🏗️ BUILD EM PROGRESSO
+=================================================================
+
+STATUS: 🟡 Compilando...
+
+Projeto: CondoGaia v1.1.2+12
+Tipo: App Bundle (AAB)
+Assinatura: Chave nova Play Store
+Data: 28/11/2025
+
+=================================================================
+                      TIMELINE ATUAL
+=================================================================
+
+✅ 00:00 - Build iniciado
+✅ 00:30 - Gradle sincronizado
+🟡 01:00 - Compilando código (AGORA)
+  
+⏳ Próximos passos:
+  └─ 02:00 - Compilar assets
+  └─ 03:00 - Linking libraries
+  └─ 04:00 - Gerar AAB
+  └─ 05:00 - Assinar com nova chave
+  └─ 06:00 - Finalizar
+
+⏳ Tempo estimado total: 15-20 minutos
+
+=================================================================
+                      COMO ACOMPANHAR
+=================================================================
+
+O build está rodando em background.
+
+Você pode:
+  ✓ Continuar trabalhando
+  ✓ Abrir outro terminal
+  ✓ Ler a documentação
+
+Não feche este terminal até ver:
+  ✅ Built build/app/outputs/bundle/release/app-release.aab
+
+=================================================================
+                    QUANDO TERMINAR
+=================================================================
+
+Você verá uma das mensagens:
+
+SUCESSO:
+  ✅ Built build/app/outputs/bundle/release/app-release.aab
+     └─ Próxima ação: VERIFY_SIGNATURE.bat
+
+ERRO:
+  ❌ Gradle task bundleRelease failed with exit code 1
+     └─ Verifique a mensagem de erro acima
+
+=================================================================
+                   PRÓXIMOS PASSOS
+=================================================================
+
+1️⃣  Aguardar conclusão do build (15-20 min)
+
+2️⃣  Quando ver "Built build/app/outputs..."
+    └─ Duplo clique: VERIFY_SIGNATURE.bat
+
+3️⃣  Se ver "ASSINATURA VÁLIDA!"
+    └─ Vá para: Google Play Console
+    └─ Upload: app-release.aab
+    └─ Publicar em Production
+
+4️⃣  Aguardar ~1 hora para publicação
+
+5️⃣  ✅ APP PUBLICADO!
+
+=================================================================
+
+⏳ Aguardando conclusão...
+
+Tempo decorrido: ~1 minuto (esperado: 15-20 minutos)
+
+Volte aqui quando o build terminar!
