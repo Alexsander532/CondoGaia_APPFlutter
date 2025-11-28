@@ -1231,6 +1231,40 @@ class _PortariaRepresentanteScreenState
     debugPrint('═' * 80);
   }
 
+  /// Helper para formatar unidade respeitando _temBlocos
+  /// Se temBlocos=true e tem bloco: "A 101" ou "Bloco A - 101"
+  /// Se temBlocos=false: apenas "101"
+  String _formatarUnidade({
+    String? bloco,
+    String? numero,
+    bool incluirPrefixo = true,
+  }) {
+    final blocoStr = (bloco?.isNotEmpty ?? false) ? bloco : null;
+    final numeroStr = numero ?? '';
+    
+    if (_temBlocos && blocoStr != null) {
+      // Com blocos: "A 101"
+      return incluirPrefixo ? 'Unidade $blocoStr $numeroStr' : '$blocoStr $numeroStr';
+    } else {
+      // Sem blocos: apenas "101"
+      return incluirPrefixo ? 'Unidade $numeroStr' : numeroStr;
+    }
+  }
+
+  /// Helper para formatar chave de unidade (formato "A/101" ou "101")
+  /// Retorna a unidade formatada respeitando _temBlocos
+  String _formatarChaveUnidade(String chaveUnidade) {
+    if (chaveUnidade.contains('/')) {
+      final partes = chaveUnidade.split('/');
+      final bloco = partes[0];
+      final numero = partes[1];
+      return _formatarUnidade(bloco: bloco, numero: numero, incluirPrefixo: false);
+    } else {
+      // Sem barra: apenas número
+      return chaveUnidade;
+    }
+  }
+
   Future<void> _carregarRepresentanteAtual() async {
     debugPrint('═' * 80);
     debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO REPRESENTANTE ═══');
@@ -1314,6 +1348,7 @@ class _PortariaRepresentanteScreenState
       condominioId: widget.condominioId!,
       representanteId: repId,
       representanteName: repNome,
+      temBlocos: _temBlocos,
     );
   }
 
@@ -3382,7 +3417,11 @@ class _PortariaRepresentanteScreenState
                                             _visitantesNoCondominio[index];
                                         final unidadeInfo =
                                             visitante['unidades'] != null
-                                            ? '${visitante['unidades']['bloco'] ?? ''}/${visitante['unidades']['numero'] ?? ''}'
+                                            ? _formatarUnidade(
+                                                bloco: visitante['unidades']['bloco'],
+                                                numero: visitante['unidades']['numero']?.toString(),
+                                                incluirPrefixo: false,
+                                              )
                                             : 'N/A';
 
                                         return Container(
@@ -3923,7 +3962,7 @@ class _PortariaRepresentanteScreenState
 
                     return ExpansionTile(
                       title: Text(
-                        unidade,
+                        'Unidade ${_formatarChaveUnidade(unidade)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E3A59),
@@ -4170,7 +4209,10 @@ class _PortariaRepresentanteScreenState
                             Text('Telefone: ${visitante['celular'] ?? 'N/A'}'),
                             if (visitante['unidade_numero'] != null)
                               Text(
-                                'Unidade: ${visitante['unidade_bloco'] ?? ''}${visitante['unidade_numero']}',
+                                _formatarUnidade(
+                                  bloco: visitante['unidade_bloco'],
+                                  numero: visitante['unidade_numero'],
+                                ),
                               ),
                           ],
                         ),

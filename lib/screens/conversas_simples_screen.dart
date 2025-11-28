@@ -16,12 +16,14 @@ class ConversasSimples extends StatefulWidget {
   final String condominioId;
   final String representanteId;
   final String representanteName;
+  final bool temBlocos;
 
   const ConversasSimples({
     Key? key,
     required this.condominioId,
     required this.representanteId,
     required this.representanteName,
+    this.temBlocos = true,
   }) : super(key: key);
 
   @override
@@ -34,11 +36,13 @@ class _ConversasSimplesState extends State<ConversasSimples> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late DateTime _lastRefresh;
+  late bool _temBlocos;
 
   @override
   void initState() {
     super.initState();
     _lastRefresh = DateTime.now();
+    _temBlocos = widget.temBlocos;
     _conversasService = ConversasService();
     _initService = CondominioInitService();
     
@@ -58,6 +62,24 @@ class _ConversasSimplesState extends State<ConversasSimples> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Helper para formatar unidade respeitando _temBlocos
+  String _formatarUnidadeConversa(String? unidadeNumero) {
+    if (unidadeNumero == null) return 'N/A';
+    
+    if (_temBlocos) {
+      // Com blocos: mostra como está "A/101"
+      return unidadeNumero;
+    } else {
+      // Sem blocos: extrai apenas o número (depois da barra)
+      if (unidadeNumero.contains('/')) {
+        final partes = unidadeNumero.split('/');
+        return partes[1];
+      } else {
+        return unidadeNumero;
+      }
+    }
   }
 
   /// Filtra apenas por search (sem status)
@@ -316,7 +338,7 @@ class _ConversasSimplesState extends State<ConversasSimples> {
                                   ),
                                   // Unidade
                                   TextSpan(
-                                    text: '${conversa.unidadeNumero ?? 'N/A'} - ',
+                                    text: '${_formatarUnidadeConversa(conversa.unidadeNumero)} - ',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,

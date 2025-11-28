@@ -405,13 +405,15 @@ class _ProprietarioDashboardScreenState
                                           color: Colors.black87,
                                         ),
                                       ),
-                                      Text(
-                                        'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
+                                      // Mostrar bloco apenas se temBlocos = true
+                                      if (_condominio != null && (_condominio!['tem_blocos'] ?? true) == true)
+                                        Text(
+                                          'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ),

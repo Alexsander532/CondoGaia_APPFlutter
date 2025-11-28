@@ -1,0 +1,106 @@
+TEXTOS PRONTOS PARA COPIAR E COLAR
+=================================================================
+
+USE ESTES TEXTOS NO GOOGLE PLAY CONSOLE
+
+=================================================================
+PERMISSÃO 1: READ_MEDIA_IMAGES (Leitura de Fotos)
+=================================================================
+
+TEXTO COMPLETO:
+
+O aplicativo CondoGaia requer acesso a fotos com frequência porque permite que moradores e representantes façam upload de:
+- Fotos de identificação para verificação de residência
+- Documentos (RG, CPF, comprovante de endereço)
+- Fotos de perfil do usuário
+- Fotos imobiliárias para cada unidade
+- Evidências para reservas e solicitações
+
+O acesso à galeria de fotos é essencial e usado com frequência pelos usuários da aplicação.
+
+---
+
+TEXTO RESUMIDO:
+
+O app CondoGaia acessa fotos com frequência para upload de identificação, documentos, fotos de perfil e evidências. O acesso à galeria é essencial para a funcionalidade principal do aplicativo.
+
+---
+
+TEXTO BEM CURTO:
+
+O CondoGaia precisa acessar fotos com frequência para upload de documentos e identificação dos usuários. É funcionalidade essencial do app.
+
+=================================================================
+PERMISSÃO 2: READ_MEDIA_VIDEO (Leitura de Vídeos)
+=================================================================
+
+TEXTO COMPLETO:
+
+O aplicativo CondoGaia permite que usuários façam upload de vídeos para:
+- Documentação de problemas estruturais
+- Evidências de incidentes
+- Tours de unidades
+- Autenticação por vídeo
+
+Embora usada com menos frequência que fotos, esta permissão é importante para a funcionalidade de documentação multimídia do app.
+
+---
+
+TEXTO RESUMIDO:
+
+O app CondoGaia permite upload de vídeos para documentação de problemas e incidentes. Esta permissão é importante para a funcionalidade de documentação multimídia.
+
+---
+
+TEXTO BEM CURTO:
+
+O CondoGaia permite upload de vídeos para documentação de problemas. É funcionalidade importante para o app.
+
+=================================================================
+COMO USAR ESTES TEXTOS
+=================================================================
+
+1. Abra: https://play.google.com/apps/publish
+2. Selecione: CondoGaia
+3. Clique: App content → Permissions and API declarations
+4. Procure por: READ_MEDIA_IMAGES
+5. Clique: Edit justification (ou similar)
+6. Cole TEXTO 1 (escolha completo, resumido ou curto)
+7. Clique: Save
+8. Procure por: READ_MEDIA_VIDEO
+9. Clique: Edit justification (ou similar)
+10. Cole TEXTO 2 (escolha completo, resumido ou curto)
+11. Clique: Save
+
+PRONTO! ✅
+
+=================================================================
+DICAS
+=================================================================
+
+✓ Escolha o texto completo se quer detalhar bem
+✓ Escolha o resumido se quer ser conciso
+✓ Escolha o curto se Google pedir brevidade
+
+✓ Use Português! (Google aceita justificativas em PT-BR)
+✓ Seja honesto - Google verifica se a justificativa faz sentido
+✓ Conecte com funcionalidades reais do seu app
+
+=================================================================
+APÓS ADICIONAR
+=================================================================
+
+Status: ✅ Permissões declaradas
+Revisão: ⏳ 24-48 horas
+Resultado: Devem ser aprovadas (são permiões legítimas)
+
+Enquanto aguarda:
+- Prepare screenshots do app
+- Prepare descrição (description)
+- Prepare ícone
+- Prepare categoria
+- Prepare política de privacidade
+
+=================================================================
+
+Copie e cole os textos acima no Google Play Console! ✅

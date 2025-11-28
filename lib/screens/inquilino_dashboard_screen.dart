@@ -493,13 +493,14 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                           color: Colors.black87,
                                         ),
                                       ),
-                                      Text(
-                                        'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
+                                      if (_condominio != null && (_condominio!['tem_blocos'] ?? true))
+                                        Text(
+                                          'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[600],
+                                          ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ),
