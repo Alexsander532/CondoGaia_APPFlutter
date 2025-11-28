@@ -13,6 +13,7 @@ import '../services/autorizado_inquilino_service.dart';
 import '../services/visitante_portaria_service.dart';
 import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
+import '../services/photo_picker_service.dart';
 import '../services/qr_code_generation_service.dart';
 import '../services/unidade_service.dart';
 import '../utils/formatters.dart';
@@ -2243,15 +2244,10 @@ class _PortariaRepresentanteScreenState
                 children: [
                   GestureDetector(
                     onTap: () async {
-                      // Implementar seleção de imagem
-                      final ImagePicker picker = ImagePicker();
+                      // Seleção de imagem com PhotoPickerService
+                      final photoPickerService = PhotoPickerService();
                       try {
-                        final XFile? image = await picker.pickImage(
-                          source: ImageSource.camera,
-                          maxWidth: 800,
-                          maxHeight: 600,
-                          imageQuality: 80,
-                        );
+                        final XFile? image = await photoPickerService.pickImageFromCamera();
                         
                         if (image != null) {
                           setState(() {
@@ -2262,12 +2258,7 @@ class _PortariaRepresentanteScreenState
                         print('Erro ao selecionar imagem: $e');
                         // Fallback para galeria se câmera falhar
                         try {
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.gallery,
-                            maxWidth: 800,
-                            maxHeight: 600,
-                            imageQuality: 80,
-                          );
+                          final XFile? image = await photoPickerService.pickImage();
                           
                           if (image != null) {
                             setState(() {
@@ -2275,7 +2266,7 @@ class _PortariaRepresentanteScreenState
                             });
                           }
                         } catch (e2) {
-                          print('Erro ao selecionar da galeria: $e2');
+                          print('Erro ao abrir galeria: $e2');
                         }
                       }
                     },
@@ -4854,13 +4845,8 @@ class _PortariaRepresentanteScreenState
   /// Tirar foto com a câmera do celular
   Future<void> _selecionarFotoVisitanteCamera() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 600,
-        imageQuality: 80,
-      );
+      final photoPickerService = PhotoPickerService();
+      final XFile? image = await photoPickerService.pickImageFromCamera();
 
       if (image != null) {
         setState(() {
@@ -4884,13 +4870,8 @@ class _PortariaRepresentanteScreenState
   /// Selecionar foto da galeria
   Future<void> _selecionarFotoVisitanteGaleria() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 600,
-        imageQuality: 80,
-      );
+      final photoPickerService = PhotoPickerService();
+      final XFile? image = await photoPickerService.pickImage();
 
       if (image != null) {
         setState(() {

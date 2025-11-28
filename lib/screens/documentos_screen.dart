@@ -12,6 +12,7 @@ import 'nova_pasta_screen.dart';
 import '../models/documento.dart';
 import '../models/balancete.dart';
 import '../services/documento_service.dart';
+import '../services/photo_picker_service.dart';
 import '../utils/download_helper.dart';
 
 // Importação condicional de dart:io para mobile/desktop
@@ -70,7 +71,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   List<dynamic> _pdfsTemporarios = []; // Pode ser File (mobile) ou ArquivoTemporarioBalancete (web)
   bool _linkValido = false;
   bool _isUploadingFile = false;
-  final ImagePicker _picker = ImagePicker();
+  final _photoPickerService = PhotoPickerService();
   
   // Lista de meses para exibição
   final List<String> _nomesMeses = [
@@ -188,11 +189,9 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           isLoading = true;
         });
 
-        final ImagePicker picker = ImagePicker();
-        final XFile? image = await picker.pickImage(
-          source: source,
-          imageQuality: 85,
-        );
+        final XFile? image = source == ImageSource.camera
+            ? await _photoPickerService.pickImageFromCamera()
+            : await _photoPickerService.pickImage();
 
         if (image != null) {
           // Adicionar balancete com upload da imagem (passar XFile diretamente)
@@ -570,12 +569,9 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           _isUploadingFile = true;
         });
 
-        final XFile? image = await _picker.pickImage(
-          source: source,
-          imageQuality: 85,
-          maxWidth: 1920,
-          maxHeight: 1080,
-        );
+        final XFile? image = source == ImageSource.camera
+            ? await _photoPickerService.pickImageFromCamera()
+            : await _photoPickerService.pickImage();
 
         if (image != null) {
           // Na web, usar bytes; no mobile, usar File

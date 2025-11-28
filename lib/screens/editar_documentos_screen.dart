@@ -1,3 +1,4 @@
+import 'package:condogaiaapp/services/photo_picker_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -763,11 +764,8 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         _isLoading = true;
       });
 
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
+      final _photoPickerService = PhotoPickerService();
+      final XFile? image = await _photoPickerService.pickImageFromCamera();
 
       if (image != null) {
         // Na web, usar bytes diretamente; no mobile, usar File

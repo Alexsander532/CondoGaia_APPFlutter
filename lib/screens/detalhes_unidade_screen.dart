@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:io';
 import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
+import '../services/photo_picker_service.dart';
 import '../models/unidade.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
@@ -115,8 +116,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   String _receberBoletoEmailSelecionado = 'nao';
   String _controleLocacaoSelecionado = 'nao';
 
+  // Serviço para seleção de fotos
+  final _photoPickerService = PhotoPickerService();
+  
   // Estados para Imobiliária - Foto
-  final ImagePicker _imagePicker = ImagePicker();
   Uint8List? _fotoImobiliariaBytes;
   bool _isUploadingFotoImobiliaria = false;
 
@@ -819,12 +822,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Seleciona uma imagem de câmera ou galeria
   Future<void> _pickImageImobiliaria(ImageSource source) async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
+      final XFile? image = await _photoPickerService.pickImage();
 
       if (image != null) {
         final bytes = await image.readAsBytes();
@@ -1033,12 +1031,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   Future<void> _pickAndUploadProprietarioFoto(ImageSource source) async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
+      final XFile? image = await _photoPickerService.pickImage();
 
       if (image == null) return;
 
@@ -1186,12 +1179,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   Future<void> _pickAndUploadInquilinoFoto(ImageSource source) async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
+      final XFile? image = await _photoPickerService.pickImage();
 
       if (image == null) return;
 

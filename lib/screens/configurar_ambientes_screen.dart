@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/ambiente.dart';
 import '../services/ambiente_service.dart';
+import '../services/photo_picker_service.dart';
 
 class ConfigurarAmbientesScreen extends StatefulWidget {
   const ConfigurarAmbientesScreen({super.key});
@@ -678,9 +679,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         onPressed: () async {
                                           Navigator.pop(dialogContext);
                                           // Câmera
-                                          final XFile? imagem = await ImagePicker().pickImage(
-                                            source: ImageSource.camera,
-                                          );
+                                          final photoPickerService = PhotoPickerService();
+                                          final XFile? imagem = await photoPickerService.pickImageFromCamera();
                                           if (imagem != null) {
                                             setModalState(() {
                                               fotoAmbiente = imagem;
@@ -693,9 +693,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         onPressed: () async {
                                           Navigator.pop(dialogContext);
                                           // Galeria
-                                          final XFile? imagem = await ImagePicker().pickImage(
-                                            source: ImageSource.gallery,
-                                          );
+                                          final photoPickerService = PhotoPickerService();
+                                          final XFile? imagem = await photoPickerService.pickImage();
                                           if (imagem != null) {
                                             setModalState(() {
                                               fotoAmbiente = imagem;
@@ -1733,9 +1732,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                     TextButton(
                                       onPressed: () async {
                                         Navigator.pop(context);
-                                        final XFile? picked = await ImagePicker().pickImage(
-                                          source: ImageSource.camera,
-                                        );
+                                        final photoPickerService = PhotoPickerService();
+                                        final XFile? picked = await photoPickerService.pickImageFromCamera();
                                         if (picked != null) {
                                           setModalState(() {
                                             fotoAmbienteEditada = picked;
@@ -1747,9 +1745,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                     TextButton(
                                       onPressed: () async {
                                         Navigator.pop(context);
-                                        final XFile? picked = await ImagePicker().pickImage(
-                                          source: ImageSource.gallery,
-                                        );
+                                        final photoPickerService = PhotoPickerService();
+                                        final XFile? picked = await photoPickerService.pickImage();
                                         if (picked != null) {
                                           setModalState(() {
                                             fotoAmbienteEditada = picked;

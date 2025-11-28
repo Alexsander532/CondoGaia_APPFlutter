@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 import 'chat_inquilino_v2_screen.dart';
+import '../services/photo_picker_service.dart';
 import '../models/autorizado_inquilino.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../models/encomenda.dart';
@@ -2736,13 +2737,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   /// Tirar foto com a câmera do celular
   Future<void> _selecionarFotoAutorizadoCamera(StateSetter setModalState) async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 600,
-        imageQuality: 80,
-      );
+      final photoPickerService = PhotoPickerService();
+      final XFile? image = await photoPickerService.pickImageFromCamera();
 
       if (image != null) {
         setModalState(() {
@@ -2768,13 +2764,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     StateSetter setModalState,
   ) async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 600,
-        imageQuality: 80,
-      );
+      final photoPickerService = PhotoPickerService();
+      final XFile? image = await photoPickerService.pickImage();
 
       if (image != null) {
         setModalState(() {
