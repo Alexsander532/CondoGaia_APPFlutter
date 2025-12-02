@@ -3,14 +3,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     
-    <!-- Permissões de armazenamento para Android < 11 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    
-    <!-- Permissões de armazenamento para Android 11+ -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    
-    <!-- Permissões de armazenamento para Android 13+ -->
+    <!-- Permissão específica para selecionar imagens (PhotoPicker API - Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     
     <!-- Features -->
@@ -20,8 +13,7 @@
     <application
         android:label="condogaiaapp"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"
