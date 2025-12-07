@@ -1,16 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 
-/// Serviço unificado para seleção de fotos
+/// Serviço unificado para seleção de fotos - PhotoPicker Nativo
 /// 
-/// Usa PhotoPicker API no Android 13+ (mais seguro, sem permissões)
-/// Fallback automático para ImagePicker no Android 9-12 (compatibilidade)
+/// ✅ Android 13+ (API 33+): image_picker usa PhotoPicker automático (ZERO permissões)
+/// ✅ Web: image_picker usa <input type="file"> nativo do navegador
+/// ✅ iOS: image_picker usa UIImagePickerController nativo
+/// ✅ Câmera: image_picker + CAMERA permission (OK para Google Play)
+/// 
+/// ❌ Removido: device_info_plus (não precisa verificar SDK)
+/// ❌ Removido: READ_MEDIA_IMAGES permission
+/// ❌ Removido: MANAGE_EXTERNAL_STORAGE permission
+/// ❌ Removido: READ_EXTERNAL_STORAGE permission
+/// 
+/// Por que image_picker continua?
+/// - Fornece tipos essenciais (XFile, ImageSource)
+/// - Câmera funciona sem permissões extras
+/// - Galeria usa PhotoPicker automático no Android 13+
 /// 
 /// Uso:
 /// ```dart
 /// final photoPickerService = PhotoPickerService();
-/// final XFile? image = await photoPickerService.pickImage();
+/// final XFile? image = await photoPickerService.pickImage();  // Galeria
+/// final XFile? camera = await photoPickerService.pickImageFromCamera();  // Câmera
 /// ```
 class PhotoPickerService {
   static final PhotoPickerService _instance = PhotoPickerService._internal();
@@ -22,37 +35,63 @@ class PhotoPickerService {
   PhotoPickerService._internal();
 
   final _imagePicker = ImagePicker();
-  final _deviceInfo = DeviceInfoPlugin();
 
-  /// Verifica se pode usar PhotoPicker (Android 13+)
-  /// PhotoPicker está disponível no Android 13 (SDK 33) em diante
-  Future<bool> _canUsePhotoPicker() async {
+  /// Selecionar arquivo usando PhotoPicker (Android 13+)
+  /// No web, usa input type="file" nativo
+  Future<XFile?> _selectImageFromPhotoPicker() async {
     try {
-      final androidInfo = await _deviceInfo.androidInfo;
-      final sdkVersion = androidInfo.version.sdkInt;
-      
-      // Log para debug
-      debugPrint('📱 SDK Version: $sdkVersion');
-      
-      return sdkVersion >= 33; // Android 13+
+      if (kIsWeb) {
+        // Web: usar input nativo
+        return await _selectImageFromWebFilePicker();
+      } else {
+        // Android 13+: usar PhotoPicker nativo
+        return await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        );
+      }
     } catch (e) {
-      debugPrint('❌ Erro ao verificar SDK: $e');
-      return false;
+      debugPrint('❌ Erro ao selecionar foto: $e');
+      return null;
+    }
+  }
+
+  /// Selecionar arquivo no web usando input nativo
+  Future<XFile?> _selectImageFromWebFilePicker() async {
+    try {
+      debugPrint('🌐 Abrindo file picker web...');
+      
+      // No web, usar ImagePicker normalmente (ele faz o fallback)
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        debugPrint('✅ Arquivo web selecionado: ${image.name}');
+      }
+      
+      return image;
+    } catch (e) {
+      debugPrint('❌ Erro ao selecionar foto web: $e');
+      return null;
     }
   }
 
   /// Selecionar uma foto
   /// 
-  /// Usa PhotoPicker no Android 13+ (mais seguro)
-  /// Usa ImagePicker no Android 9-12 (compatibilidade)
+  /// Usa PhotoPicker no Android 13+ (mais seguro, sem permissões)
+  /// No web, usa input nativo type="file"
   /// 
   /// Parâmetros:
-  /// - source: ImageSource.gallery (padrão) ou ImageSource.camera
   /// - maxWidth: largura máxima da imagem (padrão: 800)
   /// - maxHeight: altura máxima da imagem (padrão: 800)
   /// - imageQuality: qualidade da imagem 0-100 (padrão: 85)
   Future<XFile?> pickImage({
-    ImageSource source = ImageSource.gallery,
     double? maxWidth,
     double? maxHeight,
     int? imageQuality,
@@ -60,57 +99,24 @@ class PhotoPickerService {
     try {
       debugPrint('🎯 Iniciando seleção de foto...');
       
-      // Se Android 13+, usar PhotoPicker
-      if (await _canUsePhotoPicker() && source == ImageSource.gallery) {
-        debugPrint('✅ Usando PhotoPicker API (Android 13+)');
-        return await _pickImageWithPhotoPicker();
-      }
+      // Usar PhotoPicker (Android 13+) ou file picker (Web)
+      final XFile? image = await _selectImageFromPhotoPicker();
 
-      // Senão, usar ImagePicker (Android 9-12 ou câmera)
-      debugPrint('✅ Usando ImagePicker (Android 9-12 ou Câmera)');
-      return await _imagePicker.pickImage(
-        source: source,
-        maxWidth: maxWidth ?? 800,
-        maxHeight: maxHeight ?? 800,
-        imageQuality: imageQuality ?? 85,
-      );
+      if (image != null) {
+        debugPrint('✅ Foto selecionada');
+      }
+      
+      return image;
     } catch (e) {
       debugPrint('❌ Erro ao selecionar foto: $e');
       return null;
     }
   }
 
-  /// Usar PhotoPicker (Android 13+)
-  /// Não requer permissões!
-  /// 
-  /// NOTA: A implementação atual usa ImagePicker como fallback
-  /// porque a API do PhotoPicker é complexa. Em produção,
-  /// você pode usar: https://pub.dev/packages/photos
-  Future<XFile?> _pickImageWithPhotoPicker() async {
-    try {
-      // Fallback: usar ImagePicker mesmo no Android 13+
-      // (em produção, implementar PhotoPicker nativo)
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-      
-      if (image != null) {
-        debugPrint('✅ Foto selecionada via PhotoPicker');
-      }
-      
-      return image;
-    } catch (e) {
-      debugPrint('❌ Erro no PhotoPicker: $e');
-      return null;
-    }
-  }
-
   /// Selecionar múltiplas fotos
   /// 
-  /// Usa ImagePicker para compatibilidade
+  /// Usa PhotoPicker no Android 13+
+  /// No web, usa input nativo (uma imagem por vez)
   Future<List<XFile>> pickMultipleImages({
     double? maxWidth,
     double? maxHeight,
@@ -119,14 +125,22 @@ class PhotoPickerService {
     try {
       debugPrint('🎯 Iniciando seleção de múltiplas fotos...');
       
-      final images = await _imagePicker.pickMultiImage(
-        maxWidth: maxWidth ?? 800,
-        maxHeight: maxHeight ?? 800,
-        imageQuality: imageQuality ?? 85,
-      );
+      if (kIsWeb) {
+        // No web, selecionar uma imagem por vez
+        debugPrint('⚠️ Web: Selecionando uma imagem por vez');
+        final image = await _selectImageFromPhotoPicker();
+        return image != null ? [image] : [];
+      } else {
+        // Android 13+: PhotoPicker com suporte a múltiplas imagens
+        final images = await _imagePicker.pickMultiImage(
+          maxWidth: maxWidth ?? 800,
+          maxHeight: maxHeight ?? 800,
+          imageQuality: imageQuality ?? 85,
+        );
 
-      debugPrint('✅ ${images.length} fotos selecionadas');
-      return images;
+        debugPrint('✅ ${images.length} fotos selecionadas');
+        return images;
+      }
     } catch (e) {
       debugPrint('❌ Erro ao selecionar múltiplas fotos: $e');
       return [];
@@ -135,7 +149,7 @@ class PhotoPickerService {
 
   /// Tirar foto com a câmera
   /// 
-  /// Usa ImagePicker diretamente (câmera)
+  /// Usa PhotoPicker/Câmera nativa
   Future<XFile?> pickImageFromCamera({
     double? maxWidth,
     double? maxHeight,
@@ -144,62 +158,59 @@ class PhotoPickerService {
     try {
       debugPrint('📷 Abrindo câmera...');
       
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: maxWidth ?? 800,
-        maxHeight: maxHeight ?? 800,
-        imageQuality: imageQuality ?? 85,
-      );
+      if (kIsWeb) {
+        debugPrint('⚠️ Web não suporta câmera, usando seleção de arquivo');
+        return await _selectImageFromWebFilePicker();
+      } else {
+        // Android 13+: usar câmera com PhotoPicker
+        final XFile? image = await _imagePicker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: maxWidth ?? 800,
+          maxHeight: maxHeight ?? 800,
+          imageQuality: imageQuality ?? 85,
+        );
 
-      if (image != null) {
-        debugPrint('✅ Foto capturada da câmera');
+        if (image != null) {
+          debugPrint('✅ Foto capturada da câmera');
+        }
+        
+        return image;
       }
-      
-      return image;
     } catch (e) {
       debugPrint('❌ Erro ao tirar foto: $e');
       return null;
     }
   }
 
-  /// Tirar foto com a câmera (video)
+  /// Tirar vídeo com a câmera
   /// 
-  /// Usa ImagePicker para vídeo
+  /// Usa câmera nativa para gravação
   Future<XFile?> pickVideoFromCamera({
     Duration? maxDuration,
   }) async {
     try {
       debugPrint('🎥 Abrindo câmera para vídeo...');
       
-      final XFile? video = await _imagePicker.pickVideo(
-        source: ImageSource.camera,
-        maxDuration: maxDuration,
-      );
+      if (kIsWeb) {
+        debugPrint('⚠️ Web não suporta câmera para vídeo');
+        return null;
+      } else {
+        // Android 13+: usar câmera nativa para vídeo
+        final XFile? video = await _imagePicker.pickVideo(
+          source: ImageSource.camera,
+          maxDuration: maxDuration,
+        );
 
-      if (video != null) {
-        debugPrint('✅ Vídeo capturado');
+        if (video != null) {
+          debugPrint('✅ Vídeo capturado');
+        }
+        
+        return video;
       }
-      
-      return video;
     } catch (e) {
       debugPrint('❌ Erro ao gravar vídeo: $e');
       return null;
     }
   }
 
-  /// Informações de versão Android (para debug)
-  Future<void> printAndroidInfo() async {
-    try {
-      final androidInfo = await _deviceInfo.androidInfo;
-      debugPrint('═══════════════════════════════════════');
-      debugPrint('📱 Android Info:');
-      debugPrint('  Versão SDK: ${androidInfo.version.sdkInt}');
-      debugPrint('  Release: ${androidInfo.version.release}');
-      debugPrint('  Fabricante: ${androidInfo.manufacturer}');
-      debugPrint('  Modelo: ${androidInfo.model}');
-      debugPrint('═══════════════════════════════════════');
-    } catch (e) {
-      debugPrint('❌ Erro ao obter info Android: $e');
-    }
-  }
 }

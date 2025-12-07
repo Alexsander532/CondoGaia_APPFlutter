@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number used as the build suffix.
-version: 1.1.1+14
+version: 1.1.1+15
 
 environment:
   sdk: ^3.9.0
@@ -49,11 +49,11 @@ dependencies:
   
   # Para formatação de valores monetários
   
-  # Para seleção de imagens da galeria e câmera
+  # image_picker: tipos (XFile, ImageSource) + câmera nativa
+  # NO iOS/Android: câmera funciona SEM permissões adicionais
+  # NO Android 13+: PhotoPicker cuida da galeria (SEM permissões)
+  # NO Web: file picker nativo do navegador
   image_picker: ^1.0.7
-  
-  # Para PhotoPicker API (Android 13+) - mais seguro
-  device_info_plus: ^9.0.0
   
   intl: ^0.20.0
   

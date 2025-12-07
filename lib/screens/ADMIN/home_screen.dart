@@ -4,6 +4,8 @@ import '../login_screen.dart';
 import 'cadastro_condominio_screen.dart';
 import 'cadastro_representante_screen.dart';
 import 'pesquisa_condominios_screen.dart';
+import '../../features/push_notification_admin/screens/push_notification_admin_screen.dart';
+import '../../features/ADMIN_Features/gateway_pagamento_admin/screens/gateway_pagamento_admin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -209,8 +211,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       iconPath: 'assets/images/ADMIN/home_ADMIN/Push_Imagem.png',
                       textImagePath: 'assets/images/ADMIN/home_ADMIN/Push_Texto.png',
                       onTap: () {
-                        // TODO: Navegar para push notifications
-                        _showFeatureInDevelopment('Push');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const PushNotificationAdminScreen(),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 24),
@@ -219,8 +224,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       iconPath: 'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento.png',
                       textImagePath: 'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento_Texto.png',
                       onTap: () {
-                        // TODO: Navegar para gateway de pagamento
-                        _showFeatureInDevelopment('Gateway de Pagamento');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const GatewayPagamentoAdminScreen(),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 24),

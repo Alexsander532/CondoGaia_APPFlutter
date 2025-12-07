@@ -18,6 +18,23 @@ class UnidadeDetalhesService {
     required String bloco,
   }) async {
     try {
+      // 0. Buscar se o condomínio tem blocos
+      bool temBlocos = true;
+      try {
+        final condominioData = await _supabase
+            .from('condominios')
+            .select('tem_blocos')
+            .eq('id', condominioId)
+            .maybeSingle();
+
+        if (condominioData != null) {
+          temBlocos = condominioData['tem_blocos'] ?? true;
+        }
+      } catch (e) {
+        print('Erro ao buscar tem_blocos do condomínio: $e');
+        // Usar padrão true se der erro
+      }
+
       // 1. Buscar a unidade
       final unidadeData = await _supabase
           .from('unidades')
@@ -90,6 +107,7 @@ class UnidadeDetalhesService {
         'proprietario': proprietario,
         'inquilino': inquilino,
         'imobiliaria': imobiliaria,
+        'temBlocos': temBlocos,
       };
     } catch (e) {
       throw Exception('Erro ao buscar detalhes da unidade: $e');

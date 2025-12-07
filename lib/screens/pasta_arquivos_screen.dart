@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
@@ -136,6 +137,50 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
     }
   }
 
+  /// Abre o PDF no navegador
+  Future<void> _abrirPDFNoNavegador(Documento documento) async {
+    try {
+      if (documento.url == null || documento.url!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('URL do PDF não disponível'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final String pdfUrl = documento.url!;
+
+      // Tentar abrir no navegador
+      final Uri uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o PDF'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Erro ao abrir PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   /// Baixa o arquivo usando DocumentoService (igual ao representante)
   Future<void> _baixarArquivo(Documento documento) async {
     if (!_ehArquivo(documento)) return;
@@ -146,7 +191,13 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
       return;
     }
 
-    // Se for PDF, fazer download
+    // Se for PDF, abrir no navegador
+    if (documento.nome.toLowerCase().endsWith('.pdf')) {
+      _abrirPDFNoNavegador(documento);
+      return;
+    }
+
+    // Para outros tipos de arquivo, fazer download
     try {
       // Na web, usar o DownloadHelper
       if (kIsWeb) {
@@ -389,13 +440,21 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
               ],
             ),
           ),
-          // Botão de ação (Visualizar para imagens, Baixar para PDFs, Copiar para links)
+          // Botão de ação (Visualizar para imagens, Abrir para PDFs, Copiar para links)
           if (isArquivo)
             GestureDetector(
               onTap: () => _baixarArquivo(documento),
               child: Icon(
-                _isImageFile(documento.nome) ? Icons.visibility : Icons.download,
-                color: _isImageFile(documento.nome) ? Colors.blue : Colors.green,
+                _isImageFile(documento.nome) 
+                  ? Icons.visibility 
+                  : documento.nome.toLowerCase().endsWith('.pdf')
+                    ? Icons.open_in_browser
+                    : Icons.download,
+                color: _isImageFile(documento.nome) 
+                  ? Colors.blue 
+                  : documento.nome.toLowerCase().endsWith('.pdf')
+                    ? Colors.green
+                    : Colors.green,
                 size: 20,
               ),
             )

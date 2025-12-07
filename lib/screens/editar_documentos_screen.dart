@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
@@ -610,14 +611,14 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
                             tooltip: 'Copiar link',
                           )
                         else if (_isPDF(arquivo))
-                          // Para PDFs: download
+                          // Para PDFs: abrir no navegador
                           IconButton(
-                            onPressed: _isLoading ? null : () => _baixarPDF(arquivo),
+                            onPressed: _isLoading ? null : () => _abrirPDFNoNavegador(arquivo),
                             icon: const Icon(
-                              Icons.download,
+                              Icons.open_in_browser,
                               color: Colors.green,
                             ),
-                            tooltip: 'Baixar PDF',
+                            tooltip: 'Abrir PDF no navegador',
                           )
                         else if (_isImagem(arquivo))
                           // Para imagens: visualizar com zoom
@@ -1088,7 +1089,8 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
   }
 
   // Função para baixar PDF (suporta Web, Android e iOS)
-  Future<void> _baixarPDF(Documento arquivo) async {
+  // Função para abrir PDF no navegador
+  Future<void> _abrirPDFNoNavegador(Documento arquivo) async {
     try {
       if (arquivo.url == null || arquivo.url!.isEmpty) {
         if (mounted) {
@@ -1103,21 +1105,27 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
       }
 
       final String pdfUrl = arquivo.url!;
-      final String fileName = arquivo.nome;
 
-      // Verificar se é web
-      if (kIsWeb) {
-        _downloadPDFWeb(pdfUrl, fileName);
+      // Tentar abrir no navegador
+      final Uri uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        // Para Android e iOS
-        await _downloadPDFMobile(pdfUrl, fileName);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o PDF'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Erro ao baixar PDF: $e');
+      print('Erro ao abrir PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao baixar PDF: $e'),
+            content: Text('Erro ao abrir PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1125,113 +1133,4 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     }
   }
 
-  // Download para Web
-  void _downloadPDFWeb(String pdfUrl, String fileName) {
-    if (kIsWeb) {
-      // Usar o helper para download de PDF na web
-      DownloadHelper.downloadPdfFromUrl(pdfUrl, fileName, context);
-    }
   }
-
-  // Download para Mobile (Android e iOS)
-  Future<void> _downloadPDFMobile(String pdfUrl, String fileName) async {
-    // Obter o diretório de downloads
-    final dynamic downloadsDir = await _getDownloadsDirectory();
-    
-    if (downloadsDir == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Não foi possível acessar pasta de downloads'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Garantir que o diretório existe
-    if (!await downloadsDir.exists()) {
-      await downloadsDir.create(recursive: true);
-    }
-
-    final String filePath = '${downloadsDir.path}/$fileName';
-
-    // Fazer download usando Dio
-    final Dio dio = Dio();
-    
-    print('Iniciando download: $pdfUrl → $filePath');
-    
-    await dio.download(
-      pdfUrl,
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total != -1) {
-          final progress = (received / total * 100).toStringAsFixed(0);
-          print('Download em andamento: $progress%');
-        }
-      },
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✓ PDF "$fileName" salvo em Downloads'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-    
-    print('Download concluído: $filePath');
-  }
-
-  // Obter diretório de Downloads (funciona em Android e iOS)
-  Future<dynamic> _getDownloadsDirectory() async {
-    if (kIsWeb) {
-      return null; // Na web não há diretório de downloads
-    }
-    
-    try {
-      // No Android, usa Documents directory que funciona melhor
-      // No iOS, usa Documents também
-      final platformCheck = await _isAndroid();
-      if (platformCheck) {
-        // Tenta obter o diretório de downloads
-        final directory = await getExternalStorageDirectory();
-        if (directory != null) {
-          // Tenta retornar /storage/emulated/0/Download se possível
-          final downloadPath = '/storage/emulated/0/Download';
-          final downloadDir = (io.Directory as dynamic)(downloadPath);
-          bool exists = false;
-          try {
-            exists = await (downloadDir as dynamic).exists();
-          } catch (e) {
-            exists = false;
-          }
-          
-          if (exists) {
-            return downloadDir;
-          }
-          // Fallback para app documents
-          return directory;
-        }
-      }
-      // Para iOS ou se Android falhar
-      return await getApplicationDocumentsDirectory();
-    } catch (e) {
-      print('Erro ao obter diretório de downloads: $e');
-      return null;
-    }
-  }
-
-  // Método auxiliar para verificar se é Android
-  Future<bool> _isAndroid() async {
-    if (kIsWeb) return false;
-    try {
-      return (io.Platform as dynamic).isAndroid;
-    } catch (e) {
-      return false;
-    }
-  }
-}

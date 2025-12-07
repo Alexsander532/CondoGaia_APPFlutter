@@ -104,6 +104,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   // Estados dos campos
   String? _tipoSelecionado;
   String _isencaoSelecionada = 'nenhum';
+  bool _temBlocos = true; // Flag para saber se o condomínio usa blocos
   String _acaoJudicialSelecionada = 'nao';
   String _correiosSelecionado = 'nao';
   String _pagadorBoletoSelecionado = 'proprietario';
@@ -226,6 +227,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           _proprietario = dados['proprietario'];
           _inquilino = dados['inquilino'];
           _imobiliaria = dados['imobiliaria'];
+          _temBlocos = dados['temBlocos'] ?? true; // Carrega flag de blocos
           _isLoadingDados = false;
 
           // Preencher campos de unidade
@@ -1531,42 +1533,43 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Bloco:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF333333),
+            if (_temBlocos)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Bloco:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 45,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.white,
-                    ),
-                    child: TextField(
-                       controller: _blocoController,
-                       decoration: const InputDecoration(
-                         hintText: 'B',
-                         hintStyle: TextStyle(
-                           color: Color(0xFF999999),
-                           fontSize: 14,
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white,
+                      ),
+                      child: TextField(
+                         controller: _blocoController,
+                         decoration: const InputDecoration(
+                           hintText: 'B',
+                           hintStyle: TextStyle(
+                             color: Color(0xFF999999),
+                             fontSize: 14,
+                           ),
+                           border: InputBorder.none,
+                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                          ),
-                         border: InputBorder.none,
-                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                        ),
-                     ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
         
@@ -1719,55 +1722,56 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         
         const SizedBox(height: 16),
         
-        // Dropdown Tipo
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tipo:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 45,
-              width: 120,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        // Dropdown Tipo - Apenas se temBlocos = true
+        if (_temBlocos)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tipo:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF333333),
                 ),
-                value: _tipoSelecionado,
-                hint: const Text(
-                  'A',
-                  style: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 45,
+                width: 120,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                ),
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
+                  value: _tipoSelecionado,
+                  hint: const Text(
+                    'A',
+                    style: TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 14,
+                    ),
+                  ),
+                  items: ['A', 'B', 'C', 'D'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _tipoSelecionado = newValue;
+                    });
+                  },
                 ),
-                items: ['A', 'B', 'C', 'D'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _tipoSelecionado = newValue;
-                  });
-                },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         
         const SizedBox(height: 24),
         
@@ -4954,7 +4958,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Center(
                 child: Text(
-                  'Home/Gestão/Unid/${widget.bloco}/${widget.unidade}',
+                  _temBlocos
+                      ? 'Home/Gestão/Unid/${widget.bloco}/${widget.unidade}'
+                      : 'Home/Gestão/Unid/${widget.unidade}',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF666666),
@@ -5053,7 +5059,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    '${widget.bloco}/${widget.unidade}',
+                                    _temBlocos
+                                        ? '${widget.bloco}/${widget.unidade}'
+                                        : widget.unidade,
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w600,
