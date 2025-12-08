@@ -22,6 +22,9 @@ git config --global --add safe.directory /tmp/flutter
 # Desabilitar analytics do Flutter
 flutter config --no-analytics
 
+# Desabilitar Wasm (usa compilador JavaScript tradicional)
+export FLUTTER_WEB_USE_WASM=false
+
 # Verificar versão do Flutter
 echo "✅ Versão do Flutter:"
 flutter --version
@@ -35,6 +38,6 @@ flutter pub get
 
 # Fazer build para web
 echo "🔨 Fazendo build para web..."
-flutter build web --release --web-renderer canvaskit --no-wasm
+flutter build web --release
 
 echo "🎉 Build concluído com sucesso!"
