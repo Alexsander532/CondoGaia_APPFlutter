@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'dart:io';
@@ -138,7 +139,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Timer para verificar se QR Code foi gerado
   int _qrCheckCount = 0;
-  static const int _maxQrChecks = 20; // Máximo 10 segundos (20 * 500ms)
+  static const int _maxQrChecks = 40; // Máximo 20 segundos (40 * 500ms)
 
   @override
   void initState() {
@@ -162,9 +163,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       _errorMessage = null;
     });
     
-    // Aguardar um pouco para o QR code ser salvo no banco (300ms da criação + buffer)
-    // Depois recarregar os dados e continuar verificando até que o QR seja gerado
-    Future.delayed(const Duration(milliseconds: 800), () {
+    // Aguardar mais tempo para o QR code ser salvo no banco e gerado
+    // Aumentado de 800ms para 2000ms para dar mais tempo ao Supabase gerar o QR
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
         _qrCheckCount = 0;
         _carregarDadosComVerificacaoQR();
@@ -190,8 +191,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         
         _qrCheckCount++;
         if (_qrCheckCount < _maxQrChecks) {
-          // Aguardar 500ms e tentar novamente
-          await Future.delayed(const Duration(milliseconds: 500));
+          // Aguardar 1 segundo e tentar novamente (aumentado de 500ms para 1000ms)
+          await Future.delayed(const Duration(milliseconds: 1000));
           if (mounted) {
             _carregarDadosComVerificacaoQR();
           }
@@ -414,6 +415,123 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     }
   }
 
+  // ============================================================================
+  // FUNÇÕES HELPER PARA VALIDAÇÃO DE CPF/CNPJ
+  // ============================================================================
+
+  /// Valida o formato do CPF
+  /// Retorna erro descriptivo se inválido, ou null se válido
+  String? _validarCPF(String cpf) {
+    final digitos = cpf.replaceAll(RegExp(r'\D'), '');
+    
+    if (digitos.isEmpty) {
+      return 'CPF é obrigatório';
+    }
+    
+    if (digitos.length < 11) {
+      final faltam = 11 - digitos.length;
+      return 'CPF incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
+    }
+    
+    if (digitos.length > 11) {
+      return 'CPF com muitos dígitos (máximo 11)';
+    }
+    
+    // Validar primeiro dígito verificador
+    int soma = 0;
+    for (int i = 0; i < 9; i++) {
+      soma += int.parse(digitos[i]) * (10 - i);
+    }
+    int primeiroDigito = 11 - (soma % 11);
+    if (primeiroDigito >= 10) primeiroDigito = 0;
+    
+    if (int.parse(digitos[9]) != primeiroDigito) {
+      return 'CPF com formato inválido';
+    }
+    
+    // Validar segundo dígito verificador
+    soma = 0;
+    for (int i = 0; i < 10; i++) {
+      soma += int.parse(digitos[i]) * (11 - i);
+    }
+    int segundoDigito = 11 - (soma % 11);
+    if (segundoDigito >= 10) segundoDigito = 0;
+    
+    if (int.parse(digitos[10]) != segundoDigito) {
+      return 'CPF com formato inválido';
+    }
+    
+    return null; // CPF válido
+  }
+
+  /// Valida o formato do CNPJ
+  /// Retorna erro descriptivo se inválido, ou null se válido
+  String? _validarCNPJ(String cnpj) {
+    final digitos = cnpj.replaceAll(RegExp(r'\D'), '');
+    
+    if (digitos.isEmpty) {
+      return 'CNPJ é obrigatório';
+    }
+    
+    if (digitos.length < 14) {
+      final faltam = 14 - digitos.length;
+      return 'CNPJ incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
+    }
+    
+    if (digitos.length > 14) {
+      return 'CNPJ com muitos dígitos (máximo 14)';
+    }
+    
+    // Validar dígitos verificadores do CNPJ
+    int tamanho = digitos.length - 2;
+    int numero = int.parse(digitos.substring(0, tamanho));
+    int digito1 = _calcularDigitoCNPJ(numero);
+    
+    if (int.parse(digitos[tamanho]) != digito1) {
+      return 'CNPJ com formato inválido';
+    }
+    
+    tamanho += 1;
+    numero = int.parse(digitos.substring(0, tamanho));
+    int digito2 = _calcularDigitoCNPJ(numero);
+    
+    if (int.parse(digitos[tamanho]) != digito2) {
+      return 'CNPJ com formato inválido';
+    }
+    
+    return null; // CNPJ válido
+  }
+
+  /// Calcula o dígito verificador do CNPJ
+  int _calcularDigitoCNPJ(int numero) {
+    String resto = (numero % 11).toString();
+    return int.parse(resto) < 2 ? 0 : 11 - int.parse(resto);
+  }
+
+  /// Valida CPF ou CNPJ automaticamente
+  /// Detecta qual é baseado no tamanho e valida
+  String? _validarCPFouCNPJ(String cpfCnpj) {
+    final digitos = cpfCnpj.replaceAll(RegExp(r'\D'), '');
+    
+    if (digitos.isEmpty) {
+      return 'CPF ou CNPJ é obrigatório';
+    }
+    
+    if (digitos.length == 11) {
+      return _validarCPF(cpfCnpj);
+    } else if (digitos.length == 14) {
+      return _validarCNPJ(cpfCnpj);
+    } else if (digitos.length < 11) {
+      final faltam = 11 - digitos.length;
+      return 'CPF/CNPJ incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
+    } else if (digitos.length < 14) {
+      final faltam = 14 - digitos.length;
+      return 'CNPJ incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
+    } else {
+      return 'CPF/CNPJ com muitos dígitos';
+    }
+  }
+
   Future<void> _salvarProprietario() async {
     // Validar campos obrigatórios
     final nome = _proprietarioNomeController.text.trim();
@@ -425,6 +543,19 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         const SnackBar(
           content: Text('Nome*, CPF/CNPJ* e Email* são obrigatórios!'),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validar CPF/CNPJ
+    final erroValidacao = _validarCPFouCNPJ(cpfCnpj);
+    if (erroValidacao != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erroValidacao),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -472,7 +603,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         );
         // 🔄 Recarregar dados para mostrar QR code atualizado
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Aumentado para 2 segundos para dar mais tempo ao QR ser gerado
+        await Future.delayed(const Duration(milliseconds: 2000));
         await _carregarDados();
       } else {
         // Se já tem proprietário, atualizar dados
@@ -511,15 +643,27 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         );
         
         // 🔄 Recarregar dados para mostrar QR code atualizado
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Aumentado para 2 segundos para dar mais tempo ao QR ser gerado
+        await Future.delayed(const Duration(milliseconds: 2000));
         await _carregarDados();
       }
     } catch (e) {
+      // Tratamento melhorado de erros
+      String mensagemErro = 'Erro ao salvar proprietário';
+      
+      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+        mensagemErro = 'Este CPF/CNPJ já está cadastrado';
+      } else if (e.toString().contains('constraint')) {
+        mensagemErro = 'Dados inválidos. Verifique os campos obrigatórios';
+      } else if (e.toString().contains('connection') || e.toString().contains('network')) {
+        mensagemErro = 'Erro de conexão. Verifique sua internet';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Erro ao salvar proprietário: $e'),
+          content: Text(mensagemErro),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         ),
       );
       print('Erro ao salvar proprietário: $e');
@@ -541,6 +685,19 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         const SnackBar(
           content: Text('Nome*, CPF/CNPJ* e Email* são obrigatórios!'),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validar CPF/CNPJ
+    final erroValidacao = _validarCPFouCNPJ(cpfCnpj);
+    if (erroValidacao != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erroValidacao),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -588,7 +745,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         );
         // 🔄 Recarregar dados para mostrar QR code atualizado
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Aumentado para 2 segundos para dar mais tempo ao QR ser gerado
+        await Future.delayed(const Duration(milliseconds: 2000));
         await _carregarDados();
       } else {
         // Se já tem inquilino, atualizar dados
@@ -626,15 +784,27 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         );
         // 🔄 Recarregar dados para mostrar QR code atualizado
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Aumentado para 2 segundos para dar mais tempo ao QR ser gerado
+        await Future.delayed(const Duration(milliseconds: 2000));
         await _carregarDados();
       }
     } catch (e) {
+      // Tratamento melhorado de erros
+      String mensagemErro = 'Erro ao salvar inquilino';
+      
+      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+        mensagemErro = 'Este CPF/CNPJ já está cadastrado';
+      } else if (e.toString().contains('constraint')) {
+        mensagemErro = 'Dados inválidos. Verifique os campos obrigatórios';
+      } else if (e.toString().contains('connection') || e.toString().contains('network')) {
+        mensagemErro = 'Erro de conexão. Verifique sua internet';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Erro ao salvar inquilino: $e'),
+          content: Text(mensagemErro),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         ),
       );
       print('Erro ao salvar inquilino: $e');
@@ -2377,8 +2547,63 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               child: TextField(
                 controller: _proprietarioCpfCnpjController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 decoration: const InputDecoration(
                   hintText: '066.556.902-06',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF999999),
+                    fontSize: 14,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Campo Email
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Email',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: TextField(
+                controller: _proprietarioEmailController,
+                decoration: const InputDecoration(
+                  hintText: 'josesilva@gmail.com',
                   hintStyle: TextStyle(
                     color: Color(0xFF999999),
                     fontSize: 14,
@@ -2703,69 +2928,18 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         
         const SizedBox(height: 16),
         
-        // Campo Email
+        // Seção Cônjuge
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            RichText(
-              text: const TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Email',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                  TextSpan(
-                    text: '*:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
+            const Text(
+              'Cônjuge:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: TextField(
-                controller: _proprietarioEmailController,
-                decoration: const InputDecoration(
-                  hintText: 'josesilva@gmail.com',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-            ),
-          ],
-        ),
-         
-         const SizedBox(height: 24),
-         
-         // Seção Cônjuge
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Cônjuge:',
-               style: TextStyle(
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
              const SizedBox(height: 8),
              Container(
                decoration: BoxDecoration(
@@ -3642,8 +3816,58 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _inquilinoCpfCnpjController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
             decoration: InputDecoration(
               hintText: 'Digite o CPF ou CNPJ',
+              hintStyle: const TextStyle(color: Color(0xFF999999)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Campo Email (OBRIGATÓRIO)
+          RichText(
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Email',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _inquilinoEmailController,
+            decoration: InputDecoration(
+              hintText: 'Digite o email',
               hintStyle: const TextStyle(color: Color(0xFF999999)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -3949,52 +4173,6 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Campo Email (OBRIGATÓRIO)
-          RichText(
-            text: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Email',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                TextSpan(
-                  text: '*',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _inquilinoEmailController,
-            decoration: InputDecoration(
-              hintText: 'Digite o email',
-              hintStyle: const TextStyle(color: Color(0xFF999999)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            ),
-          ),
-          const SizedBox(height: 24),
 
           // Campo Cônjuge
           const Text(
@@ -4639,7 +4817,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               child: TextField(
                 controller: _imobiliariaCnpjController,
-                inputFormatters: [Formatters.cnpjFormatter],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  Formatters.cnpjFormatter
+                ],
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
