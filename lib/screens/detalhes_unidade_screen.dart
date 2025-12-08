@@ -4763,12 +4763,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Nome*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Nome',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -4800,12 +4814,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'CNPJ*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'CNPJ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -4843,7 +4871,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Telefone*:',
+              'Telefone:',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -4859,6 +4887,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               child: TextField(
                 controller: _imobiliariaTelefoneController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -4879,12 +4911,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Celular*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Celular',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -4896,6 +4942,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               child: TextField(
                 controller: _imobiliariaCelularController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -4916,12 +4966,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Email*:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+            RichText(
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Email',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '*:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
