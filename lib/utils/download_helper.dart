@@ -1,3 +1,4 @@
 // Import condicional: web vs mobile
-export 'download_helper_web.dart'
-    if (dart.library.io) 'download_helper_stub.dart';
+// NOTE: download_helper_web.dart contains dart:html which is incompatible with web builds
+// Use template_service.dart for file operations instead
+export 'download_helper_stub.dart';
