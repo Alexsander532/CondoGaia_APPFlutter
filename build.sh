@@ -35,6 +35,6 @@ flutter pub get
 
 # Fazer build para web
 echo "🔨 Fazendo build para web..."
-flutter build web --release
+flutter build web --release --web-renderer canvaskit --no-wasm
 
 echo "🎉 Build concluído com sucesso!"
