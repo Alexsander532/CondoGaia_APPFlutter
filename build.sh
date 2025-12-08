@@ -22,7 +22,7 @@ git config --global --add safe.directory /tmp/flutter
 # Desabilitar analytics do Flutter
 flutter config --no-analytics
 
-# Desabilitar Wasm (usa compilador JavaScript tradicional)
+# Desabilitar Wasm - usar JavaScript tradicional
 export FLUTTER_WEB_USE_WASM=false
 
 # Verificar versão do Flutter
@@ -32,12 +32,17 @@ flutter --version
 # Voltar para o diretório do projeto
 cd /vercel/path0
 
+# Limpar builds anteriores
+echo "🧹 Limpando builds anteriores..."
+flutter clean
+rm -rf build/web
+
 # Instalar dependências
 echo "📚 Instalando dependências..."
 flutter pub get
 
-# Fazer build para web
+# Fazer build para web com JavaScript (não Wasm)
 echo "🔨 Fazendo build para web..."
-flutter build web --release
+flutter build web --release --dart-define=FLUTTER_WEB_USE_WASM=false
 
 echo "🎉 Build concluído com sucesso!"

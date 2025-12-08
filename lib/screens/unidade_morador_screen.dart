@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:typed_data';
-// Importação condicional para download
-import '../utils/download_helper_stub.dart'
-    if (dart.library.html) '../utils/download_helper_web.dart';
 import 'detalhes_unidade_screen.dart';
 import '../services/unidade_service.dart';
+import '../services/template_service.dart';
 import '../models/bloco_com_unidades.dart';
 import '../models/bloco.dart';
 import '../widgets/editable_text_widget.dart';
@@ -506,7 +505,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     }
   }
 
-  // Função para download do template da planilha
+  // Função para download do template da planilha via Supabase
   Future<void> _downloadTemplate() async {
     try {
       // Mostra indicador de carregamento
@@ -533,11 +532,14 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       );
       final Uint8List bytes = data.buffer.asUint8List();
 
+      // Faz upload para Supabase e obtém URL pública
+      final String downloadUrl = await TemplateService.uploadTemplateODS(bytes);
+
       if (kIsWeb) {
-        // Download para Flutter Web
-        await _downloadForWeb(bytes);
+        // Download para Flutter Web - usa URL do Supabase
+        await _downloadForWebViaUrl(downloadUrl);
       } else {
-        // Download para plataformas móveis
+        // Download para plataformas móveis - salva no disco
         await _downloadForMobile(bytes);
       }
     } catch (e) {
@@ -554,9 +556,46 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     }
   }
 
-  // Método específico para download no Flutter Web
-  Future<void> _downloadForWeb(Uint8List bytes) async {
-    await DownloadHelper.downloadFile(bytes, context);
+  // Método específico para download no Flutter Web via URL do Supabase
+  Future<void> _downloadForWebViaUrl(String downloadUrl) async {
+    try {
+      if (kIsWeb) {
+        // Usa url_launcher para abrir a URL do Supabase
+        // O navegador faz o download automaticamente
+        final Uri uri = Uri.parse(downloadUrl);
+
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+        } else {
+          throw Exception('Não foi possível abrir a URL');
+        }
+
+        // Mostra mensagem de sucesso
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Template baixado! Verifique a pasta Downloads.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao baixar arquivo: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      print('Erro no download: $e');
+    }
   }
 
   // Método específico para download em plataformas móveis

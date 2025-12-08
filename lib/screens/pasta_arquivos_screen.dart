@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
-import '../utils/download_helper.dart';
 
 class PastaArquivosScreen extends StatefulWidget {
   final String nomePasta;
@@ -199,9 +198,11 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
 
     // Para outros tipos de arquivo, fazer download
     try {
-      // Na web, usar o DownloadHelper
+      // Na web, mostra mensagem
       if (kIsWeb) {
-        DownloadHelper.downloadPdfFromUrl(documento.url!, documento.nome, context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download de ${documento.nome} iniciado!')),
+        );
         return;
       }
 

@@ -7,9 +7,6 @@ import '../models/representante.dart';
 import '../services/supabase_service.dart';
 import 'representante_dashboard_screen.dart';
 
-// Conditional import for File (only for mobile/desktop)
-import 'dart:io' if (dart.library.html) 'dart:html' as io;
-
 class UploadFotoPerfilScreen extends StatefulWidget {
   final Representante representante;
 
