@@ -14,16 +14,31 @@ import 'screens/upload_foto_perfil_inquilino_screen.dart';
 import 'services/auth_service.dart';
 import 'services/supabase_service.dart';
 
+// Credenciais Supabase - carregadas dinamicamente
+class _SupabaseConfig {
+  static const String supabaseUrl = 'https://tukpgefrddfchmvtiujp.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a3BnZWZyZGRmY2htdnRpdWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MTg1NTEsImV4cCI6MjA2ODA5NDU1MX0.dZ1Pna1_dwelIJTlhrSN0iiH5nhuzL0y4p6llYJsLp8';
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Carregar variáveis de ambiente do arquivo .env
-  await dotenv.load();
+  // Tentar carregar variáveis de ambiente do arquivo .env (funciona em mobile)
+  try {
+    await dotenv.load();
+  } catch (e) {
+    // Em web, .env não está disponível - usar credenciais hardcoded
+    debugPrint('Não foi possível carregar .env, usando credenciais padrão');
+  }
   
-  // Inicializar Supabase com credenciais do .env
+  // Obter credenciais: tenta do .env primeiro, se não encontrar usa hardcoded
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? _SupabaseConfig.supabaseUrl;
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? _SupabaseConfig.supabaseAnonKey;
+  
+  // Inicializar Supabase com credenciais
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
   
   runApp(const CondoGaiaApp());
