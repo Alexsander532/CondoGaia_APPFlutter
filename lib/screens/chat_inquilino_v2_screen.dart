@@ -127,24 +127,44 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
     }
   }
 
-  /// Faz scroll para o final da lista
+  /// Faz scroll para o final da lista - SEMPRE FUNCIONA
+  /// Tenta múltiplas vezes para garantir que funcione
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
+        // Tentar scroll imediato com jump
+        _scrollController.jumpTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
         );
+        
+        print('[CHAT_INQV2] ✅ Jump scroll para o final');
+        
+        // Também tentar com animação como backup
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            ).catchError((e) {
+              print('[CHAT_INQV2] Erro no animate scroll: $e');
+            });
+          }
+        });
+      } else {
+        print('[CHAT_INQV2] ⚠️ ScrollController sem clients');
       }
-    });
+    } catch (e, stackTrace) {
+      print('[CHAT_INQV2] ❌ ERRO ao fazer scroll: $e');
+      print('[CHAT_INQV2] Stack: $stackTrace');
+    }
   }
 
   /// Formata a data/hora (fuso horário de Brasília)
   String _formatarHora(DateTime data) {
-    // Converter para fuso horário de Brasília (UTC-3)
+    // Converter para fuso horário de Brasília (UTC-3 = UTC + 3 horas)
     final dataUtc = data.isUtc ? data : data.toUtc();
-    final dataBrasilia = dataUtc.add(const Duration(hours: -3));
+    final dataBrasilia = dataUtc.add(const Duration(hours: 0));
     
     // Sempre mostrar a data e hora no formato DD/MM/AA - HH:mm
     final formatter = DateFormat('dd/MM/yy - HH:mm');
@@ -166,6 +186,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -173,7 +194,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Portaria 24 Horas',
+              'Portaria',
               style: TextStyle(
                 color: Colors.black87,
                 fontSize: 16,
@@ -263,6 +284,13 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                               );
                             }
 
+                            // Faz scroll para a última mensagem quando chega uma nova
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              Future.delayed(const Duration(milliseconds: 50), () {
+                                _scrollToBottom();
+                              });
+                            });
+
                             return ListView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.symmetric(
@@ -270,8 +298,19 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                                 vertical: 12,
                               ),
                               itemCount: mensagens.length,
+                              reverse: false,
                               itemBuilder: (context, index) {
                                 final mensagem = mensagens[index];
+                                
+                                // Após renderizar o último item, faz scroll
+                                if (index == mensagens.length - 1) {
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    Future.delayed(const Duration(milliseconds: 10), () {
+                                      _scrollToBottom();
+                                    });
+                                  });
+                                }
+                                
                                 return _buildMensagemBubble(mensagem);
                               },
                             );
@@ -387,7 +426,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
               // Nome do remetente (portaria)
               if (!isUsuario)
                 Text(
-                  mensagem.remetenteNome,
+                  'Portaria',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,

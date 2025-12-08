@@ -23,23 +23,43 @@ class _SupabaseConfig {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  String supabaseUrl = _SupabaseConfig.supabaseUrl;
+  String supabaseAnonKey = _SupabaseConfig.supabaseAnonKey;
+  
   // Tentar carregar variáveis de ambiente do arquivo .env (funciona em mobile)
   try {
     await dotenv.load();
+    debugPrint('[MAIN] ✅ Arquivo .env carregado com sucesso');
+    
+    // Tentar obter credenciais do .env
+    final envUrl = dotenv.env['SUPABASE_URL'];
+    final envKey = dotenv.env['SUPABASE_ANON_KEY'];
+    
+    if (envUrl != null && envUrl.isNotEmpty) {
+      supabaseUrl = envUrl;
+      debugPrint('[MAIN] Usando SUPABASE_URL do .env');
+    }
+    
+    if (envKey != null && envKey.isNotEmpty) {
+      supabaseAnonKey = envKey;
+      debugPrint('[MAIN] Usando SUPABASE_ANON_KEY do .env');
+    }
   } catch (e) {
     // Em web, .env não está disponível - usar credenciais hardcoded
-    debugPrint('Não foi possível carregar .env, usando credenciais padrão');
+    debugPrint('[MAIN] ⚠️ Não foi possível carregar .env: $e');
+    debugPrint('[MAIN] ✅ Usando credenciais hardcoded padrão');
   }
   
-  // Obter credenciais: tenta do .env primeiro, se não encontrar usa hardcoded
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? _SupabaseConfig.supabaseUrl;
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? _SupabaseConfig.supabaseAnonKey;
+  debugPrint('[MAIN] Inicializando Supabase...');
+  debugPrint('[MAIN] URL: $supabaseUrl');
   
   // Inicializar Supabase com credenciais
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
+  
+  debugPrint('[MAIN] ✅ Supabase inicializado com sucesso');
   
   runApp(const CondoGaiaApp());
 }

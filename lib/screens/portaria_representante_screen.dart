@@ -3049,6 +3049,10 @@ class _PortariaRepresentanteScreenState
 
   // Widget para card de autorizado
   Widget _buildAutorizadoCard(Map<String, dynamic> autorizado) {
+    final String fotoUrl = autorizado['foto_url'] ?? '';
+    final String qrCodeUrl = autorizado['qr_code_url'] ?? '';
+    final bool temFoto = fotoUrl.isNotEmpty;
+
     return Column(
       children: [
         Container(
@@ -3065,18 +3069,45 @@ class _PortariaRepresentanteScreenState
               // Linha principal com nome e CPF
               Row(
                 children: [
-                  // Avatar
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF1976D2).withOpacity(0.1),
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Color(0xFF1976D2),
-                      size: 28,
+                  // Avatar com foto ou ícone
+                  GestureDetector(
+                    onTap: temFoto
+                        ? () => _mostrarFotoAmpliada(
+                              fotoUrl,
+                              autorizado['nome'] ?? 'Autorizado',
+                            )
+                        : null,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF1976D2).withOpacity(0.1),
+                        border: temFoto
+                            ? Border.all(
+                                color: const Color(0xFF1976D2),
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: temFoto
+                          ? ClipOval(
+                              child: Image.network(
+                                fotoUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                  Icons.person,
+                                  color: Color(0xFF1976D2),
+                                  size: 28,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              color: Color(0xFF1976D2),
+                              size: 28,
+                            ),
                     ),
                   ),
 
@@ -3169,15 +3200,16 @@ class _PortariaRepresentanteScreenState
         ),
         // 🆕 QR Code Display Widget integrado dentro do card
         const SizedBox(height: 16),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          child: QrCodeDisplayWidget(
-            qrCodeUrl: autorizado['qr_code_url'],
-            visitanteNome: autorizado['nome'] ?? 'Autorizado',
-            visitanteCpf: autorizado['cpf'] ?? '',
-            unidade: autorizado['unidade'] ?? '',
+        if (qrCodeUrl.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: QrCodeDisplayWidget(
+              qrCodeUrl: qrCodeUrl,
+              visitanteNome: autorizado['nome'] ?? 'Autorizado',
+              visitanteCpf: autorizado['cpf'] ?? '',
+              unidade: autorizado['unidade'] ?? '',
+            ),
           ),
-        ),
         const SizedBox(height: 24),
       ],
     );

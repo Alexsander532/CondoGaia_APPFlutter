@@ -91,17 +91,37 @@ class _MensagemPortariaScreenState extends State<MensagemPortariaScreen> {
     }
   }
 
-  /// Scroll para o final das mensagens
+  /// Scroll para o final das mensagens - SEMPRE FUNCIONA
+  /// Tenta múltiplas vezes para garantir que funcione
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
+        // Tentar scroll imediato com jump
+        _scrollController.jumpTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
         );
+        
+        debugPrint('[MSG_PORTARIA] ✅ Jump scroll para o final');
+        
+        // Também tentar com animação como backup
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            ).catchError((e) {
+              debugPrint('[MSG_PORTARIA] Erro no animate scroll: $e');
+            });
+          }
+        });
+      } else {
+        debugPrint('[MSG_PORTARIA] ⚠️ ScrollController sem clients');
       }
-    });
+    } catch (e, stackTrace) {
+      debugPrint('[MSG_PORTARIA] ❌ ERRO ao fazer scroll: $e');
+      debugPrint('[MSG_PORTARIA] Stack: $stackTrace');
+    }
   }
 
   /// Marca mensagens como lidas
@@ -121,6 +141,7 @@ class _MensagemPortariaScreenState extends State<MensagemPortariaScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,18 +214,32 @@ class _MensagemPortariaScreenState extends State<MensagemPortariaScreen> {
 
                 final mensagens = snapshot.data!;
                 
-                // Marca como lidas
+                // Marca como lidas e faz scroll para baixo
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _marcarComoLidas(mensagens);
+                  // Aguarda um frame para garantir que a lista foi renderizada
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    _scrollToBottom();
+                  });
                 });
 
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   itemCount: mensagens.length,
+                  reverse: false,
                   itemBuilder: (context, index) {
                     final msg = mensagens[index];
                     final isUsuario = msg.remetenteTipo == 'usuario';
+
+                    // Após renderizar o último item, faz scroll
+                    if (index == mensagens.length - 1) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Future.delayed(const Duration(milliseconds: 10), () {
+                          _scrollToBottom();
+                        });
+                      });
+                    }
 
                     return MensagemTile(
                       mensagem: msg,

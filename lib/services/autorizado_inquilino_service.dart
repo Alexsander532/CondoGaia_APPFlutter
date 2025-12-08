@@ -99,6 +99,7 @@ class AutorizadoInquilinoService {
             veiculo_modelo,
             veiculo_placa,
             foto_url,
+            qr_code_url,
             unidades!inner(
               id,
               numero,
@@ -235,6 +236,7 @@ class AutorizadoInquilinoService {
                     .trim()
               : null,
           'foto_url': item['foto_url'], // Adicionando foto do autorizado
+          'qr_code_url': item['qr_code_url'], // Adicionando QR code do autorizado
         };
 
         // Debug: Verificar se foto_url foi corretamente adicionada

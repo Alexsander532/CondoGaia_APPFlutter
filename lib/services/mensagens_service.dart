@@ -256,17 +256,54 @@ class MensagensService {
   // ============================================
 
   /// Stream de mensagens de uma conversa (atualizações em tempo real)
+  /// 
+  /// Este stream usa Supabase Realtime para atualizar as mensagens em tempo real.
+  /// Quando uma mensagem é adicionada/atualizada/deletada na conversa, o stream
+  /// emite a lista atualizada automaticamente.
+  /// 
+  /// **IMPORTANTE**: A tabela `mensagens` deve ter REALTIME HABILITADO no Supabase!
+  /// Dashboard > Database > Tables > mensagens > Realtime (toggle ativo)
   Stream<List<Mensagem>> streamMensagens(String conversaId) {
-    return _supabase
-        .from('mensagens')
-        .stream(primaryKey: ['id'])
-        .eq('conversa_id', conversaId)
-        .order('created_at', ascending: true)
-        .map((list) {
-          return (list as List<dynamic>)
-              .map((json) => Mensagem.fromJson(json as Map<String, dynamic>))
-              .toList();
-        });
+    debugPrint('[STREAM_MENSAGENS] Iniciando stream para conversa: $conversaId');
+    
+    try {
+      return _supabase
+          .from('mensagens')
+          .stream(primaryKey: ['id'])
+          .eq('conversa_id', conversaId)
+          .order('created_at', ascending: true)
+          .handleError((error, stackTrace) {
+            debugPrint('[STREAM_MENSAGENS] ERRO NO STREAM:');
+            debugPrint('[STREAM_MENSAGENS] Erro: $error');
+            debugPrint('[STREAM_MENSAGENS] Stack: $stackTrace');
+            debugPrint('[STREAM_MENSAGENS] Dica: Verifique se Realtime está habilitado na tabela mensagens');
+            
+          })
+          .map((list) {
+            debugPrint('[STREAM_MENSAGENS] Recebeu ${list.length} mensagens para conversa $conversaId');
+            
+            try {
+              final mensagens = (list as List<dynamic>)
+                  .map((json) => Mensagem.fromJson(json as Map<String, dynamic>))
+                  .toList();
+              
+              debugPrint('[STREAM_MENSAGENS] ✅ Convertidas com sucesso para Mensagem objects');
+              return mensagens;
+            } catch (e, stackTrace) {
+              debugPrint('[STREAM_MENSAGENS] ❌ ERRO ao converter JSON para Mensagem:');
+              debugPrint('[STREAM_MENSAGENS] Erro: $e');
+              debugPrint('[STREAM_MENSAGENS] Stack: $stackTrace');
+              rethrow;
+            }
+          });
+    } catch (e, stackTrace) {
+      debugPrint('[STREAM_MENSAGENS] ❌ ERRO ao criar stream:');
+      debugPrint('[STREAM_MENSAGENS] Erro: $e');
+      debugPrint('[STREAM_MENSAGENS] Stack: $stackTrace');
+      
+      // Retornar stream vazio com erro
+      return Stream.error(e, stackTrace);
+    }
   }
 
   /// Stream de uma mensagem específica
