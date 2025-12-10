@@ -1839,7 +1839,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
             ),
           ),
           const SizedBox(height: 16.0),
-          // Checkbox para aceitar termo de locação
+          // Seção de Termo de Locação
           StatefulBuilder(
             builder: (context, setState) {
               // Obter o ambiente selecionado
@@ -1848,30 +1848,16 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 orElse: () => Ambiente(titulo: '', valor: 0),
               );
 
+              final temTermoLocacao = ambienteSelecionado.locacaoUrl != null && 
+                                      ambienteSelecionado.locacaoUrl!.isNotEmpty;
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      // Título clicável se houver URL de termo de locação
-                      if (ambienteSelecionado.locacaoUrl != null && 
-                          ambienteSelecionado.locacaoUrl!.isNotEmpty)
-                        GestureDetector(
-                          onTap: () => _abrirTermoLocacao(ambienteSelecionado.locacaoUrl),
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Text(
-                              'Termo de Locação',
-                              style: const TextStyle(
-                                fontSize: 14.0,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF4A90E2), // Azul
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
+                  // Se tem termo: mostrar termo com opções de abrir/trocar/excluir
+                  if (temTermoLocacao) ...[
+                    Row(
+                      children: [
                         const Text(
                           'Termo de Locação',
                           style: TextStyle(
@@ -1879,17 +1865,166 @@ class _ReservasScreenState extends State<ReservasScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                      const Text(
-                        ' *',
-                        style: TextStyle(
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.red,
+                        const Text(
+                          ' *',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8.0),
+                    Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4.0),
+                        color: Colors.grey[50],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.description, color: Color(0xFF1E3A8A), size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Termo de locação',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    GestureDetector(
+                                      onTap: () => _abrirTermoLocacao(ambienteSelecionado.locacaoUrl),
+                                      child: const Text(
+                                        'Clique para abrir no navegador',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: 12,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    // Se não tem termo: mostrar opção de anexar
+                    Row(
+                      children: [
+                        const Text(
+                          'Termo de Locação',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8.0),
+                    GestureDetector(
+                      onTap: () async {
+                        try {
+                          FilePickerResult? result = await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['pdf'],
+                          );
+
+                          if (result != null && result.files.isNotEmpty) {
+                            final file = result.files.single;
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enviando termo...'),
+                                  duration: Duration(seconds: 5),
+                                ),
+                              );
+                            }
+
+                            final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
+                              file,
+                              nomeArquivo: file.name,
+                            );
+
+                            final ambienteAtualizado = await AmbienteService.atualizarAmbiente(
+                              ambienteSelecionado.id!,
+                              locacaoUrl: pdfUrl,
+                            );
+
+                            final ambienteIndex = _ambientes.indexWhere((a) => a.id == ambienteSelecionado.id);
+                            if (ambienteIndex != -1) {
+                              setState(() {
+                                _ambientes[ambienteIndex] = ambienteAtualizado;
+                              });
+                            }
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Termo carregado com sucesso!'),
+                                  backgroundColor: Colors.green,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          print('Erro ao fazer upload do termo: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Erro: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(4.0),
+                          color: Colors.grey[50],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Anexar termo em PDF',
+                              style: TextStyle(
+                                color: Color(0xFF1E3A8A),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8.0),
+                    ),
+                  ],
+                  const SizedBox(height: 16.0),
+                  // Checkbox para aceitar termo de locação
                   CheckboxListTile(
                     title: const Text(
                       'Aceitar termos e condições',

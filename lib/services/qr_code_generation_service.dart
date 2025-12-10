@@ -79,7 +79,7 @@ class QrCodeGenerationService {
         version: QrVersions.auto,
         emptyColor: const Color.fromARGB(255, 255, 255, 255),
         color: const Color.fromARGB(255, 0, 0, 0),
-      ).toImageData(200); // 200 pixels
+      ).toImageData(500); // 500 pixels - aumentado para melhor qualidade
 
       return qrCodeImage?.buffer.asUint8List();
     } catch (e) {

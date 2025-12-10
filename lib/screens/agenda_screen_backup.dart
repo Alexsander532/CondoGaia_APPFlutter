@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
@@ -90,8 +91,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
   bool _isRecurrent = false;
   int _recurrentMonths = 1;
   bool _notifyAll = false;
-  File? _fotoEvento; // Foto selecionada para o evento
-  File? _fotoDiario; // Foto selecionada para o evento diário
+  dynamic _fotoEvento; // Foto selecionada para o evento (File mobile, XFile web)
+  dynamic _fotoDiario; // Foto selecionada para o evento diário (File mobile, XFile web)
   
   // Condomínios do representante
   String? _selectedCondominioId;
@@ -114,7 +115,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   String? _editSelectedCondominioId;
   bool _editNotifyMe = false;
   EventoAgenda? _eventBeingEdited;
-  File? _editFotoEvento; // Foto sendo editada para evento agenda
+  dynamic _editFotoEvento; // Foto sendo editada para evento agenda (File mobile, XFile web)
   bool _removerFotoEvento = false; // Flag para remover foto do evento agenda
   
   @override
@@ -782,10 +783,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
                   ],
                 ),
               ],
-                        ],
-                      ),
-                    ),
-                  ),
               
               // Widget de seleção de foto para eventos de Agenda
               if (_eventType == 'Agenda') ...[
@@ -821,12 +818,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         );
                         if (galleryImage != null) {
                           setModalState(() {
-                            _fotoEvento = File(galleryImage.path);
+                            _fotoEvento = galleryImage; // Armazenar XFile direto
                           });
                         }
                       } else {
                         setModalState(() {
-                          _fotoEvento = File(image.path);
+                          _fotoEvento = image; // Armazenar XFile direto
                         });
                       }
                     } catch (e) {
@@ -846,74 +843,81 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.file(
-                                  _fotoEvento!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
+                                child: kIsWeb
+                                    ? Image.network(
+                                        _fotoEvento!.path,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      )
+                                    : Image.file(
+                                        _fotoEvento!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
                               ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setModalState(() {
-                                      _fotoEvento = null;
-                                    });
-                                  },
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setModalState(() {
+                                        _fotoEvento = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
                                   child: Container(
                                     decoration: const BoxDecoration(
-                                      color: Colors.red,
+                                      color: Colors.blue,
                                       shape: BoxShape.circle,
                                     ),
-                                    padding: const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(8),
                                     child: const Icon(
-                                      Icons.close,
+                                      Icons.zoom_in,
                                       color: Colors.white,
                                       size: 20,
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.blue,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: const Icon(
-                                    Icons.zoom_in,
-                                    color: Colors.white,
-                                    size: 20,
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Clique para adicionar foto',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.camera_alt,
-                                size: 48,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Clique para adicionar foto',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                    ),
                   ),
-                ),
               ],
               
               // Widget de seleção de foto para eventos Diários
@@ -950,12 +954,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         );
                         if (galleryImage != null) {
                           setModalState(() {
-                            _fotoDiario = File(galleryImage.path);
+                            _fotoDiario = galleryImage; // Armazenar XFile direto
                           });
                         }
                       } else {
                         setModalState(() {
-                          _fotoDiario = File(image.path);
+                          _fotoDiario = image; // Armazenar XFile direto
                         });
                       }
                     } catch (e) {
@@ -975,75 +979,86 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.file(
-                                  _fotoDiario!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
+                                child: kIsWeb
+                                    ? Image.network(
+                                        _fotoDiario!.path,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      )
+                                    : Image.file(
+                                        _fotoDiario!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
                               ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setModalState(() {
-                                      _fotoDiario = null;
-                                    });
-                                  },
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setModalState(() {
+                                        _fotoDiario = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
                                   child: Container(
                                     decoration: const BoxDecoration(
-                                      color: Colors.red,
+                                      color: Colors.blue,
                                       shape: BoxShape.circle,
                                     ),
-                                    padding: const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(8),
                                     child: const Icon(
-                                      Icons.close,
+                                      Icons.zoom_in,
                                       color: Colors.white,
                                       size: 20,
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.blue,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: const Icon(
-                                    Icons.zoom_in,
-                                    color: Colors.white,
-                                    size: 20,
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Clique para adicionar foto',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.camera_alt,
-                                size: 48,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Clique para adicionar foto',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                    ),
                   ),
-                ),
               ],
+                        ],
+                      ),
+                    ),
+                  ),
               
               // Botão Salvar (fixo na parte inferior)
               SizedBox(
@@ -1379,12 +1394,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
                                   );
                                   if (galleryImage != null) {
                                     setModalState(() {
-                                      _editFotoEvento = File(galleryImage.path);
+                                      _editFotoEvento = galleryImage; // Armazenar XFile direto
                                     });
                                   }
                                 } else {
                                   setModalState(() {
-                                    _editFotoEvento = File(image.path);
+                                    _editFotoEvento = image; // Armazenar XFile direto
                                   });
                                 }
                               } catch (e) {
@@ -1404,12 +1419,19 @@ class _AgendaScreenState extends State<AgendaScreen> {
                                       children: [
                                         ClipRRect(
                                           borderRadius: BorderRadius.circular(10),
-                                          child: Image.file(
-                                            _editFotoEvento!,
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                          ),
+                                          child: kIsWeb
+                                              ? Image.network(
+                                                  _editFotoEvento!.path,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                )
+                                              : Image.file(
+                                                  _editFotoEvento!,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                ),
                                         ),
                                         Positioned(
                                           top: 8,
@@ -1714,16 +1736,21 @@ class _AgendaScreenState extends State<AgendaScreen> {
           dataEvento: dataEvento,
         );
         
+        print('🔵 eventoDiarioSalvo: $eventoDiarioSalvo');
+        print('🔵 eventoDiarioSalvo.id: ${eventoDiarioSalvo?.id}');
+        print('🔵 fotoUrl: $fotoUrl');
+        
         // Se o upload foi bem sucedido e temos a URL da foto, atualizar o evento com a foto
         if (eventoDiarioSalvo != null && fotoUrl != null) {
           try {
+            print('🔵 Atualizando evento diário ${eventoDiarioSalvo.id} com foto_url: $fotoUrl');
             // Atualizar o evento com a URL da foto
-            await Supabase.instance.client
+            final resultado = await Supabase.instance.client
                 .from('eventos_diario_representante')
                 .update({'foto_url': fotoUrl})
                 .eq('id', eventoDiarioSalvo.id);
                 
-            print('✅ Foto adicionada ao evento diário com sucesso');
+            print('✅ Foto adicionada ao evento diário com sucesso. Resultado: $resultado');
           } catch (e) {
             print('⚠️ Erro ao associar foto ao evento diário: $e');
           }
@@ -1815,16 +1842,21 @@ class _AgendaScreenState extends State<AgendaScreen> {
         avisarRepresentanteEmail: _notifyMe,
       );
       
+      print('🔵 eventoSalvo: $eventoSalvo');
+      print('🔵 eventoSalvo.id: ${eventoSalvo?.id}');
+      print('🔵 fotoUrl: $fotoUrl');
+      
       // Se o upload foi bem sucedido e temos a URL da foto, atualizar o evento com a foto
       if (eventoSalvo != null && fotoUrl != null) {
         try {
+          print('🔵 Atualizando evento ${eventoSalvo.id} com foto_url: $fotoUrl');
           // Atualizar o evento com a URL da foto
-          await Supabase.instance.client
+          final resultado = await Supabase.instance.client
               .from('eventos_agenda_representante')
               .update({'foto_url': fotoUrl})
               .eq('id', eventoSalvo.id);
               
-          print('✅ Foto adicionada ao evento com sucesso');
+          print('✅ Foto adicionada ao evento com sucesso. Resultado: $resultado');
         } catch (e) {
           print('⚠️ Erro ao associar foto ao evento: $e');
         }
@@ -2007,6 +2039,20 @@ class _AgendaScreenState extends State<AgendaScreen> {
         avisarCondominiosEmail: _editNotifyAll,
         avisarRepresentanteEmail: _editNotifyMe,
       );
+      
+      // Atualizar a foto se foi alterada
+      if (eventoSalvo != null && novaFotoUrl != _eventBeingEdited!.fotoUrl) {
+        try {
+          print('🔵 Atualizando foto do evento ${_eventBeingEdited!.id} com nova URL: $novaFotoUrl');
+          await Supabase.instance.client
+              .from('eventos_agenda_representante')
+              .update({'foto_url': novaFotoUrl})
+              .eq('id', _eventBeingEdited!.id);
+          print('✅ Foto do evento atualizada com sucesso');
+        } catch (e) {
+          print('⚠️ Erro ao atualizar foto do evento: $e');
+        }
+      }
       
       if (eventoSalvo != null) {
         // Sucesso - fechar modal e recarregar eventos

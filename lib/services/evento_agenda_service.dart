@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_agenda.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 class EventoAgendaService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -414,16 +415,32 @@ class EventoAgendaService {
   static Future<String?> uploadFotoEventoAgenda({
     required String condominioId,
     required String eventoId,
-    required File arquivo,
+    required dynamic arquivo, // Aceita File (mobile) ou XFile (web)
     required String nomeArquivo,
   }) async {
     try {
       print('🔵 [EventoAgendaService] Iniciando upload da foto do evento...');
       
+      // Converter para bytes - compatível com File e XFile
+      late Uint8List bytes;
+      
+      if (arquivo is File) {
+        // Mobile
+        bytes = await arquivo.readAsBytes();
+      } else {
+        // Web (XFile) ou outro formato
+        try {
+          bytes = await arquivo.readAsBytes();
+        } catch (e) {
+          throw Exception('Não foi possível ler a imagem: $e');
+        }
+      }
+      
+      print('📦 [EventoAgendaService] Imagem lida: ${bytes.length} bytes');
+
       final path = '$condominioId/$eventoId/$nomeArquivo';
       
-      // Converter para Uint8List para fazer upload
-      final bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      print('🔵 [EventoAgendaService] Iniciando upload binário para: $path');
       
       await _client.storage.from('imagens_agenda_representante').uploadBinary(
             path,

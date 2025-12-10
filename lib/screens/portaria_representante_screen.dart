@@ -15,7 +15,6 @@ import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
 import '../services/photo_picker_service.dart';
 import '../services/qr_code_generation_service.dart';
-import '../services/unidade_service.dart';
 import '../utils/formatters.dart';
 import '../widgets/qr_code_display_widget.dart';
 
@@ -4135,7 +4134,11 @@ class _PortariaRepresentanteScreenState
                                       child: ElevatedButton(
                                         onPressed: () {
                                           Navigator.of(context).pop();
-                                          _showRegistroEntradaDialog(autorizado, unidade);
+                                          _showRegistroEntradaDialog(
+                                            autorizado,
+                                            unidade,
+                                            tipoVisitante: 'inquilino',
+                                          );
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF2E7D32),
@@ -4286,6 +4289,7 @@ class _PortariaRepresentanteScreenState
                                       _showRegistroEntradaDialog(
                                         visitante,
                                         'Visitante Cadastrado',
+                                        tipoVisitante: 'visitante_portaria',
                                       );
                                     },
                                     style: ElevatedButton.styleFrom(
@@ -4310,7 +4314,11 @@ class _PortariaRepresentanteScreenState
     );
   }
 
-  void _showRegistroEntradaDialog(Map<String, dynamic> pessoa, String unidade) {
+  void _showRegistroEntradaDialog(
+    Map<String, dynamic> pessoa,
+    String unidade, {
+    String tipoVisitante = 'visitante_portaria',
+  }) {
     final TextEditingController placaController = TextEditingController();
     final TextEditingController observacoesController = TextEditingController();
 
@@ -4359,91 +4367,107 @@ class _PortariaRepresentanteScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Foto do visitante
-                      if (pessoa['foto_url'] != null && 
-                          (pessoa['foto_url'] as String?)?.isNotEmpty == true)
-                        Center(
-                          child: GestureDetector(
-                            onTap: () => _mostrarFotoAmpliada(
-                              pessoa['foto_url'] as String,
-                              pessoa['nome'] ?? 'Visitante',
-                            ),
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFF4A90E2),
-                                  width: 3,
+                      // Foto + Nome e informações em uma linha
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Foto do visitante (pequena)
+                          if (pessoa['foto_url'] != null && 
+                              (pessoa['foto_url'] as String?)?.isNotEmpty == true)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: GestureDetector(
+                                onTap: () => _mostrarFotoAmpliada(
+                                  pessoa['foto_url'] as String,
+                                  pessoa['nome'] ?? 'Visitante',
                                 ),
-                              ),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  ClipOval(
-                                    child: Image.network(
-                                      pessoa['foto_url'] as String,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: Color(0xFF4A90E2),
-                                        );
-                                      },
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF4A90E2),
+                                      width: 2,
                                     ),
                                   ),
-                                  Positioned(
-                                    bottom: -2,
-                                    right: -2,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFF4A90E2),
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ClipOval(
+                                        child: Image.network(
+                                          pessoa['foto_url'] as String,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.person,
+                                              size: 40,
+                                              color: Color(0xFF4A90E2),
+                                            );
+                                          },
                                         ),
                                       ),
-                                      child: const Icon(
-                                        Icons.zoom_in,
-                                        size: 16,
-                                        color: Colors.white,
+                                      Positioned(
+                                        bottom: -2,
+                                        right: -2,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: const Color(0xFF4A90E2),
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.zoom_in,
+                                            size: 12,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
+                          
+                          // Informações do lado da foto
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Nome: ${pessoa['nome'] ?? 'N/A'}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2E3A59),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unidade: $unidade',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF2E3A59),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Data/Hora: ${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year} - ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF2E3A59),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      
-                      Text(
-                        'Nome: ${pessoa['nome'] ?? 'N/A'}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2E3A59),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Unidade: $unidade',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF2E3A59),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Data/Hora: ${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year} - ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF2E3A59),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -4526,6 +4550,7 @@ class _PortariaRepresentanteScreenState
                             unidade,
                             placaController.text,
                             observacoesController.text,
+                            tipoVisitante: tipoVisitante,
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -4555,8 +4580,9 @@ class _PortariaRepresentanteScreenState
     Map<String, dynamic> pessoa,
     String unidade,
     String placa,
-    String observacoes,
-  ) async {
+    String observacoes, {
+    String tipoVisitante = 'visitante_portaria',
+  }) async {
     try {
       setState(() {
         _isLoadingAcessos = true;
@@ -4569,6 +4595,7 @@ class _PortariaRepresentanteScreenState
         placaVeiculo: placa.isNotEmpty ? placa : null,
         observacoes: observacoes.isNotEmpty ? observacoes : null,
         registradoPor: 'Portaria',
+        tipoVisitante: tipoVisitante,
       );
 
       // Recarregar lista de visitantes no condomínio

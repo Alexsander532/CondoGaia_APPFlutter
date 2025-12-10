@@ -264,59 +264,90 @@ class DocumentoService {
         throw Exception('Download permitido apenas para imagens (JPG, JPEG, PNG, GIF, BMP, WEBP) e PDFs');
       }
 
-      // Solicitar permissão de escrita
+      // Para Android 13+, usar downloads sem permissão (via pasta app ou cache)
       if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          throw Exception('Permissão de armazenamento negada');
+        try {
+          // Tentar Download público primeiro (sem permissão em Android 13+)
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          
+          if (await downloadsDir.exists()) {
+            String fileName = nomeArquivo;
+            String filePath = '${downloadsDir.path}/$fileName';
+            int counter = 1;
+            
+            while (await File(filePath).exists()) {
+              final extension = fileName.split('.').last;
+              final nameWithoutExtension = fileName.replaceAll('.$extension', '');
+              fileName = '${nameWithoutExtension}_$counter.$extension';
+              filePath = '${downloadsDir.path}/$fileName';
+              counter++;
+            }
+
+            // Fazer download usando Dio
+            final dio = Dio();
+            await dio.download(url, filePath);
+            print('✅ Download concluído: $filePath');
+            return filePath;
+          }
+        } catch (e) {
+          print('⚠️ Erro ao salvar em Downloads público: $e');
+          // Continua para fallback
         }
+        
+        // Fallback: usar pasta de aplicação (não precisa permissão)
+        final appDir = await getApplicationDocumentsDirectory();
+        final downloadSubDir = Directory('${appDir.path}/Downloads');
+        if (!await downloadSubDir.exists()) {
+          await downloadSubDir.create(recursive: true);
+        }
+
+        String fileName = nomeArquivo;
+        String filePath = '${downloadSubDir.path}/$fileName';
+        int counter = 1;
+        
+        while (await File(filePath).exists()) {
+          final extension = fileName.split('.').last;
+          final nameWithoutExtension = fileName.replaceAll('.$extension', '');
+          fileName = '${nameWithoutExtension}_$counter.$extension';
+          filePath = '${downloadSubDir.path}/$fileName';
+          counter++;
+        }
+
+        final dio = Dio();
+        await dio.download(url, filePath);
+        print('✅ Download concluído (pasta app): $filePath');
+        return filePath;
       }
 
-      // Obter diretório de downloads baseado na plataforma
-      Directory? downloadsDir;
-      
-      if (Platform.isAndroid) {
-        // Para Android, usar a pasta Downloads pública do dispositivo
-        // Isso funciona em todos os níveis de API
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        
-        // Se não existir, tentar criar
-        if (!await downloadsDir.exists()) {
-          try {
-            await downloadsDir.create(recursive: true);
-          } catch (e) {
-            // Se falhar, usar fallback para pasta interna
-            final appDir = await getApplicationDocumentsDirectory();
-            final downloadSubDir = Directory('${appDir.path}/Downloads');
-            if (!await downloadSubDir.exists()) {
-              await downloadSubDir.create(recursive: true);
-            }
-            downloadsDir = downloadSubDir;
-            print('⚠️ Não conseguiu acessar /Download público, usando: ${downloadsDir.path}');
-          }
-        }
-        
-      } else if (Platform.isIOS) {
-        downloadsDir = await getApplicationDocumentsDirectory();
-        
-        // Criar subdiretório "Downloads" para organização
+      // iOS: sempre usar documents
+      if (Platform.isIOS) {
+        final downloadsDir = await getApplicationDocumentsDirectory();
         final downloadSubDir = Directory('${downloadsDir.path}/Downloads');
         if (!await downloadSubDir.exists()) {
           await downloadSubDir.create(recursive: true);
         }
-        downloadsDir = downloadSubDir;
+
+        String fileName = nomeArquivo;
+        String filePath = '${downloadSubDir.path}/$fileName';
+        int counter = 1;
         
-      } else {
-        // Para outras plataformas (Web, Desktop)
-        downloadsDir = await getDownloadsDirectory();
-        if (downloadsDir == null) {
-          downloadsDir = await getApplicationDocumentsDirectory();
+        while (await File(filePath).exists()) {
+          final extension = fileName.split('.').last;
+          final nameWithoutExtension = fileName.replaceAll('.$extension', '');
+          fileName = '${nameWithoutExtension}_$counter.$extension';
+          filePath = '${downloadSubDir.path}/$fileName';
+          counter++;
         }
+
+        final dio = Dio();
+        await dio.download(url, filePath);
+        print('✅ Download concluído: $filePath');
+        return filePath;
       }
 
-      print('📥 Salvando download em: ${downloadsDir.path}');
-
-      // Criar nome único para o arquivo se já existir
+      // Outras plataformas
+      final downloadsDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+      
       String fileName = nomeArquivo;
       String filePath = '${downloadsDir.path}/$fileName';
       int counter = 1;
@@ -329,10 +360,8 @@ class DocumentoService {
         counter++;
       }
 
-      // Fazer download usando Dio
       final dio = Dio();
       await dio.download(url, filePath);
-
       print('✅ Download concluído: $filePath');
       return filePath;
     } catch (e) {

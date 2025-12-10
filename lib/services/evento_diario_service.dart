@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/evento_diario.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 class EventoDiarioService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -289,19 +290,36 @@ class EventoDiarioService {
   /// Faz upload da foto do evento diário para Supabase Storage
   /// Bucket: imagens_diario_representante
   /// Path: /condominio_id/evento_id/nomeArquivo
+  /// Em web, retorna o blob URL direto. Em mobile, faz upload e retorna URL pública
   static Future<String?> uploadFotoEventoDiario({
     required String condominioId,
     required String eventoId,
-    required File arquivo,
+    required dynamic arquivo, // Aceita File (mobile) ou XFile (web)
     required String nomeArquivo,
   }) async {
     try {
       print('🔵 [EventoDiarioService] Iniciando upload da foto do evento diário...');
       
+      // Converter para bytes - compatível com File e XFile
+      late Uint8List bytes;
+      
+      if (arquivo is File) {
+        // Mobile
+        bytes = await arquivo.readAsBytes();
+      } else {
+        // Web (XFile) ou outro formato
+        try {
+          bytes = await arquivo.readAsBytes();
+        } catch (e) {
+          throw Exception('Não foi possível ler a imagem: $e');
+        }
+      }
+      
+      print('📦 [EventoDiarioService] Imagem lida: ${bytes.length} bytes');
+
       final path = '$condominioId/$eventoId/$nomeArquivo';
       
-      // Converter para Uint8List para fazer upload
-      final bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      print('🔵 [EventoDiarioService] Iniciando upload binário para: $path');
       
       await _client.storage.from('imagens_diario_representante').uploadBinary(
             path,

@@ -334,6 +334,7 @@ class AutorizadoInquilinoService {
           tipoAutorizado: 'inquilino',
         ),
         nomeAutorizado: autorizado.nome,
+        tamanho: 500,
       );
 
       // 3️⃣ Atualizar registro com URL do QR Code

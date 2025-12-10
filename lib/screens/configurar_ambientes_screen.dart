@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/ambiente.dart';
 import '../services/ambiente_service.dart';
 import '../services/photo_picker_service.dart';
@@ -2041,128 +2042,263 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                         ),
                         const SizedBox(height: 24),
                         
-                        // Campo Anexar termo
-                        GestureDetector(
-                          onTap: () async {
-                            try {
-                              FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                type: FileType.custom,
-                                allowedExtensions: ['pdf'],
-                              );
+                        // Campo Anexar termo - Mostra diferente se já tem termo
+                        if (locacaoUrl == null || locacaoUrl!.isEmpty)
+                          // Se NÃO HÁ termo: mostrar botão de upload
+                          GestureDetector(
+                            onTap: () async {
+                              try {
+                                FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                  type: FileType.custom,
+                                  allowedExtensions: ['pdf'],
+                                );
 
-                              if (result != null) {
-                                setModalState(() {
-                                  termoFileName = '${result.files.single.name} (enviando...)';
-                                });
-                                
-                                // Fazer upload do PDF
-                                try {
-                                  final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
-                                    result.files.single,
-                                    nomeArquivo: result.files.single.name,
-                                  );
+                                if (result != null) {
+                                  setModalState(() {
+                                    termoFileName = '${result.files.single.name} (enviando...)';
+                                  });
                                   
-                                  if (pdfUrl != null && pdfUrl.isNotEmpty) {
-                                    setModalState(() {
-                                      locacaoUrl = pdfUrl;
-                                      termoFileName = '${result.files.single.name} ✓';
-                                    });
-                                    
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Termo de locação enviado com sucesso'),
-                                        backgroundColor: Colors.green,
-                                        duration: Duration(seconds: 2),
-                                      ),
+                                  // Fazer upload do PDF
+                                  try {
+                                    final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
+                                      result.files.single,
+                                      nomeArquivo: result.files.single.name,
                                     );
-                                  } else {
+                                    
+                                    if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                                      setModalState(() {
+                                        locacaoUrl = pdfUrl;
+                                        termoFileName = '${result.files.single.name} ✓';
+                                      });
+                                      
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Termo de locação enviado com sucesso'),
+                                          backgroundColor: Colors.green,
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    } else {
+                                      setModalState(() {
+                                        termoFileName = null;
+                                      });
+
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Erro: Não foi possível gerar URL do arquivo'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
                                     setModalState(() {
                                       termoFileName = null;
                                     });
-
+                                    
+                                    print('Erro ao fazer upload do PDF: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Erro: Não foi possível gerar URL do arquivo'),
+                                      SnackBar(
+                                        content: Text('Erro ao enviar PDF: ${e.toString()}'),
                                         backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 3),
                                       ),
                                     );
                                   }
-                                } catch (e) {
-                                  setModalState(() {
-                                    termoFileName = null;
-                                  });
-                                  
-                                  print('Erro ao fazer upload do PDF: $e');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Erro ao enviar PDF: ${e.toString()}'),
-                                      backgroundColor: Colors.red,
-                                      duration: const Duration(seconds: 3),
-                                    ),
-                                  );
                                 }
+                              } catch (e) {
+                                print('Erro ao selecionar arquivo: $e');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erro: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
                               }
-                            } catch (e) {
-                              print('Erro ao selecionar arquivo: $e');
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Erro: $e'),
-                                  backgroundColor: Colors.red,
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Anexar termo',
+                                      style: TextStyle(
+                                        color: Color(0xFF1E3A8A),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            }
-                          },
-                          child: Column(
+                              ],
+                            ),
+                          )
+                        else
+                          // Se JÁ HÁ termo: mostrar termo com opções
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Anexar termo',
-                                    style: TextStyle(
-                                      color: Color(0xFF1E3A8A),
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (termoFileName != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0, left: 32.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          termoFileName!,
-                                          style: TextStyle(
-                                            color: termoFileName!.contains('✓') ? Colors.green : Colors.black87,
-                                            fontSize: 14,
-                                            fontWeight: termoFileName!.contains('✓') ? FontWeight.bold : FontWeight.normal,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          setModalState(() {
-                                            termoFileName = null;
-                                            locacaoUrl = null;
-                                          });
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.only(left: 8.0),
-                                          child: Icon(Icons.close, size: 18, color: Colors.red),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              const Text(
+                                'Termo de Locação',
+                                style: TextStyle(
+                                  color: Color(0xFF1E3A8A),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
                                 ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.green, width: 2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.green[50],
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.description, color: Color(0xFF1E3A8A), size: 24),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Termo Carregado',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          GestureDetector(
+                                            onTap: () async {
+                                              try {
+                                                final Uri url = Uri.parse(locacaoUrl!);
+                                                if (await canLaunchUrl(url)) {
+                                                  await launchUrl(
+                                                    url,
+                                                    mode: LaunchMode.externalApplication,
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('Não foi possível abrir o termo'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Erro ao abrir: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            child: const Text(
+                                              'Clique para abrir no navegador',
+                                              style: TextStyle(
+                                                color: Colors.blue,
+                                                fontSize: 12,
+                                                decoration: TextDecoration.underline,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Botão para trocar termo
+                                        GestureDetector(
+                                          onTap: () async {
+                                            try {
+                                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                                type: FileType.custom,
+                                                allowedExtensions: ['pdf'],
+                                              );
+
+                                              if (result != null) {
+                                                setModalState(() {
+                                                  termoFileName = '${result.files.single.name} (enviando...)';
+                                                });
+                                                
+                                                try {
+                                                  final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
+                                                    result.files.single,
+                                                    nomeArquivo: result.files.single.name,
+                                                  );
+                                                  
+                                                  if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                                                    setModalState(() {
+                                                      locacaoUrl = pdfUrl;
+                                                      termoFileName = '${result.files.single.name} ✓';
+                                                    });
+                                                    
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text('Termo atualizado com sucesso'),
+                                                        backgroundColor: Colors.green,
+                                                        duration: Duration(seconds: 2),
+                                                      ),
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  setModalState(() {
+                                                    termoFileName = null;
+                                                  });
+                                                  
+                                                  print('Erro ao fazer upload: $e');
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Erro: $e'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            } catch (e) {
+                                              print('Erro ao selecionar arquivo: $e');
+                                            }
+                                          },
+                                          child: const Tooltip(
+                                            message: 'Trocar termo',
+                                            child: Icon(Icons.edit, color: Color(0xFF1E3A8A), size: 20),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // Botão para excluir termo
+                                        GestureDetector(
+                                          onTap: () {
+                                            setModalState(() {
+                                              locacaoUrl = null;
+                                              termoFileName = null;
+                                            });
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Termo removido'),
+                                                backgroundColor: Colors.orange,
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          },
+                                          child: const Tooltip(
+                                            message: 'Remover termo',
+                                            child: Icon(Icons.close, color: Colors.red, size: 20),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
-                        ),
                         const SizedBox(height: 24),
                         const SizedBox(height: 32),
                       ],

@@ -1,19 +1,16 @@
 import 'package:condogaiaapp/services/photo_picker_service.dart';
+import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
+import 'dart:io' as io;
 import '../models/documento.dart';
 import '../services/documento_service.dart';
-import '../utils/download_helper.dart';
-
-// Importação condicional de dart:io para mobile/desktop
-import 'dart:io' if (kIsWeb) 'dart:async' as io;
 
 // Classe simples para armazenar arquivo na web ou dados binários
 class ArquivoTemporario {
@@ -783,7 +780,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
           );
         } else {
           // No mobile, converter para File
-          final imageFile = (io.File as dynamic)(image.path);
+          final imageFile = io.File(image.path);
           await DocumentoService.adicionarArquivoComUpload(
             nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
             arquivo: imageFile,
@@ -874,12 +871,12 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
           // No mobile/desktop, usar caminho do arquivo
           if (result.files.single.path != null) {
             // Obter o arquivo original
-            final originalFile = (io.File as dynamic)(result.files.single.path!);
+            final originalFile = io.File(result.files.single.path!);
             
             // Verificar se o arquivo existe
             bool fileExists = false;
             try {
-              fileExists = await (originalFile as dynamic).exists();
+              fileExists = await originalFile.exists();
             } catch (e) {
               print('[EditarDocumentosScreen] Não foi possível verificar existência: $e');
               fileExists = true; // Assumir que existe
@@ -900,24 +897,24 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
 
             // Copiar arquivo para diretório temporário (necessário no Android)
             final appDocDir = await getApplicationDocumentsDirectory();
-            final tempDir = (io.Directory as dynamic)('${appDocDir.path}/pdf_temporarios');
+            final tempDir = io.Directory('${appDocDir.path}/pdf_temporarios');
             
             bool tempDirExists = false;
             try {
-              tempDirExists = await (tempDir as dynamic).exists();
+              tempDirExists = await tempDir.exists();
             } catch (e) {
               tempDirExists = false;
             }
             
             if (!tempDirExists) {
-              await (tempDir as dynamic).create(recursive: true);
+              await tempDir.create(recursive: true);
             }
 
-            final copiedFile = (io.File as dynamic)('${(tempDir as dynamic).path}/$fileName');
+            final copiedFile = io.File('${tempDir.path}/$fileName');
             
             // Copiar conteúdo do arquivo
-            final bytes = await (originalFile as dynamic).readAsBytes();
-            await (copiedFile as dynamic).writeAsBytes(bytes);
+            final bytes = await originalFile.readAsBytes();
+            await copiedFile.writeAsBytes(bytes);
 
             print('[EditarDocumentosScreen] PDF copiado com sucesso');
             print('[EditarDocumentosScreen] Tamanho do arquivo: ${bytes.length} bytes');
@@ -1088,8 +1085,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     );
   }
 
-  // Função para baixar PDF (suporta Web, Android e iOS)
-  // Função para abrir PDF no navegador
+  // Função para fazer download do PDF
   Future<void> _abrirPDFNoNavegador(Documento arquivo) async {
     try {
       if (arquivo.url == null || arquivo.url!.isEmpty) {
@@ -1104,28 +1100,58 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         return;
       }
 
-      final String pdfUrl = arquivo.url!;
+      String pdfUrl = arquivo.url!;
+      final String fileName = arquivo.nome;
 
-      // Tentar abrir no navegador
-      final Uri uri = Uri.parse(pdfUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // Gerar Signed URL para maior segurança (expira em 1 hora)
+      final signedUrl = await SupabaseService.getSignedDocumentUrl(
+        pdfUrl,
+        expiresIn: 3600, // 1 hora
+      );
+
+      // Usar a signed URL se conseguir gerar, senão usar a URL original
+      if (signedUrl != null) {
+        pdfUrl = signedUrl;
+        print('✅ Usando Signed URL para abrir PDF');
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir o PDF'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        print('⚠️ Usando URL pública (Signed URL não disponível)');
+      }
+
+      // Na web, abrir a URL diretamente
+      if (kIsWeb) {
+        final Uri uri = Uri.parse(pdfUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Não foi possível abrir o PDF'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
+        return;
+      }
+
+      // No mobile, fazer download como balancete (sem diálogo de progresso)
+      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF baixado: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      print('Erro ao abrir PDF: $e');
+      print('Erro ao baixar PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao abrir PDF: $e'),
+            content: Text('Erro ao baixar PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );

@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
+import 'dart:io' as io;
 import 'editar_documentos_screen.dart';
 import 'nova_pasta_screen.dart';
 import '../models/documento.dart';
@@ -1754,7 +1755,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     );
   }
 
-  // Função para baixar PDF do balancete
+  // Função para fazer download do PDF
   Future<void> _abrirPDFNoNavegador(Balancete balancete) async {
     try {
       if (balancete.url == null || balancete.url!.isEmpty) {
@@ -1770,31 +1771,46 @@ class _DocumentosScreenState extends State<DocumentosScreen>
       }
 
       final String pdfUrl = balancete.url!;
+      final String fileName = balancete.nomeArquivo ?? 'documento_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
-      // Tentar abrir no navegador
-      final Uri uri = Uri.parse(pdfUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir o PDF'),
-              backgroundColor: Colors.red,
-            ),
-          );
+      // Na web, abrir a URL diretamente
+      if (kIsWeb) {
+        final Uri uri = Uri.parse(pdfUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Não foi possível abrir o PDF'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
+        return;
+      }
+
+      // No mobile, fazer download como ODS (sem diálogo de progresso)
+      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF baixado: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      print('Erro ao abrir PDF: $e');
+      print('Erro ao baixar PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao abrir PDF: $e'),
+            content: Text('Erro ao baixar PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
-  }
-}
+  }}

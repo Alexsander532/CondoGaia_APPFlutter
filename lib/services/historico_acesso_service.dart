@@ -12,6 +12,7 @@ class HistoricoAcessoService {
     String? observacoes,
     String? placaVeiculo,
     String registradoPor = 'Sistema',
+    String tipoVisitante = 'visitante_portaria',
   }) async {
     try {
       // Verifica se já existe uma entrada sem saída para este visitante
@@ -24,7 +25,7 @@ class HistoricoAcessoService {
         'visitante_id': visitanteId,
         'condominio_id': condominioId,
         'tipo_registro': 'entrada',
-        'tipo_visitante': 'visitante_portaria', // Assumindo que este serviço é usado para visitantes da portaria
+        'tipo_visitante': tipoVisitante,
         'data_hora': DateTime.now().toLocal().toIso8601String(),
         'observacoes': observacoes,
         'registrado_por': registradoPor,

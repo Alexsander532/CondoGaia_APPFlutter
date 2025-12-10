@@ -61,7 +61,7 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
       final urlQr = await QrCodeHelper.gerarESalvarQRNoSupabase(
         widget.dados,
         nomeAutorizado: widget.nome,
-        tamanho: 220,
+        tamanho: 500,
       );
 
       if (!mounted) return;
@@ -191,32 +191,34 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
         child: Column(
           children: [
             Container(
-              width: 220,
-              height: 220,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.red[300]!),
-                borderRadius: BorderRadius.circular(8),
                 color: Colors.red[50],
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Colors.red[700],
-                      size: 48,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Erro ao gerar QR',
-                      style: TextStyle(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: 280,
+                height: 280,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
                         color: Colors.red[700],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        size: 48,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        'Erro ao gerar QR',
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -259,17 +261,19 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
         child: Column(
           children: [
             Container(
-              width: 220,
-              height: 220,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
                 color: Colors.grey[50],
               ),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: 250,
+                height: 250,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
                 ),
               ),
             ),
@@ -311,24 +315,16 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
         children: [
           // QR Code Image
           Container(
-            width: 220,
-            height: 220,
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border.all(color: Colors.grey[200]!),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            child: _urlQr != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: 280,
+              height: 280,
+              child: _urlQr != null
+                  ? Image.network(
                       _urlQr!,
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
@@ -349,7 +345,10 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return Center(
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                          ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -370,28 +369,33 @@ class _QrCodeWidgetState extends State<QrCodeWidget> {
                           ),
                         );
                       },
-                    ),
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.qr_code_2,
-                          color: Colors.grey[400],
-                          size: 48,
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.qr_code_2,
+                              color: Colors.grey[400],
+                              size: 48,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'QR Code',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'QR Code',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+            ),
           ),
           const SizedBox(height: 12),
 

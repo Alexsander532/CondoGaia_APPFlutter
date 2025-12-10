@@ -1724,4 +1724,81 @@ class SupabaseService {
       rethrow;
     }
   }
+
+  /// Gera uma URL assinada (signed URL) temporária para um arquivo no Storage
+  /// A URL expira após o tempo especificado (padrão: 1 hora)
+  static Future<String?> getSignedUrl({
+    required String bucket,
+    required String path,
+    int expiresIn = 3600, // 1 hora em segundos
+  }) async {
+    try {
+      final signedUrl = await client.storage
+          .from(bucket)
+          .createSignedUrl(path, expiresIn);
+      
+      print('✅ Signed URL gerada para: $path (expira em ${expiresIn}s)');
+      return signedUrl;
+    } catch (e) {
+      print('❌ Erro ao gerar signed URL: $e');
+      return null;
+    }
+  }
+
+  /// Gera uma URL assinada para documentos com tempo de expiração
+  static Future<String?> getSignedDocumentUrl(
+    String documentoUrl, {
+    int expiresIn = 3600, // 1 hora
+  }) async {
+    try {
+      print('📋 [SIGNED URL] URL original: $documentoUrl');
+      
+      // Extrair o caminho do arquivo da URL pública
+      // URL formato: https://tukpgefrddfchmvtiujp.supabase.co/storage/v1/object/public/documentos/...
+      final uri = Uri.parse(documentoUrl);
+      final pathSegments = uri.pathSegments;
+      
+      print('📋 [SIGNED URL] Path segments: $pathSegments');
+      print('📋 [SIGNED URL] Total segments: ${pathSegments.length}');
+      
+      // Encontrar o índice de 'public' e pegar tudo após ele
+      final publicIndex = pathSegments.indexOf('public');
+      print('📋 [SIGNED URL] Index de "public": $publicIndex');
+      
+      if (publicIndex == -1 || publicIndex >= pathSegments.length - 1) {
+        print('❌ [SIGNED URL] Não foi possível encontrar "public" ou está no final');
+        return null;
+      }
+      
+      // Reconstruir o caminho sem 'public'
+      final filePath = pathSegments.skip(publicIndex + 2).join('/');
+      final bucketName = pathSegments[publicIndex + 1]; // 'documentos', 'qr_codes', etc
+      
+      print('📋 [SIGNED URL] Bucket: $bucketName');
+      print('📋 [SIGNED URL] File path: $filePath');
+      
+      // Verificar se o arquivo existe antes de tentar gerar signed URL
+      try {
+        await client.storage.from(bucketName).list(path: filePath);
+        print('✅ [SIGNED URL] Arquivo encontrado no storage');
+      } catch (e) {
+        print('⚠️ [SIGNED URL] Não foi possível verificar arquivo: $e');
+        // Continuar mesmo assim, pois o arquivo pode existir
+      }
+      
+      // Gerar signed URL
+      final signedUrl = await client.storage
+          .from(bucketName)
+          .createSignedUrl(filePath, expiresIn);
+      
+      print('✅ [SIGNED URL] Signed URL gerada com sucesso!');
+      print('📋 [SIGNED URL] Expira em: ${expiresIn}s');
+      return signedUrl;
+    } catch (e) {
+      print('❌ [SIGNED URL] Erro ao processar URL de documento: $e');
+      print('❌ [SIGNED URL] Tipo de erro: ${e.runtimeType}');
+      return null;
+    }
+  }
 }
+

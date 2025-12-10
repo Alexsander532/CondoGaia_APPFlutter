@@ -152,27 +152,43 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
       }
 
       final String pdfUrl = documento.url!;
+      final String fileName = documento.nome;
 
-      // Tentar abrir no navegador
-      final Uri uri = Uri.parse(pdfUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir o PDF'),
-              backgroundColor: Colors.red,
-            ),
-          );
+      // Na web, abrir a URL diretamente
+      if (kIsWeb) {
+        final Uri uri = Uri.parse(pdfUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Não foi possível abrir o PDF'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
+        return;
+      }
+
+      // No mobile, fazer download como balancete (sem diálogo de progresso)
+      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
+
+      if (filePath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF baixado: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      print('Erro ao abrir PDF: $e');
+      print('Erro ao baixar PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao abrir PDF: $e'),
+            content: Text('Erro ao baixar PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );

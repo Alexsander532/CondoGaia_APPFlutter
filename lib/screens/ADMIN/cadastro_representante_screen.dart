@@ -237,6 +237,8 @@ class _CadastroRepresentanteScreenState
 
   /// Realiza a pesquisa de representantes com os filtros aplicados
   Future<void> _realizarPesquisa() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoadingPesquisa = true;
       _errorPesquisa = null;
@@ -255,12 +257,16 @@ class _CadastroRepresentanteScreenState
       // Deduplica resultados por condominio_id
       final resultadosDeduplic = _deduplicarResultados(resultados);
 
+      if (!mounted) return;
+      
       setState(() {
         _resultadosPesquisa = resultadosDeduplic;
         _pesquisaRealizada = true;
         _isLoadingPesquisa = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      
       setState(() {
         _errorPesquisa = 'Erro ao realizar pesquisa: $e';
         _resultadosPesquisa = [];
@@ -289,8 +295,8 @@ class _CadastroRepresentanteScreenState
   }
 
   // Método para pesquisar/recarregar representantes
-  void _pesquisarRepresentantes() {
-    _realizarPesquisa();
+  Future<void> _pesquisarRepresentantes() async {
+    await _realizarPesquisa();
   }
 
   // Funções de validação
@@ -1223,7 +1229,7 @@ class _CadastroRepresentanteScreenState
       return 'Erro ao carregar';
     }
     if (_condominiosSelecionados.isEmpty) {
-      return 'Selecionar Condomínios (opcional)';
+      return 'Selecionar Condomínios';
     }
     return '${_condominiosSelecionados.length} condomínio(s) selecionado(s)';
   }
@@ -2085,6 +2091,12 @@ class _CadastroRepresentanteScreenState
 
       // Recarregar lista de condomínios disponíveis
       await _loadCondominios();
+
+      // Recarregar a aba de pesquisa com o novo representante
+      await _realizarPesquisa();
+
+      // Trocar para a aba de pesquisa para mostrar o novo representante
+      _tabController.animateTo(1);
 
       // Limpar formulário
       _limparFormulario();
@@ -3858,33 +3870,60 @@ class _CadastroRepresentanteScreenState
 
       await SupabaseService.deleteCondominioComAtualizacaoRepresentantes(condominioId);
 
-      // Fechar loading
-      Navigator.pop(context);
+      // Fechar loading apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          Navigator.pop(context);
+        } catch (_) {
+          // Ignorar erro se não conseguir fazer pop
+        }
+      }
 
-      // Mostrar mensagem de sucesso
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Condomínio excluído com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Mostrar mensagem de sucesso apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Condomínio excluído com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } catch (_) {
+          // Ignorar erro se não conseguir mostrar SnackBar
+        }
+      }
 
-      // Recarregar dados
-      _pesquisarRepresentantes();
+      // Recarregar dados (aguardar)
+      await _pesquisarRepresentantes();
+      
+      // Recarregar lista de condomínios
+      await _loadCondominios();
 
     } catch (e) {
-      // Fechar loading se estiver aberto
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+      // Fechar loading apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          Navigator.pop(context);
+        } catch (_) {
+          // Ignorar erro se não conseguir fazer pop
+        }
       }
       
       print('Erro ao excluir condomínio: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao excluir condomínio: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      
+      // Mostrar erro apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao excluir condomínio: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } catch (_) {
+          // Ignorar erro se não conseguir mostrar SnackBar
+        }
+      }
     }
   }
 
@@ -3907,33 +3946,60 @@ class _CadastroRepresentanteScreenState
 
       await SupabaseService.deleteRepresentanteComLiberacaoCondominios(representanteId);
 
-      // Fechar loading
-      Navigator.pop(context);
+      // Fechar loading apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          Navigator.pop(context);
+        } catch (_) {
+          // Ignorar erro se não conseguir fazer pop
+        }
+      }
 
-      // Mostrar mensagem de sucesso
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Representante excluído com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Mostrar mensagem de sucesso apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Representante excluído com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } catch (_) {
+          // Ignorar erro se não conseguir mostrar SnackBar
+        }
+      }
 
-      // Recarregar dados
-      _pesquisarRepresentantes();
+      // Recarregar dados (aguardar)
+      await _pesquisarRepresentantes();
+      
+      // Recarregar lista de condomínios para deixá-los disponíveis novamente
+      await _loadCondominios();
 
     } catch (e) {
-      // Fechar loading se estiver aberto
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+      // Fechar loading apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          Navigator.pop(context);
+        } catch (_) {
+          // Ignorar erro se não conseguir fazer pop
+        }
       }
       
       print('Erro ao excluir representante: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao excluir representante: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      
+      // Mostrar erro apenas se o widget ainda está montado
+      if (mounted) {
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao excluir representante: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } catch (_) {
+          // Ignorar erro se não conseguir mostrar SnackBar
+        }
+      }
     }
   }
 

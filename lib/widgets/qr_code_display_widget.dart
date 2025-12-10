@@ -156,73 +156,70 @@ class _QrCodeDisplayWidgetState extends State<QrCodeDisplayWidget> {
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: Colors.grey[300]!,
               ),
             ),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             child: GestureDetector(
               onTap: () => _mostrarQRCodeAmpliado(context),
-              child: Image.network(
-                widget.qrCodeUrl!,
-                width: 200,
-                height: 200,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: Colors.red[300],
-                          size: 48,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Erro ao carregar QR',
-                          style: TextStyle(
-                            fontSize: 12,
+              child: SizedBox(
+                width: 280,
+                height: 280,
+                child: Image.network(
+                  widget.qrCodeUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
                             color: Colors.red[300],
+                            size: 48,
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF1976D2),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Erro ao carregar QR',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.red[300],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF1976D2),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -295,14 +292,12 @@ class _QrCodeDisplayWidgetState extends State<QrCodeDisplayWidget> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.all(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -331,9 +326,9 @@ class _QrCodeDisplayWidgetState extends State<QrCodeDisplayWidget> {
               // Imagem ampliada
               Image.network(
                 widget.qrCodeUrl!,
-                width: 300,
-                height: 300,
-                fit: BoxFit.contain,
+                width: 400,
+                height: 400,
+                fit: BoxFit.scaleDown,
               ),
               const SizedBox(height: 24),
 

@@ -5,8 +5,12 @@ import 'agenda_inquilino_screen.dart';
 import 'portaria_inquilino_screen.dart';
 import 'login_screen.dart';
 import 'proprietario_dashboard_screen.dart';
+import 'inquilino_dashboard_screen.dart';
+import '../models/proprietario.dart';
+import '../models/inquilino.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
+import '../services/supabase_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -39,8 +43,6 @@ class InquilinoHomeScreen extends StatefulWidget {
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
   final AuthService _authService = AuthService();
-  
-  String? _inquilinoFotoPerfil;
 
   @override
   void initState() {
@@ -130,51 +132,9 @@ Copiado da CondoGaia''';
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Foto do Inquilino com botão de editar
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    // Foto circular
-                    if (_inquilinoFotoPerfil != null && _inquilinoFotoPerfil!.isNotEmpty)
-                      ClipOval(
-                        child: Image.network(
-                          _inquilinoFotoPerfil!,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 80,
-                              height: 80,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                color: Colors.grey,
-                                size: 40,
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    else
-                      // Placeholder sem foto
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.grey,
-                          size: 40,
-                        ),
-                      ),
-                  ],
+                Image.asset(
+                  'assets/images/logo_CondoGaia.png',
+                  height: 40,
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -564,16 +524,57 @@ Copiado da CondoGaia''';
                   Padding(
                     padding: const EdgeInsets.only(right: 12.0),
                     child: GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        // Se for inquilino, navegar para o dashboard do inquilino
+                        if (widget.inquilinoId != null && widget.inquilinoId!.isNotEmpty) {
+                          try {
+                            // Buscar dados completos do inquilino
+                            final response = await SupabaseService.client
+                                .from('inquilinos')
+                                .select('*')
+                                .eq('id', widget.inquilinoId!)
+                                .maybeSingle();
+
+                            if (response != null) {
+                              final inquilino = Inquilino.fromJson(response);
+                              if (mounted) {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => InquilinoDashboardScreen(
+                                      inquilino: inquilino,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } else {
+                              print('❌ Inquilino não encontrado');
+                              Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            print('❌ Erro ao buscar dados do inquilino: $e');
+                            Navigator.pop(context);
+                          }
+                        }
                         // Se for proprietário e tem dados, voltar ao dashboard
-                        if (widget.proprietarioId != null && widget.proprietarioData != null) {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => ProprietarioDashboardScreen(
-                                proprietario: widget.proprietarioData,
+                        else if (widget.proprietarioId != null && widget.proprietarioData != null) {
+                          try {
+                            // Converter os dados do proprietário para objeto Proprietario
+                            final proprietario = Proprietario.fromJson(
+                              widget.proprietarioData is Map<String, dynamic>
+                                  ? widget.proprietarioData as Map<String, dynamic>
+                                  : widget.proprietarioData.toJson() as Map<String, dynamic>,
+                            );
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => ProprietarioDashboardScreen(
+                                  proprietario: proprietario,
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } catch (e) {
+                            print('❌ Erro ao navegar para dashboard do proprietário: $e');
+                            Navigator.pop(context);
+                          }
                         } else {
                           // Caso contrário, fazer pop normal
                           Navigator.pop(context);
