@@ -15,6 +15,7 @@ import '../services/historico_acesso_service.dart';
 import '../services/encomenda_service.dart';
 import '../services/photo_picker_service.dart';
 import '../services/qr_code_generation_service.dart';
+import '../services/navigation_persistence_service.dart';
 import '../utils/formatters.dart';
 import '../widgets/qr_code_display_widget.dart';
 
@@ -171,6 +172,15 @@ class _PortariaRepresentanteScreenState
     debugPrint('[PORTARIA] ⚡ initState() CHAMADO');
     debugPrint('[PORTARIA] widget.temBlocos (parâmetro recebido): ${widget.temBlocos}');
     debugPrint('[PORTARIA] Tipo de widget.temBlocos: ${widget.temBlocos.runtimeType}');
+    
+    // ✅ Salvar navegação atual para persistir em caso de refresh na web
+    NavigationPersistenceService.saveCurrentRoute('portaria_representante', {
+      'condominioId': widget.condominioId,
+      'condominioNome': widget.condominioNome,
+      'condominioCnpj': widget.condominioCnpj,
+      'representanteId': widget.representanteId,
+      'temBlocos': widget.temBlocos,
+    });
     
     _tabController = TabController(length: 6, vsync: this);
     _encomendasTabController = TabController(length: 2, vsync: this);

@@ -12,6 +12,7 @@ import '../services/ambiente_service.dart';
 import '../services/reserva_service.dart';
 import '../services/supabase_service.dart';
 import '../services/excel_service.dart';
+import '../services/navigation_persistence_service.dart';
 
 class ReservasScreen extends StatefulWidget {
   final Representante? representante;
@@ -2074,6 +2075,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Salvar navegação atual para persistir em caso de refresh na web
+    NavigationPersistenceService.saveCurrentRoute('reservas', {
+      'representanteId': widget.representante?.id,
+      'condominioId': widget.condominioId,
+    });
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

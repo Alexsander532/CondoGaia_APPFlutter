@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:condogaiaapp/models/conversa.dart';
 import 'package:condogaiaapp/services/conversas_service.dart';
 import 'package:condogaiaapp/services/condominio_init_service.dart';
+import 'package:condogaiaapp/services/navigation_persistence_service.dart';
 import 'package:condogaiaapp/screens/chat_representante_screen_v2.dart';
 
 /// Tela de lista de conversas para o REPRESENTANTE (Portaria)
@@ -80,6 +81,13 @@ class _ConversasListScreenState extends State<ConversasListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Salvar navegação atual para persistir em caso de refresh na web
+    NavigationPersistenceService.saveCurrentRoute('conversas_list', {
+      'condominioId': widget.condominioId,
+      'representanteId': widget.representanteId,
+      'representanteName': widget.representanteName,
+    });
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mensagens'),

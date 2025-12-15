@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/visitante_portaria.dart';
 import 'supabase_service.dart';
 import 'qr_code_generation_service.dart';
+import 'historico_acesso_service.dart';
 
 /// Serviço para gerenciar visitantes da portaria do representante
 class VisitantePortariaService {
@@ -55,6 +56,23 @@ class VisitantePortariaService {
           .single();
 
       final visitante = VisitantePortaria.fromJson(response);
+
+      // ✅ Registrar entrada automaticamente na tabela de acessos
+      try {
+        final historicoService = HistoricoAcessoService();
+        await historicoService.registrarEntrada(
+          visitanteId: visitante.id,
+          condominioId: visitanteData['condominio_id'],
+          placaVeiculo: visitanteData['placa_veiculo'],
+          observacoes: 'Visitante cadastrado automaticamente',
+          registradoPor: 'Sistema',
+          tipoVisitante: 'visitante_portaria',
+        );
+        print('[VisitantePortaria] ✅ Entrada registrada automaticamente para ${visitante.nome}');
+      } catch (e) {
+        print('[VisitantePortaria] ⚠️ Erro ao registrar entrada automática: $e');
+        // Não falhar o cadastro se o registro de entrada falhar
+      }
 
       // 🆕 Gerar e salvar QR Code após inserir
       _gerarQRCodeAsync(visitante);

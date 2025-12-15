@@ -11,8 +11,15 @@ import 'screens/inquilino_home_screen.dart';
 import 'screens/upload_foto_perfil_screen.dart';
 import 'screens/upload_foto_perfil_proprietario_screen.dart';
 import 'screens/upload_foto_perfil_inquilino_screen.dart';
+import 'screens/portaria_representante_screen.dart';
+import 'screens/portaria_inquilino_screen.dart';
+import 'screens/gestao_screen.dart';
+import 'screens/documentos_screen.dart';
+import 'screens/reservas_screen.dart';
+import 'screens/conversas_list_screen.dart';
 import 'services/auth_service.dart';
 import 'services/supabase_service.dart';
+import 'services/navigation_persistence_service.dart';
 
 // Credenciais Supabase - carregadas dinamicamente
 class _SupabaseConfig {
@@ -114,8 +121,13 @@ class _SplashScreenState extends State<SplashScreen> {
       
       if (mounted) {
         if (result.success) {
-          // Redirecionar conforme o tipo de usuário (igual ao login_screen.dart)
-          await _redirectByUserType(result);
+          // Verificar se há uma rota salva para restaurar
+          if (NavigationPersistenceService.hasSavedRoute()) {
+            await _restorePreviousRoute(result);
+          } else {
+            // Redirecionar conforme o tipo de usuário
+            await _redirectByUserType(result);
+          }
         } else {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -129,6 +141,135 @@ class _SplashScreenState extends State<SplashScreen> {
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       }
+    }
+  }
+
+  /// Restaura a rota anterior antes do refresh
+  Future<void> _restorePreviousRoute(LoginResult result) async {
+    if (!mounted) return;
+
+    final savedRoute = NavigationPersistenceService.getSavedRoute();
+    final savedParams = NavigationPersistenceService.getSavedParams();
+
+    debugPrint('[Main] 🔄 Tentando restaurar rota: $savedRoute');
+
+    // ===== REPRESENTANTE =====
+    if (savedRoute == 'portaria_representante') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => PortariaRepresentanteScreen(
+            condominioId: savedParams['condominioId'],
+            condominioNome: savedParams['condominioNome'],
+            condominioCnpj: savedParams['condominioCnpj'],
+            representanteId: savedParams['representanteId'],
+            temBlocos: savedParams['temBlocos'] ?? false,
+          ),
+        ),
+      );
+    } else if (savedRoute == 'representante_home') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => RepresentanteHomeScreen(
+            representante: result.representante!,
+            condominioId: savedParams['condominioId'],
+            condominioNome: savedParams['condominioNome'],
+            condominioCnpj: savedParams['condominioCnpj'],
+          ),
+        ),
+      );
+    } else if (savedRoute == 'gestao') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => GestaoScreen(
+            condominioId: savedParams['condominioId'],
+            condominioNome: savedParams['condominioNome'],
+            condominioCnpj: savedParams['condominioCnpj'],
+          ),
+        ),
+      );
+    } else if (savedRoute == 'documentos') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => DocumentosScreen(
+            condominioId: savedParams['condominioId'],
+            representanteId: savedParams['representanteId'],
+          ),
+        ),
+      );
+    } else if (savedRoute == 'reservas') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ReservasScreen(
+            representante: result.representante,
+            condominioId: savedParams['condominioId'],
+          ),
+        ),
+      );
+    } else if (savedRoute == 'conversas_list') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ConversasListScreen(
+            condominioId: savedParams['condominioId'] ?? '',
+            representanteId: savedParams['representanteId'] ?? '',
+            representanteName: savedParams['representanteName'] ?? '',
+          ),
+        ),
+      );
+    }
+    // ===== PROPRIETÁRIO =====
+    else if (savedRoute == 'proprietario_dashboard') {
+      if (result.proprietario != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ProprietarioDashboardScreen(
+              proprietario: result.proprietario!,
+            ),
+          ),
+        );
+      }
+    }
+    // ===== INQUILINO =====
+    else if (savedRoute == 'inquilino_dashboard') {
+      if (result.inquilino != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => InquilinoDashboardScreen(
+              inquilino: result.inquilino!,
+            ),
+          ),
+        );
+      }
+    } else if (savedRoute == 'inquilino_home') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => InquilinoHomeScreen(
+            condominioId: savedParams['condominioId'] ?? '',
+            condominioNome: savedParams['condominioNome'] ?? '',
+            condominioCnpj: savedParams['condominioCnpj'] ?? '',
+            inquilinoId: savedParams['inquilinoId'],
+            proprietarioId: savedParams['proprietarioId'],
+            unidadeId: savedParams['unidadeId'] ?? '',
+            unidadeNome: savedParams['unidadeNome'] ?? '',
+          ),
+        ),
+      );
+    } else if (savedRoute == 'portaria_inquilino') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => PortariaInquilinoScreen(
+            condominioId: savedParams['condominioId'],
+            condominioNome: savedParams['condominioNome'],
+            condominioCnpj: savedParams['condominioCnpj'],
+            inquilinoId: savedParams['inquilinoId'],
+            proprietarioId: savedParams['proprietarioId'],
+            unidadeId: savedParams['unidadeId'],
+          ),
+        ),
+      );
+    } else {
+      // Se a rota não for reconhecida, limpar e ir para redirecionamento padrão
+      NavigationPersistenceService.clearSavedRoute();
+      await _redirectByUserType(result);
     }
   }
 

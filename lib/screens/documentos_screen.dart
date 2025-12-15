@@ -15,6 +15,7 @@ import '../models/documento.dart';
 import '../models/balancete.dart';
 import '../services/documento_service.dart';
 import '../services/photo_picker_service.dart';
+import '../services/navigation_persistence_service.dart';
 import '../utils/download_helper.dart';
 
 // Importação condicional de dart:io para mobile/desktop
@@ -1029,6 +1030,12 @@ class _DocumentosScreenState extends State<DocumentosScreen>
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Salvar navegação atual para persistir em caso de refresh na web
+    NavigationPersistenceService.saveCurrentRoute('documentos', {
+      'condominioId': widget.condominioId,
+      'representanteId': widget.representanteId,
+    });
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

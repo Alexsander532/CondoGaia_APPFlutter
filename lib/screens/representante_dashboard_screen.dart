@@ -3,6 +3,7 @@ import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import '../models/representante.dart';
 import '../services/auth_service.dart';
+import '../services/navigation_persistence_service.dart';
 import '../screens/login_screen.dart';
 import '../screens/representante_home_screen.dart';
 
@@ -59,6 +60,10 @@ class _RepresentanteDashboardScreenState extends State<RepresentanteDashboardScr
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                
+                // ✅ Limpar navegação persistida antes de fazer logout
+                NavigationPersistenceService.clearSavedRoute();
+                
                 await _authService.logout();
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
