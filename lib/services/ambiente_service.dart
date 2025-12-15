@@ -88,6 +88,7 @@ class AmbienteService {
     String? updatedBy,
     String? fotoUrl,
     String? locacaoUrl,
+    bool? removerLocacao, // Flag para indicar que deve remover o termo
   }) async {
     try {
       final dados = <String, dynamic>{
@@ -103,7 +104,14 @@ class AmbienteService {
       if (inadimplentePodemReservar != null) dados['inadiplente_podem_assinar'] = inadimplentePodemReservar;
       if (updatedBy != null) dados['updated_by'] = updatedBy;
       if (fotoUrl != null) dados['foto_url'] = fotoUrl;
-      if (locacaoUrl != null) dados['locacao_url'] = locacaoUrl;
+      
+      // Se removerLocacao é true, define como null explicitamente
+      // Caso contrário, só atualiza se locacaoUrl não for null
+      if (removerLocacao == true) {
+        dados['locacao_url'] = null;
+      } else if (locacaoUrl != null) {
+        dados['locacao_url'] = locacaoUrl;
+      }
 
       final response = await SupabaseService.client
           .from('ambientes')

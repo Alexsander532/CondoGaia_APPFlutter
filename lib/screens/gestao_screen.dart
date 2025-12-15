@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'unidade_morador_screen.dart';
 import 'portaria_representante_screen.dart';
 import 'package:condogaiaapp/services/unidade_service.dart';
-import '../services/navigation_persistence_service.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -126,12 +125,7 @@ class _GestaoScreenState extends State<GestaoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('gestao', {
-      'condominioId': widget.condominioId,
-      'condominioNome': widget.condominioNome,
-      'condominioCnpj': widget.condominioCnpj,
-    });
+   
     
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),

@@ -8,7 +8,6 @@ import 'reservas_screen.dart';
 import 'gestao_screen.dart';
 import 'login_screen.dart';
 import '../services/unidade_detalhes_service.dart';
-import '../services/navigation_persistence_service.dart';
 import 'representante_dashboard_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
@@ -229,9 +228,6 @@ Copiado da CondoGaia''';
                 Navigator.of(context).pop();
                 
                 try {
-                  // ✅ Limpar navegação persistida antes de fazer logout
-                  NavigationPersistenceService.clearSavedRoute();
-                  
                   // Fazer logout via Supabase
                   await Supabase.instance.client.auth.signOut();
                   
@@ -328,13 +324,6 @@ Copiado da CondoGaia''';
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('representante_home', {
-      'condominioId': widget.condominioId,
-      'condominioNome': widget.condominioNome,
-      'condominioCnpj': widget.condominioCnpj,
-    });
-    
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: _buildDrawer(),

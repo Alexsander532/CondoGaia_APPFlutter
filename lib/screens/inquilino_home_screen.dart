@@ -11,7 +11,6 @@ import '../models/inquilino.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
-import '../services/navigation_persistence_service.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -336,17 +335,6 @@ Copiado da CondoGaia''';
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('inquilino_home', {
-      'condominioId': widget.condominioId,
-      'condominioNome': widget.condominioNome,
-      'condominioCnpj': widget.condominioCnpj,
-      'inquilinoId': widget.inquilinoId,
-      'proprietarioId': widget.proprietarioId,
-      'unidadeId': widget.unidadeId,
-      'unidadeNome': widget.unidadeNome,
-    });
-    
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: _buildDrawer(),

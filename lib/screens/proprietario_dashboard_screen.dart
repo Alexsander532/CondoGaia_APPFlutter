@@ -3,7 +3,6 @@ import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import '../models/proprietario.dart';
 import '../services/auth_service.dart';
-import '../services/navigation_persistence_service.dart';
 import '../screens/login_screen.dart';
 import '../screens/inquilino_home_screen.dart';
 
@@ -158,11 +157,6 @@ class _ProprietarioDashboardScreenState
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('proprietario_dashboard', {
-      'proprietarioId': widget.proprietario.id,
-    });
-    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(

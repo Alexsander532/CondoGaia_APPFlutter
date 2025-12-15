@@ -8,7 +8,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 import 'chat_inquilino_v2_screen.dart';
 import '../services/photo_picker_service.dart';
-import '../services/navigation_persistence_service.dart';
 import '../models/autorizado_inquilino.dart';
 import '../services/autorizado_inquilino_service.dart';
 import '../models/encomenda.dart';
@@ -91,16 +90,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('portaria_inquilino', {
-      'condominioId': widget.condominioId,
-      'condominioNome': widget.condominioNome,
-      'condominioCnpj': widget.condominioCnpj,
-      'inquilinoId': widget.inquilinoId,
-      'proprietarioId': widget.proprietarioId,
-      'unidadeId': widget.unidadeId,
-    });
 
     // Debug: Verificar se os IDs estão sendo passados corretamente
     print('DEBUG - PortariaInquilinoScreen initState:');

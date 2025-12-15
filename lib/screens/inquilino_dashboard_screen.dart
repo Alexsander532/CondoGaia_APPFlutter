@@ -5,7 +5,6 @@ import 'inquilino_home_screen.dart';
 import '../models/inquilino.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
-import '../services/navigation_persistence_service.dart';
 import '../screens/login_screen.dart';
 
 class InquilinoDashboardScreen extends StatefulWidget {
@@ -137,11 +136,6 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Salvar navegação atual para persistir em caso de refresh na web
-    NavigationPersistenceService.saveCurrentRoute('inquilino_dashboard', {
-      'inquilinoId': widget.inquilino.id,
-    });
-    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(

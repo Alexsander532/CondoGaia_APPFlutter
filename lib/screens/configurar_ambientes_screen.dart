@@ -2366,6 +2366,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             inadimplentePodemReservar: inadimplentesPodemReservar,
                             fotoUrl: fotoUrlAtualizada,
                             locacaoUrl: locacaoUrl,
+                            removerLocacao: locacaoUrl == null && ambientes[index].locacaoUrl != null,
                             // Removido updatedBy temporariamente até implementar autenticação
                           );
 
