@@ -196,6 +196,22 @@ class Formatters {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
+  /// Sanitizar nome de arquivo para upload (remove caracteres especiais)
+  static String sanitizeFileName(String fileName) {
+    // Separar nome e extensão
+    final lastDotIndex = fileName.lastIndexOf('.');
+    final name = lastDotIndex != -1 ? fileName.substring(0, lastDotIndex) : fileName;
+    final extension = lastDotIndex != -1 ? fileName.substring(lastDotIndex) : '';
+
+    // Remover caracteres especiais, manter apenas letras, números, underscore e hífen
+    final sanitized = name
+        .replaceAll(RegExp(r'[^\w\-]'), '_') // Substitui caracteres especiais por _
+        .replaceAll(RegExp(r'_+'), '_') // Remove underscores múltiplos
+        .replaceAll(RegExp(r'^_|_$'), ''); // Remove _ no início e fim
+
+    return sanitized + extension;
+  }
+
   /// Lista de estados brasileiros
   static const List<Map<String, String>> estadosBrasileiros = [
     {'sigla': 'AC', 'nome': 'Acre'},

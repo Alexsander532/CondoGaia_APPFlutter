@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/ambiente.dart';
+import '../utils/formatters.dart';
 import 'supabase_service.dart';
 
 class AmbienteService {
@@ -322,9 +323,12 @@ class AmbienteService {
         throw Exception('Tipo de arquivo não suportado: ${arquivo.runtimeType}');
       }
 
+      // Sanitizar nome do arquivo para remover caracteres especiais
+      final nomeArquivoSanitizado = Formatters.sanitizeFileName(nomeArquivo);
+
       // Gerar nome único para o arquivo
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final nomeUnico = 'locacao_${timestamp}_$nomeArquivo';
+      final nomeUnico = 'locacao_${timestamp}_$nomeArquivoSanitizado';
 
       // Fazer upload para o bucket Termo_Locacao_Ambiente
       await SupabaseService.client.storage
