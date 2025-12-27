@@ -1302,14 +1302,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
 
       // Atualizar banco
-      final response = await SupabaseService.client
+      final List<dynamic> response = await SupabaseService.client
           .from('proprietarios')
           .update({'foto_perfil': imageUrl})
           .eq('id', proprietarioId)
-          .select()
-          .single();
+          .select();
 
-      return response;
+      if (response.isEmpty) {
+        throw Exception('Falha ao atualizar foto do proprietário: nenhum registro encontrado');
+      }
+
+      // Extrair o primeiro elemento e garantir que é um mapa
+      final dynamic firstElement = response.first;
+      if (firstElement is Map<String, dynamic>) {
+        // Adicionar a URL de foto se não estiver no retorno
+        firstElement['foto_perfil'] = imageUrl;
+        return firstElement;
+      } else {
+        // Se não for um mapa, retornar um mapa com a URL
+        return {'foto_perfil': imageUrl};
+      }
     } catch (e) {
       print('Erro ao fazer upload da foto de perfil do proprietário (Web): $e');
       rethrow;
@@ -1450,14 +1462,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
 
       // Atualizar banco
-      final response = await SupabaseService.client
+      final List<dynamic> response = await SupabaseService.client
           .from('inquilinos')
           .update({'foto_perfil': imageUrl})
           .eq('id', inquilinoId)
-          .select()
-          .single();
+          .select();
 
-      return response;
+      if (response.isEmpty) {
+        throw Exception('Falha ao atualizar foto do inquilino: nenhum registro encontrado');
+      }
+
+      // Extrair o primeiro elemento e garantir que é um mapa
+      final dynamic firstElement = response.first;
+      if (firstElement is Map<String, dynamic>) {
+        // Adicionar a URL de foto se não estiver no retorno
+        firstElement['foto_perfil'] = imageUrl;
+        return firstElement;
+      } else {
+        // Se não for um mapa, retornar um mapa com a URL
+        return {'foto_perfil': imageUrl};
+      }
     } catch (e) {
       print('Erro ao fazer upload da foto de perfil do inquilino (Web): $e');
       rethrow;
@@ -2371,28 +2395,62 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                     GestureDetector(
                       onTap: _showFotoProprietarioZoom,
                       child: ClipOval(
-                        child: Image.network(
-                          _proprietario!.fotoPerfil!,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            // Se falhar ao carregar, mostrar ícone padrão
-                            return Container(
-                              width: 100,
-                              height: 100,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE0E0E0),
-                                shape: BoxShape.circle,
+                        child: _proprietario!.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty
+                            ? Image.network(
+                                _proprietario!.fotoPerfil!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFE0E0E0),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 30,
+                                        height: 30,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  // Se falhar ao carregar, mostrar ícone padrão
+                                  return Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFE0E0E0),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_outlined,
+                                      color: Color(0xFF666666),
+                                      size: 32,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 100,
+                                height: 100,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE0E0E0),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_outlined,
+                                  color: Color(0xFF666666),
+                                  size: 32,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt_outlined,
-                                color: Color(0xFF666666),
-                                size: 32,
-                              ),
-                            );
-                          },
-                        ),
                       ),
                     )
                   else
@@ -3655,28 +3713,62 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       GestureDetector(
                         onTap: _showFotoInquilinoZoom,
                         child: ClipOval(
-                          child: Image.network(
-                            _inquilino!.fotoPerfil!,
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Se falhar ao carregar, mostrar ícone padrão
-                              return Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFE0E0E0),
-                                  shape: BoxShape.circle,
+                          child: _inquilino!.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty
+                              ? Image.network(
+                                  _inquilino!.fotoPerfil!,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFE0E0E0),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 30,
+                                          height: 30,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // Se falhar ao carregar, mostrar ícone padrão
+                                    return Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFE0E0E0),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt_outlined,
+                                        color: Color(0xFF666666),
+                                        size: 32,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFE0E0E0),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_outlined,
+                                    color: Color(0xFF666666),
+                                    size: 32,
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt_outlined,
-                                  color: Color(0xFF666666),
-                                  size: 32,
-                                ),
-                              );
-                            },
-                          ),
                         ),
                       )
                     else
