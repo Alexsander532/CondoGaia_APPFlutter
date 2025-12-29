@@ -798,36 +798,54 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () async {
-                    final ImagePicker picker = ImagePicker();
-                    try {
-                      // Tentar usar a câmera primeiro
-                      final XFile? image = await picker.pickImage(
-                        source: ImageSource.camera,
-                        maxWidth: 800,
-                        maxHeight: 600,
-                        imageQuality: 80,
-                      );
-                      
-                      if (image == null) {
-                        // Se cancelar a câmera, usar galeria
-                        final XFile? galleryImage = await picker.pickImage(
-                          source: ImageSource.gallery,
+                    // Mostrar diálogo com opções de câmera ou galeria
+                    final ImageSource? source = await showDialog<ImageSource>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Selecionar Imagem'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt),
+                                title: const Text('Câmera'),
+                                onTap: () => Navigator.pop(context, ImageSource.camera),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library),
+                                title: const Text('Galeria'),
+                                onTap: () => Navigator.pop(context, ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+
+                    if (source != null) {
+                      final ImagePicker picker = ImagePicker();
+                      try {
+                        final XFile? image = await picker.pickImage(
+                          source: source,
                           maxWidth: 800,
                           maxHeight: 600,
                           imageQuality: 80,
                         );
-                        if (galleryImage != null) {
+                        
+                        if (image != null) {
                           setModalState(() {
-                            _fotoEvento = galleryImage; // Armazenar XFile direto
+                            // Converter XFile para File no mobile, manter XFile na web
+                            if (kIsWeb) {
+                              _fotoEvento = image;
+                            } else {
+                              _fotoEvento = File(image.path);
+                            }
                           });
                         }
-                      } else {
-                        setModalState(() {
-                          _fotoEvento = image; // Armazenar XFile direto
-                        });
+                      } catch (e) {
+                        print('Erro ao selecionar imagem: $e');
                       }
-                    } catch (e) {
-                      print('Erro ao selecionar imagem: $e');
                     }
                   },
                   child: Container(
@@ -934,36 +952,54 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () async {
-                    final ImagePicker picker = ImagePicker();
-                    try {
-                      // Tentar usar a câmera primeiro
-                      final XFile? image = await picker.pickImage(
-                        source: ImageSource.camera,
-                        maxWidth: 800,
-                        maxHeight: 600,
-                        imageQuality: 80,
-                      );
-                      
-                      if (image == null) {
-                        // Se cancelar a câmera, usar galeria
-                        final XFile? galleryImage = await picker.pickImage(
-                          source: ImageSource.gallery,
+                    // Mostrar diálogo com opções de câmera ou galeria
+                    final ImageSource? source = await showDialog<ImageSource>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Selecionar Imagem'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt),
+                                title: const Text('Câmera'),
+                                onTap: () => Navigator.pop(context, ImageSource.camera),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library),
+                                title: const Text('Galeria'),
+                                onTap: () => Navigator.pop(context, ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+
+                    if (source != null) {
+                      final ImagePicker picker = ImagePicker();
+                      try {
+                        final XFile? image = await picker.pickImage(
+                          source: source,
                           maxWidth: 800,
                           maxHeight: 600,
                           imageQuality: 80,
                         );
-                        if (galleryImage != null) {
+                        
+                        if (image != null) {
                           setModalState(() {
-                            _fotoDiario = galleryImage; // Armazenar XFile direto
+                            // Converter XFile para File no mobile, manter XFile na web
+                            if (kIsWeb) {
+                              _fotoDiario = image;
+                            } else {
+                              _fotoDiario = File(image.path);
+                            }
                           });
                         }
-                      } else {
-                        setModalState(() {
-                          _fotoDiario = image; // Armazenar XFile direto
-                        });
+                      } catch (e) {
+                        print('Erro ao selecionar imagem: $e');
                       }
-                    } catch (e) {
-                      print('Erro ao selecionar imagem: $e');
                     }
                   },
                   child: Container(
@@ -1376,34 +1412,54 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           const SizedBox(height: 12),
                           GestureDetector(
                             onTap: () async {
-                              final ImagePicker picker = ImagePicker();
-                              try {
-                                final XFile? image = await picker.pickImage(
-                                  source: ImageSource.camera,
-                                  maxWidth: 800,
-                                  maxHeight: 600,
-                                  imageQuality: 80,
-                                );
-                                
-                                if (image == null) {
-                                  final XFile? galleryImage = await picker.pickImage(
-                                    source: ImageSource.gallery,
+                              // Mostrar diálogo com opções de câmera ou galeria
+                              final ImageSource? source = await showDialog<ImageSource>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Selecionar Imagem'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(Icons.camera_alt),
+                                          title: const Text('Câmera'),
+                                          onTap: () => Navigator.pop(context, ImageSource.camera),
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(Icons.photo_library),
+                                          title: const Text('Galeria'),
+                                          onTap: () => Navigator.pop(context, ImageSource.gallery),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+
+                              if (source != null) {
+                                final ImagePicker picker = ImagePicker();
+                                try {
+                                  final XFile? image = await picker.pickImage(
+                                    source: source,
                                     maxWidth: 800,
                                     maxHeight: 600,
                                     imageQuality: 80,
                                   );
-                                  if (galleryImage != null) {
+                                  
+                                  if (image != null) {
                                     setModalState(() {
-                                      _editFotoEvento = galleryImage; // Armazenar XFile direto
+                                      // Converter XFile para File no mobile, manter XFile na web
+                                      if (kIsWeb) {
+                                        _editFotoEvento = image;
+                                      } else {
+                                        _editFotoEvento = File(image.path);
+                                      }
                                     });
                                   }
-                                } else {
-                                  setModalState(() {
-                                    _editFotoEvento = image; // Armazenar XFile direto
-                                  });
+                                } catch (e) {
+                                  print('Erro ao selecionar imagem: $e');
                                 }
-                              } catch (e) {
-                                print('Erro ao selecionar imagem: $e');
                               }
                             },
                             child: Container(

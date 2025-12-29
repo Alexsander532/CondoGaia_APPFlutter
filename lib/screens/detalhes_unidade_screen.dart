@@ -125,11 +125,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   Uint8List? _fotoImobiliariaBytes;
   bool _isUploadingFotoImobiliaria = false;
 
-  // Estados para Proprietário - Foto (Upload)
-  bool _isUploadingProprietarioFoto = false;
+  // Estados para Proprietário - Foto
+  Uint8List? _fotoProprietarioBytes;
 
-  // Estados para Inquilino - Foto (Upload)
-  bool _isUploadingInquilinoFoto = false;
+  // Estados para Inquilino - Foto
+  Uint8List? _fotoInquilinoBytes;
 
   // Estados de loading para os botões de salvar
   bool _isLoadingUnidade = false;
@@ -610,6 +610,25 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         // Se já tem proprietário, atualizar dados
         print('♻️ Atualizando proprietário existente...');
         
+        // Se tem foto selecionada (em bytes), fazer upload
+        String? fotoUrl = _proprietario?.fotoPerfil;
+        
+        if (_fotoProprietarioBytes != null) {
+          // Fazer upload da foto para o Supabase Storage
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = 'proprietario_${_proprietario!.id}_$timestamp.jpg';
+          
+          fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
+            _fotoProprietarioBytes!,
+            fileName,
+            widget.condominioId ?? '',
+          );
+
+          if (fotoUrl == null) {
+            throw Exception('Falha ao fazer upload da foto');
+          }
+        }
+        
         final dadosAtualizacao = <String, dynamic>{
           'nome': nome,
           'cpf_cnpj': cpfCnpj,
@@ -627,12 +646,18 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           'moradores': _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
           'agrupar_boletos': _agruparBoletosSelecionado == 'Sim',
           'matricula_imovel': _matriculaImovelSelecionado == 'Fazer Upload',
+          'foto_perfil': fotoUrl,
         };
 
         await _service.atualizarProprietario(
           proprietarioId: _proprietario!.id,
           dados: dadosAtualizacao,
         );
+
+        // Limpar bytes após salvar
+        setState(() {
+          _fotoProprietarioBytes = null;
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -752,6 +777,25 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         // Se já tem inquilino, atualizar dados
         print('♻️ Atualizando inquilino existente...');
         
+        // Se tem foto selecionada (em bytes), fazer upload
+        String? fotoUrl = _inquilino?.fotoPerfil;
+        
+        if (_fotoInquilinoBytes != null) {
+          // Fazer upload da foto para o Supabase Storage
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = 'inquilino_${_inquilino!.id}_$timestamp.jpg';
+          
+          fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
+            _fotoInquilinoBytes!,
+            fileName,
+            widget.condominioId ?? '',
+          );
+
+          if (fotoUrl == null) {
+            throw Exception('Falha ao fazer upload da foto');
+          }
+        }
+        
         final dadosAtualizacao = <String, dynamic>{
           'nome': nome,
           'cpf_cnpj': cpfCnpj,
@@ -769,12 +813,18 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           'moradores': _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
           'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
           'controle_locacao': _controleLocacaoSelecionado == 'sim',
+          'foto_perfil': fotoUrl,
         };
 
         await _service.atualizarInquilino(
           inquilinoId: _inquilino!.id,
           dados: dadosAtualizacao,
         );
+
+        // Limpar bytes após salvar
+        setState(() {
+          _fotoInquilinoBytes = null;
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -994,7 +1044,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Seleciona uma imagem de câmera ou galeria
   Future<void> _pickImageImobiliaria(ImageSource source) async {
     try {
-      final XFile? image = await _photoPickerService.pickImage();
+      final XFile? image = source == ImageSource.camera
+          ? await _photoPickerService.pickImageFromCamera()
+          : await _photoPickerService.pickImage();
 
       if (image != null) {
         final bytes = await image.readAsBytes();
@@ -1203,68 +1255,29 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   Future<void> _pickAndUploadProprietarioFoto(ImageSource source) async {
     try {
-      final XFile? image = await _photoPickerService.pickImage();
+      final XFile? image = source == ImageSource.camera
+          ? await _photoPickerService.pickImageFromCamera()
+          : await _photoPickerService.pickImage();
 
-      if (image == null) return;
-
-      setState(() {
-        _isUploadingProprietarioFoto = true;
-      });
-
-      try {
-        // Para Web: usar Uint8List diretamente
-        // Para Mobile: converter XFile para File
-        late Map<String, dynamic>? uploadedProprietario;
-
-        if (kIsWeb) {
-          // Web: usar bytes diretamente
-          final bytes = await image.readAsBytes();
-          uploadedProprietario =
-              await _uploadProprietarioFotoWeb(_proprietario!.id, bytes, image.name);
-        } else {
-          // Mobile: converter para File
-          final imageFile = File(image.path);
-          uploadedProprietario = await SupabaseService.uploadProprietarioFotoPerfil(
-            _proprietario!.id,
-            imageFile,
-          );
-        }
-
-        if (uploadedProprietario != null) {
-          setState(() {
-            _proprietario = _proprietario?.copyWith(
-              fotoPerfil: uploadedProprietario?['foto_perfil'] as String?,
-            );
-            _isUploadingProprietarioFoto = false;
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Foto do proprietário atualizada com sucesso!'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-      } catch (e) {
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        
         setState(() {
-          _isUploadingProprietarioFoto = false;
+          _fotoProprietarioBytes = bytes;
         });
+
+        // Mostrar feedback que foto foi selecionada
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao atualizar foto: ${e.toString()}'),
-              backgroundColor: Colors.red,
+            const SnackBar(
+              content: Text('Foto selecionada. Clique em "SALVAR PROPRIETÁRIO" para confirmar.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
-      setState(() {
-        _isUploadingProprietarioFoto = false;
-      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1277,56 +1290,6 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   // Upload para Web (usando Uint8List)
-  Future<Map<String, dynamic>?> _uploadProprietarioFotoWeb(
-    String proprietarioId,
-    Uint8List bytes,
-    String fileName,
-  ) async {
-    try {
-      // Detectar extensão
-      final fileExtension = fileName.split('.').last.toLowerCase();
-      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
-
-      // Gerar nome único
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final storagePath = 'proprietarios/$proprietarioId/$timestamp.$extension';
-
-      // Upload
-      await SupabaseService.client.storage
-          .from('fotos_perfil')
-          .uploadBinary(storagePath, bytes);
-
-      // Obter URL pública
-      final imageUrl =
-          SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
-
-      // Atualizar banco
-      final List<dynamic> response = await SupabaseService.client
-          .from('proprietarios')
-          .update({'foto_perfil': imageUrl})
-          .eq('id', proprietarioId)
-          .select();
-
-      if (response.isEmpty) {
-        throw Exception('Falha ao atualizar foto do proprietário: nenhum registro encontrado');
-      }
-
-      // Extrair o primeiro elemento e garantir que é um mapa
-      final dynamic firstElement = response.first;
-      if (firstElement is Map<String, dynamic>) {
-        // Adicionar a URL de foto se não estiver no retorno
-        firstElement['foto_perfil'] = imageUrl;
-        return firstElement;
-      } else {
-        // Se não for um mapa, retornar um mapa com a URL
-        return {'foto_perfil': imageUrl};
-      }
-    } catch (e) {
-      print('Erro ao fazer upload da foto de perfil do proprietário (Web): $e');
-      rethrow;
-    }
-  }
 
   // Funções para upload de foto do Inquilino
   void _showImageSourceDialogInquilino() {
@@ -1363,68 +1326,29 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   Future<void> _pickAndUploadInquilinoFoto(ImageSource source) async {
     try {
-      final XFile? image = await _photoPickerService.pickImage();
+      final XFile? image = source == ImageSource.camera
+          ? await _photoPickerService.pickImageFromCamera()
+          : await _photoPickerService.pickImage();
 
-      if (image == null) return;
-
-      setState(() {
-        _isUploadingInquilinoFoto = true;
-      });
-
-      try {
-        // Para Web: usar Uint8List diretamente
-        // Para Mobile: converter XFile para File
-        late Map<String, dynamic>? uploadedInquilino;
-
-        if (kIsWeb) {
-          // Web: usar bytes diretamente
-          final bytes = await image.readAsBytes();
-          uploadedInquilino =
-              await _uploadInquilinoFotoWeb(_inquilino!.id, bytes, image.name);
-        } else {
-          // Mobile: converter para File
-          final imageFile = File(image.path);
-          uploadedInquilino = await SupabaseService.uploadInquilinoFotoPerfil(
-            _inquilino!.id,
-            imageFile,
-          );
-        }
-
-        if (uploadedInquilino != null) {
-          setState(() {
-            _inquilino = _inquilino?.copyWith(
-              fotoPerfil: uploadedInquilino?['foto_perfil'] as String?,
-            );
-            _isUploadingInquilinoFoto = false;
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Foto do inquilino atualizada com sucesso!'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-      } catch (e) {
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        
         setState(() {
-          _isUploadingInquilinoFoto = false;
+          _fotoInquilinoBytes = bytes;
         });
+
+        // Mostrar feedback que foto foi selecionada
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao atualizar foto: ${e.toString()}'),
-              backgroundColor: Colors.red,
+            const SnackBar(
+              content: Text('Foto selecionada. Clique em "SALVAR INQUILINO" para confirmar.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
-      setState(() {
-        _isUploadingInquilinoFoto = false;
-      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1437,56 +1361,6 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   // Upload para Web (usando Uint8List)
-  Future<Map<String, dynamic>?> _uploadInquilinoFotoWeb(
-    String inquilinoId,
-    Uint8List bytes,
-    String fileName,
-  ) async {
-    try {
-      // Detectar extensão
-      final fileExtension = fileName.split('.').last.toLowerCase();
-      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
-
-      // Gerar nome único
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final storagePath = 'inquilinos/$inquilinoId/$timestamp.$extension';
-
-      // Upload
-      await SupabaseService.client.storage
-          .from('fotos_perfil')
-          .uploadBinary(storagePath, bytes);
-
-      // Obter URL pública
-      final imageUrl =
-          SupabaseService.client.storage.from('fotos_perfil').getPublicUrl(storagePath);
-
-      // Atualizar banco
-      final List<dynamic> response = await SupabaseService.client
-          .from('inquilinos')
-          .update({'foto_perfil': imageUrl})
-          .eq('id', inquilinoId)
-          .select();
-
-      if (response.isEmpty) {
-        throw Exception('Falha ao atualizar foto do inquilino: nenhum registro encontrado');
-      }
-
-      // Extrair o primeiro elemento e garantir que é um mapa
-      final dynamic firstElement = response.first;
-      if (firstElement is Map<String, dynamic>) {
-        // Adicionar a URL de foto se não estiver no retorno
-        firstElement['foto_perfil'] = imageUrl;
-        return firstElement;
-      } else {
-        // Se não for um mapa, retornar um mapa com a URL
-        return {'foto_perfil': imageUrl};
-      }
-    } catch (e) {
-      print('Erro ao fazer upload da foto de perfil do inquilino (Web): $e');
-      rethrow;
-    }
-  }
 
   // Método para editar unidade
   Future<void> _editarUnidade() async {
@@ -2390,60 +2264,63 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Se houver foto, exibir em círculo
+                  // Se houver foto salva, exibir em círculo
                   if (_proprietario?.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty)
-                    GestureDetector(
-                      onTap: _showFotoProprietarioZoom,
-                      child: ClipOval(
-                        child: _proprietario!.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty
-                            ? Image.network(
-                                _proprietario!.fotoPerfil!,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: _showFotoProprietarioZoom,
+                          child: ClipOval(
+                            child: _proprietario!.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty
+                                ? Image.network(
+                                    _proprietario!.fotoPerfil!,
                                     width: 100,
                                     height: 100,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFE0E0E0),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 30,
-                                        height: 30,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        width: 100,
+                                        height: 100,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFE0E0E0),
+                                          shape: BoxShape.circle,
                                         ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  // Se falhar ao carregar, mostrar ícone padrão
-                                  return Container(
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 30,
+                                            height: 30,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // Se falhar ao carregar, mostrar ícone padrão
+                                      return Container(
+                                        width: 100,
+                                        height: 100,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFE0E0E0),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt_outlined,
+                                          color: Color(0xFF666666),
+                                          size: 32,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Container(
                                     width: 100,
                                     height: 100,
                                     decoration: const BoxDecoration(
                                       color: Color(0xFFE0E0E0),
                                       shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt_outlined,
-                                      color: Color(0xFF666666),
-                                      size: 32,
-                                    ),
-                                  );
-                                },
-                              )
-                            : Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFE0E0E0),
-                                  shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
                                   Icons.camera_alt_outlined,
@@ -2451,27 +2328,120 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                                   size: 32,
                                 ),
                               ),
-                      ),
+                          ),
+                        ),
+                        // Lupa de zoom na borda do círculo
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _showFotoProprietarioZoom,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF2E3A59),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else if (_fotoProprietarioBytes != null)
+                    // Se tem foto selecionada mas não salva, mostrar a preview circular
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showImageSourceDialogProprietario(),
+                          child: ClipOval(
+                            child: Image.memory(
+                              _fotoProprietarioBytes!,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        // Lupa de zoom na borda do círculo
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              // Preview da foto selecionada
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  child: InteractiveViewer(
+                                    child: Image.memory(
+                                      _fotoProprietarioBytes!,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF2E3A59),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     )
                   else
-                    // Se não houver foto, mostrar ícone padrão
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border(
-                          bottom: BorderSide(color: Color(0xFFE0E0E0)),
-                          top: BorderSide(color: Color(0xFFE0E0E0)),
-                          left: BorderSide(color: Color(0xFFE0E0E0)),
-                          right: BorderSide(color: Color(0xFFE0E0E0)),
+                    // Se não tem foto, mostrar botão circular para adicionar
+                    GestureDetector(
+                      onTap: () => _showImageSourceDialogProprietario(),
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                            top: BorderSide(color: Color(0xFFE0E0E0)),
+                            left: BorderSide(color: Color(0xFFE0E0E0)),
+                            right: BorderSide(color: Color(0xFFE0E0E0)),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_outlined,
-                        color: Color(0xFF666666),
-                        size: 32,
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          color: Color(0xFF666666),
+                          size: 32,
+                        ),
                       ),
                     ),
                   const SizedBox(width: 16),
@@ -2479,31 +2449,22 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   Column(
                     children: [
                       FloatingActionButton(
-                        onPressed: _isUploadingProprietarioFoto ? null : _showImageSourceDialogProprietario,
+                        onPressed: () => _showImageSourceDialogProprietario(),
                         mini: true,
-                        backgroundColor: _isUploadingProprietarioFoto ? Colors.grey : const Color(0xFF2E3A59),
-                        child: _isUploadingProprietarioFoto
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Icon(Icons.edit, size: 18),
+                        backgroundColor: const Color(0xFF2E3A59),
+                        child: const Icon(Icons.edit, size: 18),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _isUploadingProprietarioFoto ? 'Enviando...' : 'Editar',
-                        style: const TextStyle(
+                      const Text(
+                        'Editar',
+                        style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF666666),
                         ),
                       ),
                     ],
                   ),
-                ],
+              ],
               ),
               const SizedBox(height: 12),
               const Text(
@@ -3708,40 +3669,58 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Se houver foto, exibir em círculo
+                    // Se houver foto salva, exibir em círculo
                     if (_inquilino?.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty)
-                      GestureDetector(
-                        onTap: _showFotoInquilinoZoom,
-                        child: ClipOval(
-                          child: _inquilino!.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty
-                              ? Image.network(
-                                  _inquilino!.fotoPerfil!,
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _showFotoInquilinoZoom,
+                            child: ClipOval(
+                              child: _inquilino!.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty
+                                  ? Image.network(
+                                      _inquilino!.fotoPerfil!,
                                       width: 100,
                                       height: 100,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFE0E0E0),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: SizedBox(
-                                          width: 30,
-                                          height: 30,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return Container(
+                                          width: 100,
+                                          height: 100,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFE0E0E0),
+                                            shape: BoxShape.circle,
                                           ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    // Se falhar ao carregar, mostrar ícone padrão
-                                    return Container(
+                                          child: const Center(
+                                            child: SizedBox(
+                                              width: 30,
+                                              height: 30,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        // Se falhar ao carregar, mostrar ícone padrão
+                                        return Container(
+                                          width: 100,
+                                          height: 100,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFE0E0E0),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.camera_alt_outlined,
+                                            color: Color(0xFF666666),
+                                            size: 32,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
                                       width: 100,
                                       height: 100,
                                       decoration: const BoxDecoration(
@@ -3752,24 +3731,99 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                                         Icons.camera_alt_outlined,
                                         color: Color(0xFF666666),
                                         size: 32,
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFE0E0E0),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt_outlined,
-                                    color: Color(0xFF666666),
-                                    size: 32,
                                   ),
                                 ),
-                        ),
+                            ),
+                          ),
+                          // Lupa de zoom na borda do círculo
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _showFotoInquilinoZoom,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF2E3A59),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.zoom_in,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else if (_fotoInquilinoBytes != null)
+                      // Se tem foto selecionada mas não salva, mostrar a preview circular
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showImageSourceDialogInquilino(),
+                            child: ClipOval(
+                              child: Image.memory(
+                                _fotoInquilinoBytes!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          // Lupa de zoom na borda do círculo
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                // Preview da foto selecionada
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    child: InteractiveViewer(
+                                      child: Image.memory(
+                                        _fotoInquilinoBytes!,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF2E3A59),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.zoom_in,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                     else
                       // Se não houver foto, mostrar ícone padrão
@@ -3797,24 +3851,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                     Column(
                       children: [
                         FloatingActionButton(
-                          onPressed: _isUploadingInquilinoFoto ? null : _showImageSourceDialogInquilino,
+                          onPressed: () => _showImageSourceDialogInquilino(),
                           mini: true,
-                          backgroundColor: _isUploadingInquilinoFoto ? Colors.grey : const Color(0xFF2E3A59),
-                          child: _isUploadingInquilinoFoto
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Icon(Icons.edit, size: 18),
+                          backgroundColor: const Color(0xFF2E3A59),
+                          child: const Icon(Icons.edit, size: 18),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          _isUploadingInquilinoFoto ? 'Enviando...' : 'Editar',
-                          style: const TextStyle(
+                        const Text(
+                          'Editar',
+                          style: TextStyle(
                             fontSize: 12,
                             color: Color(0xFF666666),
                           ),
@@ -4770,44 +4815,124 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             children: [
               if (_imobiliaria?.fotoUrl != null && _imobiliaria!.fotoUrl!.isNotEmpty)
                 // Se já tem foto salva no banco, mostrar a foto circular com opção de zoom
-                GestureDetector(
-                  onTap: _showFotoImobiliariaZoom,
-                  child: ClipOval(
-                    child: Image.network(
-                      _imobiliaria!.fotoUrl!,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _showFotoImobiliariaZoom,
+                      child: ClipOval(
+                        child: Image.network(
+                          _imobiliaria!.fotoUrl!,
                           width: 100,
                           height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 100,
+                              height: 100,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE0E0E0),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_outlined,
+                                color: Color(0xFF999999),
+                                size: 40,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    // Lupa de zoom na borda do círculo
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _showFotoImobiliariaZoom,
+                        child: Container(
+                          width: 32,
+                          height: 32,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFE0E0E0),
+                            color: Color(0xFF2E3A59),
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: const Icon(
-                            Icons.camera_alt_outlined,
-                            color: Color(0xFF999999),
-                            size: 40,
+                            Icons.zoom_in,
+                            color: Colors.white,
+                            size: 18,
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 )
               else if (_fotoImobiliariaBytes != null)
                 // Se tem foto selecionada mas não salva, mostrar a preview circular
-                GestureDetector(
-                  onTap: _showImageSourceDialogImobiliaria,
-                  child: ClipOval(
-                    child: Image.memory(
-                      _fotoImobiliariaBytes!,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _showImageSourceDialogImobiliaria,
+                      child: ClipOval(
+                        child: Image.memory(
+                          _fotoImobiliariaBytes!,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
+                    // Lupa de zoom na borda do círculo
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () {
+                          // Preview da foto selecionada
+                          showDialog(
+                            context: context,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: InteractiveViewer(
+                                child: Image.memory(
+                                  _fotoImobiliariaBytes!,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2E3A59),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.zoom_in,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 )
               else
                 // Se não tem foto, mostrar botão circular para adicionar

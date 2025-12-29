@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import '../services/documento_service.dart';
+import '../services/photo_picker_service.dart';
 
 // Importação condicional de dart:io para mobile/desktop
 import 'dart:io' if (kIsWeb) 'dart:async' as io;
@@ -215,38 +216,65 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
     }
   }
 
-  // ✨ NOVO: Método para tirar foto
+  // ✨ NOVO: Método para tirar foto com opção de câmera ou galeria
   Future<void> _tirarFoto() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
+      // Mostrar diálogo com opções
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Selecionar Imagem'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Câmera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Galeria'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          );
+        },
       );
 
-      if (image != null) {
-        // Na web, XFile não pode ser convertido para File
-        if (kIsWeb) {
-          // Na web, armazenar o XFile diretamente ou seus bytes
-          final bytes = await image.readAsBytes();
-          setState(() {
-            _imagensSelecionadas.add(ArquivoTemporario(
-              nome: image.name,
-              bytes: bytes,
-            ));
-          });
-        } else {
-          // No mobile, converter para File
-          // Criar File dinâmico sem tipo explícito
-          final imageFile = (io.File as dynamic)(image.path);
-          setState(() {
-            _imagensSelecionadas.add(imageFile);
-          });
-        }
+      if (source != null) {
+        final _photoPickerService = PhotoPickerService();
+        final XFile? image = source == ImageSource.camera
+            ? await _photoPickerService.pickImageFromCamera()
+            : await _photoPickerService.pickImage();
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto adicionada!')),
-          );
+        if (image != null) {
+          // Na web, XFile não pode ser convertido para File
+          if (kIsWeb) {
+            // Na web, armazenar o XFile diretamente ou seus bytes
+            final bytes = await image.readAsBytes();
+            setState(() {
+              _imagensSelecionadas.add(ArquivoTemporario(
+                nome: image.name,
+                bytes: bytes,
+              ));
+            });
+          } else {
+            // No mobile, converter para File
+            // Criar File dinâmico sem tipo explícito
+            final imageFile = (io.File as dynamic)(image.path);
+            setState(() {
+              _imagensSelecionadas.add(imageFile);
+            });
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto adicionada!')),
+            );
+          }
         }
       }
     } catch (e) {

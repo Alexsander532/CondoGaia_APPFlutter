@@ -2243,29 +2243,50 @@ class _PortariaRepresentanteScreenState
                 children: [
                   GestureDetector(
                     onTap: () async {
-                      // Seleção de imagem com PhotoPickerService
-                      final photoPickerService = PhotoPickerService();
-                      try {
-                        final XFile? image = await photoPickerService.pickImageFromCamera();
-                        
-                        if (image != null) {
-                          setState(() {
-                            _imagemEncomenda = image;
-                          });
-                        }
-                      } catch (e) {
-                        print('Erro ao selecionar imagem: $e');
-                        // Fallback para galeria se câmera falhar
+                      // Mostrar diálogo com opções de câmera ou galeria
+                      final ImageSource? source = await showDialog<ImageSource>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Selecionar Imagem'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.camera_alt),
+                                  title: const Text('Câmera'),
+                                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.photo_library),
+                                  title: const Text('Galeria'),
+                                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+
+                      if (source != null) {
+                        final photoPickerService = PhotoPickerService();
                         try {
-                          final XFile? image = await photoPickerService.pickImage();
+                          final XFile? image = source == ImageSource.camera
+                              ? await photoPickerService.pickImageFromCamera()
+                              : await photoPickerService.pickImage();
                           
                           if (image != null) {
                             setState(() {
                               _imagemEncomenda = image;
                             });
                           }
-                        } catch (e2) {
-                          print('Erro ao abrir galeria: $e2');
+                        } catch (e) {
+                          print('Erro ao selecionar imagem: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+                            );
+                          }
                         }
                       }
                     },

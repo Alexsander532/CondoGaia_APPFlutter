@@ -755,50 +755,79 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     }
   }
 
-  // Método para tirar foto e salvar como PNG
+  // Método para tirar foto e salvar como PNG - com opção de câmera ou galeria
   Future<void> _tirarFoto() async {
     try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final _photoPickerService = PhotoPickerService();
-      final XFile? image = await _photoPickerService.pickImageFromCamera();
-
-      if (image != null) {
-        // Na web, usar bytes diretamente; no mobile, usar File
-        if (kIsWeb) {
-          final bytes = await image.readAsBytes();
-          await DocumentoService.adicionarArquivoComUploadBytes(
-            nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
-            bytes: bytes,
-            descricao: 'Foto capturada pela câmera',
-            privado: _privacidade == 'Privado',
-            pastaId: widget.pasta.id,
-            condominioId: widget.condominioId,
-            representanteId: widget.representanteId,
+      // Mostrar diálogo com opções
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Selecionar Imagem'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Câmera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Galeria'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
           );
-        } else {
-          // No mobile, converter para File
-          final imageFile = io.File(image.path);
-          await DocumentoService.adicionarArquivoComUpload(
-            nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
-            arquivo: imageFile,
-            descricao: 'Foto capturada pela câmera',
-            privado: _privacidade == 'Privado',
-            pastaId: widget.pasta.id,
-            condominioId: widget.condominioId,
-            representanteId: widget.representanteId,
-          );
-        }
+        },
+      );
 
-        // Recarregar a lista de arquivos
-        await _carregarArquivos();
+      if (source != null) {
+        setState(() {
+          _isLoading = true;
+        });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto adicionada com sucesso!')),
-          );
+        final _photoPickerService = PhotoPickerService();
+        final XFile? image = source == ImageSource.camera
+            ? await _photoPickerService.pickImageFromCamera()
+            : await _photoPickerService.pickImage();
+
+        if (image != null) {
+          // Na web, usar bytes diretamente; no mobile, usar File
+          if (kIsWeb) {
+            final bytes = await image.readAsBytes();
+            await DocumentoService.adicionarArquivoComUploadBytes(
+              nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+              bytes: bytes,
+              descricao: 'Foto adicionada',
+              privado: _privacidade == 'Privado',
+              pastaId: widget.pasta.id,
+              condominioId: widget.condominioId,
+              representanteId: widget.representanteId,
+            );
+          } else {
+            // No mobile, converter para File
+            final imageFile = io.File(image.path);
+            await DocumentoService.adicionarArquivoComUpload(
+              nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
+              arquivo: imageFile,
+              descricao: 'Foto adicionada',
+              privado: _privacidade == 'Privado',
+              pastaId: widget.pasta.id,
+              condominioId: widget.condominioId,
+              representanteId: widget.representanteId,
+            );
+          }
+
+          // Recarregar a lista de arquivos
+          await _carregarArquivos();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto adicionada com sucesso!')),
+            );
+          }
         }
       }
     } catch (e) {
