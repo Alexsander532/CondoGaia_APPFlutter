@@ -1,5 +1,7 @@
 import '../models/localizacao_model.dart';
 import '../models/morador_model.dart';
+import '../models/condominio_model.dart';
+import '../../../../services/supabase_service.dart';
 
 class PushNotificationService {
   /// Lista de estados brasileiros - dados mockados
@@ -79,20 +81,127 @@ class PushNotificationService {
     MoradorModel(id: '10', nome: 'Beatriz Martins', unidade: '104', bloco: 'A'),
   ];
 
+  /// Lista de condomínios - dados mockados (fallback)
+  static final List<CondominioModel> _condominios = [
+    CondominioModel(
+      id: '1',
+      nome: 'Cond. Arara',
+      localizacao: 'Três Lagoas/MS',
+    ),
+    CondominioModel(
+      id: '2',
+      nome: 'Cond. Mansão',
+      localizacao: 'São Paulo/SP',
+    ),
+    CondominioModel(
+      id: '3',
+      nome: 'Cond. Jardim',
+      localizacao: 'Campinas/SP',
+    ),
+    CondominioModel(
+      id: '4',
+      nome: 'Cond. Vila Real',
+      localizacao: 'Rio de Janeiro/RJ',
+    ),
+    CondominioModel(
+      id: '5',
+      nome: 'Cond. Morada do Sol',
+      localizacao: 'Belo Horizonte/MG',
+    ),
+    CondominioModel(
+      id: '6',
+      nome: 'Cond. Praia Mar',
+      localizacao: 'Salvador/BA',
+    ),
+    CondominioModel(
+      id: '7',
+      nome: 'Cond. Estação',
+      localizacao: 'Porto Alegre/RS',
+    ),
+    CondominioModel(
+      id: '8',
+      nome: 'Cond. Luar',
+      localizacao: 'Curitiba/PR',
+    ),
+    CondominioModel(
+      id: '9',
+      nome: 'Cond. Oasis',
+      localizacao: 'Niterói/RJ',
+    ),
+    CondominioModel(
+      id: '10',
+      nome: 'Cond. Park',
+      localizacao: 'Sorocaba/SP',
+    ),
+  ];
+
 
 
   /// Obtém a lista completa de estados
   Future<List<EstadoModel>> obterEstados() async {
-    // Simulando uma chamada à API com delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _estados;
+    try {
+      // Usa o SupabaseService para buscar apenas UFs que têm condomínios
+      final ufs = await SupabaseService.getUfsFromCondominios();
+      
+      // Mapeia as siglas para EstadoModel
+      return ufs.map((sigla) {
+        // Encontra o nome completo do estado na lista _estados
+        final estado = _estados.firstWhere(
+          (e) => e.sigla == sigla,
+          orElse: () => EstadoModel(sigla: sigla, nome: sigla),
+        );
+        return estado;
+      }).toList();
+    } catch (e) {
+      print('Erro ao obter estados: $e');
+      // Fallback para dados mockados se houver erro
+      return _estados;
+    }
   }
 
   /// Obtém as cidades de um estado específico
   Future<List<CidadeModel>> obterCidadesPorEstado(String estadoSigla) async {
-    // Simulando uma chamada à API com delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _cidadesPorEstado[estadoSigla] ?? [];
+    try {
+      // Usa o SupabaseService para buscar cidades do estado que têm condomínios
+      final cidades = await SupabaseService.getCidadesFromCondominios(uf: estadoSigla);
+      
+      // Converte para CidadeModel
+      return cidades.asMap().entries.map((entry) {
+        return CidadeModel(
+          id: entry.key + 1,
+          nome: entry.value,
+          estadoSigla: estadoSigla,
+        );
+      }).toList();
+    } catch (e) {
+      print('Erro ao obter cidades: $e');
+      // Fallback para dados mockados se houver erro
+      return _cidadesPorEstado[estadoSigla] ?? [];
+    }
+  }
+
+  /// Obtém a lista completa de condomínios do Supabase
+  Future<List<CondominioModel>> obterCondominios() async {
+    try {
+      // Busca todos os condomínios do Supabase
+      final condominios = await SupabaseService.getCondominios();
+      
+      // Converte para CondominioModel
+      return condominios.map((cond) {
+        final cidade = cond['cidade'] as String? ?? '';
+        final estado = cond['estado'] as String? ?? '';
+        final localizacao = estado.isNotEmpty ? '$cidade/$estado' : cidade;
+        
+        return CondominioModel(
+          id: cond['id'] as String,
+          nome: cond['nome_condominio'] as String? ?? 'Sem nome',
+          localizacao: localizacao,
+        );
+      }).toList();
+    } catch (e) {
+      print('Erro ao obter condomínios do Supabase: $e');
+      return [];
+    }
   }
 
   /// Obtém a lista de moradores

@@ -42,7 +42,7 @@ class CheckboxSindicosMoreadores extends StatelessWidget {
             children: [
               Checkbox(
                 value: temMoradoresSelecionados,
-                onChanged: null, // Desativado, pois é controlado pelo seletor de moradores
+                onChanged: (_) {}, // Sem ação, apenas exibição do status
                 activeColor: Colors.blue,
               ),
               const Expanded(

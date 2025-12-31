@@ -23,7 +23,10 @@ class _SeletorPlanoState extends State<SeletorPlano> {
   @override
   void initState() {
     super.initState();
-    _planosExibindo = widget.planos;
+    // Filtrar apenas planos Mensal
+    _planosExibindo = widget.planos
+        .where((plano) => plano.frequencia == 'Mensal')
+        .toList();
   }
 
   @override

@@ -4,7 +4,7 @@ import '../login_screen.dart';
 import 'cadastro_condominio_screen.dart';
 import 'cadastro_representante_screen.dart';
 import 'pesquisa_condominios_screen.dart';
-import '../../features/push_notification_admin/screens/push_notification_admin_screen.dart';
+import '../../features/ADMIN_Features/push_notification_admin/screens/push_notification_admin_screen.dart';
 import '../../features/ADMIN_Features/gateway_pagamento_admin/screens/gateway_pagamento_admin_screen.dart';
 
 class HomeScreen extends StatefulWidget {

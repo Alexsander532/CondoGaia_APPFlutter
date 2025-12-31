@@ -3,25 +3,27 @@ import 'package:flutter/material.dart';
 class BotaoEnviar extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool carregando;
-  final bool desabilitado;
+  final bool formularioValido;
   final String texto;
 
   const BotaoEnviar({
     Key? key,
     this.onPressed,
     this.carregando = false,
-    this.desabilitado = false,
+    this.formularioValido = false,
     this.texto = 'ENVIAR',
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final bool habilitado = formularioValido && !carregando;
+    
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: (desabilitado || carregando) ? null : onPressed,
+        onPressed: habilitado ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[900],
+          backgroundColor: habilitado ? Colors.blue[900] : Colors.grey[400],
           disabledBackgroundColor: Colors.grey[400],
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
@@ -50,3 +52,4 @@ class BotaoEnviar extends StatelessWidget {
     );
   }
 }
+

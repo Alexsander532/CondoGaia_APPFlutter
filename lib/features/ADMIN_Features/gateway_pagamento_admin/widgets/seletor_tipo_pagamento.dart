@@ -23,7 +23,10 @@ class _SeletorTipoPagamentoState extends State<SeletorTipoPagamento> {
   @override
   void initState() {
     super.initState();
-    _tiposExibindo = widget.tiposPagamento.where((tipo) => tipo.ativo).toList();
+    // Filtrar apenas Boleto
+    _tiposExibindo = widget.tiposPagamento
+        .where((tipo) => tipo.ativo && tipo.nome == 'Boleto')
+        .toList();
   }
 
   @override

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
-class BotaoSalvarConfiguracao extends StatelessWidget {
+class BotaoCriarReserva extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool carregando;
   final bool formularioValido;
+  final String texto;
 
-  const BotaoSalvarConfiguracao({
+  const BotaoCriarReserva({
     Key? key,
     this.onPressed,
     this.carregando = false,
     this.formularioValido = false,
+    this.texto = 'CRIAR RESERVA',
   }) : super(key: key);
 
   @override
@@ -25,7 +27,7 @@ class BotaoSalvarConfiguracao extends StatelessWidget {
           disabledBackgroundColor: Colors.grey[400],
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(24),
           ),
         ),
         child: carregando
@@ -37,16 +39,16 @@ class BotaoSalvarConfiguracao extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : const Text(
-                'Salvar Configuração',
-                style: TextStyle(
+            : Text(
+                texto,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  letterSpacing: 0.5,
                 ),
               ),
       ),
     );
   }
 }
-

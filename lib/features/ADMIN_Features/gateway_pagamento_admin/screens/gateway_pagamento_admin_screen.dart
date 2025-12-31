@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../push_notification_admin/widgets/admin_header.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../push_notification_admin/widgets/admin_header.dart';
 import '../models/instituicao_financeira_model.dart';
 import '../models/plano_assinatura_model.dart';
 import '../models/tipo_pagamento_model.dart';
 import '../services/gateway_pagamento_service.dart';
+import '../cubit/gateway_pagamento_cubit.dart';
+import '../cubit/gateway_pagamento_state.dart';
 import '../widgets/seletor_instituicao.dart';
 import '../widgets/seletor_plano.dart';
 import '../widgets/seletor_tipo_pagamento.dart';
@@ -17,24 +20,15 @@ class GatewayPagamentoAdminScreen extends StatefulWidget {
   State<GatewayPagamentoAdminScreen> createState() => _GatewayPagamentoAdminScreenState();
 }
 
-class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScreen> {
-  final GatewayPagamentoService _service = GatewayPagamentoService();
+class _GatewayPagamentoAdminScreenState
+    extends State<GatewayPagamentoAdminScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _tokenController = TextEditingController();
 
-  // Estados dos campos
-  InstituicaoFinanceiraModel? _instituicaoSelecionada;
-  PlanoAssinaturaModel? _planoSelecionado;
-  TipoPagamentoModel? _tipoPagamentoSelecionado;
-
-  // Listas mockadas
+  // Listas de dados
   late List<InstituicaoFinanceiraModel> _instituicoes;
   late List<PlanoAssinaturaModel> _planos;
   late List<TipoPagamentoModel> _tiposPagamento;
-
-  bool _carregando = false;
-  String? _mensagemErro;
 
   @override
   void initState() {
@@ -43,14 +37,13 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
   }
 
   void _inicializarDados() {
-    // Carrega os dados mockados diretamente do service
-    _instituicoes = _service.obterInstituicoesSync();
-    _planos = _service.obterPlanosSync();
-    _tiposPagamento = _service.obterTiposPagamentoSync();
+    final service = GatewayPagamentoService();
+    _instituicoes = service.obterInstituicoesSync();
+    _planos = service.obterPlanosSync();
+    _tiposPagamento = service.obterTiposPagamentoSync();
   }
 
   Future<void> _handleLogout() async {
-    // TODO: Implementar logout real com Supabase
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/login');
     }
@@ -61,7 +54,6 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Header do drawer
           DrawerHeader(
             decoration: const BoxDecoration(
               color: Color(0xFF1976D2),
@@ -85,7 +77,6 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
               ],
             ),
           ),
-          // Botão Sair da conta
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text(
@@ -98,7 +89,6 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
             },
           ),
           const Divider(),
-          // Botão Excluir conta
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text(
@@ -107,7 +97,6 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
             ),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Implementar exclusão de conta
             },
           ),
         ],
@@ -115,37 +104,34 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
     );
   }
 
-  Future<void> _salvarConfiguracao() async {
-    // Validar formulário
-    final erros = _service.validarConfiguracao(
-      instituicaoSelecionada: _instituicaoSelecionada,
-      planoSelecionado: _planoSelecionado,
-      tipoPagamentoSelecionado: _tipoPagamentoSelecionado,
-      token: _tokenController.text,
-    );
+  Future<void> _salvarConfiguracao(BuildContext context) async {
+    FocusScope.of(context).unfocus();
 
-    if (erros.isNotEmpty) {
-      setState(() => _mensagemErro = erros.join('\n'));
-      return;
-    }
+    final cubit = context.read<GatewayPagamentoCubit>();
 
-    // Mostrar diálogo de confirmação
     final confirmou = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Configuração'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildConfirmacaoItem('Instituição', _instituicaoSelecionada?.nome ?? 'N/A'),
+            _buildConfirmacaoItem(
+              'Instituição',
+              cubit.instituicaoSelecionada?.nome ?? 'N/A',
+            ),
             const SizedBox(height: 12),
             _buildConfirmacaoItem(
               'Plano',
-              '${_planoSelecionado?.nome ?? "N/A"} - R\$ ${_planoSelecionado?.valor.toStringAsFixed(2) ?? "0.00"}',
+              '${cubit.planoSelecionado?.nome ?? "N/A"} - R\$ ${cubit.planoSelecionado?.valor.toStringAsFixed(2) ?? "0.00"}',
             ),
             const SizedBox(height: 12),
-            _buildConfirmacaoItem('Tipo Pagamento', _tipoPagamentoSelecionado?.nome ?? 'N/A'),
+            _buildConfirmacaoItem(
+              'Tipo Pagamento',
+              cubit.tipoPagamentoSelecionado?.nome ?? 'N/A',
+            ),
             const SizedBox(height: 12),
             _buildConfirmacaoItem(
               'Token',
@@ -155,7 +141,7 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -171,77 +157,7 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
 
     if (confirmou != true || !mounted) return;
 
-    // Salvar configuração
-    setState(() {
-      _carregando = true;
-      _mensagemErro = null;
-    });
-
-    try {
-      final sucesso = await _service.salvarConfiguracao(
-        instituicao: _instituicaoSelecionada!,
-        plano: _planoSelecionado!,
-        tipoPagamento: _tipoPagamentoSelecionado!,
-        token: _tokenController.text,
-      );
-
-      if (mounted) {
-        if (sucesso) {
-          // Mostrar sucesso
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: const Text('Sucesso!'),
-              content: const Text(
-                'Configuração do gateway salva com sucesso.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Fecha diálogo
-                    Navigator.pop(context); // Volta para tela anterior
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-
-          // Limpar formulário
-          _tokenController.clear();
-          setState(() {
-            _instituicaoSelecionada = null;
-            _planoSelecionado = null;
-            _tipoPagamentoSelecionado = null;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _mensagemErro = 'Erro ao salvar configuração: $e';
-        });
-
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Erro'),
-            content: Text('Erro ao salvar configuração: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _carregando = false);
-      }
-    }
+    cubit.salvarConfiguracao();
   }
 
   Widget _buildConfirmacaoItem(String label, String value) {
@@ -272,109 +188,147 @@ class _GatewayPagamentoAdminScreenState extends State<GatewayPagamentoAdminScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.white,
-      drawer: _buildDrawer(),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Cabeçalho (igual ao da HomeScreen)
-            AdminHeader(
-              scaffoldKey: _scaffoldKey,
-              title: 'HOME/Financeiro',
-              onLogout: _handleLogout,
-            ),
-            // Conteúdo principal
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Título da seção
-                      const Text(
-                        'Configurar Gateway de Pagamento',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Seletor de Instituição
-                      SeletorInstituicao(
-                        instituicaoSelecionada: _instituicaoSelecionada,
-                        onChanged: (instituicao) {
-                          setState(() => _instituicaoSelecionada = instituicao);
-                        },
-                        instituicoes: _instituicoes,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Seletor de Plano
-                      SeletorPlano(
-                        planoSelecionado: _planoSelecionado,
-                        onChanged: (plano) {
-                          setState(() => _planoSelecionado = plano);
-                        },
-                        planos: _planos,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Seletor de Tipo de Pagamento
-                      SeletorTipoPagamento(
-                        tipoPagamentoSelecionado: _tipoPagamentoSelecionado,
-                        onChanged: (tipo) {
-                          setState(() => _tipoPagamentoSelecionado = tipo);
-                        },
-                        tiposPagamento: _tiposPagamento,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Campo Token
-                      CampoToken(
-                        controller: _tokenController,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Mensagem de erro (se houver)
-                      if (_mensagemErro != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            border: Border.all(color: Colors.red[200]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _mensagemErro!,
-                            style: TextStyle(
-                              color: Colors.red[700],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      if (_mensagemErro != null) const SizedBox(height: 16),
-
-                      // Botão Salvar
-                      BotaoSalvarConfiguracao(
-                        onPressed: _salvarConfiguracao,
-                        carregando: _carregando,
-                        desabilitado: _instituicaoSelecionada == null ||
-                            _planoSelecionado == null ||
-                            _tipoPagamentoSelecionado == null ||
-                            _tokenController.text.isEmpty,
-                      ),
-                    ],
+    return BlocProvider(
+      create: (context) => GatewayPagamentoCubit(GatewayPagamentoService()),
+      child: BlocListener<GatewayPagamentoCubit, GatewayPagamentoState>(
+        listener: (context, state) {
+          if (state is GatewayPagamentoSalva) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: const Text('Sucesso!'),
+                content: Text(state.mensagem),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _tokenController.clear();
+                    },
+                    child: const Text('OK'),
                   ),
+                ],
+              ),
+            );
+          } else if (state is GatewayPagamentoErro) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Erro'),
+                content: Text(state.mensagem),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+        child: BlocBuilder<GatewayPagamentoCubit, GatewayPagamentoState>(
+          builder: (context, state) {
+            final cubit = context.read<GatewayPagamentoCubit>();
+            final isLoading = state is GatewayPagamentoLoading;
+            final formularioValido = state is GatewayPagamentoFormularioAtualizado
+                ? state.formularioValido
+                : false;
+
+            return Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: Colors.white,
+              drawer: _buildDrawer(),
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    AdminHeader(
+                      scaffoldKey: _scaffoldKey,
+                      title: 'HOME/Financeiro',
+                      onLogout: _handleLogout,
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Configurar Gateway de Pagamento',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            SeletorInstituicao(
+                              instituicaoSelecionada:
+                                  cubit.instituicaoSelecionada,
+                              onChanged: (instituicao) {
+                                cubit.atualizarInstituicaoSelecionada(
+                                    instituicao);
+                              },
+                              instituicoes: _instituicoes,
+                            ),
+                            const SizedBox(height: 20),
+                            SeletorPlano(
+                              planoSelecionado: cubit.planoSelecionado,
+                              onChanged: (plano) {
+                                cubit.atualizarPlanoSelecionado(plano);
+                              },
+                              planos: _planos,
+                            ),
+                            const SizedBox(height: 20),
+                            SeletorTipoPagamento(
+                              tipoPagamentoSelecionado:
+                                  cubit.tipoPagamentoSelecionado,
+                              onChanged: (tipo) {
+                                cubit.atualizarTipoPagamentoSelecionado(tipo);
+                              },
+                              tiposPagamento: _tiposPagamento,
+                            ),
+                            const SizedBox(height: 20),
+                            CampoToken(
+                              controller: _tokenController,
+                              onChanged: (value) {
+                                cubit.atualizarToken(value);
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            if (state is GatewayPagamentoErro)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  border: Border.all(color: Colors.red[200]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  state.mensagem,
+                                  style: TextStyle(
+                                    color: Colors.red[700],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            if (state is GatewayPagamentoErro)
+                              const SizedBox(height: 16),
+                            BotaoSalvarConfiguracao(
+                              onPressed: isLoading
+                                  ? null
+                                  : () => _salvarConfiguracao(context),
+                              carregando: isLoading,
+                              formularioValido: formularioValido,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
