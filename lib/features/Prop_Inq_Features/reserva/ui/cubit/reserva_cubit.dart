@@ -1,44 +1,49 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../models/reserva_model.dart';
-import '../models/ambiente_model.dart';
-import '../services/reserva_service.dart';
+import '../../domain/entities/reserva_entity.dart';
+import '../../domain/entities/ambiente_entity.dart';
+import '../../domain/usecases/reserva_usecases.dart';
 import 'reserva_state.dart';
 
 class ReservaCubit extends Cubit<ReservaState> {
-  final ReservaService _service;
+  final ObterReservasUseCase obterReservasUseCase;
+  final CriarReservaUseCase criarReservaUseCase;
+  final CancelarReservaUseCase cancelarReservaUseCase;
+  final ValidarDisponibilidadeUseCase validarDisponibilidadeUseCase;
 
-  ReservaCubit(this._service) : super(const ReservaInitial());
+  ReservaCubit({
+    required this.obterReservasUseCase,
+    required this.criarReservaUseCase,
+    required this.cancelarReservaUseCase,
+    required this.validarDisponibilidadeUseCase,
+  }) : super(const ReservaInitial());
 
   // Estados do formulário
   String _descricao = '';
-  AmbienteModel? _ambienteSelecionado;
+  AmbienteEntity? _ambienteSelecionado;
   DateTime? _dataInicio;
   DateTime? _dataFim;
-  List<ReservaModel> _reservas = [];
-  List<AmbienteModel> _ambientes = [];
+  List<ReservaEntity> _reservas = [];
+  List<AmbienteEntity> _ambientes = [];
 
   // Getters
   String get descricao => _descricao;
-  AmbienteModel? get ambienteSelecionado => _ambienteSelecionado;
+  AmbienteEntity? get ambienteSelecionado => _ambienteSelecionado;
   DateTime? get dataInicio => _dataInicio;
   DateTime? get dataFim => _dataFim;
-  List<ReservaModel> get reservas => _reservas;
-  List<AmbienteModel> get ambientes => _ambientes;
+  List<ReservaEntity> get reservas => _reservas;
+  List<AmbienteEntity> get ambientes => _ambientes;
 
-  /// Carrega as reservas e ambientes
+  /// Carrega as reservas
   Future<void> carregarReservas(String condominioId) async {
     emit(const ReservaLoading());
 
     try {
-      final reservas = await _service.obterReservas(condominioId);
-      final ambientes = await _service.obterAmbientes(condominioId);
-
+      final reservas = await obterReservasUseCase(condominioId);
       _reservas = reservas;
-      _ambientes = ambientes;
 
       emit(ReservaCarregada(
         reservas: reservas,
-        ambientes: ambientes,
+        ambientes: _ambientes,
       ));
     } catch (e) {
       emit(ReservaErro(mensagem: 'Erro ao carregar reservas: $e'));
@@ -61,7 +66,7 @@ class ReservaCubit extends Cubit<ReservaState> {
   }
 
   /// Atualiza o ambiente selecionado
-  void atualizarAmbienteSelecionado(AmbienteModel? ambiente) {
+  void atualizarAmbienteSelecionado(AmbienteEntity? ambiente) {
     _ambienteSelecionado = ambiente;
     _emitirFormularioAtualizado();
   }
@@ -101,11 +106,30 @@ class ReservaCubit extends Cubit<ReservaState> {
       return;
     }
 
+    // Validar disponibilidade
+    try {
+      final disponivel = await validarDisponibilidadeUseCase(
+        condominioId: condominioId,
+        ambienteId: _ambienteSelecionado!.id,
+        dataInicio: _dataInicio!,
+        dataFim: _dataFim!,
+      );
+
+      if (!disponivel) {
+        emit(const ReservaErro(
+            mensagem: 'Este ambiente não está disponível nesta data'));
+        return;
+      }
+    } catch (e) {
+      emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e'));
+      return;
+    }
+
     // Carregando
     emit(const ReservaLoading());
 
     try {
-      final reserva = await _service.criarReserva(
+      final reserva = await criarReservaUseCase(
         condominioId: condominioId,
         ambienteId: _ambienteSelecionado!.id,
         usuarioId: usuarioId,
@@ -130,7 +154,7 @@ class ReservaCubit extends Cubit<ReservaState> {
     emit(const ReservaLoading());
 
     try {
-      await _service.cancelarReserva(reservaId);
+      await cancelarReservaUseCase(reservaId);
 
       _reservas.removeWhere((r) => r.id == reservaId);
       emit(ReservaCancelada(

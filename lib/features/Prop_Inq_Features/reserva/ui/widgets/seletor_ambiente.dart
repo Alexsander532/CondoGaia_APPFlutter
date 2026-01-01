@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/ambiente_model.dart';
+import '../../domain/entities/ambiente_entity.dart';
 
 class SeletorAmbiente extends StatefulWidget {
-  final AmbienteModel? ambienteSelecionado;
-  final Function(AmbienteModel?) onChanged;
-  final List<AmbienteModel> ambientes;
+  final AmbienteEntity? ambienteSelecionado;
+  final Function(AmbienteEntity?) onChanged;
+  final List<AmbienteEntity> ambientes;
 
   const SeletorAmbiente({
     Key? key,
@@ -51,13 +51,13 @@ class _SeletorAmbienteState extends State<SeletorAmbiente> {
             border: Border.all(color: Colors.grey[300]!),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: DropdownButton<AmbienteModel?>(
+          child: DropdownButton<AmbienteEntity?>(
             value: widget.ambienteSelecionado,
             isExpanded: true,
             underline: const SizedBox(),
             onChanged: widget.onChanged,
             items: [
-              const DropdownMenuItem<AmbienteModel?>(
+              const DropdownMenuItem<AmbienteEntity?>(
                 value: null,
                 child: Padding(
                   padding: EdgeInsets.only(left: 16),
@@ -65,7 +65,7 @@ class _SeletorAmbienteState extends State<SeletorAmbiente> {
                 ),
               ),
               ...widget.ambientes.map((ambiente) {
-                return DropdownMenuItem<AmbienteModel?>(
+                return DropdownMenuItem<AmbienteEntity?>(
                   value: ambiente,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 16),

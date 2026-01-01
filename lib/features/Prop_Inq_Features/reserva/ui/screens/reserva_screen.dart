@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../di/reserva_dependencies.dart';
 import '../cubit/reserva_cubit.dart';
 import '../cubit/reserva_state.dart';
-import '../services/reserva_service.dart';
 import '../widgets/seletor_ambiente.dart';
 import '../widgets/campo_descricao.dart';
 import '../widgets/botao_criar_reserva.dart';
@@ -28,7 +28,8 @@ class _ReservaScreenState extends State<ReservaScreen> {
   @override
   void initState() {
     super.initState();
-    _cubit = ReservaCubit(ReservaService());
+    // Injetar dependências
+    _cubit = ReservaDependencies.createReservaCubit();
     _cubit.carregarReservas(widget.condominioId);
   }
 

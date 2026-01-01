@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../models/reserva_model.dart';
-import '../models/ambiente_model.dart';
+import '../../domain/entities/reserva_entity.dart';
+import '../../domain/entities/ambiente_entity.dart';
 
 /// Estado abstrato para Reservas
 abstract class ReservaState extends Equatable {
@@ -22,8 +22,8 @@ class ReservaLoading extends ReservaState {
 
 /// Estado com lista de reservas carregadas
 class ReservaCarregada extends ReservaState {
-  final List<ReservaModel> reservas;
-  final List<AmbienteModel> ambientes;
+  final List<ReservaEntity> reservas;
+  final List<AmbienteEntity> ambientes;
 
   const ReservaCarregada({
     required this.reservas,
@@ -36,7 +36,7 @@ class ReservaCarregada extends ReservaState {
 
 /// Estado de reserva criada com sucesso
 class ReservaCriada extends ReservaState {
-  final ReservaModel reserva;
+  final ReservaEntity reserva;
   final String mensagem;
 
   const ReservaCriada({
@@ -75,7 +75,7 @@ class ReservaErro extends ReservaState {
 /// Estado do formulário atualizado
 class ReservaFormularioAtualizado extends ReservaState {
   final String descricao;
-  final AmbienteModel? ambienteSelecionado;
+  final AmbienteEntity? ambienteSelecionado;
   final DateTime? dataInicio;
   final DateTime? dataFim;
   final bool formularioValido;
