@@ -4,6 +4,7 @@
 
 import '../../domain/repositories/reserva_repository.dart';
 import '../../domain/entities/reserva_entity.dart';
+import '../../domain/entities/ambiente_entity.dart';
 
 // Caso de uso: Obter Reservas
 class ObterReservasUseCase {
@@ -13,6 +14,17 @@ class ObterReservasUseCase {
 
   Future<List<ReservaEntity>> call(String condominioId) {
     return repository.obterReservas(condominioId);
+  }
+}
+
+// Caso de uso: Obter Ambientes
+class ObterAmbientesUseCase {
+  final ReservaRepository repository;
+
+  ObterAmbientesUseCase({required this.repository});
+
+  Future<List<AmbienteEntity>> call() {
+    return repository.obterAmbientes();
   }
 }
 
@@ -66,12 +78,17 @@ class ValidarDisponibilidadeUseCase {
   }) async {
     final reservas = await repository.obterReservas(condominioId);
     
+    // Converter DateTime em data para comparação com dataReserva
+    final dataInicioDate = DateTime(dataInicio.year, dataInicio.month, dataInicio.day);
+    final dataFimDate = DateTime(dataFim.year, dataFim.month, dataFim.day);
+    
     for (final reserva in reservas) {
-      if (reserva.ambienteId == ambienteId &&
-          reserva.status != 'cancelled') {
-        // Verificar sobreposição
-        if ((dataInicio.isBefore(reserva.dataFim) &&
-            dataFim.isAfter(reserva.dataInicio))) {
+      if (reserva.ambienteId == ambienteId) {
+        // Verificar se há sobreposição de datas
+        if (reserva.dataReserva.isBefore(dataFimDate) &&
+            reserva.dataReserva.isAfter(dataInicioDate) ||
+            reserva.dataReserva.isAtSameMomentAs(dataInicioDate) ||
+            reserva.dataReserva.isAtSameMomentAs(dataFimDate)) {
           return false;
         }
       }

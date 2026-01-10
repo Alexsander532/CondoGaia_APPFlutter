@@ -3,43 +3,45 @@ import 'package:condogaiaapp/features/Prop_Inq_Features/reserva/domain/entities/
 class AmbienteModel extends AmbienteEntity {
   AmbienteModel({
     required String id,
-    required String condominioId,
     required String nome,
-    required String descricao,
-    required String tipo,
-    required int capacidadeMaxima,
-    required DateTime dataCriacao,
+    required double valor,
+    String? descricao,
+    String? locacaoUrl,
+    String? fotoUrl,
+    DateTime? dataCriacao,
   }) : super(
     id: id,
-    condominioId: condominioId,
     nome: nome,
-    descricao: descricao,
-    tipo: tipo,
-    capacidadeMaxima: capacidadeMaxima,
-    dataCriacao: dataCriacao,
+    valor: valor,
+    descricao: descricao ?? '',
+    locacaoUrl: locacaoUrl,
+    condominioId: '', // Campo obrigatório na Entity, mas não está na tabela
+    tipo: '', // Campo obrigatório na Entity, mas não está na tabela
+    capacidadeMaxima: 0, // Campo obrigatório na Entity, mas não está na tabela
+    dataCriacao: dataCriacao ?? DateTime.now(),
   );
 
   factory AmbienteModel.fromJson(Map<String, dynamic> json) {
     return AmbienteModel(
-      id: json['id'] as String,
-      condominioId: json['condominio_id'] as String,
-      nome: json['nome'] as String,
-      descricao: json['descricao'] as String,
-      tipo: json['tipo'] as String,
-      capacidadeMaxima: json['capacidade_maxima'] as int,
-      dataCriacao: DateTime.parse(json['data_criacao'] as String),
+      id: json['id'] as String? ?? '',
+      nome: json['titulo'] as String? ?? '', // A tabela usa 'titulo', não 'nome'
+      valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
+      descricao: json['descricao'] as String?,
+      locacaoUrl: json['locacao_url'] as String?,
+      fotoUrl: json['foto_url'] as String?,
+      dataCriacao: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'condominio_id': condominioId,
-      'nome': nome,
+      'titulo': nome,
       'descricao': descricao,
-      'tipo': tipo,
-      'capacidade_maxima': capacidadeMaxima,
-      'data_criacao': dataCriacao.toIso8601String(),
+      'valor': valor,
+      'locacao_url': locacaoUrl,
     };
   }
 }

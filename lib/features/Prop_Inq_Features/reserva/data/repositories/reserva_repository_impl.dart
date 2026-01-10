@@ -3,6 +3,7 @@
 import '../datasources/reserva_remote_datasource.dart';
 import '../../domain/repositories/reserva_repository.dart';
 import '../../domain/entities/reserva_entity.dart';
+import '../../domain/entities/ambiente_entity.dart';
 
 class ReservaRepositoryImpl implements ReservaRepository {
   final ReservaRemoteDataSource remoteDataSource;
@@ -17,6 +18,17 @@ class ReservaRepositoryImpl implements ReservaRepository {
       return models.map((model) => model as ReservaEntity).toList();
     } catch (e) {
       throw Exception('Erro ao obter reservas: $e');
+    }
+  }
+
+  @override
+  Future<List<AmbienteEntity>> obterAmbientes() async {
+    try {
+      // Chama DataSource e converte para Entity
+      final models = await remoteDataSource.obterAmbientes();
+      return models.map((model) => model as AmbienteEntity).toList();
+    } catch (e) {
+      throw Exception('Erro ao obter ambientes: $e');
     }
   }
 

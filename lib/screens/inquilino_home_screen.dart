@@ -11,6 +11,7 @@ import '../models/inquilino.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
+import '../features/Prop_Inq_Features/reserva/ui/screens/reserva_screen.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -468,7 +469,16 @@ Copiado da CondoGaia''';
                           'assets/images/Representante/HOME/Imagem_Reservas.png',
                       title: 'Reservas',
                       onTap: () {
-                        // TODO: Implementar navegação para reservas
+                        print('🔴 CLICOU EM RESERVAS');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReservaScreen(
+                              condominioId: widget.condominioId,
+                              usuarioId: widget.inquilinoId ?? widget.proprietarioId ?? '',
+                            ),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(

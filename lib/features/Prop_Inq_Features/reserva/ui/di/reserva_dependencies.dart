@@ -24,6 +24,7 @@ class ReservaDependencies {
 
     // Domain Layer - UseCases
     final obterReservasUseCase = ObterReservasUseCase(repository: repository);
+    final obterAmbientesUseCase = ObterAmbientesUseCase(repository: repository);
     final criarReservaUseCase = CriarReservaUseCase(repository: repository);
     final cancelarReservaUseCase = CancelarReservaUseCase(repository: repository);
     final validarDisponibilidadeUseCase =
@@ -32,6 +33,7 @@ class ReservaDependencies {
     // Presentation Layer - Cubit
     return ReservaCubit(
       obterReservasUseCase: obterReservasUseCase,
+      obterAmbientesUseCase: obterAmbientesUseCase,
       criarReservaUseCase: criarReservaUseCase,
       cancelarReservaUseCase: cancelarReservaUseCase,
       validarDisponibilidadeUseCase: validarDisponibilidadeUseCase,
