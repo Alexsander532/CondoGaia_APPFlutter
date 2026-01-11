@@ -7,7 +7,8 @@ class ReservaModel extends ReservaEntity {
   ReservaModel({
     required String id,
     required String ambienteId,
-    required String representanteId,
+    String? representanteId,
+    String? inquilinoId,
     required DateTime dataReserva,
     required String horaInicio,
     required String horaFim,
@@ -23,6 +24,7 @@ class ReservaModel extends ReservaEntity {
     id: id,
     ambienteId: ambienteId,
     representanteId: representanteId,
+    inquilinoId: inquilinoId,
     dataReserva: dataReserva,
     horaInicio: horaInicio,
     horaFim: horaFim,
@@ -38,10 +40,19 @@ class ReservaModel extends ReservaEntity {
 
   /// Converte JSON para Model
   factory ReservaModel.fromJson(Map<String, dynamic> json) {
+    // Lógica para definir o nome de quem fez a reserva (Para)
+    String? nomeResponsavel;
+    if (json['inquilinos'] != null) {
+      nomeResponsavel = json['inquilinos']['nome'];
+    } else if (json['representantes'] != null) {
+      nomeResponsavel = json['representantes']['nome_completo'];
+    }
+
     return ReservaModel(
       id: json['id'] as String? ?? '',
       ambienteId: json['ambiente_id'] as String? ?? '',
-      representanteId: json['representante_id'] as String? ?? '',
+      representanteId: json['representante_id'] as String?,
+      inquilinoId: json['inquilino_id'] as String?,
       dataReserva: json['data_reserva'] != null 
           ? DateTime.parse(json['data_reserva'] as String)
           : DateTime.now(),
@@ -50,7 +61,7 @@ class ReservaModel extends ReservaEntity {
       local: json['local'] as String? ?? '',
       valorLocacao: (json['valor_locacao'] as num?)?.toDouble() ?? 0.0,
       termoLocacao: json['termo_locacao'] as bool? ?? false,
-      para: json['para'] as String? ?? 'Condomínio',
+      para: nomeResponsavel ?? json['para'] as String? ?? 'Condomínio',
       dataCriacao: json['created_at'] != null 
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
@@ -68,6 +79,7 @@ class ReservaModel extends ReservaEntity {
       'id': id,
       'ambiente_id': ambienteId,
       'representante_id': representanteId,
+      'inquilino_id': inquilinoId,
       'data_reserva': dataReserva.toIso8601String().split('T')[0],
       'hora_inicio': horaInicio,
       'hora_fim': horaFim,

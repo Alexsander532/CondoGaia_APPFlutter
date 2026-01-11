@@ -1114,7 +1114,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
     );
   }
 
-  // Função para fazer download do PDF
+  // Função para abrir o PDF no navegador
   Future<void> _abrirPDFNoNavegador(Documento arquivo) async {
     try {
       if (arquivo.url == null || arquivo.url!.isEmpty) {
@@ -1130,7 +1130,6 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
       }
 
       String pdfUrl = arquivo.url!;
-      final String fileName = arquivo.nome;
 
       // Gerar Signed URL para maior segurança (expira em 1 hora)
       final signedUrl = await SupabaseService.getSignedDocumentUrl(
@@ -1146,41 +1145,29 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
         print('⚠️ Usando URL pública (Signed URL não disponível)');
       }
 
-      // Na web, abrir a URL diretamente
-      if (kIsWeb) {
-        final Uri uri = Uri.parse(pdfUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Não foi possível abrir o PDF'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-        return;
-      }
-
-      // No mobile, fazer download como balancete (sem diálogo de progresso)
-      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
-
-      if (filePath != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF baixado: $fileName'),
-            backgroundColor: Colors.green,
-          ),
+      // Abrir a URL diretamente no navegador (funciona tanto para web quanto mobile)
+      final Uri uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // Abre no navegador externo/app padrão
         );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o PDF no navegador'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Erro ao baixar PDF: $e');
+      print('Erro ao abrir PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao baixar PDF: $e'),
+            content: Text('Erro ao abrir PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );

@@ -194,7 +194,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   }
 
   void _filtrarUnidades() {
-    final termo = _searchController.text.trim();
+    final termo = _searchController.text.trim().toLowerCase();
 
     if (termo.isEmpty) {
       setState(() {
@@ -203,25 +203,34 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       return;
     }
 
+    final List<BlocoComUnidades> filtrados = [];
+
+    for (var blocoComUnidades in _blocosUnidades) {
+      // Verifica se o nome ou código do bloco contém o termo
+      final blocoMatches = blocoComUnidades.bloco.nome.toLowerCase().contains(termo) ||
+                           blocoComUnidades.bloco.codigo.toLowerCase().contains(termo);
+
+      if (blocoMatches) {
+        // Se o bloco corresponde ao termo (ex: "Bloco A"), incluímos o bloco inteiro com todas as suas unidades.
+        filtrados.add(blocoComUnidades); 
+      } else {
+        // Se o bloco NÃO corresponde, verificamos se alguma unidade interna corresponde (ex: "101")
+        final unidadesFiltradas = blocoComUnidades.unidades.where((unidade) {
+            return unidade.numero.toLowerCase().contains(termo);
+        }).toList();
+
+        // Se houver unidades que correspondem, criamos uma nova instância do bloco contendo APENAS essas unidades
+        if (unidadesFiltradas.isNotEmpty) {
+            filtrados.add(BlocoComUnidades(
+                bloco: blocoComUnidades.bloco,
+                unidades: unidadesFiltradas,
+            ));
+        }
+      }
+    }
+
     setState(() {
-      _blocosUnidadesFiltrados = _blocosUnidades.where((blocoComUnidades) {
-        // Verifica se o nome do bloco contém o termo
-        final blocoCorresponde =
-            blocoComUnidades.bloco.nome.toLowerCase().contains(
-              termo.toLowerCase(),
-            ) ||
-            blocoComUnidades.bloco.codigo.toLowerCase().contains(
-              termo.toLowerCase(),
-            );
-
-        // Verifica se alguma unidade contém o termo
-        final unidadesCorrespondem = blocoComUnidades.unidades.any(
-          (unidade) =>
-              unidade.numero.toLowerCase().contains(termo.toLowerCase()),
-        );
-
-        return blocoCorresponde || unidadesCorrespondem;
-      }).toList();
+      _blocosUnidadesFiltrados = filtrados;
     });
   }
 

@@ -12,10 +12,13 @@ abstract class ReservaRemoteDataSource {
   Future<ReservaModel> criarReserva({
     required String condominioId,
     required String ambienteId,
-    required String usuarioId,
-    required String descricao,
+    String? representanteId,
+    String? inquilinoId,
+    required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
+    required double valorLocacao,
+    required bool termoLocacao,
   });
   Future<void> cancelarReserva(String reservaId);
 }
@@ -50,9 +53,10 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
       final client = Supabase.instance.client;
       
       // Buscar reservas ordenadas por data mais próxima
+      // Trazendo também o nome do inquilino ou representante
       final response = await client
           .from('reservas')
-          .select()
+          .select('*, inquilinos(nome), representantes(nome_completo)')
           .order('data_reserva', ascending: true);
 
       final reservas = (response as List)
@@ -69,28 +73,46 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
   Future<ReservaModel> criarReserva({
     required String condominioId,
     required String ambienteId,
-    required String usuarioId,
-    required String descricao,
+    String? representanteId,
+    String? inquilinoId,
+    required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
+    required double valorLocacao,
+    required bool termoLocacao,
   }) async {
-    // TODO: Chamar Supabase para criar
-    // Por enquanto, retorna um modelo mockado
-    await Future.delayed(const Duration(seconds: 1));
-    return ReservaModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      ambienteId: ambienteId,
-      representanteId: usuarioId,
-      dataReserva: dataInicio,
-      horaInicio: '${dataInicio.hour.toString().padLeft(2, '0')}:${dataInicio.minute.toString().padLeft(2, '0')}',
-      horaFim: '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
-      local: descricao,
-      valorLocacao: 0.0,
-      termoLocacao: false,
-      para: 'Condomínio',
-      dataCriacao: DateTime.now(),
-      dataAtualizacao: DateTime.now(),
-    );
+    try {
+      final client = Supabase.instance.client;
+
+      final data = {
+        'ambiente_id': ambienteId,
+        'local': local,
+        'data_reserva': dataInicio.toIso8601String().split('T')[0],
+        'hora_inicio': '${dataInicio.hour.toString().padLeft(2, '0')}:${dataInicio.minute.toString().padLeft(2, '0')}',
+        'hora_fim': '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
+        'valor_locacao': valorLocacao,
+        'termo_locacao': termoLocacao,
+        'para': 'Condomínio', // Default
+      };
+
+      if (representanteId != null) {
+        data['representante_id'] = representanteId;
+      }
+      if (inquilinoId != null) {
+        data['inquilino_id'] = inquilinoId;
+      }
+
+      final response = await client
+          .from('reservas')
+          .insert(data)
+          .select('*, inquilinos(nome), representantes(nome_completo)')
+          .single();
+
+      return ReservaModel.fromJson(response);
+    } catch (e) {
+      print('❌ Erro ao criar reserva: $e');
+      throw Exception('Erro ao criar reserva: $e');
+    }
   }
 
   @override

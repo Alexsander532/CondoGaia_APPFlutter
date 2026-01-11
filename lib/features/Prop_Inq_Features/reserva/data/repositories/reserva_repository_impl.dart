@@ -36,19 +36,25 @@ class ReservaRepositoryImpl implements ReservaRepository {
   Future<ReservaEntity> criarReserva({
     required String condominioId,
     required String ambienteId,
-    required String usuarioId,
-    required String descricao,
+    String? representanteId,
+    String? inquilinoId,
+    required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
+    required double valorLocacao,
+    required bool termoLocacao,
   }) async {
     try {
       final model = await remoteDataSource.criarReserva(
         condominioId: condominioId,
         ambienteId: ambienteId,
-        usuarioId: usuarioId,
-        descricao: descricao,
+        representanteId: representanteId,
+        inquilinoId: inquilinoId,
+        local: local,
         dataInicio: dataInicio,
         dataFim: dataFim,
+        valorLocacao: valorLocacao,
+        termoLocacao: termoLocacao,
       );
       return model as ReservaEntity;
     } catch (e) {

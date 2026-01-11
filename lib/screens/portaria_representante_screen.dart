@@ -136,6 +136,7 @@ class _PortariaRepresentanteScreenState
       HistoricoAcessoService();
   final EncomendaService _encomendaService = EncomendaService();
   List<Map<String, dynamic>> _visitantesNoCondominio = [];
+  List<Map<String, dynamic>> _visitantesNoCondominioFiltrados = [];
   bool _isLoadingAcessos = false;
 
   // Variáveis para visitantes cadastrados
@@ -143,6 +144,7 @@ class _PortariaRepresentanteScreenState
   bool _isLoadingVisitantesCadastrados = false;
   final TextEditingController _pesquisaVisitanteController =
       TextEditingController();
+  final TextEditingController _searchAcessosController = TextEditingController();
 
   // Variáveis para a seção de Encomendas
   // Variável para encomenda selecionada (removendo a antiga)
@@ -236,6 +238,7 @@ class _PortariaRepresentanteScreenState
 
     // Dispose do controlador de pesquisa de visitantes
     _pesquisaVisitanteController.dispose();
+    _searchAcessosController.dispose();
 
     super.dispose();
   }
@@ -1541,6 +1544,7 @@ class _PortariaRepresentanteScreenState
       setState(() {
         _visitantesNoCondominio = visitantes;
       });
+      _filtrarAcessos(_searchAcessosController.text);
     } catch (e) {
       print('❌ ERRO ao carregar visitantes no condomínio: $e');
     } finally {
@@ -3265,6 +3269,26 @@ class _PortariaRepresentanteScreenState
     );
   }
 
+  void _filtrarAcessos(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _visitantesNoCondominioFiltrados = List.from(_visitantesNoCondominio);
+      });
+      return;
+    }
+
+    final termo = query.toLowerCase();
+    setState(() {
+      _visitantesNoCondominioFiltrados = _visitantesNoCondominio.where((vis) {
+        final nome = (vis['nome'] ?? '').toString().toLowerCase();
+        final cpf = (vis['cpf'] ?? vis['documento'] ?? '').toString().toLowerCase();
+        final placa = (vis['veiculo_placa'] ?? '').toString().toLowerCase();
+        
+        return nome.contains(termo) || cpf.contains(termo) || placa.contains(termo);
+      }).toList();
+    });
+  }
+
   Widget _buildAcessosTab() {
     return Container(
       color: Colors.white,
@@ -3289,6 +3313,8 @@ class _PortariaRepresentanteScreenState
                     border: Border.all(color: const Color(0xFFE0E0E0)),
                   ),
                   child: TextField(
+                    controller: _searchAcessosController,
+                    onChanged: _filtrarAcessos,
                     decoration: InputDecoration(
                       hintText: 'Pesquisar CPF ou Nome do Visitante',
                       hintStyle: TextStyle(color: Colors.grey[600]),
@@ -3368,7 +3394,7 @@ class _PortariaRepresentanteScreenState
                   Expanded(
                     child: _isLoadingAcessos
                         ? const Center(child: CircularProgressIndicator())
-                        : _visitantesNoCondominio.isEmpty
+                        : _visitantesNoCondominioFiltrados.isEmpty
                         ? const Center(
                             child: Text(
                               'Nenhum visitante no condomínio no momento',
@@ -3480,10 +3506,10 @@ class _PortariaRepresentanteScreenState
                                   // Lista de acessos
                                   Expanded(
                                     child: ListView.builder(
-                                      itemCount: _visitantesNoCondominio.length,
+                                      itemCount: _visitantesNoCondominioFiltrados.length,
                                       itemBuilder: (context, index) {
                                         final visitante =
-                                            _visitantesNoCondominio[index];
+                                            _visitantesNoCondominioFiltrados[index];
                                         final unidadeInfo =
                                             visitante['unidades'] != null
                                             ? _formatarUnidade(
@@ -3728,71 +3754,129 @@ class _PortariaRepresentanteScreenState
   }
 
   void _showEntrarVisitanteDialog() {
+    final TextEditingController searchAutorizadosController =
+        TextEditingController();
+    final TextEditingController searchVisitantesController =
+        TextEditingController();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            height: MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Cabeçalho
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Registrar Entrada',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E3A59),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            // Lógica de filtro para Autorizados
+            Map<String, List<Map<String, dynamic>>> autorizadosFiltrados = {};
+            String queryAutorizados =
+                searchAutorizadosController.text.toLowerCase();
 
-                // Abas de seleção
-                DefaultTabController(
-                  length: 2,
-                  child: Expanded(
-                    child: Column(
+            if (queryAutorizados.isEmpty) {
+              autorizadosFiltrados = _autorizadosPorUnidade;
+            } else {
+              _autorizadosPorUnidade.forEach((unidade, lista) {
+                final listaFiltrada = lista.where((a) {
+                  final nome = (a['nome'] ?? '').toString().toLowerCase();
+                  final cpf = (a['cpf'] ?? '').toString().toLowerCase();
+                  final unidadeNorm = unidade.toLowerCase();
+
+                  return nome.contains(queryAutorizados) ||
+                      cpf.contains(queryAutorizados) ||
+                      unidadeNorm.contains(queryAutorizados);
+                }).toList();
+
+                if (listaFiltrada.isNotEmpty) {
+                  autorizadosFiltrados[unidade] = listaFiltrada;
+                }
+              });
+            }
+
+            // Lógica de filtro para Visitantes
+            List<Map<String, dynamic>> visitantesFiltrados = [];
+            String queryVisitantes =
+                searchVisitantesController.text.toLowerCase();
+
+            if (queryVisitantes.isEmpty) {
+              visitantesFiltrados = _visitantesCadastrados;
+            } else {
+              visitantesFiltrados = _visitantesCadastrados.where((v) {
+                final nome = (v['nome'] ?? '').toString().toLowerCase();
+                final cpf = (v['cpf'] ?? '').toString().toLowerCase();
+                return nome.contains(queryVisitantes) ||
+                    cpf.contains(queryVisitantes);
+              }).toList();
+            }
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.height * 0.8,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Cabeçalho
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TabBar(
-                          labelColor: const Color(0xFF1976D2),
-                          unselectedLabelColor: Colors.grey[600],
-                          indicatorColor: const Color(0xFF1976D2),
-                          tabs: const [
-                            Tab(text: 'Autorizados'),
-                            Tab(text: 'Visitantes Cadastrados'),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: TabBarView(
-                            children: [
-                              _buildAutorizadosSelectionTab(),
-                              _buildVisitantesCadastradosTab(),
-                            ],
+                        const Text(
+                          'Registrar Entrada',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E3A59),
                           ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 20),
+
+                    // Abas de seleção
+                    DefaultTabController(
+                      length: 2,
+                      child: Expanded(
+                        child: Column(
+                          children: [
+                            TabBar(
+                              labelColor: const Color(0xFF1976D2),
+                              unselectedLabelColor: Colors.grey[600],
+                              indicatorColor: const Color(0xFF1976D2),
+                              tabs: const [
+                                Tab(text: 'Autorizados'),
+                                Tab(text: 'Visitantes Cadastrados'),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  _buildAutorizadosSelectionTab(
+                                    autorizadosFiltrados,
+                                    searchAutorizadosController,
+                                    (val) => setStateModal(() {}),
+                                  ),
+                                  _buildVisitantesCadastradosTab(
+                                    visitantesFiltrados,
+                                    searchVisitantesController,
+                                    (val) => setStateModal(() {}),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -3984,7 +4068,11 @@ class _PortariaRepresentanteScreenState
     );
   }
 
-  Widget _buildAutorizadosSelectionTab() {
+  Widget _buildAutorizadosSelectionTab(
+    Map<String, List<Map<String, dynamic>>> autorizados,
+    TextEditingController controller,
+    Function(String) onChanged,
+  ) {
     return Column(
       children: [
         // Campo de pesquisa
@@ -3995,6 +4083,8 @@ class _PortariaRepresentanteScreenState
             border: Border.all(color: const Color(0xFFE0E0E0)),
           ),
           child: TextField(
+            controller: controller,
+            onChanged: onChanged,
             decoration: InputDecoration(
               hintText: 'Pesquisar autorizado...',
               hintStyle: TextStyle(color: Colors.grey[600]),
@@ -4013,7 +4103,7 @@ class _PortariaRepresentanteScreenState
         Expanded(
           child: _isLoadingAutorizados
               ? const Center(child: CircularProgressIndicator())
-              : _autorizadosPorUnidade.isEmpty
+              : autorizados.isEmpty
               ? const Center(
                   child: Text(
                     'Nenhum autorizado encontrado',
@@ -4021,13 +4111,13 @@ class _PortariaRepresentanteScreenState
                   ),
                 )
               : ListView.builder(
-                  itemCount: _autorizadosPorUnidade.length,
+                  itemCount: autorizados.length,
                   itemBuilder: (context, index) {
-                    String unidade = _autorizadosPorUnidade.keys.elementAt(
+                    String unidade = autorizados.keys.elementAt(
                       index,
                     );
-                    List<Map<String, dynamic>> autorizados =
-                        _autorizadosPorUnidade[unidade]!;
+                    List<Map<String, dynamic>> listaAutorizados =
+                        autorizados[unidade]!;
 
                     return ExpansionTile(
                       title: Text(
@@ -4037,7 +4127,7 @@ class _PortariaRepresentanteScreenState
                           color: Color(0xFF2E3A59),
                         ),
                       ),
-                      children: autorizados.map((autorizado) {
+                      children: listaAutorizados.map((autorizado) {
                         return Container(
                           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                           decoration: BoxDecoration(
@@ -4202,7 +4292,11 @@ class _PortariaRepresentanteScreenState
     );
   }
 
-  Widget _buildVisitantesCadastradosTab() {
+  Widget _buildVisitantesCadastradosTab(
+    List<Map<String, dynamic>> visitantes,
+    TextEditingController controller,
+    Function(String) onChanged,
+  ) {
     return Column(
       children: [
         // Campo de pesquisa
@@ -4213,8 +4307,8 @@ class _PortariaRepresentanteScreenState
             border: Border.all(color: const Color(0xFFE0E0E0)),
           ),
           child: TextField(
-            controller: _pesquisaVisitanteController,
-            onChanged: _pesquisarVisitantesCadastrados,
+            controller: controller,
+            onChanged: onChanged,
             decoration: InputDecoration(
               hintText: 'Pesquisar visitante cadastrado...',
               hintStyle: TextStyle(color: Colors.grey[600]),
@@ -4235,7 +4329,7 @@ class _PortariaRepresentanteScreenState
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF1976D2)),
                 )
-              : _visitantesCadastrados.isEmpty
+              : visitantes.isEmpty
               ? const Center(
                   child: Text(
                     'Nenhum visitante cadastrado encontrado',
@@ -4243,9 +4337,9 @@ class _PortariaRepresentanteScreenState
                   ),
                 )
               : ListView.builder(
-                  itemCount: _visitantesCadastrados.length,
+                  itemCount: visitantes.length,
                   itemBuilder: (context, index) {
-                    final visitante = _visitantesCadastrados[index];
+                    final visitante = visitantes[index];
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),

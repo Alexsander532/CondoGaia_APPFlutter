@@ -37,18 +37,24 @@ class CriarReservaUseCase {
   Future<ReservaEntity> call({
     required String condominioId,
     required String ambienteId,
-    required String usuarioId,
-    required String descricao,
+    String? representanteId,
+    String? inquilinoId,
+    required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
+    required double valorLocacao,
+    required bool termoLocacao,
   }) {
     return repository.criarReserva(
       condominioId: condominioId,
       ambienteId: ambienteId,
-      usuarioId: usuarioId,
-      descricao: descricao,
+      representanteId: representanteId,
+      inquilinoId: inquilinoId,
+      local: local,
       dataInicio: dataInicio,
       dataFim: dataFim,
+      valorLocacao: valorLocacao,
+      termoLocacao: termoLocacao,
     );
   }
 }

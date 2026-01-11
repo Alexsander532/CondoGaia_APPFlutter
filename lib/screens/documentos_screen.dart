@@ -15,6 +15,7 @@ import '../models/documento.dart';
 import '../models/balancete.dart';
 import '../services/documento_service.dart';
 import '../services/photo_picker_service.dart';
+import '../services/supabase_service.dart';
 import '../utils/download_helper.dart';
 
 // Importação condicional de dart:io para mobile/desktop
@@ -61,7 +62,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
   String get representanteId => widget.representanteId ?? 'demo-representante-id';
   
   // Controle de período para balancetes
-  int _anoSelecionado = 2025;
+  int _anoSelecionado = DateTime.now().year;
   int _mesSelecionado = DateTime.now().month; // Mês atual
   
   String selectedPrivacy = 'Público';
@@ -1755,7 +1756,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
     );
   }
 
-  // Função para fazer download do PDF
+  // Função para abrir o PDF no navegador
   Future<void> _abrirPDFNoNavegador(Balancete balancete) async {
     try {
       if (balancete.url == null || balancete.url!.isEmpty) {
@@ -1770,44 +1771,45 @@ class _DocumentosScreenState extends State<DocumentosScreen>
         return;
       }
 
-      final String pdfUrl = balancete.url!;
-      final String fileName = balancete.nomeArquivo ?? 'documento_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      String pdfUrl = balancete.url!;
 
-      // Na web, abrir a URL diretamente
-      if (kIsWeb) {
-        final Uri uri = Uri.parse(pdfUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Não foi possível abrir o PDF'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-        return;
+      // Gerar Signed URL para maior segurança (expira em 1 hora)
+      final signedUrl = await SupabaseService.getSignedDocumentUrl(
+        pdfUrl,
+        expiresIn: 3600, // 1 hora
+      );
+
+      // Usar a signed URL se conseguir gerar, senão usar a URL original
+      if (signedUrl != null) {
+        pdfUrl = signedUrl;
+        print('✅ Usando Signed URL para abrir PDF');
+      } else {
+        print('⚠️ Usando URL pública (Signed URL não disponível)');
       }
 
-      // No mobile, fazer download como ODS (sem diálogo de progresso)
-      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
-
-      if (filePath != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF baixado: $fileName'),
-            backgroundColor: Colors.green,
-          ),
+      // Abrir a URL diretamente no navegador (funciona tanto para web quanto mobile)
+      final Uri uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // Abre no navegador externo/app padrão
         );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o PDF no navegador'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Erro ao baixar PDF: $e');
+      print('Erro ao abrir PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao baixar PDF: $e'),
+            content: Text('Erro ao abrir PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );

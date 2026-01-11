@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../di/reserva_dependencies.dart';
 import '../cubit/reserva_cubit.dart';
 import '../cubit/reserva_state.dart';
+import 'package:intl/intl.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class ReservaScreen extends StatefulWidget {
   final String condominioId;
@@ -53,57 +55,98 @@ class _ReservaScreenState extends State<ReservaScreen>
   }
 
   /// Abre o modal de criação de reserva
-  void _showReservationModal(DateTime selectedDate, ReservaCubit cubit) {
-    _horaInicioController.clear();
-    _horaFimController.clear();
-    _termoLocacaoAceito = false;
+void _showReservationModal(DateTime selectedDate, ReservaCubit cubit) {
+  _horaInicioController.clear();
+  _horaFimController.clear();
+  _termoLocacaoAceito = false;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalContext) => StatefulBuilder(
-        builder: (modalContext, setModalState) => Container(
-          height: MediaQuery.of(modalContext).size.height * 0.75,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Título do modal
-                Text(
-                  'Reservar Dia ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (modalContext) => BlocProvider.value(
+      value: cubit,
+      child: ScaffoldMessenger(
+        child: Builder(
+          builder: (context) => Scaffold(
+            backgroundColor: Colors.transparent,
+            // Usamos o Builder para garantir que o contexto do BlocListener
+            // encontre o ScaffoldMessenger acima
+            body: BlocListener<ReservaCubit, ReservaState>(
+              listener: (context, state) {
+                if (state is ReservaErro) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.mensagem),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating, // Flutuante para ficar mais visível
+                      margin: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).size.height - 100, // Ajuste altura
+                        left: 10,
+                        right: 10,
+                      ),
+                    ),
+                  );
+                } else if (state is ReservaCriada) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.mensagem),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.of(modalContext).pop();
+                }
+              },
+              child: StatefulBuilder(
+                builder: (context, setModalState) => Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: MediaQuery.of(modalContext).size.height * 0.75,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Título do modal
+                          Text(
+                            'Reservar Dia ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Conteúdo do formulário
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: _buildReservationForm(context, selectedDate, setModalState, cubit),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Conteúdo do formulário
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildReservationForm(selectedDate, setModalState, cubit),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Constrói o formulário de reserva
-  Widget _buildReservationForm(DateTime selectedDate, StateSetter setModalState, ReservaCubit cubit) {
+  Widget _buildReservationForm(BuildContext context, DateTime selectedDate, StateSetter setModalState, ReservaCubit cubit) {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,14 +255,31 @@ class _ReservaScreenState extends State<ReservaScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hora de Início',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  RichText(
+                    text: const TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Hora de Início',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black),
+                        ),
+                        TextSpan(
+                          text: ' *',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _horaInicioController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      MaskTextInputFormatter(
+                        mask: '##:##', 
+                        filter: { "#": RegExp(r'[0-9]') },
+                        type: MaskAutoCompletionType.lazy,
+                      )
+                    ],
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -237,14 +297,31 @@ class _ReservaScreenState extends State<ReservaScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hora de Fim',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                   RichText(
+                    text: const TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Hora de Fim',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black),
+                        ),
+                        TextSpan(
+                          text: ' *',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _horaFimController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      MaskTextInputFormatter(
+                        mask: '##:##', 
+                        filter: { "#": RegExp(r'[0-9]') },
+                        type: MaskAutoCompletionType.lazy,
+                      )
+                    ],
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -272,13 +349,27 @@ class _ReservaScreenState extends State<ReservaScreen>
                 });
               },
             ),
-            const Expanded(
-              child: Text(
-                'Aceitar Termo de Locação',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.blue,
-                  fontStyle: FontStyle.italic,
+            Expanded(
+              child: RichText(
+                text: const TextSpan(
+                  children: [
+                     TextSpan(
+                      text: 'Aceitar Termo de Locação',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -291,8 +382,45 @@ class _ReservaScreenState extends State<ReservaScreen>
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Implementar salvamento da reserva
-              Navigator.pop(context);
+              // Parse dos horários
+              final inicioParts = _horaInicioController.text.split(':');
+              final fimParts = _horaFimController.text.split(':');
+
+              if (inicioParts.length != 2 || fimParts.length != 2) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Formato de hora inválido. Use HH:MM')),
+                );
+                return;
+              }
+
+              final horaInicio = int.tryParse(inicioParts[0]);
+              final minutoInicio = int.tryParse(inicioParts[1]);
+              final horaFim = int.tryParse(fimParts[0]);
+              final minutoFim = int.tryParse(fimParts[1]);
+
+              if (horaInicio == null || minutoInicio == null ||
+                  horaFim == null || minutoFim == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Horário inválido.')),
+                );
+                return;              
+              }
+
+              final dataBase = cubit.dataSelecionada;
+              final dataInicio = DateTime(
+                dataBase.year, dataBase.month, dataBase.day, horaInicio, minutoInicio);
+              final dataFim = DateTime(
+                dataBase.year, dataBase.month, dataBase.day, horaFim, minutoFim);
+
+              // Atualizar cubit com datas processadas
+              cubit.atualizarDataInicio(dataInicio);
+              cubit.atualizarDataFim(dataFim);
+
+              cubit.criarReserva(
+                condominioId: widget.condominioId,
+                usuarioId: widget.usuarioId,
+                termoLocacaoAceito: _termoLocacaoAceito,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[900],
@@ -384,6 +512,9 @@ class _ReservaScreenState extends State<ReservaScreen>
                 backgroundColor: Colors.green,
               ),
             );
+            Navigator.pop(context); // Fecha o modal se estiver aberto (e talvez a tela se não estiver)
+            // Precisamos garantir que fecha apenas o modal. 
+            // O modal é uma rota no Flutter, então pop deve funcionar.
           } else if (state is ReservaErro) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -578,7 +709,7 @@ class _ReservaScreenState extends State<ReservaScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Reservados - Dia ${cubit.dataSelecionada.day}/${cubit.dataSelecionada.month}/${cubit.dataSelecionada.year}',
+                    'Reservados - Dia ${DateFormat('dd/MM/yyyy').format(cubit.dataSelecionada)}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -587,6 +718,21 @@ class _ReservaScreenState extends State<ReservaScreen>
                   ),
                   GestureDetector(
                     onTap: () {
+                      final now = DateTime.now();
+                      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                      final selectedDate = DateTime(
+                          cubit.dataSelecionada.year,
+                          cubit.dataSelecionada.month,
+                          cubit.dataSelecionada.day);
+
+                      if (selectedDate.isBefore(tomorrow)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Reservas só podem ser feitas para dias futuros.')),
+                        );
+                        return;
+                      }
                       _showReservationModal(cubit.dataSelecionada, cubit);
                     },
                     child: Container(
@@ -669,45 +815,48 @@ class _ReservaScreenState extends State<ReservaScreen>
                             ),
                           ),
 
-                          // Para (Condomínio/Bloco/Unid)
-                          const SizedBox(height: 4),
-                          Text(
-                            'Para: ${reserva.para}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
+                          // Para (Responsável)
+                          if (reserva.para != 'Condomínio')
+                            Text(
+                              'Para: ${reserva.para}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
+                          const SizedBox(height: 12),
 
                           const SizedBox(height: 12),
 
-                          // Botão deletar
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  context.read<ReservaCubit>().cancelarReserva(reserva.id);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red[300],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'Deletar',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
+                            // Botão deletar
+                          if (reserva.representanteId == widget.usuarioId)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    context.read<ReservaCubit>().cancelarReserva(reserva.id);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[300],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'Deletar',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
                         ],
                       ),
                     );
@@ -898,13 +1047,19 @@ class _ReservaScreenState extends State<ReservaScreen>
       builder: (context, state) {
         final cubit = context.read<ReservaCubit>();
 
+        // Filtrar apenas as reservas do usuário logado (Inquilino ou Representante)
+        final minhasReservas = cubit.reservas.where((r) {
+          return r.inquilinoId == widget.usuarioId || 
+                 r.representanteId == widget.usuarioId;
+        }).toList();
+
         if (state is ReservaLoading && cubit.reservas.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(),
           );
         }
 
-        if (cubit.reservas.isEmpty) {
+        if (minhasReservas.isEmpty) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(16),
@@ -918,9 +1073,9 @@ class _ReservaScreenState extends State<ReservaScreen>
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: cubit.reservas.length,
+          itemCount: minhasReservas.length,
           itemBuilder: (context, index) {
-            final reserva = cubit.reservas[index];
+            final reserva = minhasReservas[index];
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
@@ -944,11 +1099,24 @@ class _ReservaScreenState extends State<ReservaScreen>
                       color: Colors.white,
                     ),
                   ),
+                  const SizedBox(height: 4),
+
+                  // Responsável (Para)
+                  if (reserva.para != 'Condomínio')
+                    Text(
+                      'Para: ${reserva.para}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+
                   const SizedBox(height: 8),
 
                   // Data
                   Text(
-                    'Data: ${reserva.dataReserva.day}/${reserva.dataReserva.month}/${reserva.dataReserva.year}',
+                    'Data: ${DateFormat('dd/MM/yyyy').format(reserva.dataReserva)}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.white70,

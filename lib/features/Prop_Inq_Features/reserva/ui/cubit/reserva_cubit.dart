@@ -106,8 +106,7 @@ class ReservaCubit extends Cubit<ReservaState> {
 
   /// Valida se o formulário está completo
   bool _validarFormulario() {
-    return _descricao.isNotEmpty &&
-        _ambienteSelecionado != null &&
+    return _ambienteSelecionado != null &&
         _dataInicio != null &&
         _dataFim != null &&
         _dataFim!.isAfter(_dataInicio!);
@@ -148,15 +147,28 @@ class ReservaCubit extends Cubit<ReservaState> {
     ));
   }
 
+
+
   /// Cria uma nova reserva
   Future<void> criarReserva({
     required String condominioId,
     required String usuarioId,
+    required bool termoLocacaoAceito,
   }) async {
-    // Validar
+    // Validar Campos Obrigatórios da UI
+    if (_ambienteSelecionado == null) {
+       emit(const ReservaErro(mensagem: 'Selecione um ambiente'));
+       return;
+    }
+    
+    if (!termoLocacaoAceito) {
+      emit(const ReservaErro(mensagem: 'É necessário aceitar os termos de locação'));
+      return;
+    }
+
     if (!_validarFormulario()) {
       emit(const ReservaErro(
-          mensagem: 'Por favor, preencha todos os campos'));
+          mensagem: 'Por favor, preencha todos os campos obrigatórios'));
       return;
     }
 
@@ -175,21 +187,35 @@ class ReservaCubit extends Cubit<ReservaState> {
         return;
       }
     } catch (e) {
-      emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e'));
-      return;
+      // emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e')); 
+      // Se der erro na validação, vamos tentar criar mesmo assim ou abordar diferente? 
+      // Vamos manter o fluxo de erro por segurança.
+       emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e'));
+       return;
     }
 
     // Carregando
     emit(const ReservaLoading());
 
     try {
+      // Assumindo que o usuário logado nessa tela é sempre o inquilino por enquanto.
+      // Futuramente isso pode vir de um parâmetro ou auth state.
+      final inquilinoId = usuarioId;
+
+      // Define o "local" como a descrição (se houver) ou o nome do ambiente
+      final localDefinido = _descricao.isNotEmpty 
+          ? _descricao 
+          : 'Reserva de ${_ambienteSelecionado!.nome}';
+
       final reserva = await criarReservaUseCase(
         condominioId: condominioId,
         ambienteId: _ambienteSelecionado!.id,
-        usuarioId: usuarioId,
-        descricao: _descricao,
+        inquilinoId: inquilinoId,
+        local: localDefinido,
         dataInicio: _dataInicio!,
         dataFim: _dataFim!,
+        valorLocacao: _ambienteSelecionado!.valor,
+        termoLocacao: termoLocacaoAceito,
       );
 
       _reservas.add(reserva);

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../models/documento.dart';
 import '../services/documento_service.dart';
+import '../services/supabase_service.dart';
 
 class PastaArquivosScreen extends StatefulWidget {
   final String nomePasta;
@@ -151,44 +152,45 @@ class _PastaArquivosScreenState extends State<PastaArquivosScreen> {
         return;
       }
 
-      final String pdfUrl = documento.url!;
-      final String fileName = documento.nome;
+      String pdfUrl = documento.url!;
 
-      // Na web, abrir a URL diretamente
-      if (kIsWeb) {
-        final Uri uri = Uri.parse(pdfUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Não foi possível abrir o PDF'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-        return;
+      // Gerar Signed URL para maior segurança (expira em 1 hora)
+      final signedUrl = await SupabaseService.getSignedDocumentUrl(
+        pdfUrl,
+        expiresIn: 3600, // 1 hora
+      );
+
+      // Usar a signed URL se conseguir gerar, senão usar a URL original
+      if (signedUrl != null) {
+        pdfUrl = signedUrl;
+        print('✅ Usando Signed URL para abrir PDF (Pasta Arquivos)');
+      } else {
+        print('⚠️ Usando URL pública (Signed URL não disponível)');
       }
 
-      // No mobile, fazer download como balancete (sem diálogo de progresso)
-      final filePath = await DocumentoService.downloadArquivo(pdfUrl, fileName);
-
-      if (filePath != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF baixado: $fileName'),
-            backgroundColor: Colors.green,
-          ),
+      // Abrir a URL diretamente no navegador (funciona tanto para web quanto mobile)
+      final Uri uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
         );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o PDF no navegador'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Erro ao baixar PDF: $e');
+      print('Erro ao abrir PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao baixar PDF: $e'),
+            content: Text('Erro ao abrir PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );

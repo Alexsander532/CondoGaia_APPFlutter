@@ -9,10 +9,13 @@ abstract class ReservaRepository {
   Future<ReservaEntity> criarReserva({
     required String condominioId,
     required String ambienteId,
-    required String usuarioId,
-    required String descricao,
+    String? representanteId,
+    String? inquilinoId,
+    required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
+    required double valorLocacao,
+    required bool termoLocacao,
   });
   Future<void> cancelarReserva(String reservaId);
 }
