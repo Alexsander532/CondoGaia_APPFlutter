@@ -588,7 +588,7 @@ class _DocumentosScreenState extends State<DocumentosScreen>
             });
           } else {
             // No mobile, criar File dinamicamente
-            final imageFile = (io.File as dynamic)(image.path);
+            final imageFile = io.File(image.path);
             setState(() {
               _imagensTemporarias.add(imageFile);
             });
@@ -663,12 +663,12 @@ class _DocumentosScreenState extends State<DocumentosScreen>
           // No mobile/desktop, usar caminho do arquivo
           if (result.files.single.path != null) {
             // Obter o arquivo original
-            final originalFile = (io.File as dynamic)(result.files.single.path!);
+            final originalFile = io.File(result.files.single.path!);
             
             // Verificar se o arquivo existe
             bool fileExists = false;
             try {
-              fileExists = await (originalFile as dynamic).exists();
+              fileExists = await originalFile.exists();
             } catch (e) {
               print('[DocumentosScreen] Não foi possível verificar existência: $e');
               fileExists = true; // Assumir que existe
@@ -689,24 +689,24 @@ class _DocumentosScreenState extends State<DocumentosScreen>
 
             // Copiar arquivo para diretório temporário da app (necessário no Android)
             final appDocDir = await getApplicationDocumentsDirectory();
-            final tempDir = (io.Directory as dynamic)('${appDocDir.path}/pdf_temporarios');
+            final tempDir = io.Directory('${appDocDir.path}/pdf_temporarios');
             
             bool tempDirExists = false;
             try {
-              tempDirExists = await (tempDir as dynamic).exists();
+              tempDirExists = await tempDir.exists();
             } catch (e) {
               tempDirExists = false;
             }
             
             if (!tempDirExists) {
-              await (tempDir as dynamic).create(recursive: true);
+              await tempDir.create(recursive: true);
             }
 
-            final copiedFile = (io.File as dynamic)('${(tempDir as dynamic).path}/$fileName');
+            final copiedFile = io.File('${tempDir.path}/$fileName');
             
             // Copiar conteúdo do arquivo
-            final bytes = await (originalFile as dynamic).readAsBytes();
-            await (copiedFile as dynamic).writeAsBytes(bytes);
+            final bytes = await originalFile.readAsBytes();
+            await copiedFile.writeAsBytes(bytes);
 
             print('[DocumentosScreen] PDF copiado com sucesso');
             print('[DocumentosScreen] Tamanho do arquivo: ${bytes.length} bytes');

@@ -808,6 +808,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
             );
           } else {
             // No mobile, converter para File
+            // No mobile, converter para File
             final imageFile = io.File(image.path);
             await DocumentoService.adicionarArquivoComUpload(
               nome: 'Foto_${DateTime.now().millisecondsSinceEpoch}.png',
@@ -900,6 +901,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
           // No mobile/desktop, usar caminho do arquivo
           if (result.files.single.path != null) {
             // Obter o arquivo original
+            // Obter o arquivo original
             final originalFile = io.File(result.files.single.path!);
             
             // Verificar se o arquivo existe
@@ -926,6 +928,7 @@ class _EditarDocumentosScreenState extends State<EditarDocumentosScreen> {
 
             // Copiar arquivo para diretório temporário (necessário no Android)
             final appDocDir = await getApplicationDocumentsDirectory();
+
             final tempDir = io.Directory('${appDocDir.path}/pdf_temporarios');
             
             bool tempDirExists = false;

@@ -264,7 +264,7 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
           } else {
             // No mobile, converter para File
             // Criar File dinâmico sem tipo explícito
-            final imageFile = (io.File as dynamic)(image.path);
+            final imageFile = io.File(image.path);
             setState(() {
               _imagensSelecionadas.add(imageFile);
             });
@@ -330,12 +330,12 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
           // No mobile/desktop, usar caminho do arquivo
           if (result.files.single.path != null) {
             // Criar File dinâmico sem tipo explícito
-            final originalFile = (io.File as dynamic)(result.files.single.path!);
+            final originalFile = io.File(result.files.single.path!);
             
             // Verificar se existe (apenas no mobile)
             bool fileExists = false;
             try {
-              fileExists = await (originalFile as dynamic).exists();
+              fileExists = await originalFile.exists();
             } catch (e) {
               print('[NovaPastaScreen] Não foi possível verificar existência do arquivo: $e');
               fileExists = true; // Assumir que existe
@@ -357,7 +357,7 @@ class _NovaPastaScreenState extends State<NovaPastaScreen> {
             print('[NovaPastaScreen] PDF selecionado no MOBILE: $fileName');
             print('[NovaPastaScreen] Tipo do arquivo: ${originalFile.runtimeType}');
             try {
-              print('[NovaPastaScreen] Caminho: ${(originalFile as dynamic).path}');
+              print('[NovaPastaScreen] Caminho: ${originalFile.path}');
             } catch (e) {
               print('[NovaPastaScreen] Não foi possível acessar path: $e');
             }
