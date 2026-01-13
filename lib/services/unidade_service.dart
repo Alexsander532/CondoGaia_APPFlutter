@@ -362,15 +362,28 @@ class UnidadeService {
   }
 
   /// Exclui um bloco e todas as suas unidades
+  /// Exclui um bloco e todas as suas unidades
   Future<bool> deletarBloco(String blocoId) async {
     try {
-      // Primeiro, exclui todas as unidades do bloco
+      // 1. Buscar dados do bloco para saber nome e condomínio
+      // Isso é necessário pois a tabela unidades usa o NOME do bloco, não o ID
+      final blockData = await _supabase
+          .from('blocos')
+          .select('nome, condominio_id')
+          .eq('id', blocoId)
+          .single();
+          
+      final nomeBloco = blockData['nome'] as String;
+      final condominioId = blockData['condominio_id'] as String;
+
+      // 2. Excluir unidades pelo nome do bloco e condomínio
       await _supabase
           .from('unidades')
           .delete()
-          .eq('bloco_id', blocoId);
+          .eq('condominio_id', condominioId)
+          .eq('bloco', nomeBloco);
 
-      // Depois, exclui o bloco
+      // 3. Excluir o bloco
       await _supabase
           .from('blocos')
           .delete()
@@ -379,7 +392,7 @@ class UnidadeService {
       return true;
     } catch (e) {
       print('Erro ao deletar bloco: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -394,7 +407,7 @@ class UnidadeService {
       return true;
     } catch (e) {
       print('Erro ao deletar unidade: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -428,6 +441,7 @@ class UnidadeService {
 
       // Converter para JSON e remover ID vazio (deixar banco gerar)
       final json = unidade.toJson();
+
       json.remove('id'); // Remove ID nulo para que o banco gere
 
       final response = await _supabase
