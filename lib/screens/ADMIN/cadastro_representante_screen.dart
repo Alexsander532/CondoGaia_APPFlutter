@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:condogaiaapp/services/supabase_service.dart';
 import 'package:condogaiaapp/models/cidade.dart';
 import 'package:condogaiaapp/widgets/cidade_dropdown.dart';
@@ -19,6 +20,7 @@ class _CadastroRepresentanteScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Timer? _debounce;
 
   // Lista de todos os estados brasileiros
   static const List<String> _estadosBrasileiros = [
@@ -151,6 +153,7 @@ class _CadastroRepresentanteScreenState
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _tabController.dispose();
     _nomeCompletoController.dispose();
     _cpfController.dispose();
@@ -281,13 +284,25 @@ class _CadastroRepresentanteScreenState
   List<Map<String, dynamic>> _deduplicarResultados(
       List<Map<String, dynamic>> resultados) {
     final condominiosVistos = <String>{};
+    final representantesSemCondominioVistos = <String>{};
     final resultadosDeduplic = <Map<String, dynamic>>[];
 
     for (final resultado in resultados) {
       final condominioId = resultado['condominio_id'] as String?;
-      if (condominioId != null && !condominiosVistos.contains(condominioId)) {
-        condominiosVistos.add(condominioId);
-        resultadosDeduplic.add(resultado);
+      
+      if (condominioId != null) {
+        // Se tem condomínio, deduplica pelo ID do condomínio
+        if (!condominiosVistos.contains(condominioId)) {
+          condominiosVistos.add(condominioId);
+          resultadosDeduplic.add(resultado);
+        }
+      } else {
+        // Se não tem condomínio, é um representante solto. Deduplica pelo ID do representante
+        final representanteId = resultado['representante_id_associado'] as String?;
+        if (representanteId != null && !representantesSemCondominioVistos.contains(representanteId)) {
+          representantesSemCondominioVistos.add(representanteId);
+          resultadosDeduplic.add(resultado);
+        }
       }
     }
 
@@ -664,6 +679,12 @@ class _CadastroRepresentanteScreenState
                   ),
                   child: TextField(
                     controller: _pesquisaController,
+                    onChanged: (value) {
+                      if (_debounce?.isActive ?? false) _debounce!.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 500), () {
+                        _realizarPesquisa();
+                      });
+                    },
                     decoration: InputDecoration(
                       hintText: 'Pesquisar condomínio ou representante',
                       hintStyle: TextStyle(
@@ -2206,17 +2227,18 @@ class _CadastroRepresentanteScreenState
                 ),
               ),
               const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.business, color: Color(0xFF1E3A8A)),
-                title: const Text(
-                  'Editar Condomínio',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              if (resultado['condominio_id'] != null)
+                ListTile(
+                  leading: const Icon(Icons.business, color: Color(0xFF1E3A8A)),
+                  title: const Text(
+                    'Editar Condomínio',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditCondominioModal(context, resultado);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showEditCondominioModal(context, resultado);
-                },
-              ),
               ListTile(
                 leading: const Icon(Icons.person, color: Color(0xFF1E3A8A)),
                 title: const Text(
@@ -3226,7 +3248,9 @@ class _CadastroRepresentanteScreenState
     print('🏢 SELETOR DE CONDOMÍNIOS: ${condominiosSelecionados.length} selecionados');
     
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: SupabaseService.getCondominiosDisponiveis(),
+      future: representanteId != null
+          ? SupabaseService.getCondominiosDisponiveisParaRepresentante(representanteId)
+          : SupabaseService.getCondominiosDisponiveis(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -3237,7 +3261,7 @@ class _CadastroRepresentanteScreenState
         }
         
         final condominiosDisponiveis = snapshot.data ?? [];
-        print('✅ Carregados ${condominiosDisponiveis.length} condomínios DISPONÍVEIS (sem representante)');
+        print('✅ Carregados ${condominiosDisponiveis.length} condomínios para seleção');
         
         if (condominiosDisponiveis.isEmpty) {
           return Container(
@@ -3715,21 +3739,22 @@ class _CadastroRepresentanteScreenState
                 ),
               ),
               const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.business, color: Colors.red),
-                title: const Text(
-                  'Excluir Condomínio',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              if (resultado['condominio_id'] != null)
+                ListTile(
+                  leading: const Icon(Icons.business, color: Colors.red),
+                  title: const Text(
+                    'Excluir Condomínio',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text(
+                    'Remove o condomínio e atualiza representantes',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmarExclusaoCondominio(context, resultado);
+                  },
                 ),
-                subtitle: const Text(
-                  'Remove o condomínio e atualiza representantes',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmarExclusaoCondominio(context, resultado);
-                },
-              ),
               ListTile(
                 leading: const Icon(Icons.person, color: Colors.red),
                 title: const Text(

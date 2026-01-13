@@ -406,12 +406,14 @@ class SupabaseService {
         query = query.eq('cidade', cidade);
       }
 
+      /* REMOVED SQL FILTER TO ALLOW SEARCHING BY CONDO NAME IN MEMORY
       if (textoPesquisa != null && textoPesquisa.isNotEmpty) {
         query = query.or(
           'nome_completo.ilike.%$textoPesquisa%,'
           'cpf.ilike.%$textoPesquisa%',
         );
       }
+      */
 
       final representantes = await query.order('created_at', ascending: false);
       print('✅ Encontrados ${representantes.length} representantes');
@@ -449,9 +451,30 @@ class SupabaseService {
 
         print('👤 Representante ${representante['nome_completo']} (${representante['id']}): ${condominiosDoRepresentante.length} condomínios');
 
-        // Pular representantes sem condomínios
+        // Se não tiver condomínios, adicionar entrada apenas com dados do representante
         if (condominiosDoRepresentante.isEmpty) {
-          print('  ⏭️ Pulando ${representante['nome_completo']} (sem condomínios)');
+          print('  ⚠️ ${representante['nome_completo']} não tem condomínios associados. Adicionando à lista.');
+          
+          final resultado = Map<String, dynamic>.from(representante);
+          resultado.remove('condominios_selecionados');
+          
+          // Define campos de condomínio como nulos ou texto indicativo
+          resultado['condominio_id'] = null;
+          resultado['nome_condominio'] = 'Sem condomínio associado';
+          resultado['cnpj'] = '-';
+          resultado['condominio_cidade'] = representante['cidade']; // Mostra a cidade do representante
+          resultado['condominio_estado'] = representante['uf'];     // Mostra o UF do representante
+          
+          // O representante associado é o próprio
+          resultado['representante_associado'] = representante['nome_completo'];
+          resultado['representante_id_associado'] = representante['id'];
+          
+          // Aplica filtro de texto se necessário
+          if (textoPesquisa == null ||
+              textoPesquisa.isEmpty ||
+              _contemTexto(resultado, textoPesquisa)) {
+            resultados.add(resultado);
+          }
           continue;
         }
         
