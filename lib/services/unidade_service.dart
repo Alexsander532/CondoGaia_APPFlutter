@@ -43,41 +43,119 @@ class UnidadeService {
   // =====================================================
 
   /// Lista todas as unidades de um condomínio organizadas por bloco
-  /// Usa a função listar_unidades_condominio do banco
+  /// Busca manual e agrupa localmente para robustez contra dados inconsistentes
   Future<List<BlocoComUnidades>> listarUnidadesCondominio(String condominioId) async {
     try {
-      print('🔍 [UnidadeService] Iniciando listarUnidadesCondominio');
+      print('🔍 [UnidadeService] Iniciando listarUnidadesCondominio (Manual)');
       print('🔍 [UnidadeService] condominioId: $condominioId');
       
-      final response = await _supabase.rpc('listar_unidades_condominio', params: {
-        'p_condominio_id': condominioId,
-      });
-
-      print('🔍 [UnidadeService] Response recebido: ${response.runtimeType}');
-      print('🔍 [UnidadeService] Response é null: ${response == null}');
+      // 1. Buscar todas as unidades (ignora RPC para evitar problemas de JOIN)
+      final responseUnidades = await _supabase
+          .from('unidades')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('ativo', true);
+          
+      final unidades = (responseUnidades as List).map((e) => Unidade.fromJson(e)).toList();
+      print('✅ [UnidadeService] Unidades recuperadas: ${unidades.length}');
       
-      if (response == null) {
-        print('⚠️  [UnidadeService] Response é null, retornando lista vazia');
-        return [];
+      if (unidades.isEmpty) return [];
+      
+      // 2. Buscar todos os blocos
+      final responseBlocos = await _supabase
+          .from('blocos')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('ativo', true)
+          .order('ordem');
+          
+      final blocosDb = (responseBlocos as List).map((e) => Bloco.fromJson(e)).toList();
+      print('✅ [UnidadeService] Blocos recuperados do banco: ${blocosDb.length}');
+      
+      // 3. Agrupar unidades por nome de bloco
+      final Map<String, List<Unidade>> mapaUnidadesPorBloco = {};
+      
+      for (var u in unidades) {
+        // Tenta garantir que nomeBloco não seja nulo
+        final nomeBloco = u.bloco != null && u.bloco!.trim().isNotEmpty
+            ? u.bloco!.trim()
+            : 'Sem Bloco';
+            
+        if (!mapaUnidadesPorBloco.containsKey(nomeBloco)) {
+          mapaUnidadesPorBloco[nomeBloco] = [];
+        }
+        mapaUnidadesPorBloco[nomeBloco]!.add(u);
       }
-
-      print('🔍 [UnidadeService] Response value: $response');
       
-      final List<dynamic> data = response as List<dynamic>;
-      print('📊 [UnidadeService] Quantidade de blocos na resposta: ${data.length}');
+      final resultado = <BlocoComUnidades>[];
       
-      final resultado = data.map((item) {
-        print('🔍 [UnidadeService] Processando item: $item');
-        return BlocoComUnidades.fromJson(item);
-      }).toList();
+      // 4. Associar com blocos existentes no banco
+      for (var b in blocosDb) {
+        final unidadesDoBloco = mapaUnidadesPorBloco[b.nome] ?? [];
+        // Remove do mapa para saber quais sobraram (blocos "órfãos" não cadastrados)
+        mapaUnidadesPorBloco.remove(b.nome);
+        
+        resultado.add(BlocoComUnidades(
+          bloco: b,
+          unidades: unidadesDoBloco..sort((a,b) => _compareUnidades(a.numero, b.numero)),
+        ));
+      }
       
-      print('✅ [UnidadeService] Total de blocos processados: ${resultado.length}');
+      // 5. Tratar blocos que não estão no banco (órfãos)
+      if (mapaUnidadesPorBloco.isNotEmpty) {
+        print('⚠️ [UnidadeService] Encontrados ${mapaUnidadesPorBloco.length} blocos virtuais (não cadastrados)');
+        
+        mapaUnidadesPorBloco.forEach((nomeBloco, listaUnidades) {
+          print('   Bloco virtual: "$nomeBloco" com ${listaUnidades.length} unidades');
+          resultado.add(BlocoComUnidades(
+            bloco: Bloco(
+              id: 'virtual_${DateTime.now().microsecondsSinceEpoch}',
+              nome: nomeBloco,
+              condominioId: condominioId,
+              codigo: nomeBloco,
+              ordem: 999, // Ficam no final
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+            unidades: listaUnidades..sort((a,b) => _compareUnidades(a.numero, b.numero)),
+          ));
+        });
+      }
+      
+      // Ordenar resultado final: blocos reais por ordem, depois virtuais
+      resultado.sort((a,b) {
+        final ordemA = a.bloco.ordem;
+        final ordemB = b.bloco.ordem;
+        return ordemA.compareTo(ordemB);
+      });
+      
+      print('✅ [UnidadeService] Total de blocos processados (Reais + Virtuais): ${resultado.length}');
       return resultado;
+      
     } catch (e, stackTrace) {
-      print('❌ [UnidadeService] ERRO: $e');
+      print('❌ [UnidadeService] ERRO ao listar manualmente: $e');
       print('📋 [UnidadeService] Stack trace: $stackTrace');
       throw Exception('Erro ao listar unidades: $e');
     }
+  }
+
+  /// Helper para ordenação natural de números (ex: 1, 2, 10 vem depois de 2, não de 1)
+  int _compareUnidades(String a, String b) {
+     // Tentar extrair números para comparação
+     final intA = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), ''));
+     final intB = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), ''));
+     
+     // Se ambos têm números, compara os números
+     if (intA != null && intB != null) {
+       // Se os números são iguais, compara a string completa para desempate (ex: 10A vs 10B)
+       if (intA == intB) {
+         return a.compareTo(b);
+       }
+       return intA.compareTo(intB);
+     }
+     
+     // Fallback para comparação de string simples
+     return a.compareTo(b);
   }
 
   /// Busca dados completos de uma unidade específica

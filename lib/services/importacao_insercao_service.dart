@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'qr_code_generation_service.dart';
 
 /// Resultado de uma operação de inserção
 class ResultadoInsercao {
@@ -26,6 +27,69 @@ class ResultadoInsercao {
 class ImportacaoInsercaoService {
   static SupabaseClient get _client => Supabase.instance.client;
 
+  /// Busca bloco existente ou cria um novo
+  static Future<void> buscarOuCriarBloco(String nomeBloco, String condominioId) async {
+    try {
+      // 1. Tentar buscar bloco existente
+      final existente = await _client
+          .from('blocos')
+          .select('id')
+          .eq('nome', nomeBloco)
+          .eq('condominio_id', condominioId)
+          .limit(1)
+          .maybeSingle();
+
+      if (existente != null) {
+        print('✅ Bloco "$nomeBloco" já existe: ${existente['id']}');
+        return;
+      }
+
+      // 2. Criar novo bloco
+      print('📝 Bloco "$nomeBloco" não encontrado, criando novo...');
+      
+      // Obter próxima ordem (simplificado, pode ser otimizado)
+      // Aqui apenas inserimos, assumindo que ordem pode ser nula ou default,
+      // ou se necessário, buscamos max ordem.
+      // Para simplificar, vou deixar ordem como 0 ou sequencial simples se o banco permitir.
+      // Se 'ordem' for obrigatório, preciso calcular.
+      
+      // Consultar maior ordem atual
+      final maxOrdemResult = await _client
+          .from('blocos')
+          .select('ordem')
+          .eq('condominio_id', condominioId)
+          .order('ordem', ascending: false)
+          .limit(1)
+          .maybeSingle();
+          
+      final proximaOrdem = (maxOrdemResult != null && maxOrdemResult['ordem'] != null)
+          ? (maxOrdemResult['ordem'] as int) + 1
+          : 1;
+
+      final novoBloco = {
+        'nome': nomeBloco,
+        'condominio_id': condominioId,
+        'ordem': proximaOrdem,
+        'ativo': true,
+      };
+
+      final response = await _client
+          .from('blocos')
+          .insert(novoBloco)
+          .select('id')
+          .single();
+
+      print('✅ Bloco "$nomeBloco" criado com sucesso: ${response['id']}');
+
+    } catch (e) {
+      print('❌ Erro ao buscar/criar bloco "$nomeBloco": $e');
+      // Não lançar erro para não parar a importação da unidade, 
+      // mas logar. Se o bloco for obrigatório, a query da unidade pode falhar depois 
+      // dependendo de como o backend funciona, mas aqui apenas tentamos garantir.
+      throw e; // Lançar para parar se for crítico
+    }
+  }
+
   /// Busca unidade existente ou cria uma nova
   /// Retorna o ID da unidade (novo ou existente)
   static Future<ResultadoInsercao> buscarOuCriarUnidade(
@@ -34,18 +98,22 @@ class ImportacaoInsercaoService {
     try {
       final numero = dadosUnidade['numero'] as String;
       final condominioId = dadosUnidade['condominio_id'] as String;
+      final bloco = dadosUnidade['bloco'] as String? ?? ''; // ✅ NOVO: Considerar bloco
       final linhaNumero = dadosUnidade['_linhaNumero'] as int?;
 
-      // 1. Tentar buscar unidade existente
+      print('🔍 Buscando unidade: numero="$numero", bloco="$bloco", condominio="$condominioId"');
+
+      // 1. Tentar buscar unidade existente (agora considerando bloco!)
       try {
         final existente = await _client
             .from('unidades')
             .select('id')
             .eq('numero', numero)
             .eq('condominio_id', condominioId)
+            .eq('bloco', bloco) // ✅ CORREÇÃO: Filtrar também por bloco
             .single();
 
-        print('✅ Unidade existente encontrada: ${existente['id']}');
+        print('✅ Unidade existente encontrada: ${existente['id']} (bloco=$bloco)');
         return ResultadoInsercao(
           sucesso: true,
           id: existente['id'] as String,
@@ -54,7 +122,7 @@ class ImportacaoInsercaoService {
       } on PostgrestException catch (e) {
         if (e.code == 'PGRST116') {
           // Não encontrado, vamos criar
-          print('📝 Unidade não encontrada, criando nova...');
+          print('📝 Unidade "$numero" (bloco="$bloco") não encontrada, criando nova...');
         } else {
           throw e;
         }
@@ -131,6 +199,16 @@ class ImportacaoInsercaoService {
       final proprietarioId = response['id'] as String;
       print('✅ Proprietário inserido com sucesso: $proprietarioId');
 
+      // ✅ Gerar QR Code em background (não bloqueia)
+      _gerarQRCodeProprietarioBackground(
+        proprietarioId,
+        dados['nome'] as String? ?? 'Proprietario',
+        dados['cpf_cnpj'] as String? ?? '',
+        dados['email'] as String?,
+        dados['celular'] as String? ?? dados['telefone'] as String?,
+        dados['condominio_id'] as String? ?? '',
+      );
+
       return ResultadoInsercao(
         sucesso: true,
         id: proprietarioId,
@@ -144,6 +222,40 @@ class ImportacaoInsercaoService {
         linhaNumero: dadosProprietario['_linhaNumero'] as int?,
       );
     }
+  }
+
+  /// Gera QR code para proprietário em background
+  static void _gerarQRCodeProprietarioBackground(
+    String proprietarioId,
+    String nome,
+    String cpfCnpj,
+    String? email,
+    String? telefone,
+    String condominioId,
+  ) {
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      try {
+        print('🔄 [Import] Gerando QR Code para proprietário: $nome');
+        await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+          tipo: 'proprietario',
+          id: proprietarioId,
+          nome: nome,
+          tabelaNome: 'proprietarios',
+          dados: {
+            'id': proprietarioId,
+            'nome': nome,
+            'cpf': cpfCnpj.length >= 4 ? cpfCnpj.substring(cpfCnpj.length - 4) : cpfCnpj,
+            'email': email ?? '',
+            'telefone': telefone ?? '',
+            'condominio_id': condominioId,
+            'data_criacao': DateTime.now().toIso8601String(),
+          },
+        );
+        print('✅ [Import] QR Code gerado para proprietário: $nome');
+      } catch (e) {
+        print('❌ [Import] Erro ao gerar QR Code proprietário: $e');
+      }
+    });
   }
 
   /// Insere um inquilino (opcional)
@@ -173,6 +285,16 @@ class ImportacaoInsercaoService {
       final inquilinoId = response['id'] as String;
       print('✅ Inquilino inserido com sucesso: $inquilinoId');
 
+      // ✅ Gerar QR Code em background (não bloqueia)
+      _gerarQRCodeInquilinoBackground(
+        inquilinoId,
+        dados['nome'] as String? ?? 'Inquilino',
+        dados['cpf_cnpj'] as String? ?? '',
+        dados['email'] as String?,
+        dados['celular'] as String? ?? dados['telefone'] as String?,
+        dados['condominio_id'] as String? ?? '',
+      );
+
       return ResultadoInsercao(
         sucesso: true,
         id: inquilinoId,
@@ -186,6 +308,40 @@ class ImportacaoInsercaoService {
         linhaNumero: dadosInquilino['_linhaNumero'] as int?,
       );
     }
+  }
+
+  /// Gera QR code para inquilino em background
+  static void _gerarQRCodeInquilinoBackground(
+    String inquilinoId,
+    String nome,
+    String cpfCnpj,
+    String? email,
+    String? telefone,
+    String condominioId,
+  ) {
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      try {
+        print('🔄 [Import] Gerando QR Code para inquilino: $nome');
+        await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+          tipo: 'inquilino',
+          id: inquilinoId,
+          nome: nome,
+          tabelaNome: 'inquilinos',
+          dados: {
+            'id': inquilinoId,
+            'nome': nome,
+            'cpf': cpfCnpj.length >= 4 ? cpfCnpj.substring(cpfCnpj.length - 4) : cpfCnpj,
+            'email': email ?? '',
+            'telefone': telefone ?? '',
+            'condominio_id': condominioId,
+            'data_criacao': DateTime.now().toIso8601String(),
+          },
+        );
+        print('✅ [Import] QR Code gerado para inquilino: $nome');
+      } catch (e) {
+        print('❌ [Import] Erro ao gerar QR Code inquilino: $e');
+      }
+    });
   }
 
   /// Insere uma imobiliária (opcional)
@@ -274,6 +430,15 @@ class ImportacaoInsercaoService {
       print('\n═══════════════════════════════════════════════════');
       print('📊 PROCESSANDO LINHA $linhaNumero');
       print('═══════════════════════════════════════════════════');
+
+      // 0. Garantir que o bloco existe (se informado)
+      final nomeBloco = unidadeDados['bloco'] as String?;
+      final condominioId = unidadeDados['condominio_id'] as String;
+      
+      if (nomeBloco != null && nomeBloco.isNotEmpty) {
+        print('\n0️⃣  Verificando BLOCO "$nomeBloco"...');
+        await buscarOuCriarBloco(nomeBloco, condominioId);
+      }
 
       // 1. Buscar ou criar unidade
       print('\n1️⃣  Processando UNIDADE...');

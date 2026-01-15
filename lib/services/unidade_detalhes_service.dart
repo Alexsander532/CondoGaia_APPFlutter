@@ -135,10 +135,17 @@ class UnidadeDetalhesService {
     required Map<String, dynamic> dados,
   }) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('proprietarios')
           .update(dados)
-          .eq('id', proprietarioId);
+          .eq('id', proprietarioId)
+          .select()
+          .single();
+      
+      // ✅ Regenerar QR Code com os novos dados
+      final proprietarioAtualizado = Proprietario.fromJson(response);
+      _gerarQRCodeProprietarioAsync(proprietarioAtualizado, proprietarioAtualizado.cpfCnpj);
+      
     } catch (e) {
       throw Exception('Erro ao atualizar proprietário: $e');
     }
@@ -234,10 +241,17 @@ class UnidadeDetalhesService {
     required Map<String, dynamic> dados,
   }) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('inquilinos')
           .update(dados)
-          .eq('id', inquilinoId);
+          .eq('id', inquilinoId)
+          .select()
+          .single();
+      
+      // ✅ Regenerar QR Code com os novos dados
+      final inquilinoAtualizado = Inquilino.fromJson(response);
+      _gerarQRCodeInquilinoAsync(inquilinoAtualizado, inquilinoAtualizado.cpfCnpj);
+      
     } catch (e) {
       throw Exception('Erro ao atualizar inquilino: $e');
     }
@@ -312,10 +326,17 @@ class UnidadeDetalhesService {
     required Map<String, dynamic> dados,
   }) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('imobiliarias')
           .update(dados)
-          .eq('id', imobiliariaId);
+          .eq('id', imobiliariaId)
+          .select()
+          .single();
+      
+      // ✅ Regenerar QR Code com os novos dados
+      final imobiliariaAtualizada = Imobiliaria.fromJson(response);
+      _gerarQRCodeImobiliariaAsync(imobiliariaAtualizada, imobiliariaAtualizada.cnpj);
+      
     } catch (e) {
       throw Exception('Erro ao atualizar imobiliária: $e');
     }

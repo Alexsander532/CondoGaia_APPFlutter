@@ -709,12 +709,51 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
     );
   }
 
-  /// Passo 3: Preview com validações
+  /// Passo 3: Preview DETALHADO com validações e resumo estrutural
   Widget _buildPasso3Preview() {
+    // Processar dados para estatísticas
+    final blocosIdentificados = <String>{};
+    final unidadesPorBloco = <String, List<String>>{};
+    final cpfsProprietarios = <String>{};
+    final nomesProprietarios = <String, String>{};
+    int totalInquilinos = 0;
+    int totalImobiliarias = 0;
+
+    for (var row in _rowsValidas) {
+      final nomeBloco = (row.bloco != null && row.bloco!.isNotEmpty) 
+          ? row.bloco! 
+          : 'Sem Bloco';
+      
+      blocosIdentificados.add(nomeBloco);
+      
+      if (!unidadesPorBloco.containsKey(nomeBloco)) {
+        unidadesPorBloco[nomeBloco] = [];
+      }
+      if (row.unidade != null) {
+        unidadesPorBloco[nomeBloco]!.add(row.unidade!);
+      }
+
+      if (row.proprietarioCpf != null) {
+        cpfsProprietarios.add(row.proprietarioCpf!);
+        nomesProprietarios[row.proprietarioCpf!] = row.proprietarioNomeCompleto ?? '';
+      }
+
+      if (row.inquilinoNomeCompleto != null && row.inquilinoNomeCompleto!.isNotEmpty) {
+        totalInquilinos++;
+      }
+
+      if (row.nomeImobiliaria != null && row.nomeImobiliaria!.isNotEmpty) {
+        totalImobiliarias++;
+      }
+    }
+
+    final blocosOrdenados = blocosIdentificados.toList()..sort();
+
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header section
+          // Header
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             decoration: BoxDecoration(
@@ -735,7 +774,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
-                    Icons.preview,
+                    Icons.analytics_outlined,
                     color: Color(0xFF4A90E2),
                     size: 24,
                   ),
@@ -746,14 +785,14 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Visualizar Dados',
+                        'Resultado da Validação',
                         style: Theme.of(context).textTheme.titleMedium!.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Revise os dados antes de confirmar',
+                        'Confira os dados identificados na planilha',
                         style: Theme.of(context).textTheme.bodySmall!.copyWith(
                               color: Colors.grey[600],
                             ),
@@ -765,269 +804,504 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
             ),
           ),
 
-          // Summary Statistics
+          // ════════════════════════════════════════════════════════════════
+          // SEÇÃO 1: CARDS DE ESTATÍSTICAS PRINCIPAIS
+          // ════════════════════════════════════════════════════════════════
           Padding(
             padding: const EdgeInsets.all(20),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90E2).withOpacity(0.06),
-                border: Border.all(
-                  color: const Color(0xFF4A90E2).withOpacity(0.3),
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey[200]!),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatsRow(
-                    label: 'Total de linhas:',
-                    value: '${_rowsValidadas?.length ?? 0}',
-                    isHighlight: false,
+                  Row(
+                    children: [
+                      Icon(Icons.pie_chart_outline, color: Colors.grey[700], size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Resumo da Planilha',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: const Color(0xFF4A90E2).withOpacity(0.1),
-                    ),
+                  const SizedBox(height: 20),
+                  
+                  // Cards de estatísticas
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.home_work,
+                          color: Colors.blue,
+                          label: 'Unidades',
+                          value: '${_rowsValidas.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.view_module,
+                          color: Colors.orange,
+                          label: 'Blocos',
+                          value: '${blocosIdentificados.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.person,
+                          color: Colors.green,
+                          label: 'Proprietários',
+                          value: '${cpfsProprietarios.length}',
+                        ),
+                      ),
+                    ],
                   ),
-                  _buildStatsRow(
-                    label: '✅ Linhas válidas:',
-                    value: '${_rowsValidas.length}',
-                    isHighlight: true,
-                    color: Colors.green,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: const Color(0xFF4A90E2).withOpacity(0.1),
-                    ),
-                  ),
-                  _buildStatsRow(
-                    label: '❌ Linhas com erro:',
-                    value: '${_rowsComErro.length}',
-                    isHighlight: true,
-                    color: Colors.red,
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.people,
+                          color: Colors.purple,
+                          label: 'Inquilinos',
+                          value: '$totalInquilinos',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.business,
+                          color: Colors.teal,
+                          label: 'Imobiliárias',
+                          value: '$totalImobiliarias',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: _rowsComErro.isEmpty ? Icons.check_circle : Icons.error,
+                          color: _rowsComErro.isEmpty ? Colors.green : Colors.red,
+                          label: 'Erros',
+                          value: '${_rowsComErro.length}',
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
 
-          // Preview das primeiras 4 linhas
-          if ((_rowsValidadas?.isNotEmpty ?? false)) ...[
+          // ════════════════════════════════════════════════════════════════
+          // SEÇÃO 2: ESTRUTURA DOS BLOCOS E UNIDADES
+          // ════════════════════════════════════════════════════════════════
+          if (blocosOrdenados.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Preview dos Dados',
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                          color: Colors.grey[800],
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-              child: Column(
-                children: List.generate(
-                  (_rowsValidadas!.length > 4 ? 4 : _rowsValidadas!.length),
-                  (index) {
-                    final row = _rowsValidadas![index];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: row.temErros ? Colors.red[100] : Colors.blue[100],
-                        border: Border.all(
-                          color: row.temErros ? Colors.red[400]! : Colors.blue[400]!,
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Linha ${row.linhaNumero}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: row.temErros ? Colors.red : Colors.blue,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              if (row.temErros)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red[100],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    '❌ Com erro',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    '✅ Válida',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ..._buildRowPreviewFields(row),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            if (_rowsValidadas!.length > 4)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Text(
-                  '+ ${_rowsValidadas!.length - 4} mais linhas',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-          ],
-
-          // Errors section (if any)
-          if (_rowsComErro.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '❌ Erros Encontrados',
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-              child: Column(
-                children: _rowsComErro.map((row) {
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      border: Border.all(color: Colors.red[200]!),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Linha ${row.linhaNumero}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ...row.errosValidacao.map(
-                          (erro) => Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Text(
-                              '• ${erro.replaceFirst('Linha ${row.linhaNumero}: ', '')}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.red[700],
-                              ),
+                  Row(
+                    children: [
+                      Icon(Icons.apartment, color: Colors.blue[700], size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Estrutura do Condomínio',
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              color: Colors.grey[800],
+                              fontWeight: FontWeight.w600,
                             ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[100]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[700], size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Estes blocos e unidades serão criados automaticamente no condomínio.',
+                            style: TextStyle(fontSize: 13, color: Colors.blue[900]),
                           ),
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Lista de blocos
+                  ...blocosOrdenados.map((bloco) {
+                    final unidades = unidadesPorBloco[bloco] ?? [];
+                    unidades.sort();
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ExpansionTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              bloco.substring(0, 1).toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, 
+                                color: Colors.blue[700],
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          'Bloco $bloco',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                        subtitle: Text(
+                          '${unidades.length} unidade${unidades.length != 1 ? 's' : ''}',
+                          style: TextStyle(color: Colors.green[700], fontSize: 13),
+                        ),
+                        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: unidades.map((u) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: Text(
+                                  u,
+                                  style: TextStyle(fontSize: 13, color: Colors.grey[800], fontWeight: FontWeight.w500),
+                                ),
+                              )).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
               ),
             ),
-          ] else ...[
+            const SizedBox(height: 24),
+          ],
+
+          // ════════════════════════════════════════════════════════════════
+          // SEÇÃO 3: LISTA DE PROPRIETÁRIOS ÚNICOS
+          // ════════════════════════════════════════════════════════════════
+          if (cpfsProprietarios.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.people_alt, color: Colors.green[700], size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Proprietários Identificados (${cpfsProprietarios.length})',
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              color: Colors.grey[800],
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      children: cpfsProprietarios.take(5).map((cpf) {
+                        final nome = nomesProprietarios[cpf] ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.green[100],
+                                child: Icon(Icons.person, size: 18, color: Colors.green[700]),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      nome.isNotEmpty ? nome : '(Nome não informado)',
+                                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      cpf,
+                                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  if (cpfsProprietarios.length > 5)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '+ ${cpfsProprietarios.length - 5} proprietário(s) adicional(is)',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // ════════════════════════════════════════════════════════════════
+          // SEÇÃO 4: ERROS ENCONTRADOS (se houver)
+          // ════════════════════════════════════════════════════════════════
+          if (_rowsComErro.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red[700], size: 24),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${_rowsComErro.length} linha(s) com problema(s)',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red[800],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Estas linhas NÃO serão importadas. Corrija os erros na planilha ou prossiga sem elas.',
+                          style: TextStyle(fontSize: 13, color: Colors.red[700]),
+                        ),
+                        const SizedBox(height: 16),
+                        ..._rowsComErro.map((row) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red[300]!),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red[100],
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Linha ${row.linhaNumero}',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.red[800]),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Bloco ${row.bloco ?? "-"} | Unidade ${row.unidade ?? "-"}',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ...row.errosValidacao.map((erro) => Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('• ', style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold)),
+                                      Expanded(
+                                        child: Text(
+                                          erro.replaceFirst('Linha ${row.linhaNumero}: ', ''),
+                                          style: TextStyle(fontSize: 12, color: Colors.red[700]),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ] else ...[
+            // Sucesso total
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        size: 56,
-                        color: Colors.green,
-                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 24),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '✅ Dados Validados!',
-                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Todos os dados estão válidos!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[800],
+                            ),
                           ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Todas as ${_rowsValidas.length} linhas estão válidas',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_rowsValidas.length} linha(s) pronta(s) para importação.',
+                            style: TextStyle(fontSize: 13, color: Colors.green[700]),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 24),
           ],
           
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  /// Card de estatística para o passo 3
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -1122,18 +1396,52 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
     );
   }
 
-  /// Passo 4: Confirmação
+  /// Passo 4: Confirmação DETALHADA - O que será criado
   Widget _buildPasso4Confirmacao() {
+    // Calcular estatísticas para exibição
+    final blocosIdentificados = <String>{};
+    final unidadesPorBloco = <String, List<String>>{};
+    final cpfsProprietarios = <String>{};
+    final cpfsInquilinos = <String>{};
+    final imobiliarias = <String>{};
+
+    for (var row in _rowsValidas) {
+      final nomeBloco = (row.bloco != null && row.bloco!.isNotEmpty) 
+          ? row.bloco! 
+          : 'Sem Bloco';
+      
+      blocosIdentificados.add(nomeBloco);
+      
+      if (!unidadesPorBloco.containsKey(nomeBloco)) {
+        unidadesPorBloco[nomeBloco] = [];
+      }
+      if (row.unidade != null) {
+        unidadesPorBloco[nomeBloco]!.add(row.unidade!);
+      }
+
+      if (row.proprietarioCpf != null) {
+        cpfsProprietarios.add(row.proprietarioCpf!);
+      }
+
+      if (row.inquilinoCpf != null) {
+        cpfsInquilinos.add(row.inquilinoCpf!);
+      }
+
+      if (row.nomeImobiliaria != null && row.nomeImobiliaria!.isNotEmpty) {
+        imobiliarias.add(row.nomeImobiliaria!);
+      }
+    }
+
     return Column(
       children: [
         // Header section
         Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF4A90E2).withOpacity(0.08),
+            color: Colors.green.withOpacity(0.08),
             border: Border(
               bottom: BorderSide(
-                color: const Color(0xFF4A90E2).withOpacity(0.2),
+                color: Colors.green.withOpacity(0.2),
                 width: 1,
               ),
             ),
@@ -1143,12 +1451,12 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.15),
+                  color: Colors.green.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
-                  Icons.done_outline,
-                  color: Color(0xFF4A90E2),
+                  Icons.playlist_add_check,
+                  color: Colors.green,
                   size: 24,
                 ),
               ),
@@ -1158,14 +1466,15 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Confirmar Importação',
+                      'Pronto para Importar',
                       style: Theme.of(context).textTheme.titleMedium!.copyWith(
                             fontWeight: FontWeight.w600,
+                            color: Colors.green[800],
                           ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Revise os detalhes antes de prosseguir',
+                      'Confira o que será criado no sistema',
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -1182,176 +1491,278 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon
+                // ═══════════════════════════════════════════════════════════
+                // CARD: DESTINO DA IMPORTAÇÃO
+                // ═══════════════════════════════════════════════════════════
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue[600]!, Colors.blue[800]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.apartment, color: Colors.white, size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Importando para:',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.condominioNome,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ═══════════════════════════════════════════════════════════
+                // TÍTULO: O que será criado
+                // ═══════════════════════════════════════════════════════════
+                Row(
+                  children: [
+                    Icon(Icons.add_circle_outline, color: Colors.green[700], size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'O que será criado:',
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // ═══════════════════════════════════════════════════════════
+                // CHECKLIST DE ITENS A CRIAR
+                // ═══════════════════════════════════════════════════════════
+                _buildCreationItem(
+                  icon: Icons.view_module,
+                  color: Colors.orange,
+                  title: '${blocosIdentificados.length} Bloco(s)',
+                  subtitle: blocosIdentificados.join(', '),
+                ),
+                _buildCreationItem(
+                  icon: Icons.home_work,
+                  color: Colors.blue,
+                  title: '${_rowsValidas.length} Unidade(s)',
+                  subtitle: 'Distribuídas nos blocos acima',
+                ),
+                _buildCreationItem(
+                  icon: Icons.person,
+                  color: Colors.green,
+                  title: '${cpfsProprietarios.length} Proprietário(s)',
+                  subtitle: 'Cadastros com acesso ao app',
+                ),
+                if (cpfsInquilinos.isNotEmpty)
+                  _buildCreationItem(
+                    icon: Icons.people,
+                    color: Colors.purple,
+                    title: '${cpfsInquilinos.length} Inquilino(s)',
+                    subtitle: 'Cadastros com acesso ao app',
+                  ),
+                if (imobiliarias.isNotEmpty)
+                  _buildCreationItem(
+                    icon: Icons.business,
+                    color: Colors.teal,
+                    title: '${imobiliarias.length} Imobiliária(s)',
+                    subtitle: imobiliarias.take(3).join(', ') + (imobiliarias.length > 3 ? '...' : ''),
+                  ),
+
+                const SizedBox(height: 24),
+
+                // ═══════════════════════════════════════════════════════════
+                // INFO BOX: CREDENCIAIS
+                // ═══════════════════════════════════════════════════════════
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue[200]!),
                   ),
-                  child: const Icon(
-                    Icons.info,
-                    size: 48,
-                    color: Color(0xFF4A90E2),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.key, color: Colors.blue[700], size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Credenciais de Acesso',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[800],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Senhas temporárias serão geradas automaticamente para cada proprietário e inquilino.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue[600], size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'As senhas serão exibidas no resultado da importação. Salve ou anote elas!',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Main message
-                Text(
-                  'Confirmar Dados',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Summary container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4A90E2).withOpacity(0.06),
-                    border: Border.all(
-                      color: const Color(0xFF4A90E2).withOpacity(0.3),
+                // ═══════════════════════════════════════════════════════════
+                // WARNING BOX: LINHAS IGNORADAS (se houver)
+                // ═══════════════════════════════════════════════════════════
+                if (_rowsComErro.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange[200]!),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildConfirmationRow(
-                        label: '🏢 Condomínio:',
-                        value: widget.condominioNome,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(
-                          height: 1,
-                          color: const Color(0xFF4A90E2).withOpacity(0.1),
-                        ),
-                      ),
-                      _buildConfirmationRow(
-                        label: '✅ Linhas a importar:',
-                        value: '${_rowsValidas.length}',
-                        highlight: true,
-                        color: Colors.green,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(
-                          height: 1,
-                          color: const Color(0xFF4A90E2).withOpacity(0.1),
-                        ),
-                      ),
-                      _buildConfirmationRow(
-                        label: '❌ Linhas ignoradas:',
-                        value: '${_rowsComErro.length}',
-                        highlight: _rowsComErro.isNotEmpty,
-                        color: Colors.red,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Preview dos dados mapeados (se disponível)
-                if (_dadosMapeados != null && _dadosMapeados!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Preview dos Dados',
-                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          children: [
-                            // Exibir primeiras 3 linhas como preview
-                            ..._dadosMapeados!.entries.take(3).map((entry) {
-                              final chave = entry.key;
-                              final valor = entry.value;
-                              final displayValue = valor != null ? valor.toString() : '(vazio)';
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      chave,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[700],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Flexible(
-                                      child: Text(
-                                        displayValue.length > 30
-                                            ? '${displayValue.substring(0, 27)}...'
-                                            : displayValue,
-                                        style: TextStyle(
-                                          color: Colors.grey[800],
-                                          fontSize: 12,
-                                        ),
-                                        textAlign: TextAlign.end,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_rowsComErro.length} linha(s) serão ignoradas',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[800],
+                                  fontSize: 14,
                                 ),
-                              );
-                            }).toList(),
-                            if (_dadosMapeados!.length > 3) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  '+ ${_dadosMapeados!.length - 3} campos',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Essas linhas contêm erros e não serão importadas.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange[700],
                                 ),
                               ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                      ],
+                    ),
                   ),
 
-                // Confirmation message
+                const SizedBox(height: 24),
+
+                // ═══════════════════════════════════════════════════════════
+                // CONFIRMAÇÃO FINAL
+                // ═══════════════════════════════════════════════════════════
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.amber[50],
-                    border: Border.all(color: Colors.amber[300]!),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green[300]!),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.check, color: Colors.white, size: 20),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          'Deseja prosseguir com a importação?',
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                                color: Colors.amber[900],
-                                fontWeight: FontWeight.w500,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tudo pronto!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[800],
+                                fontSize: 15,
                               ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Clique em "Importar Agora" para iniciar o processo.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1362,6 +1773,70 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Widget para item da lista de criação
+  Widget _buildCreationItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle, color: Colors.green[400], size: 22),
+        ],
+      ),
     );
   }
 
