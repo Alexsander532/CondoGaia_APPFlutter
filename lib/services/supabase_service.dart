@@ -1667,6 +1667,7 @@ class SupabaseService {
   }
 
   /// Faz upload da foto de perfil do proprietário para o Storage e atualiza a URL no banco
+  /// ✅ MULTI-UNIT: Sincroniza a foto para TODOS os registros com o mesmo CPF
   static Future<Map<String, dynamic>?> uploadProprietarioFotoPerfil(
     String proprietarioId,
     File imageFile,
@@ -1692,12 +1693,30 @@ class SupabaseService {
       final imageUrl =
           client.storage.from('fotos_perfil').getPublicUrl(storagePath);
 
-      // Atualizar a URL no banco de dados
+      // ✅ MULTI-UNIT: Buscar o CPF deste proprietário para sincronizar em todos
+      final proprietarioAtual = await client
+          .from('proprietarios')
+          .select('cpf_cnpj')
+          .eq('id', proprietarioId)
+          .maybeSingle();
+
+      if (proprietarioAtual != null) {
+        final cpfCnpj = proprietarioAtual['cpf_cnpj'] as String?;
+        if (cpfCnpj != null && cpfCnpj.isNotEmpty) {
+          // ✅ Atualizar foto em TODOS os registros com o mesmo CPF
+          await client
+              .from('proprietarios')
+              .update({'foto_perfil': imageUrl})
+              .eq('cpf_cnpj', cpfCnpj);
+          print('♻️ Foto sincronizada para todos registros com CPF: $cpfCnpj');
+        }
+      }
+
+      // Retornar o registro atualizado
       final response = await client
           .from('proprietarios')
-          .update({'foto_perfil': imageUrl})
-          .eq('id', proprietarioId)
           .select()
+          .eq('id', proprietarioId)
           .single();
 
       return response;

@@ -202,11 +202,11 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Se sim, vai direto para a home; senão, vai para o dashboard
   Future<void> _redirectProprietario(result) async {
     try {
-      // Buscar unidades do proprietário
+      // ✅ MULTI-UNIT: Buscar unidades por CPF (não por ID único)
       final unidades = await SupabaseService.client
           .from('proprietarios')
-          .select('unidade_id')
-          .eq('id', result.proprietario!.id);
+          .select('id, unidade_id')
+          .eq('cpf_cnpj', result.proprietario!.cpfCnpj);
       
       if (unidades.isEmpty) {
         // Sem unidades, ir para dashboard
@@ -245,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
               condominioId: condominioData['id'],
               condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
               condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-              proprietarioId: result.proprietario!.id,
+              proprietarioId: unidades[0]['id'], // Usar o ID do registro específico
               unidadeId: unidadeData['id'],
               unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
               proprietarioData: result.proprietario,

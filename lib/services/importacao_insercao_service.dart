@@ -102,6 +102,25 @@ class ImportacaoInsercaoService {
       dados.remove('_linhaNumero'); // Remover campo temporário
       dados['unidade_id'] = unidadeId;
 
+      // ✅ MULTI-UNIT: Verificar se já existe proprietário com este CPF
+      final cpfCnpj = dados['cpf_cnpj'] as String?;
+      if (cpfCnpj != null && cpfCnpj.isNotEmpty) {
+        final existente = await _client
+            .from('proprietarios')
+            .select('email, senha_acesso, foto_perfil')
+            .eq('cpf_cnpj', cpfCnpj)
+            .limit(1)
+            .maybeSingle();
+
+        if (existente != null) {
+          // ♻️ HERDAR credenciais existentes para manter login unificado
+          dados['email'] = existente['email'] ?? dados['email'];
+          dados['senha_acesso'] = existente['senha_acesso'] ?? dados['senha_acesso'];
+          dados['foto_perfil'] = existente['foto_perfil'];
+          print('♻️ CPF existente! Herdando credenciais de: ${existente['email']}');
+        }
+      }
+
       // Inserir
       final response = await _client
           .from('proprietarios')

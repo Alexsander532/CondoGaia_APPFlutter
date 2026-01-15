@@ -84,4 +84,11 @@ class ValidadorImportacao {
     if (texto == null) return '';
     return texto.trim();
   }
+
+  /// Valida se é CPF (11) ou CNPJ (14)
+  static bool validarCpfOuCnpj(String? valor) {
+    if (valor == null || valor.isEmpty) return false;
+    final limpo = valor.replaceAll(RegExp(r'[^\d]'), '');
+    return limpo.length == 11 || limpo.length == 14;
+  }
 }

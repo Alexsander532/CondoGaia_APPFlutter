@@ -135,33 +135,20 @@ class ImportacaoService {
       return;
     }
 
-    // Campo obrigatório: CPF
+    // Campo obrigatório: CPF ou CNPJ
     if (cpf.isEmpty) {
-      row.adicionarErro('CPF do proprietário é obrigatório');
+      row.adicionarErro('CPF/CNPJ do proprietário é obrigatório');
     } else {
-      // Validar formato do CPF
-      if (!ValidadorImportacao.validarCpf(cpf)) {
+      // Validar formato (flexível: aceita 11 ou 14 dígitos)
+      if (!ValidadorImportacao.validarCpfOuCnpj(cpf)) {
         row.adicionarErro(
-          'CPF "$cpf" inválido - CPF deve conter 11 dígitos (ex: 123.456.789-01)',
+          'CPF/CNPJ "$cpf" inválido - Digite um CPF (11 dígitos) ou CNPJ (14 dígitos)',
         );
       } else {
         final cpfLimpo = ValidadorImportacao.limparCpf(cpf);
-
-        // Verificar duplicação na planilha
-        if (cpfsVistos.contains(cpfLimpo)) {
-          row.adicionarErro(
-            'CPF "$cpf" duplicado - Este CPF já existe em outra linha desta importação',
-          );
-        } else {
-          cpfsVistos.add(cpfLimpo);
-
-          // Verificar duplicação no banco de dados
-          if (cpfsExistentesNoBanco.contains(cpfLimpo)) {
-            row.adicionarErro(
-              'CPF "$cpf" já existe no sistema - Este proprietário já foi cadastrado anteriormente',
-            );
-          }
-        }
+        // ✅ MULTI-UNIT: Não verificar duplicação - agora permitimos múltiplas unidades
+        // Apenas adicionar ao Set para rastreamento interno (sem bloquear)
+        cpfsVistos.add(cpfLimpo);
       }
     }
 
@@ -176,30 +163,13 @@ class ImportacaoService {
         );
       } else {
         final emailLimpo = email.toLowerCase();
-
-        // Verificar duplicação na planilha
-        if (emailsVistos.contains(emailLimpo)) {
-          row.adicionarErro(
-            'Email "$email" duplicado - Este email já existe em outra linha desta importação',
-          );
-        } else {
-          emailsVistos.add(emailLimpo);
-
-          // Verificar duplicação no banco de dados
-          if (emailsExistenteNoBanco.contains(emailLimpo)) {
-            row.adicionarErro(
-              'Email "$email" já existe no sistema - Este email já foi cadastrado anteriormente',
-            );
-          }
-        }
+        // ✅ MULTI-UNIT: Não verificar duplicação - agora permitimos múltiplas unidades
+        emailsVistos.add(emailLimpo);
       }
     }
 
-    // Campo obrigatório: Telefone
-    if (telefone.isEmpty) {
-      row.adicionarErro('Telefone do proprietário é obrigatório');
-    } else {
-      // Validar formato do telefone
+    // Telefone (Opcional)
+    if (telefone.isNotEmpty) {
       if (!ValidadorImportacao.validarTelefone(telefone)) {
         row.adicionarErro(
           'Telefone "$telefone" inválido - Deve ter 10 ou 11 dígitos (ex: 11987654321)',
@@ -221,7 +191,7 @@ class ImportacaoService {
     final email = row.inquilinoEmail?.trim() ?? '';
     final telefone = row.inquilinoCel?.trim() ?? '';
 
-    // Se nome está preenchido, todos os campos são obrigatórios
+    // Se nome está preenchido, validar campos
     if (nome.isNotEmpty) {
       // Campo obrigatório: CPF
       if (cpf.isEmpty) {
@@ -280,10 +250,8 @@ class ImportacaoService {
         }
       }
 
-      // Campo obrigatório: Telefone
-      if (telefone.isEmpty) {
-        row.adicionarErro('Telefone do inquilino é obrigatório quando informado nome');
-      } else {
+      // Telefone (Opcional)
+      if (telefone.isNotEmpty) {
         if (!ValidadorImportacao.validarTelefone(telefone)) {
           row.adicionarErro(
             'Telefone inquilino "$telefone" inválido - Deve ter 10 ou 11 dígitos',

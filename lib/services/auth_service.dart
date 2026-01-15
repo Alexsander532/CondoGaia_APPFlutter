@@ -159,27 +159,28 @@ class AuthService {
       // Se não encontrou representante, tentar como proprietário
       print('DEBUG AUTH: Tentando login como proprietário...');
       try {
-        final proprietarioResponse = await _supabase
+        // ✅ MULTI-UNIT: Buscar LISTA de proprietários (mesmo email pode ter múltiplas unidades)
+        final proprietariosResponse = await _supabase
             .from('proprietarios')
             .select('*')
-            .ilike('email', emailOriginal)
-            .maybeSingle();
+            .ilike('email', emailOriginal);
 
         print(
-          'DEBUG AUTH: Resposta da busca de proprietário: ${proprietarioResponse != null ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}',
+          'DEBUG AUTH: Resposta da busca de proprietário: ${proprietariosResponse.isNotEmpty ? 'ENCONTRADO (${proprietariosResponse.length} registros)' : 'NÃO ENCONTRADO'}',
         );
 
-        if (proprietarioResponse != null) {
-          final proprietario = Proprietario.fromJson(proprietarioResponse);
-          print('DEBUG AUTH: Proprietário encontrado: ${proprietario.nome}');
-          print('DEBUG AUTH: Verificando senha...');
-          print('DEBUG AUTH: Senha fornecida: "$password"');
-          print('DEBUG AUTH: Senha no banco: "${proprietario.senhaAcesso}"');
-          print('DEBUG AUTH: Senhas são iguais? ${proprietario.senhaAcesso == password}');
+        if (proprietariosResponse.isNotEmpty) {
+          // Verificar senha em QUALQUER um dos registros (todos devem ter a mesma senha)
+          final logado = proprietariosResponse.firstWhere(
+            (p) => p['senha_acesso'] == password,
+            orElse: () => <String, dynamic>{},
+          );
 
-          // Verificar senha diretamente (proprietários usam senha simples)
-          if (proprietario.senhaAcesso == password) {
-            print('DEBUG AUTH: ✅ Login como proprietário APROVADO');
+          if (logado.isNotEmpty) {
+            final proprietario = Proprietario.fromJson(logado);
+            print('DEBUG AUTH: Proprietário encontrado: ${proprietario.nome}');
+            print('DEBUG AUTH: ✅ Login como proprietário APROVADO (${proprietariosResponse.length} unidades vinculadas)');
+            
             // Salvar estado de login como proprietário
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool(_isLoggedInKey, true);

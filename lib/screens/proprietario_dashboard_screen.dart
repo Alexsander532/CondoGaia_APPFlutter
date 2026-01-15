@@ -19,37 +19,73 @@ class ProprietarioDashboardScreen extends StatefulWidget {
 class _ProprietarioDashboardScreenState
     extends State<ProprietarioDashboardScreen> {
   final AuthService _authService = AuthService();
-  Map<String, dynamic>? _condominio;
-  Map<String, dynamic>? _unidade;
+  
+  // ✅ MULTI-UNIT: Lista de todas as unidades do proprietário
+  List<Map<String, dynamic>> _todasUnidades = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCondominioAndUnidade();
+    _loadTodasUnidades();
   }
 
-  Future<void> _loadCondominioAndUnidade() async {
+  /// ✅ MULTI-UNIT: Carrega TODAS as unidades do proprietário pelo CPF
+  Future<void> _loadTodasUnidades() async {
     try {
-      // Buscar dados do condomínio
-      final condominio = await SupabaseService.getCondominioById(
-        widget.proprietario.condominioId,
-      );
+      print('🔵 Buscando todas as unidades para CPF: ${widget.proprietario.cpfCnpj}');
+      
+      // Buscar todos os registros de proprietário com este CPF
+      final registros = await SupabaseService.client
+          .from('proprietarios')
+          .select('id, unidade_id, condominio_id')
+          .eq('cpf_cnpj', widget.proprietario.cpfCnpj);
 
-      // Buscar dados da unidade
-      final unidade = await SupabaseService.getUnidadeById(
-        widget.proprietario.unidadeId!,
-      );
+      print('🔵 Encontrados ${registros.length} registros');
 
-      print('🔵 Unidade carregada: $unidade');
+      List<Map<String, dynamic>> unidadesCompletas = [];
+
+      for (var registro in registros) {
+        try {
+          // Buscar dados da unidade
+          final unidade = await SupabaseService.client
+              .from('unidades')
+              .select('id, numero, bloco')
+              .eq('id', registro['unidade_id'])
+              .maybeSingle();
+
+          // Buscar dados do condomínio
+          final condominio = await SupabaseService.client
+              .from('condominios')
+              .select('id, nome_condominio, cnpj, tem_blocos')
+              .eq('id', registro['condominio_id'])
+              .maybeSingle();
+
+          if (unidade != null && condominio != null) {
+            unidadesCompletas.add({
+              'proprietario_id': registro['id'],
+              'unidade_id': unidade['id'],
+              'unidade_numero': unidade['numero'] ?? 'N/A',
+              'bloco': unidade['bloco'],
+              'condominio_id': condominio['id'],
+              'condominio_nome': condominio['nome_condominio'] ?? 'Condomínio',
+              'condominio_cnpj': condominio['cnpj'] ?? 'N/A',
+              'tem_blocos': condominio['tem_blocos'] ?? true,
+            });
+          }
+        } catch (e) {
+          print('⚠️ Erro ao carregar unidade: $e');
+        }
+      }
 
       setState(() {
-        _condominio = condominio;
-        _unidade = unidade;
+        _todasUnidades = unidadesCompletas;
         _isLoading = false;
       });
+
+      print('✅ Carregadas ${_todasUnidades.length} unidades');
     } catch (e) {
-      print('Erro ao carregar dados: $e');
+      print('❌ Erro ao carregar unidades: $e');
       setState(() {
         _isLoading = false;
       });
@@ -94,9 +130,7 @@ class _ProprietarioDashboardScreenState
       try {
         final fotoUrl = widget.proprietario.fotoPerfil!;
         
-        // Verificar se é URL (começa com http) ou Base64
         if (fotoUrl.startsWith('http')) {
-          // É URL do Storage - usar Image.network
           return ClipOval(
             child: Image.network(
               fotoUrl,
@@ -123,7 +157,6 @@ class _ProprietarioDashboardScreenState
             ),
           );
         } else {
-          // É Base64 - decodificar e usar Image.memory
           String base64String = fotoUrl;
           if (base64String.startsWith('data:image')) {
             base64String = base64String.split(',')[1];
@@ -139,7 +172,6 @@ class _ProprietarioDashboardScreenState
           );
         }
       } catch (e) {
-        // Se houver erro ao decodificar, mostrar ícone padrão
         return const CircleAvatar(
           radius: 40,
           backgroundColor: Colors.green,
@@ -153,6 +185,124 @@ class _ProprietarioDashboardScreenState
         child: Icon(Icons.person, size: 40, color: Colors.white),
       );
     }
+  }
+
+  /// ✅ MULTI-UNIT: Constrói card de uma unidade
+  Widget _buildUnidadeCard(Map<String, dynamic> unidadeInfo) {
+    final temBlocos = unidadeInfo['tem_blocos'] ?? true;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InquilinoHomeScreen(
+                  condominioId: unidadeInfo['condominio_id'].toString(),
+                  condominioNome: unidadeInfo['condominio_nome'],
+                  condominioCnpj: unidadeInfo['condominio_cnpj'],
+                  proprietarioId: unidadeInfo['proprietario_id'].toString(),
+                  unidadeId: unidadeInfo['unidade_id'].toString(),
+                  unidadeNome: 'Unidade ${unidadeInfo['unidade_numero']}',
+                  proprietarioData: widget.proprietario,
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                // Ícone da unidade
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.home_mini,
+                    color: Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Informações da unidade
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Unidade ${unidadeInfo['unidade_numero']}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (temBlocos && unidadeInfo['bloco'] != null)
+                        Text(
+                          'Bloco: ${unidadeInfo['bloco']}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      Text(
+                        unidadeInfo['condominio_nome'],
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Seta para entrar
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Entrar',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.green[600],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -192,11 +342,9 @@ class _ProprietarioDashboardScreenState
                 ),
                 child: Column(
                   children: [
-                    // Foto de perfil
                     _buildProfileImage(),
                     const SizedBox(height: 16),
 
-                    // Nome
                     Text(
                       widget.proprietario.nome,
                       style: const TextStyle(
@@ -208,14 +356,12 @@ class _ProprietarioDashboardScreenState
                     ),
                     const SizedBox(height: 8),
 
-                    // CPF/CNPJ
                     Text(
                       '${widget.proprietario.isPessoaFisica ? 'CPF' : 'CNPJ'}: ${widget.proprietario.cpfCnpjFormatado}',
                       style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 16),
 
-                    // Badge de proprietário
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -238,21 +384,42 @@ class _ProprietarioDashboardScreenState
               ),
               const SizedBox(height: 24),
 
-              // Seção de condomínio e unidade
-              const Text(
-                'Minha Propriedade',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+              // ✅ MULTI-UNIT: Título com contagem de unidades
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Minhas Propriedades',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (!_isLoading)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_todasUnidades.length} ${_todasUnidades.length == 1 ? 'unidade' : 'unidades'}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
 
-              // Informações do condomínio e unidade
+              // ✅ MULTI-UNIT: Lista de unidades
               if (_isLoading)
                 const Center(child: CircularProgressIndicator())
-              else if (_condominio == null || _unidade == null)
+              else if (_todasUnidades.isEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
@@ -270,13 +437,13 @@ class _ProprietarioDashboardScreenState
                   child: Column(
                     children: [
                       Icon(
-                        Icons.error_outline,
+                        Icons.home_work_outlined,
                         size: 48,
                         color: Colors.grey[400],
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Erro ao carregar informações',
+                        'Nenhuma unidade encontrada',
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                     ],
@@ -284,169 +451,12 @@ class _ProprietarioDashboardScreenState
                 )
               else
                 Column(
-                  children: [
-                    // Card do condomínio COM unidade aninhada
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          // Cabeçalho do condomínio
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.apartment,
-                                  color: Colors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _condominio!['nome_condominio'] ??
-                                          'Condomínio',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Text(
-                                      'CNPJ: ${_condominio!['cnpj'] ?? 'N/A'}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Divisor
-                          Container(
-                            height: 1,
-                            color: Colors.grey[200],
-                          ),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Unidade dentro do condomínio
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => InquilinoHomeScreen(
-                                    condominioId: _condominio!['id'].toString(),
-                                    condominioNome:
-                                        _condominio!['nome_condominio'] ??
-                                        'Condomínio',
-                                    condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
-                                    proprietarioId: widget.proprietario.id,
-                                    unidadeId: _unidade!['id'].toString(),
-                                    unidadeNome:
-                                        'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 16),
-                                  child: Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(
-                                      Icons.home_mini,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      // Mostrar bloco apenas se temBlocos = true
-                                      if (_condominio != null && (_condominio!['tem_blocos'] ?? true) == true)
-                                        Text(
-                                          'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Entrar',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  children: _todasUnidades.map((unidade) => _buildUnidadeCard(unidade)).toList(),
                 ),
+
               const SizedBox(height: 32),
 
-              // Informações adicionais ou ações futuras podem ser adicionadas aqui
+              // Info box
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16.0),
@@ -472,7 +482,7 @@ class _ProprietarioDashboardScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Aqui você pode visualizar suas propriedades',
+                      'Selecione uma unidade para acessar suas funcionalidades',
                       style: TextStyle(fontSize: 14, color: Colors.green[600]),
                       textAlign: TextAlign.center,
                     ),

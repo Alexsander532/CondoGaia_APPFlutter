@@ -165,10 +165,31 @@ class UnidadeDetalhesService {
     String? moradores,
   }) async {
     try {
-      // 🔐 Gerar senha automática baseada no nome
-      final senhaGerada = PasswordGenerator.generatePasswordFromName(nome);
-      print('✅ Senha gerada para proprietário "$nome": $senhaGerada');
-      print('📝 GUARDE ESTA SENHA! Email: $email | Senha: $senhaGerada');
+      // ✅ MULTI-UNIT: Verificar se já existe proprietário com este CPF
+      String senhaGerada;
+      String? emailHerdado;
+      String? fotoHerdada;
+      
+      final existente = await _supabase
+          .from('proprietarios')
+          .select('email, senha_acesso, foto_perfil')
+          .eq('cpf_cnpj', cpfCnpj)
+          .limit(1)
+          .maybeSingle();
+
+      if (existente != null) {
+        // ♻️ HERDAR credenciais existentes
+        senhaGerada = existente['senha_acesso'] ?? PasswordGenerator.generatePasswordFromName(nome);
+        emailHerdado = existente['email'];
+        fotoHerdada = existente['foto_perfil'];
+        print('♻️ CPF existente! Herdando credenciais de: ${existente['email']}');
+        print('✅ Usando senha existente para manter acesso unificado');
+      } else {
+        // 🔐 Gerar nova senha automática baseada no nome
+        senhaGerada = PasswordGenerator.generatePasswordFromName(nome);
+        print('✅ Senha gerada para proprietário "$nome": $senhaGerada');
+        print('📝 GUARDE ESTA SENHA! Email: $email | Senha: $senhaGerada');
+      }
 
       final response = await _supabase
           .from('proprietarios')
@@ -186,11 +207,12 @@ class UnidadeDetalhesService {
             'estado': estado,
             'telefone': telefone,
             'celular': celular,
-            'email': email,
+            'email': emailHerdado ?? email,  // ✅ Usar email herdado se existir
             'conjuge': conjuge,
             'multiproprietarios': multiproprietarios,
             'moradores': moradores,
-            'senha_acesso': senhaGerada,  // ✅ Adicionar senha gerada
+            'senha_acesso': senhaGerada,
+            'foto_perfil': fotoHerdada,  // ✅ Herdar foto se existir
           })
           .select()
           .single();
