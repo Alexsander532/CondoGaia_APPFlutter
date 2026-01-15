@@ -2871,7 +2871,7 @@ class _CadastroRepresentanteScreenState
   }
 
   /// Modal para editar representante
-  void _showEditRepresentanteModal(BuildContext context, Map<String, dynamic> resultado) {
+  void _showEditRepresentanteModal(BuildContext context, Map<String, dynamic> resultado) async {
     // Verificar se o resultado contém dados válidos
     if (resultado.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2898,20 +2898,34 @@ class _CadastroRepresentanteScreenState
 
     String ufSelecionada = resultado['uf'] ?? 'MS';
     
-    // Lista de condomínios selecionados
+    // Mostrar indicador de carregamento enquanto busca os dados
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Buscar condomínios reais associados ao representante (fonte de verdade: tabela condominios)
     List<String> condominiosSelecionados = [];
-    if (resultado['condominios_selecionados'] != null) {
-      if (resultado['condominios_selecionados'] is List) {
-        condominiosSelecionados = List<String>.from(resultado['condominios_selecionados']);
-      } else if (resultado['condominios_selecionados'] is String) {
-        // Se for string, pode ser um array PostgreSQL como '{id1,id2}'
-        String str = resultado['condominios_selecionados'];
-        if (str.startsWith('{') && str.endsWith('}')) {
-          str = str.substring(1, str.length - 1);
-          condominiosSelecionados = str.split(',').where((s) => s.isNotEmpty).toList();
-        }
-      }
+    try {
+      final condominiosReais = await SupabaseService.getCondominiosByRepresentante(
+        resultado['id'].toString(),
+      );
+      condominiosSelecionados = condominiosReais
+          .map((c) => c['id'].toString())
+          .toList();
+      print(
+          '✅ _showEditRepresentanteModal: Carregados ${condominiosSelecionados.length} condomínios do banco');
+    } catch (e) {
+      print('❌ Erro ao carregar condomínios do representante: $e');
     }
+
+    // Fechar o loading
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
+
+    if (!context.mounted) return;
 
     // Estados dos checkboxes de permissões
     bool todosMarcado = resultado['todos_marcado'] ?? false;
