@@ -68,6 +68,7 @@ class ImportacaoInsercaoService {
 
       final novoBloco = {
         'nome': nomeBloco,
+        'codigo': nomeBloco, // ✅ Adicionado campo obrigatório
         'condominio_id': condominioId,
         'ordem': proximaOrdem,
         'ativo': true,

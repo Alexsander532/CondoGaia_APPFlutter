@@ -116,6 +116,23 @@ class ImportacaoService {
     _validarUnidade(row);
   }
 
+  /// Helper para sanitizar email (pegar apenas o primeiro se houver múltiplos)
+  static String _sanitizarEmail(String? rawEmail) {
+    if (rawEmail == null || rawEmail.isEmpty) return '';
+    
+    // Separadores comuns: ponto e vírgula, vírgula, espaço, quebra de linha
+    final separators = [';', ',', '\n', ' '];
+    
+    String email = rawEmail;
+    for (var sep in separators) {
+      if (email.contains(sep)) {
+        email = email.split(sep).first;
+      }
+    }
+    
+    return email.trim();
+  }
+
   /// Valida dados obrigatórios do proprietário
   static void _validarProprietario(
     ImportacaoRow row,
@@ -124,9 +141,18 @@ class ImportacaoService {
     Set<String> cpfsExistentesNoBanco,
     Set<String> emailsExistenteNoBanco,
   ) {
+    // 🧹 Sanitizar email DEPOIS de extrair (para modificar a row)
+    final rawEmail = row.proprietarioEmail?.trim() ?? '';
+    final emailSanitizado = _sanitizarEmail(rawEmail);
+    
+    // Atualizar a row com email limpo se for diferente
+    if (rawEmail != emailSanitizado) {
+      row.proprietarioEmail = emailSanitizado;
+    }
+
     final nome = row.proprietarioNomeCompleto?.trim() ?? '';
     final cpf = row.proprietarioCpf?.trim() ?? '';
-    final email = row.proprietarioEmail?.trim() ?? '';
+    final email = emailSanitizado; // Usar o sanitizado
     final telefone = row.proprietarioCel?.trim() ?? '';
 
     // Campo obrigatório: nome
@@ -186,9 +212,16 @@ class ImportacaoService {
     Set<String> cpfsExistentesNoBanco,
     Set<String> emailsExistenteNoBanco,
   ) {
+    // 🧹 Sanitizar email
+    final rawEmail = row.inquilinoEmail?.trim() ?? '';
+    final emailSanitizado = _sanitizarEmail(rawEmail);
+    if (rawEmail != emailSanitizado) {
+      row.inquilinoEmail = emailSanitizado;
+    }
+
     final nome = row.inquilinoNomeCompleto?.trim() ?? '';
     final cpf = row.inquilinoCpf?.trim() ?? '';
-    final email = row.inquilinoEmail?.trim() ?? '';
+    final email = emailSanitizado;
     final telefone = row.inquilinoCel?.trim() ?? '';
 
     // Se nome está preenchido, validar campos
@@ -263,9 +296,16 @@ class ImportacaoService {
 
   /// Valida dados da imobiliária
   static void _validarImobiliaria(ImportacaoRow row) {
+    // 🧹 Sanitizar email
+    final rawEmail = row.emailImobiliaria?.trim() ?? '';
+    final emailSanitizado = _sanitizarEmail(rawEmail);
+    if (rawEmail != emailSanitizado) {
+      row.emailImobiliaria = emailSanitizado;
+    }
+
     final nome = row.nomeImobiliaria?.trim() ?? '';
     final cnpj = row.cnpjImobiliaria?.trim() ?? '';
-    final email = row.emailImobiliaria?.trim() ?? '';
+    final email = emailSanitizado;
     final telefone = row.celImobiliaria?.trim() ?? '';
 
     // Se nome está preenchido, todos os campos são obrigatórios

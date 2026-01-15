@@ -5,26 +5,26 @@ class ImportacaoRow {
 
   // Dados da unidade
   String? bloco; // Se vazio, será automaticamente "A"
-  final String? unidade;
-  final String? fracaoIdeal;
+  String? unidade;
+  String? fracaoIdeal;
 
   // Dados do proprietário
-  final String? proprietarioNomeCompleto;
-  final String? proprietarioCpf;
-  final String? proprietarioCel;
-  final String? proprietarioEmail;
+  String? proprietarioNomeCompleto;
+  String? proprietarioCpf;
+  String? proprietarioCel;
+  String? proprietarioEmail;
 
   // Dados do inquilino
-  final String? inquilinoNomeCompleto;
-  final String? inquilinoCpf;
-  final String? inquilinoCel;
-  final String? inquilinoEmail;
+  String? inquilinoNomeCompleto;
+  String? inquilinoCpf;
+  String? inquilinoCel;
+  String? inquilinoEmail;
 
   // Dados da imobiliária
-  final String? nomeImobiliaria;
-  final String? cnpjImobiliaria;
-  final String? celImobiliaria;
-  final String? emailImobiliaria;
+  String? nomeImobiliaria;
+  String? cnpjImobiliaria;
+  String? celImobiliaria;
+  String? emailImobiliaria;
 
   // Validações
   final List<String> errosValidacao = [];

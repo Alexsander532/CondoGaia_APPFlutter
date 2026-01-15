@@ -713,7 +713,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
   Widget _buildPasso3Preview() {
     // Processar dados para estatísticas
     final blocosIdentificados = <String>{};
-    final unidadesPorBloco = <String, List<String>>{};
+    final unidadesPorBloco = <String, Set<String>>{}; // ✅ USAR SET PARA EVITAR DUPLICATAS NA VISUALIZAÇÃO
     final cpfsProprietarios = <String>{};
     final nomesProprietarios = <String, String>{};
     int totalInquilinos = 0;
@@ -727,7 +727,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
       blocosIdentificados.add(nomeBloco);
       
       if (!unidadesPorBloco.containsKey(nomeBloco)) {
-        unidadesPorBloco[nomeBloco] = [];
+        unidadesPorBloco[nomeBloco] = <String>{};
       }
       if (row.unidade != null) {
         unidadesPorBloco[nomeBloco]!.add(row.unidade!);
@@ -745,6 +745,12 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
       if (row.nomeImobiliaria != null && row.nomeImobiliaria!.isNotEmpty) {
         totalImobiliarias++;
       }
+    }
+
+    // Calcular total real de unidades únicas (soma dos tamanhos dos sets)
+    int totalUnidadesUnicas = 0;
+    for (var unidades in unidadesPorBloco.values) {
+      totalUnidadesUnicas += unidades.length;
     }
 
     final blocosOrdenados = blocosIdentificados.toList()..sort();
@@ -850,7 +856,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                           icon: Icons.home_work,
                           color: Colors.blue,
                           label: 'Unidades',
-                          value: '${_rowsValidas.length}',
+                          value: '$totalUnidadesUnicas', // ✅ USAR TOTAL ÚNICO
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -956,8 +962,8 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                   
                   // Lista de blocos
                   ...blocosOrdenados.map((bloco) {
-                    final unidades = unidadesPorBloco[bloco] ?? [];
-                    unidades.sort();
+                    final unidadesSet = unidadesPorBloco[bloco] ?? <String>{};
+                    final unidades = unidadesSet.toList()..sort();
                     
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -1400,7 +1406,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
   Widget _buildPasso4Confirmacao() {
     // Calcular estatísticas para exibição
     final blocosIdentificados = <String>{};
-    final unidadesPorBloco = <String, List<String>>{};
+    final unidadesPorBloco = <String, Set<String>>{}; // ✅ USAR SET
     final cpfsProprietarios = <String>{};
     final cpfsInquilinos = <String>{};
     final imobiliarias = <String>{};
@@ -1413,7 +1419,7 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
       blocosIdentificados.add(nomeBloco);
       
       if (!unidadesPorBloco.containsKey(nomeBloco)) {
-        unidadesPorBloco[nomeBloco] = [];
+        unidadesPorBloco[nomeBloco] = <String>{};
       }
       if (row.unidade != null) {
         unidadesPorBloco[nomeBloco]!.add(row.unidade!);
@@ -1431,6 +1437,15 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
         imobiliarias.add(row.nomeImobiliaria!);
       }
     }
+
+    // Calcular total real de unidades únicas
+    int totalUnidadesUnicas = 0;
+    for (var unidades in unidadesPorBloco.values) {
+      totalUnidadesUnicas += unidades.length;
+    }
+
+    // Preparar lista ordenada de blocos para exibição
+    final blocosOrdenados = blocosIdentificados.toList()..sort();
 
     return Column(
       children: [
@@ -1570,9 +1585,6 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                 ),
                 const SizedBox(height: 16),
 
-                // ═══════════════════════════════════════════════════════════
-                // CHECKLIST DE ITENS A CRIAR
-                // ═══════════════════════════════════════════════════════════
                 _buildCreationItem(
                   icon: Icons.view_module,
                   color: Colors.orange,
@@ -1582,34 +1594,156 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                 _buildCreationItem(
                   icon: Icons.home_work,
                   color: Colors.blue,
-                  title: '${_rowsValidas.length} Unidade(s)',
+                  title: '$totalUnidadesUnicas Unidade(s)',
                   subtitle: 'Distribuídas nos blocos acima',
                 ),
-                _buildCreationItem(
-                  icon: Icons.person,
-                  color: Colors.green,
-                  title: '${cpfsProprietarios.length} Proprietário(s)',
-                  subtitle: 'Cadastros com acesso ao app',
+                // ... (outros itens do resumo mantidos acima, se houver)
+
+                const SizedBox(height: 32),
+
+                // ═══════════════════════════════════════════════════════════
+                // DETALHAMENTO POR BLOCO
+                // ═══════════════════════════════════════════════════════════
+                Row(
+                  children: [
+                    Icon(Icons.list_alt, color: Colors.blue[800], size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Detalhamento por Unidade',
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                    ),
+                  ],
                 ),
-                if (cpfsInquilinos.isNotEmpty)
-                  _buildCreationItem(
-                    icon: Icons.people,
-                    color: Colors.purple,
-                    title: '${cpfsInquilinos.length} Inquilino(s)',
-                    subtitle: 'Cadastros com acesso ao app',
-                  ),
-                if (imobiliarias.isNotEmpty)
-                  _buildCreationItem(
-                    icon: Icons.business,
-                    color: Colors.teal,
-                    title: '${imobiliarias.length} Imobiliária(s)',
-                    subtitle: imobiliarias.take(3).join(', ') + (imobiliarias.length > 3 ? '...' : ''),
-                  ),
+                const SizedBox(height: 16),
+
+                // Iterar Blocos
+                ...blocosOrdenados.map((bloco) {
+                  // Filtrar linhas deste bloco
+                  final rowsBloco = _rowsValidas.where((r) => 
+                    (r.bloco != null && r.bloco!.isNotEmpty ? r.bloco! : 'Sem Bloco') == bloco
+                  ).toList();
+
+                  // Agrupar por Unidade (Set para garantir ordem e unicidade de visualização)
+                  final unidadesDoBloco = rowsBloco
+                      .map((r) => r.unidade ?? '')
+                      .where((u) => u.isNotEmpty)
+                      .toSet()
+                      .toList()..sort();
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ExpansionTile(
+                      initiallyExpanded: false,
+                      shape: const Border(), // Remove borda interna do ExpansionTile
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue[100],
+                        child: Text(
+                          bloco.isNotEmpty ? bloco.substring(0, 1).toUpperCase() : '?',
+                          style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      title: Text(
+                        'Bloco $bloco',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      subtitle: Text('${unidadesDoBloco.length} unidades'),
+                      children: unidadesDoBloco.map((unidade) {
+                        // Pegar rows desta unidade
+                        final rowsUnidade = rowsBloco.where((r) => r.unidade == unidade).toList();
+                        // Pegar o primeiro proprietário (ou iterar se houver múltiplos distintos)
+                        final rowPrincipal = rowsUnidade.first; 
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Colors.grey[200]!),
+                            ),
+                            color: Colors.grey[50], // Fundo leve para diferenciar
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Cabeçalho da Unidade
+                              Row(
+                                children: [
+                                  Icon(Icons.door_front_door, size: 20, color: Colors.blue[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Unidade $unidade',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Detalhes da Unidade (Proprietário, etc)
+                              // Se houver multi-proprietários distintos na mesma unidade, listar todos
+                              ...rowsUnidade.map((row) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildEntityDetail(
+                                      'Proprietário',
+                                      row.proprietarioNomeCompleto,
+                                      row.proprietarioCpf,
+                                      row.proprietarioEmail,
+                                      Icons.person,
+                                      Colors.blue,
+                                    ),
+                                    if (row.inquilinoNomeCompleto != null)
+                                      _buildEntityDetail(
+                                        'Inquilino',
+                                        row.inquilinoNomeCompleto,
+                                        row.inquilinoCpf,
+                                        row.inquilinoEmail,
+                                        Icons.person_outline,
+                                        Colors.purple,
+                                      ),
+                                    if (row.nomeImobiliaria != null)
+                                      _buildEntityDetail(
+                                        'Imobiliária',
+                                        row.nomeImobiliaria,
+                                        row.cnpjImobiliaria,
+                                        row.emailImobiliaria,
+                                        Icons.business,
+                                        Colors.teal,
+                                      ),
+                                     const SizedBox(height: 8), // Espaçamento entre registros da mesma unidade
+                                  ],
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }).toList(),
 
                 const SizedBox(height: 24),
 
                 // ═══════════════════════════════════════════════════════════
-                // INFO BOX: CREDENCIAIS
+                // INFO BOX: CREDENCIAIS (Mantido)
                 // ═══════════════════════════════════════════════════════════
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -2498,6 +2632,81 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper para construir detalhe de entidade
+  Widget _buildEntityDetail(
+    String label,
+    String? nome,
+    String? doc,
+    String? email,
+    IconData icon,
+    MaterialColor color,
+  ) {
+    if (nome == null || nome.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color[50],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: color[700]),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: color[700],
+                  ),
+                ),
+                Text(
+                  nome,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (doc != null && doc.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      doc,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                if (email != null && email.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      email,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
