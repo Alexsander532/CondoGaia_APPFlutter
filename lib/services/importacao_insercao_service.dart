@@ -108,13 +108,30 @@ class ImportacaoInsercaoService {
       try {
         final existente = await _client
             .from('unidades')
-            .select('id')
+            .select('id, qr_code_url') // Buscar qr_code_url também
             .eq('numero', numero)
             .eq('condominio_id', condominioId)
             .eq('bloco', bloco) // ✅ CORREÇÃO: Filtrar também por bloco
             .single();
 
         print('✅ Unidade existente encontrada: ${existente['id']} (bloco=$bloco)');
+
+        // ✅ Verificar e gerar QR Code se faltar
+        final existingUrl = existente['qr_code_url'] as String?;
+        _gerarQRCodeSeNecessarioBackground(
+          id: existente['id'] as String,
+          tipo: 'unidade',
+          tabelaNome: 'unidades',
+          nome: numero,
+          dados: {
+            'id': existente['id'],
+            'numero': numero,
+            'bloco': bloco,
+            'condominio_id': condominioId,
+          },
+          urlExistente: existingUrl,
+        );
+
         return ResultadoInsercao(
           sucesso: true,
           id: existente['id'] as String,
@@ -142,6 +159,21 @@ class ImportacaoInsercaoService {
       final unidadeId = response['id'] as String;
       print('✅ Unidade criada com sucesso: $unidadeId');
 
+      // ✅ Gerar QR Code em background para Unidade (se necessário)
+      _gerarQRCodeSeNecessarioBackground(
+        id: unidadeId,
+        tipo: 'unidade',
+        tabelaNome: 'unidades',
+        nome: numero, // Numero da unidade
+        dados: {
+          'id': unidadeId,
+          'numero': numero,
+          'bloco': bloco,
+          'condominio_id': condominioId,
+        },
+        urlExistente: null, // Nova unidade não tem QR Code
+      );
+
       return ResultadoInsercao(
         sucesso: true,
         id: unidadeId,
@@ -157,7 +189,7 @@ class ImportacaoInsercaoService {
     }
   }
 
-  /// Insere um proprietário
+  /// Insere ou atualiza um proprietário
   /// Requer unidade_id da unidade criada na etapa anterior
   static Future<ResultadoInsercao> inserirProprietario(
     Map<String, dynamic> dadosProprietario,
@@ -171,43 +203,83 @@ class ImportacaoInsercaoService {
       dados.remove('_linhaNumero'); // Remover campo temporário
       dados['unidade_id'] = unidadeId;
 
-      // ✅ MULTI-UNIT: Verificar se já existe proprietário com este CPF
+      String proprietarioId;
       final cpfCnpj = dados['cpf_cnpj'] as String?;
+
+      // 1. Verificar se JÁ EXISTE proprietário com este CPF nesta Unidade
+      Map<String, dynamic>? proprietarioExistenteNestaUnidade;
+      
       if (cpfCnpj != null && cpfCnpj.isNotEmpty) {
-        final existente = await _client
+        proprietarioExistenteNestaUnidade = await _client
             .from('proprietarios')
-            .select('email, senha_acesso, foto_perfil')
+            .select('id, qr_code_url')
+            .eq('unidade_id', unidadeId)
             .eq('cpf_cnpj', cpfCnpj)
             .limit(1)
             .maybeSingle();
-
-        if (existente != null) {
-          // ♻️ HERDAR credenciais existentes para manter login unificado
-          dados['email'] = existente['email'] ?? dados['email'];
-          dados['senha_acesso'] = existente['senha_acesso'] ?? dados['senha_acesso'];
-          dados['foto_perfil'] = existente['foto_perfil'];
-          print('♻️ CPF existente! Herdando credenciais de: ${existente['email']}');
-        }
       }
 
-      // Inserir
-      final response = await _client
-          .from('proprietarios')
-          .insert(dados)
-          .select('id')
-          .single();
+      if (proprietarioExistenteNestaUnidade != null) {
+        // ✨ UPSERT: Atualizar registro existente
+        proprietarioId = proprietarioExistenteNestaUnidade['id'] as String;
+        print('♻️ Proprietário já existe na unidade (ID: $proprietarioId). Atualizando dados...');
+        
+        await _client
+            .from('proprietarios')
+            .update(dados)
+            .eq('id', proprietarioId);
+            
+      } else {
+        // 🆕 INSERÇÃO NOVA
+        
+        // ✅ MULTI-UNIT: Verificar se já existe proprietário com este CPF em OUTRA unidade para herdar credenciais
+        if (cpfCnpj != null && cpfCnpj.isNotEmpty) {
+          final existenteOutraUnidade = await _client
+              .from('proprietarios')
+              .select('email, senha_acesso, foto_perfil')
+              .eq('cpf_cnpj', cpfCnpj)
+              .limit(1)
+              .maybeSingle();
 
-      final proprietarioId = response['id'] as String;
-      print('✅ Proprietário inserido com sucesso: $proprietarioId');
+          if (existenteOutraUnidade != null) {
+            // ♻️ HERDAR credenciais existentes para manter login unificado
+            dados['email'] = existenteOutraUnidade['email'] ?? dados['email'];
+            dados['senha_acesso'] = existenteOutraUnidade['senha_acesso'] ?? dados['senha_acesso'];
+            dados['foto_perfil'] = existenteOutraUnidade['foto_perfil'];
+            print('♻️ CPF existente em outra unidade! Herdando credenciais de: ${existenteOutraUnidade['email']}');
+          }
+        }
 
-      // ✅ Gerar QR Code em background (não bloqueia)
-      _gerarQRCodeProprietarioBackground(
-        proprietarioId,
-        dados['nome'] as String? ?? 'Proprietario',
-        dados['cpf_cnpj'] as String? ?? '',
-        dados['email'] as String?,
-        dados['celular'] as String? ?? dados['telefone'] as String?,
-        dados['condominio_id'] as String? ?? '',
+        // Inserir novo
+        final response = await _client
+            .from('proprietarios')
+            .insert(dados)
+            .select('id')
+            .single();
+
+        proprietarioId = response['id'] as String;
+        print('✅ Novo proprietário inserido com sucesso: $proprietarioId');
+      }
+
+      // ✅ Gerar QR Code em background (sempre, para garantir atualização)
+      // ✅ Gerar QR Code em background (sempre verifica se precisa)
+      // O método helper interno já verifica se a URL existe para evitar redundância
+      _gerarQRCodeSeNecessarioBackground(
+        id: proprietarioId,
+        tipo: 'proprietario',
+        tabelaNome: 'proprietarios',
+        nome: dados['nome'] as String? ?? 'Proprietario',
+        dados: {
+          'id': proprietarioId,
+          'nome': dados['nome'],
+          'cpf': cpfCnpj != null && cpfCnpj.length >= 4 
+              ? cpfCnpj.substring(cpfCnpj.length - 4) 
+              : cpfCnpj,
+          'email': dados['email'] ?? '',
+          'telefone': dados['celular'] ?? dados['telefone'] ?? '',
+          'condominio_id': dados['condominio_id'] ?? '',
+        },
+        urlExistente: proprietarioExistenteNestaUnidade?['qr_code_url'] as String?,
       );
 
       return ResultadoInsercao(
@@ -216,50 +288,18 @@ class ImportacaoInsercaoService {
         linhaNumero: linhaNumero,
       );
     } catch (e) {
-      print('❌ Erro ao inserir proprietário: $e');
+      print('❌ Erro ao inserir/atualizar proprietário: $e');
       return ResultadoInsercao(
         sucesso: false,
-        erro: 'Erro ao inserir proprietário: ${e.toString()}',
+        erro: 'Erro ao processar proprietário: ${e.toString()}',
         linhaNumero: dadosProprietario['_linhaNumero'] as int?,
       );
     }
   }
 
-  /// Gera QR code para proprietário em background
-  static void _gerarQRCodeProprietarioBackground(
-    String proprietarioId,
-    String nome,
-    String cpfCnpj,
-    String? email,
-    String? telefone,
-    String condominioId,
-  ) {
-    Future.delayed(const Duration(milliseconds: 300), () async {
-      try {
-        print('🔄 [Import] Gerando QR Code para proprietário: $nome');
-        await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-          tipo: 'proprietario',
-          id: proprietarioId,
-          nome: nome,
-          tabelaNome: 'proprietarios',
-          dados: {
-            'id': proprietarioId,
-            'nome': nome,
-            'cpf': cpfCnpj.length >= 4 ? cpfCnpj.substring(cpfCnpj.length - 4) : cpfCnpj,
-            'email': email ?? '',
-            'telefone': telefone ?? '',
-            'condominio_id': condominioId,
-            'data_criacao': DateTime.now().toIso8601String(),
-          },
-        );
-        print('✅ [Import] QR Code gerado para proprietário: $nome');
-      } catch (e) {
-        print('❌ [Import] Erro ao gerar QR Code proprietário: $e');
-      }
-    });
-  }
 
-  /// Insere um inquilino (opcional)
+
+  /// Insere ou atualiza um inquilino (opcional)
   /// Requer unidade_id da unidade criada na etapa anterior
   static Future<ResultadoInsercao?> inserirInquilino(
     Map<String, dynamic>? dadosInquilino,
@@ -275,25 +315,63 @@ class ImportacaoInsercaoService {
       final dados = Map<String, dynamic>.from(dadosInquilino);
       dados.remove('_linhaNumero'); // Remover campo temporário
       dados['unidade_id'] = unidadeId;
+      
+      String inquilinoId;
+      final cpfCnpj = dados['cpf_cnpj'] as String?;
 
-      // Inserir
-      final response = await _client
-          .from('inquilinos')
-          .insert(dados)
-          .select('id')
-          .single();
+      // 1. Verificar se JÁ EXISTE inquilino com este CPF nesta Unidade
+      Map<String, dynamic>? inquilinoExistenteNestaUnidade;
+      
+      if (cpfCnpj != null && cpfCnpj.isNotEmpty) {
+        inquilinoExistenteNestaUnidade = await _client
+            .from('inquilinos')
+            .select('id, qr_code_url')
+            .eq('unidade_id', unidadeId)
+            .eq('cpf_cnpj', cpfCnpj)
+            .limit(1)
+            .maybeSingle();
+      }
 
-      final inquilinoId = response['id'] as String;
-      print('✅ Inquilino inserido com sucesso: $inquilinoId');
+      if (inquilinoExistenteNestaUnidade != null) {
+        // ✨ UPSERT: Atualizar registro existente
+        inquilinoId = inquilinoExistenteNestaUnidade['id'] as String;
+        print('♻️ Inquilino já existe na unidade (ID: $inquilinoId). Atualizando dados...');
+        
+        await _client
+            .from('inquilinos')
+            .update(dados)
+            .eq('id', inquilinoId);
+            
+      } else {
+        // 🆕 INSERÇÃO NOVA
+        final response = await _client
+            .from('inquilinos')
+            .insert(dados)
+            .select('id')
+            .single();
 
-      // ✅ Gerar QR Code em background (não bloqueia)
-      _gerarQRCodeInquilinoBackground(
-        inquilinoId,
-        dados['nome'] as String? ?? 'Inquilino',
-        dados['cpf_cnpj'] as String? ?? '',
-        dados['email'] as String?,
-        dados['celular'] as String? ?? dados['telefone'] as String?,
-        dados['condominio_id'] as String? ?? '',
+        inquilinoId = response['id'] as String;
+        print('✅ Novo inquilino inserido com sucesso: $inquilinoId');
+      }
+
+      // ✅ Gerar QR Code em background
+      // ✅ Gerar QR Code em background (se necessário)
+      _gerarQRCodeSeNecessarioBackground(
+        id: inquilinoId,
+        tipo: 'inquilino',
+        tabelaNome: 'inquilinos',
+        nome: dados['nome'] as String? ?? 'Inquilino',
+        dados: {
+          'id': inquilinoId,
+          'nome': dados['nome'],
+          'cpf': cpfCnpj != null && cpfCnpj.length >= 4 
+              ? cpfCnpj.substring(cpfCnpj.length - 4) 
+              : cpfCnpj,
+          'email': dados['email'] ?? '',
+          'telefone': dados['celular'] ?? dados['telefone'] ?? '',
+          'condominio_id': dados['condominio_id'] ?? '',
+        },
+        urlExistente: inquilinoExistenteNestaUnidade?['qr_code_url'] as String?,
       );
 
       return ResultadoInsercao(
@@ -302,48 +380,16 @@ class ImportacaoInsercaoService {
         linhaNumero: linhaNumero,
       );
     } catch (e) {
-      print('❌ Erro ao inserir inquilino: $e');
+      print('❌ Erro ao inserir/atualizar inquilino: $e');
       return ResultadoInsercao(
         sucesso: false,
-        erro: 'Erro ao inserir inquilino: ${e.toString()}',
+        erro: 'Erro ao processar inquilino: ${e.toString()}',
         linhaNumero: dadosInquilino['_linhaNumero'] as int?,
       );
     }
   }
 
-  /// Gera QR code para inquilino em background
-  static void _gerarQRCodeInquilinoBackground(
-    String inquilinoId,
-    String nome,
-    String cpfCnpj,
-    String? email,
-    String? telefone,
-    String condominioId,
-  ) {
-    Future.delayed(const Duration(milliseconds: 300), () async {
-      try {
-        print('🔄 [Import] Gerando QR Code para inquilino: $nome');
-        await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-          tipo: 'inquilino',
-          id: inquilinoId,
-          nome: nome,
-          tabelaNome: 'inquilinos',
-          dados: {
-            'id': inquilinoId,
-            'nome': nome,
-            'cpf': cpfCnpj.length >= 4 ? cpfCnpj.substring(cpfCnpj.length - 4) : cpfCnpj,
-            'email': email ?? '',
-            'telefone': telefone ?? '',
-            'condominio_id': condominioId,
-            'data_criacao': DateTime.now().toIso8601String(),
-          },
-        );
-        print('✅ [Import] QR Code gerado para inquilino: $nome');
-      } catch (e) {
-        print('❌ [Import] Erro ao gerar QR Code inquilino: $e');
-      }
-    });
-  }
+
 
   /// Insere uma imobiliária (opcional)
   /// Não depende de outras entidades
@@ -367,12 +413,29 @@ class ImportacaoInsercaoService {
 
         final existente = await _client
             .from('imobiliarias')
-            .select('id')
+            .select('id, qr_code_url')
             .eq('cnpj', cnpj)
             .eq('condominio_id', condominioId)
             .single();
 
         print('✅ Imobiliária já existente: ${existente['id']}');
+        
+        // ✅ Gerar QR Code se faltar
+        final existingUrl = existente['qr_code_url'] as String?;
+        _gerarQRCodeSeNecessarioBackground(
+          id: existente['id'] as String,
+          tipo: 'imobiliaria',
+          tabelaNome: 'imobiliarias',
+          nome: dados['nome_imobiliaria'] ?? 'Imobiliária',
+          dados: {
+            'id': existente['id'],
+            'nome': dados['nome_imobiliaria'],
+            'cnpj': cnpj,
+            'condominio_id': condominioId,
+          },
+          urlExistente: existingUrl,
+        );
+
         return ResultadoInsercao(
           sucesso: true,
           id: existente['id'] as String,
@@ -396,6 +459,21 @@ class ImportacaoInsercaoService {
 
       final imobiliarioId = response['id'] as String;
       print('✅ Imobiliária inserida com sucesso: $imobiliarioId');
+
+      // ✅ Gerar QR Code em background
+      _gerarQRCodeSeNecessarioBackground(
+        id: imobiliarioId,
+        tipo: 'imobiliaria',
+        tabelaNome: 'imobiliarias',
+        nome: dados['nome_imobiliaria'] ?? 'Imobiliária',
+        dados: {
+          'id': imobiliarioId,
+          'nome': dados['nome_imobiliaria'],
+          'cnpj': dados['cnpj'] ?? '',
+          'condominio_id': dados['condominio_id'] ?? '',
+        },
+        urlExistente: null,
+      );
 
       return ResultadoInsercao(
         sucesso: true,
@@ -516,5 +594,39 @@ class ImportacaoInsercaoService {
         'senhas': null,
       };
     }
+  }
+
+  /// Helper para gerar QR Code em background apenas SE NECESSÁRIO
+  static void _gerarQRCodeSeNecessarioBackground({
+    required String id,
+    required String tipo,
+    required String tabelaNome,
+    required String nome,
+    required Map<String, dynamic> dados,
+    required String? urlExistente,
+  }) {
+    if (urlExistente != null && urlExistente.isNotEmpty) {
+      // 🛑 Já tem QR Code, não precisa gerar
+      // print('⏭️ [$tipo] QR Code já existe, pulando geração.');
+      return;
+    }
+
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      try {
+        print('🔄 [Import] Iniciando geração de QR para $tipo: $nome');
+        await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+          tipo: tipo,
+          id: id,
+          nome: nome,
+          tabelaNome: tabelaNome,
+          dados: {
+            ...dados,
+            'data_criacao': DateTime.now().toIso8601String(),
+          },
+        );
+      } catch (e) {
+        print('❌ [Import] Erro ao gerar QR Code para $tipo ($nome): $e');
+      }
+    });
   }
 }
