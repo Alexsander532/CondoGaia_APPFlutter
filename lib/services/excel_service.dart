@@ -1,13 +1,13 @@
 import 'dart:io';
-import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
 
-/// Serviço para leitura e processamento de arquivos Excel (.xlsx)
+/// Serviço para leitura e processamento de arquivos Excel (.xlsx) e ODS
 class ExcelService {
   /// Lê um arquivo Excel e extrai todos os nomes da coluna A
   /// 
   /// Parâmetros:
-  ///   - [caminhoOuArquivo]: Caminho (String) ou PlatformFile do arquivo .xlsx
+  ///   - [caminhoOuArquivo]: Caminho (String) ou PlatformFile do arquivo .xlsx/.ods
   ///   - [colunaIndex]: Índice da coluna a ler (padrão: 0 = coluna A)
   /// 
   /// Retorna:
@@ -43,39 +43,40 @@ class ExcelService {
         throw Exception('Tipo inválido. Use String (path) ou PlatformFile');
       }
 
-      // Decodificar arquivo Excel
-      final excel = Excel.decodeBytes(bytes);
+      // Decodificar arquivo Excel/ODS
+      final decoder = SpreadsheetDecoder.decodeBytes(bytes, update: true);
 
       // Obter primeira sheet
-      if (excel.tables.isEmpty) {
-        throw Exception('Arquivo Excel vazio ou inválido');
+      if (decoder.tables.isEmpty) {
+        throw Exception('Arquivo vazio ou inválido');
       }
 
-      final Sheet sheet = excel.tables.values.first;
+      final table = decoder.tables.values.first;
 
       // Extrair dados
       List<String> dados = [];
-      for (int rowIndex = 0; rowIndex < sheet.maxRows; rowIndex++) {
-        final cell = sheet.cell(CellIndex.indexByColumnRow(
-          columnIndex: colunaIndex,
-          rowIndex: rowIndex,
-        ));
-
-        if (cell.value != null && cell.value.toString().trim().isNotEmpty) {
-          dados.add(cell.value.toString().trim());
+      for (int rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
+        final row = table.rows[rowIndex];
+        
+        // Verifica se a coluna existe nessa linha
+        if (colunaIndex < row.length) {
+          final cellValue = row[colunaIndex];
+          if (cellValue != null && cellValue.toString().trim().isNotEmpty) {
+            dados.add(cellValue.toString().trim());
+          }
         }
       }
 
       return dados;
     } catch (e) {
-      throw Exception('Erro ao ler arquivo Excel: $e');
+      throw Exception('Erro ao ler arquivo: $e');
     }
   }
 
-  /// Lê um arquivo Excel e retorna uma lista de objetos personalizados
+  /// Lê um arquivo Excel/ODS e retorna uma lista de objetos personalizados
   /// 
   /// Parâmetros:
-  ///   - [caminhoArquivo]: Caminho completo do arquivo .xlsx
+  ///   - [caminhoArquivo]: Caminho completo do arquivo .xlsx/.ods
   ///   - [processador]: Função que processa cada linha
   /// 
   /// Retorna:
@@ -91,22 +92,17 @@ class ExcelService {
       }
 
       final bytes = File(caminhoArquivo).readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
+      final decoder = SpreadsheetDecoder.decodeBytes(bytes, update: true);
 
-      if (excel.tables.isEmpty) {
-        throw Exception('Arquivo Excel vazio ou inválido');
+      if (decoder.tables.isEmpty) {
+        throw Exception('Arquivo vazio ou inválido');
       }
 
-      final Sheet sheet = excel.tables.values.first;
+      final table = decoder.tables.values.first;
       List<T> resultado = [];
 
-      for (int rowIndex = linhaInicio; rowIndex < sheet.maxRows; rowIndex++) {
-        List<dynamic> linha = [];
-
-        // Iterar sobre as células da linha
-        for (var cellValue in sheet.row(rowIndex)) {
-          linha.add(cellValue?.value);
-        }
+      for (int rowIndex = linhaInicio; rowIndex < table.rows.length; rowIndex++) {
+        List<dynamic> linha = table.rows[rowIndex];
 
         // Verificar se linha tem algum dado
         if (linha.any((cell) => cell != null && cell.toString().trim().isNotEmpty)) {
@@ -116,7 +112,7 @@ class ExcelService {
 
       return resultado;
     } catch (e) {
-      throw Exception('Erro ao processar arquivo Excel: $e');
+      throw Exception('Erro ao processar arquivo: $e');
     }
   }
 
@@ -135,7 +131,7 @@ class ExcelService {
     print('═' * 70);
 
     for (int i = 0; i < dados.length; i++) {
-      print('${i + 1} - ${dados[i]}');
+        print('${i + 1} - ${dados[i]}');
     }
 
     print('─' * 70);

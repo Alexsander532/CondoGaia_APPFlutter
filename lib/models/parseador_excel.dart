@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:excel/excel.dart';
+import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
 import 'importacao_row.dart';
 
 /// Utilitário para fazer parsing de arquivos Excel/ODS
@@ -30,19 +30,25 @@ class ParseadorExcel {
     bool validarColunas = true,
   }) async {
     try {
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables.values.first;
+      // Usa SpreadsheetDecoder para suportar ODS, XLSX e XLS
+      final decoder = SpreadsheetDecoder.decodeBytes(bytes, update: true);
+      
+      if (decoder.tables.isEmpty) {
+        throw Exception('Arquivo não contém nenhuma planilha');
+      }
+
+      final table = decoder.tables.values.first;
 
       // Encontra a linha com o cabeçalho (pode não ser a primeira)
       // Se a primeira linha não tiver as colunas esperadas, tenta a próxima
       int headerRowIndex = 0;
       List<String> headers = [];
 
-      for (int i = 0; i < sheet.rows.length; i++) {
-        final row = sheet.rows[i];
+      for (int i = 0; i < table.rows.length; i++) {
+        final row = table.rows[i];
         final candidateHeaders = row
             .map((cell) =>
-                (cell?.value ?? '').toString().toLowerCase().trim())
+                (cell ?? '').toString().toLowerCase().trim())
             .toList();
 
         // Verifica se esta linha tem as colunas esperadas
@@ -65,8 +71,8 @@ class ParseadorExcel {
       final rows = <ImportacaoRow>[];
       int linhaNumero = headerRowIndex + 2; // Número da linha na planilha
 
-      for (int i = headerRowIndex + 1; i < sheet.rows.length; i++) {
-        final cellRow = sheet.rows[i];
+      for (int i = headerRowIndex + 1; i < table.rows.length; i++) {
+        final cellRow = table.rows[i];
 
         // Pula linhas completamente vazias
         if (_linhaEstaVazia(cellRow)) {
@@ -93,8 +99,6 @@ class ParseadorExcel {
       }
 
       return rows;
-    } on FormatException catch (e) {
-      throw Exception('Erro ao ler arquivo Excel: ${e.message}');
     } catch (e) {
       throw Exception('Erro ao processar arquivo: $e');
     }
@@ -127,18 +131,17 @@ class ParseadorExcel {
   }
 
   /// Verifica se uma linha está completamente vazia
-  static bool _linhaEstaVazia(List<Data?> cellRow) {
+  static bool _linhaEstaVazia(List<dynamic> cellRow) {
     return cellRow.every(
       (cell) =>
           cell == null ||
-          cell.value == null ||
-          cell.value.toString().trim().isEmpty,
+          cell.toString().trim().isEmpty,
     );
   }
 
   /// Faz o parsing de uma linha do Excel para ImportacaoRow
   static ImportacaoRow _parseLinhaExcel(
-    List<Data?> cellRow,
+    List<dynamic> cellRow,
     Map<String, int> indices,
     int linhaNumero,
   ) {
@@ -147,12 +150,10 @@ class ParseadorExcel {
       if (index == null || index >= cellRow.length) return '';
 
       final cell = cellRow[index];
-      if (cell == null || cell.value == null) return '';
-
-      final valor = cell.value;
+      if (cell == null) return '';
 
       // Converte para string e limpa
-      return valor.toString().trim();
+      return cell.toString().trim();
     }
 
     return ImportacaoRow(
