@@ -303,34 +303,72 @@ class _ImportacaoModalWidgetState extends State<ImportacaoModalWidget> {
 
   /// Fechar modal
   void _fechar() {
-    Navigator.pop(context);
+    final bool sucesso = _resultadoImportacao != null;
+    Navigator.pop(context, sucesso);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Header com título e progresso
-          _buildHeader(),
-
-          // Conteúdo do passo atual (com scroll automático)
-          Expanded(
-            child: _buildConteudoPasso(),
+    return Stack(
+      children: [
+        Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
+          child: Column(
+            children: [
+              // Header com título e progresso
+              _buildHeader(),
 
-          // Footer com botões
-          _buildFooter(),
-        ],
-      ),
+              // Conteúdo do passo atual (com scroll automático)
+              Expanded(
+                child: _buildConteudoPasso(),
+              ),
+
+              // Footer com botões
+              _buildFooter(),
+            ],
+          ),
+        ),
+        
+        // Overlay de Loading durante a importação
+        if (_importacaoEmAndamento)
+          Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Importando dados...\nPor favor, aguarde.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 

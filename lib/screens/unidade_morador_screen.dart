@@ -688,7 +688,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   Future<void> _importarPlanilha() async {
     try {
       // Mostrar o modal de importação como bottom sheet
-      showModalBottomSheet(
+      final resultado = await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
@@ -696,15 +696,33 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           return ImportacaoModalWidget(
             condominioId: widget.condominioId ?? 'sem-id',
             condominioNome: widget.condominioNome ?? 'Condomínio',
-            cpfsExistentes: const {},  // TODO: Buscar do banco
-            emailsExistentes: const {},  // TODO: Buscar do banco
+            cpfsExistentes: const {},  // Todo: implementar cache se necessário
+            emailsExistentes: const {},
             onImportarConfirmado: (dados) async {
-              // Aqui virá a lógica de inserção no banco
-              print('Dados prontos para inserção: $dados');
+              // Callback opcional, lógica principal está no modal
             },
           );
         },
       );
+
+      if (resultado == true && mounted) {
+        print('✅ Importação concluída, recarregando dados...');
+        await _carregarDados();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Dados atualizados com sucesso!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
