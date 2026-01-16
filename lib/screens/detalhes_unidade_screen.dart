@@ -59,48 +59,82 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   final TextEditingController _blocoController = TextEditingController();
   final TextEditingController _fracaoIdealController = TextEditingController();
   final TextEditingController _areaController = TextEditingController();
-  final TextEditingController _vencimentoDiferenteController = TextEditingController();
-  final TextEditingController _valorDiferenteController = TextEditingController();
+  final TextEditingController _vencimentoDiferenteController =
+      TextEditingController();
+  final TextEditingController _valorDiferenteController =
+      TextEditingController();
   final TextEditingController _observacaoController = TextEditingController();
 
   // Controladores para a seção Proprietário
-  final TextEditingController _proprietarioNomeController = TextEditingController();
-  final TextEditingController _proprietarioCpfCnpjController = TextEditingController();
-  final TextEditingController _proprietarioCepController = TextEditingController();
-  final TextEditingController _proprietarioEnderecoController = TextEditingController();
-  final TextEditingController _proprietarioNumeroController = TextEditingController();
-  final TextEditingController _proprietarioBairroController = TextEditingController();
-  final TextEditingController _proprietarioCidadeController = TextEditingController();
-  final TextEditingController _proprietarioEstadoController = TextEditingController();
-  final TextEditingController _proprietarioTelefoneController = TextEditingController();
-  final TextEditingController _proprietarioCelularController = TextEditingController();
-  final TextEditingController _proprietarioEmailController = TextEditingController();
-  final TextEditingController _proprietarioConjugeController = TextEditingController();
-  final TextEditingController _proprietarioMultiproprietariosController = TextEditingController();
-  final TextEditingController _proprietarioMoradoresController = TextEditingController();
+  final TextEditingController _proprietarioNomeController =
+      TextEditingController();
+  final TextEditingController _proprietarioCpfCnpjController =
+      TextEditingController();
+  final TextEditingController _proprietarioCepController =
+      TextEditingController();
+  final TextEditingController _proprietarioEnderecoController =
+      TextEditingController();
+  final TextEditingController _proprietarioNumeroController =
+      TextEditingController();
+  final TextEditingController _proprietarioBairroController =
+      TextEditingController();
+  final TextEditingController _proprietarioCidadeController =
+      TextEditingController();
+  final TextEditingController _proprietarioEstadoController =
+      TextEditingController();
+  final TextEditingController _proprietarioTelefoneController =
+      TextEditingController();
+  final TextEditingController _proprietarioCelularController =
+      TextEditingController();
+  final TextEditingController _proprietarioEmailController =
+      TextEditingController();
+  final TextEditingController _proprietarioConjugeController =
+      TextEditingController();
+  final TextEditingController _proprietarioMultiproprietariosController =
+      TextEditingController();
+  final TextEditingController _proprietarioMoradoresController =
+      TextEditingController();
 
   // Controladores para a seção Inquilino
-  final TextEditingController _inquilinoNomeController = TextEditingController();
-  final TextEditingController _inquilinoCpfCnpjController = TextEditingController();
+  final TextEditingController _inquilinoNomeController =
+      TextEditingController();
+  final TextEditingController _inquilinoCpfCnpjController =
+      TextEditingController();
   final TextEditingController _inquilinoCepController = TextEditingController();
-  final TextEditingController _inquilinoEnderecoController = TextEditingController();
-  final TextEditingController _inquilinoNumeroController = TextEditingController();
-  final TextEditingController _inquilinoBairroController = TextEditingController();
-  final TextEditingController _inquilinoCidadeController = TextEditingController();
-  final TextEditingController _inquilinoEstadoController = TextEditingController();
-  final TextEditingController _inquilinoTelefoneController = TextEditingController();
-  final TextEditingController _inquilinoCelularController = TextEditingController();
-  final TextEditingController _inquilinoEmailController = TextEditingController();
-  final TextEditingController _inquilinoConjugeController = TextEditingController();
-  final TextEditingController _inquilinoMultiproprietariosController = TextEditingController();
-  final TextEditingController _inquilinoMoradoresController = TextEditingController();
+  final TextEditingController _inquilinoEnderecoController =
+      TextEditingController();
+  final TextEditingController _inquilinoNumeroController =
+      TextEditingController();
+  final TextEditingController _inquilinoBairroController =
+      TextEditingController();
+  final TextEditingController _inquilinoCidadeController =
+      TextEditingController();
+  final TextEditingController _inquilinoEstadoController =
+      TextEditingController();
+  final TextEditingController _inquilinoTelefoneController =
+      TextEditingController();
+  final TextEditingController _inquilinoCelularController =
+      TextEditingController();
+  final TextEditingController _inquilinoEmailController =
+      TextEditingController();
+  final TextEditingController _inquilinoConjugeController =
+      TextEditingController();
+  final TextEditingController _inquilinoMultiproprietariosController =
+      TextEditingController();
+  final TextEditingController _inquilinoMoradoresController =
+      TextEditingController();
 
   // Controladores para a seção Imobiliária
-  final TextEditingController _imobiliariaNomeController = TextEditingController();
-  final TextEditingController _imobiliariaCnpjController = TextEditingController();
-  final TextEditingController _imobiliariaTelefoneController = TextEditingController();
-  final TextEditingController _imobiliariaCelularController = TextEditingController();
-  final TextEditingController _imobiliariaEmailController = TextEditingController();
+  final TextEditingController _imobiliariaNomeController =
+      TextEditingController();
+  final TextEditingController _imobiliariaCnpjController =
+      TextEditingController();
+  final TextEditingController _imobiliariaTelefoneController =
+      TextEditingController();
+  final TextEditingController _imobiliariaCelularController =
+      TextEditingController();
+  final TextEditingController _imobiliariaEmailController =
+      TextEditingController();
 
   // Estados dos campos
   String? _tipoSelecionado;
@@ -120,7 +154,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Serviço para seleção de fotos
   final _photoPickerService = PhotoPickerService();
-  
+
   // Estados para Imobiliária - Foto
   Uint8List? _fotoImobiliariaBytes;
   bool _isUploadingFotoImobiliaria = false;
@@ -144,7 +178,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Se é modo criação, inicializar com valores padrão
     // Se é modo edição, carrega dados do banco
     if (widget.modo == 'criar') {
@@ -162,7 +196,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       _isLoadingDados = false;
       _errorMessage = null;
     });
-    
+
     // Aguardar mais tempo para o QR code ser salvo no banco e gerado
     // Aumentado de 800ms para 2000ms para dar mais tempo ao Supabase gerar o QR
     Future.delayed(const Duration(milliseconds: 2000), () {
@@ -177,18 +211,22 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Se não foi, recarrega novamente até 20 vezes (máximo 10 segundos)
   Future<void> _carregarDadosComVerificacaoQR() async {
     await _carregarDados();
-    
+
     if (mounted) {
       // Verificar se todos os QR codes foram gerados
-      final proprietarioTemQR = _proprietario?.qrCodeUrl != null && _proprietario!.qrCodeUrl!.isNotEmpty;
-      final inquilinoTemQR = _inquilino?.qrCodeUrl != null && _inquilino!.qrCodeUrl!.isNotEmpty;
-      final imobiliariaTemQR = _imobiliaria?.qrCodeUrl != null && _imobiliaria!.qrCodeUrl!.isNotEmpty;
+      final proprietarioTemQR =
+          _proprietario?.qrCodeUrl != null &&
+          _proprietario!.qrCodeUrl!.isNotEmpty;
+      final inquilinoTemQR =
+          _inquilino?.qrCodeUrl != null && _inquilino!.qrCodeUrl!.isNotEmpty;
+      final imobiliariaTemQR =
+          _imobiliaria?.qrCodeUrl != null &&
+          _imobiliaria!.qrCodeUrl!.isNotEmpty;
 
       // Se faltam QR codes e ainda temos tentativas, recarregar novamente
       if ((_proprietario != null && !proprietarioTemQR) ||
           (_inquilino != null && !inquilinoTemQR) ||
           (_imobiliaria != null && !imobiliariaTemQR)) {
-        
         _qrCheckCount++;
         if (_qrCheckCount < _maxQrChecks) {
           // Aguardar 1 segundo e tentar novamente (aumentado de 500ms para 1000ms)
@@ -236,8 +274,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           _blocoController.text = _unidade?.bloco ?? '';
           _fracaoIdealController.text = _unidade?.fracaoIdeal?.toString() ?? '';
           _areaController.text = _unidade?.areaM2?.toString() ?? '';
-          _vencimentoDiferenteController.text = _unidade?.vencimentoDiaDiferente?.toString() ?? '';
-          _valorDiferenteController.text = _unidade?.pagarValorDiferente?.toString() ?? '';
+          _vencimentoDiferenteController.text =
+              _unidade?.vencimentoDiaDiferente?.toString() ?? '';
+          _valorDiferenteController.text =
+              _unidade?.pagarValorDiferente?.toString() ?? '';
           _tipoSelecionado = _unidade?.tipoUnidade ?? 'A';
           _observacaoController.text = _unidade?.observacoes ?? '';
 
@@ -245,35 +285,46 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           _isencaoSelecionada = _unidade?.isencaoTotal == true
               ? 'total'
               : _unidade?.isencaoCota == true
-                  ? 'cota'
-                  : _unidade?.isencaoFundoReserva == true
-                      ? 'fundo_reserva'
-                      : 'nenhum';
+              ? 'cota'
+              : _unidade?.isencaoFundoReserva == true
+              ? 'fundo_reserva'
+              : 'nenhum';
 
           // Preencher outros estados de unidade
-          _acaoJudicialSelecionada = (_unidade?.acaoJudicial ?? false) ? 'sim' : 'nao';
+          _acaoJudicialSelecionada = (_unidade?.acaoJudicial ?? false)
+              ? 'sim'
+              : 'nao';
           _correiosSelecionado = (_unidade?.correios ?? false) ? 'sim' : 'nao';
-          _pagadorBoletoSelecionado = _unidade?.nomePagadorBoleto ?? 'proprietario';
+          _pagadorBoletoSelecionado =
+              _unidade?.nomePagadorBoleto ?? 'proprietario';
 
           // Preencher campos de proprietário
           if (_proprietario != null) {
             _proprietarioNomeController.text = _proprietario?.nome ?? '';
             _proprietarioCpfCnpjController.text = _proprietario?.cpfCnpj ?? '';
             _proprietarioCepController.text = _proprietario?.cep ?? '';
-            _proprietarioEnderecoController.text = _proprietario?.endereco ?? '';
+            _proprietarioEnderecoController.text =
+                _proprietario?.endereco ?? '';
             _proprietarioNumeroController.text = _proprietario?.numero ?? '';
             _proprietarioBairroController.text = _proprietario?.bairro ?? '';
             _proprietarioCidadeController.text = _proprietario?.cidade ?? '';
             _proprietarioEstadoController.text = _proprietario?.estado ?? '';
-            _proprietarioTelefoneController.text = _proprietario?.telefone ?? '';
+            _proprietarioTelefoneController.text =
+                _proprietario?.telefone ?? '';
             _proprietarioCelularController.text = _proprietario?.celular ?? '';
             _proprietarioEmailController.text = _proprietario?.email ?? '';
             _proprietarioConjugeController.text = _proprietario?.conjuge ?? '';
-            _proprietarioMultiproprietariosController.text = _proprietario?.multiproprietarios ?? '';
-            _proprietarioMoradoresController.text = _proprietario?.moradores ?? '';
+            _proprietarioMultiproprietariosController.text =
+                _proprietario?.multiproprietarios ?? '';
+            _proprietarioMoradoresController.text =
+                _proprietario?.moradores ?? '';
             // Carregar estados dos radio buttons do banco
-            _agruparBoletosSelecionado = (_proprietario?.agruparBoletos ?? false) ? 'Sim' : 'Não';
-            _matriculaImovelSelecionado = (_proprietario?.matriculaImovel ?? false) ? 'Fazer Upload' : 'Não';
+            _agruparBoletosSelecionado =
+                (_proprietario?.agruparBoletos ?? false) ? 'Sim' : 'Não';
+            _matriculaImovelSelecionado =
+                (_proprietario?.matriculaImovel ?? false)
+                ? 'Fazer Upload'
+                : 'Não';
           }
 
           // Preencher campos de inquilino
@@ -290,10 +341,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             _inquilinoCelularController.text = _inquilino?.celular ?? '';
             _inquilinoEmailController.text = _inquilino?.email ?? '';
             _inquilinoConjugeController.text = _inquilino?.conjuge ?? '';
-            _inquilinoMultiproprietariosController.text = _inquilino?.multiproprietarios ?? '';
+            _inquilinoMultiproprietariosController.text =
+                _inquilino?.multiproprietarios ?? '';
             _inquilinoMoradoresController.text = _inquilino?.moradores ?? '';
-            _receberBoletoEmailSelecionado = (_inquilino?.receberBoletoEmail ?? true) ? 'sim' : 'nao';
-            _controleLocacaoSelecionado = (_inquilino?.controleLocacao ?? true) ? 'sim' : 'nao';
+            _receberBoletoEmailSelecionado =
+                (_inquilino?.receberBoletoEmail ?? true) ? 'sim' : 'nao';
+            _controleLocacaoSelecionado = (_inquilino?.controleLocacao ?? true)
+                ? 'sim'
+                : 'nao';
           }
 
           // Preencher campos de imobiliária
@@ -338,7 +393,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       final dadosAtualizacao = <String, dynamic>{
         'numero': _unidadeController.text.trim(),
         'bloco': _blocoController.text.trim(),
-        'fracao_ideal': _fracaoIdealController.text.isNotEmpty 
+        'fracao_ideal': _fracaoIdealController.text.isNotEmpty
             ? double.tryParse(_fracaoIdealController.text.replaceAll(',', '.'))
             : null,
         'area_m2': _areaController.text.isNotEmpty
@@ -348,7 +403,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ? int.tryParse(_vencimentoDiferenteController.text)
             : null,
         'pagar_valor_diferente': _valorDiferenteController.text.isNotEmpty
-            ? double.tryParse(_valorDiferenteController.text.replaceAll('R\$ ', '').replaceAll(',', '.'))
+            ? double.tryParse(
+                _valorDiferenteController.text
+                    .replaceAll('R\$ ', '')
+                    .replaceAll(',', '.'),
+              )
             : null,
         'tipo_unidade': _tipoSelecionado ?? 'A',
         'isencao_nenhum': _isencaoSelecionada == 'nenhum',
@@ -358,8 +417,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         'acao_judicial': _acaoJudicialSelecionada == 'sim',
         'correios': _correiosSelecionado == 'sim',
         'nome_pagador_boleto': _pagadorBoletoSelecionado,
-        'observacoes': _observacaoController.text.trim().isEmpty 
-            ? null 
+        'observacoes': _observacaoController.text.trim().isEmpty
+            ? null
             : _observacaoController.text.trim(),
       };
 
@@ -376,13 +435,16 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           bloco: dadosAtualizacao['bloco'] as String?,
           fracaoIdeal: dadosAtualizacao['fracao_ideal'] as double?,
           areaM2: dadosAtualizacao['area_m2'] as double?,
-          vencimentoDiaDiferente: dadosAtualizacao['vencto_dia_diferente'] as int?,
-          pagarValorDiferente: dadosAtualizacao['pagar_valor_diferente'] as double?,
+          vencimentoDiaDiferente:
+              dadosAtualizacao['vencto_dia_diferente'] as int?,
+          pagarValorDiferente:
+              dadosAtualizacao['pagar_valor_diferente'] as double?,
           tipoUnidade: dadosAtualizacao['tipo_unidade'] as String,
           isencaoNenhum: dadosAtualizacao['isencao_nenhum'] as bool,
           isencaoTotal: dadosAtualizacao['isencao_total'] as bool,
           isencaoCota: dadosAtualizacao['isencao_cota'] as bool,
-          isencaoFundoReserva: dadosAtualizacao['isencao_fundo_reserva'] as bool,
+          isencaoFundoReserva:
+              dadosAtualizacao['isencao_fundo_reserva'] as bool,
           acaoJudicial: dadosAtualizacao['acao_judicial'] as bool,
           correios: dadosAtualizacao['correios'] as bool,
           nomePagadorBoleto: dadosAtualizacao['nome_pagador_boleto'] as String,
@@ -423,20 +485,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Retorna erro descriptivo se inválido, ou null se válido
   String? _validarCPF(String cpf) {
     final digitos = cpf.replaceAll(RegExp(r'\D'), '');
-    
+
     if (digitos.isEmpty) {
       return 'CPF é obrigatório';
     }
-    
+
     if (digitos.length < 11) {
       final faltam = 11 - digitos.length;
       return 'CPF incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
     }
-    
+
     if (digitos.length > 11) {
       return 'CPF com muitos dígitos (máximo 11)';
     }
-    
+
     // Validar primeiro dígito verificador
     int soma = 0;
     for (int i = 0; i < 9; i++) {
@@ -444,11 +506,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     }
     int primeiroDigito = 11 - (soma % 11);
     if (primeiroDigito >= 10) primeiroDigito = 0;
-    
+
     if (int.parse(digitos[9]) != primeiroDigito) {
       return 'CPF com formato inválido';
     }
-    
+
     // Validar segundo dígito verificador
     soma = 0;
     for (int i = 0; i < 10; i++) {
@@ -456,11 +518,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     }
     int segundoDigito = 11 - (soma % 11);
     if (segundoDigito >= 10) segundoDigito = 0;
-    
+
     if (int.parse(digitos[10]) != segundoDigito) {
       return 'CPF com formato inválido';
     }
-    
+
     return null; // CPF válido
   }
 
@@ -468,37 +530,37 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Retorna erro descriptivo se inválido, ou null se válido
   String? _validarCNPJ(String cnpj) {
     final digitos = cnpj.replaceAll(RegExp(r'\D'), '');
-    
+
     if (digitos.isEmpty) {
       return 'CNPJ é obrigatório';
     }
-    
+
     if (digitos.length < 14) {
       final faltam = 14 - digitos.length;
       return 'CNPJ incompleto: faltam ainda $faltam ${faltam == 1 ? 'dígito' : 'dígitos'}';
     }
-    
+
     if (digitos.length > 14) {
       return 'CNPJ com muitos dígitos (máximo 14)';
     }
-    
+
     // Validar dígitos verificadores do CNPJ
     int tamanho = digitos.length - 2;
     int numero = int.parse(digitos.substring(0, tamanho));
     int digito1 = _calcularDigitoCNPJ(numero);
-    
+
     if (int.parse(digitos[tamanho]) != digito1) {
       return 'CNPJ com formato inválido';
     }
-    
+
     tamanho += 1;
     numero = int.parse(digitos.substring(0, tamanho));
     int digito2 = _calcularDigitoCNPJ(numero);
-    
+
     if (int.parse(digitos[tamanho]) != digito2) {
       return 'CNPJ com formato inválido';
     }
-    
+
     return null; // CNPJ válido
   }
 
@@ -512,11 +574,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   /// Detecta qual é baseado no tamanho e valida
   String? _validarCPFouCNPJ(String cpfCnpj) {
     final digitos = cpfCnpj.replaceAll(RegExp(r'\D'), '');
-    
+
     if (digitos.isEmpty) {
       return 'CPF ou CNPJ é obrigatório';
     }
-    
+
     if (digitos.length == 11) {
       return _validarCPF(cpfCnpj);
     } else if (digitos.length == 14) {
@@ -569,24 +631,49 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       // Se não tem proprietário, criar um novo
       if (_proprietario == null || _proprietario!.id.isEmpty) {
         print('📝 Criando novo proprietário...');
-        
+
         final novoPropietario = await _service.criarProprietario(
           condominioId: widget.condominioId ?? '',
           unidadeId: _unidade?.id ?? '',
           nome: nome,
           cpfCnpj: cpfCnpj,
-          cep: _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
-          endereco: _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
-          numero: _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
-          bairro: _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
-          cidade: _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
-          estado: _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
-          telefone: _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
-          celular: _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
-          email: _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
-          conjuge: _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
-          multiproprietarios: _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
-          moradores: _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
+          cep: _proprietarioCepController.text.trim().isEmpty
+              ? null
+              : _proprietarioCepController.text.trim(),
+          endereco: _proprietarioEnderecoController.text.trim().isEmpty
+              ? null
+              : _proprietarioEnderecoController.text.trim(),
+          numero: _proprietarioNumeroController.text.trim().isEmpty
+              ? null
+              : _proprietarioNumeroController.text.trim(),
+          bairro: _proprietarioBairroController.text.trim().isEmpty
+              ? null
+              : _proprietarioBairroController.text.trim(),
+          cidade: _proprietarioCidadeController.text.trim().isEmpty
+              ? null
+              : _proprietarioCidadeController.text.trim(),
+          estado: _proprietarioEstadoController.text.trim().isEmpty
+              ? null
+              : _proprietarioEstadoController.text.trim(),
+          telefone: _proprietarioTelefoneController.text.trim().isEmpty
+              ? null
+              : _proprietarioTelefoneController.text.trim(),
+          celular: _proprietarioCelularController.text.trim().isEmpty
+              ? null
+              : _proprietarioCelularController.text.trim(),
+          email: _proprietarioEmailController.text.trim().isEmpty
+              ? null
+              : _proprietarioEmailController.text.trim(),
+          conjuge: _proprietarioConjugeController.text.trim().isEmpty
+              ? null
+              : _proprietarioConjugeController.text.trim(),
+          multiproprietarios:
+              _proprietarioMultiproprietariosController.text.trim().isEmpty
+              ? null
+              : _proprietarioMultiproprietariosController.text.trim(),
+          moradores: _proprietarioMoradoresController.text.trim().isEmpty
+              ? null
+              : _proprietarioMoradoresController.text.trim(),
         );
 
         // Atualizar estado com o novo proprietário
@@ -609,15 +696,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       } else {
         // Se já tem proprietário, atualizar dados
         print('♻️ Atualizando proprietário existente...');
-        
+
         // Se tem foto selecionada (em bytes), fazer upload
         String? fotoUrl = _proprietario?.fotoPerfil;
-        
+
         if (_fotoProprietarioBytes != null) {
           // Fazer upload da foto para o Supabase Storage
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final fileName = 'proprietario_${_proprietario!.id}_$timestamp.jpg';
-          
+
           fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
             _fotoProprietarioBytes!,
             fileName,
@@ -628,22 +715,47 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             throw Exception('Falha ao fazer upload da foto');
           }
         }
-        
+
         final dadosAtualizacao = <String, dynamic>{
           'nome': nome,
           'cpf_cnpj': cpfCnpj,
-          'cep': _proprietarioCepController.text.trim().isEmpty ? null : _proprietarioCepController.text.trim(),
-          'endereco': _proprietarioEnderecoController.text.trim().isEmpty ? null : _proprietarioEnderecoController.text.trim(),
-          'numero': _proprietarioNumeroController.text.trim().isEmpty ? null : _proprietarioNumeroController.text.trim(),
-          'bairro': _proprietarioBairroController.text.trim().isEmpty ? null : _proprietarioBairroController.text.trim(),
-          'cidade': _proprietarioCidadeController.text.trim().isEmpty ? null : _proprietarioCidadeController.text.trim(),
-          'estado': _proprietarioEstadoController.text.trim().isEmpty ? null : _proprietarioEstadoController.text.trim(),
-          'telefone': _proprietarioTelefoneController.text.trim().isEmpty ? null : _proprietarioTelefoneController.text.trim(),
-          'celular': _proprietarioCelularController.text.trim().isEmpty ? null : _proprietarioCelularController.text.trim(),
-          'email': _proprietarioEmailController.text.trim().isEmpty ? null : _proprietarioEmailController.text.trim(),
-          'conjuge': _proprietarioConjugeController.text.trim().isEmpty ? null : _proprietarioConjugeController.text.trim(),
-          'multiproprietarios': _proprietarioMultiproprietariosController.text.trim().isEmpty ? null : _proprietarioMultiproprietariosController.text.trim(),
-          'moradores': _proprietarioMoradoresController.text.trim().isEmpty ? null : _proprietarioMoradoresController.text.trim(),
+          'cep': _proprietarioCepController.text.trim().isEmpty
+              ? null
+              : _proprietarioCepController.text.trim(),
+          'endereco': _proprietarioEnderecoController.text.trim().isEmpty
+              ? null
+              : _proprietarioEnderecoController.text.trim(),
+          'numero': _proprietarioNumeroController.text.trim().isEmpty
+              ? null
+              : _proprietarioNumeroController.text.trim(),
+          'bairro': _proprietarioBairroController.text.trim().isEmpty
+              ? null
+              : _proprietarioBairroController.text.trim(),
+          'cidade': _proprietarioCidadeController.text.trim().isEmpty
+              ? null
+              : _proprietarioCidadeController.text.trim(),
+          'estado': _proprietarioEstadoController.text.trim().isEmpty
+              ? null
+              : _proprietarioEstadoController.text.trim(),
+          'telefone': _proprietarioTelefoneController.text.trim().isEmpty
+              ? null
+              : _proprietarioTelefoneController.text.trim(),
+          'celular': _proprietarioCelularController.text.trim().isEmpty
+              ? null
+              : _proprietarioCelularController.text.trim(),
+          'email': _proprietarioEmailController.text.trim().isEmpty
+              ? null
+              : _proprietarioEmailController.text.trim(),
+          'conjuge': _proprietarioConjugeController.text.trim().isEmpty
+              ? null
+              : _proprietarioConjugeController.text.trim(),
+          'multiproprietarios':
+              _proprietarioMultiproprietariosController.text.trim().isEmpty
+              ? null
+              : _proprietarioMultiproprietariosController.text.trim(),
+          'moradores': _proprietarioMoradoresController.text.trim().isEmpty
+              ? null
+              : _proprietarioMoradoresController.text.trim(),
           'agrupar_boletos': _agruparBoletosSelecionado == 'Sim',
           'matricula_imovel': _matriculaImovelSelecionado == 'Fazer Upload',
           'foto_perfil': fotoUrl,
@@ -666,7 +778,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             duration: Duration(seconds: 2),
           ),
         );
-        
+
         // 🔄 Recarregar dados para mostrar QR code atualizado
         // Aumentado para 2 segundos para dar mais tempo ao QR ser gerado
         await Future.delayed(const Duration(milliseconds: 2000));
@@ -675,15 +787,17 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     } catch (e) {
       // Tratamento melhorado de erros
       String mensagemErro = 'Erro ao salvar proprietário';
-      
-      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+
+      if (e.toString().contains('duplicate') ||
+          e.toString().contains('unique')) {
         mensagemErro = 'Este CPF/CNPJ já está cadastrado';
       } else if (e.toString().contains('constraint')) {
         mensagemErro = 'Dados inválidos. Verifique os campos obrigatórios';
-      } else if (e.toString().contains('connection') || e.toString().contains('network')) {
+      } else if (e.toString().contains('connection') ||
+          e.toString().contains('network')) {
         mensagemErro = 'Erro de conexão. Verifique sua internet';
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensagemErro),
@@ -736,24 +850,49 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       // Se não tem inquilino, criar um novo
       if (_inquilino == null || _inquilino!.id.isEmpty) {
         print('📝 Criando novo inquilino...');
-        
+
         final novoInquilino = await _service.criarInquilino(
           condominioId: widget.condominioId ?? '',
           unidadeId: _unidade?.id ?? '',
           nome: nome,
           cpfCnpj: cpfCnpj,
-          cep: _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
-          endereco: _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
-          numero: _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
-          bairro: _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
-          cidade: _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
-          estado: _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
-          telefone: _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
-          celular: _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
-          email: _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
-          conjuge: _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
-          multiproprietarios: _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
-          moradores: _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
+          cep: _inquilinoCepController.text.trim().isEmpty
+              ? null
+              : _inquilinoCepController.text.trim(),
+          endereco: _inquilinoEnderecoController.text.trim().isEmpty
+              ? null
+              : _inquilinoEnderecoController.text.trim(),
+          numero: _inquilinoNumeroController.text.trim().isEmpty
+              ? null
+              : _inquilinoNumeroController.text.trim(),
+          bairro: _inquilinoBairroController.text.trim().isEmpty
+              ? null
+              : _inquilinoBairroController.text.trim(),
+          cidade: _inquilinoCidadeController.text.trim().isEmpty
+              ? null
+              : _inquilinoCidadeController.text.trim(),
+          estado: _inquilinoEstadoController.text.trim().isEmpty
+              ? null
+              : _inquilinoEstadoController.text.trim(),
+          telefone: _inquilinoTelefoneController.text.trim().isEmpty
+              ? null
+              : _inquilinoTelefoneController.text.trim(),
+          celular: _inquilinoCelularController.text.trim().isEmpty
+              ? null
+              : _inquilinoCelularController.text.trim(),
+          email: _inquilinoEmailController.text.trim().isEmpty
+              ? null
+              : _inquilinoEmailController.text.trim(),
+          conjuge: _inquilinoConjugeController.text.trim().isEmpty
+              ? null
+              : _inquilinoConjugeController.text.trim(),
+          multiproprietarios:
+              _inquilinoMultiproprietariosController.text.trim().isEmpty
+              ? null
+              : _inquilinoMultiproprietariosController.text.trim(),
+          moradores: _inquilinoMoradoresController.text.trim().isEmpty
+              ? null
+              : _inquilinoMoradoresController.text.trim(),
         );
 
         // Atualizar estado com o novo inquilino
@@ -776,15 +915,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       } else {
         // Se já tem inquilino, atualizar dados
         print('♻️ Atualizando inquilino existente...');
-        
+
         // Se tem foto selecionada (em bytes), fazer upload
         String? fotoUrl = _inquilino?.fotoPerfil;
-        
+
         if (_fotoInquilinoBytes != null) {
           // Fazer upload da foto para o Supabase Storage
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final fileName = 'inquilino_${_inquilino!.id}_$timestamp.jpg';
-          
+
           fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
             _fotoInquilinoBytes!,
             fileName,
@@ -795,22 +934,47 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             throw Exception('Falha ao fazer upload da foto');
           }
         }
-        
+
         final dadosAtualizacao = <String, dynamic>{
           'nome': nome,
           'cpf_cnpj': cpfCnpj,
-          'cep': _inquilinoCepController.text.trim().isEmpty ? null : _inquilinoCepController.text.trim(),
-          'endereco': _inquilinoEnderecoController.text.trim().isEmpty ? null : _inquilinoEnderecoController.text.trim(),
-          'numero': _inquilinoNumeroController.text.trim().isEmpty ? null : _inquilinoNumeroController.text.trim(),
-          'bairro': _inquilinoBairroController.text.trim().isEmpty ? null : _inquilinoBairroController.text.trim(),
-          'cidade': _inquilinoCidadeController.text.trim().isEmpty ? null : _inquilinoCidadeController.text.trim(),
-          'estado': _inquilinoEstadoController.text.trim().isEmpty ? null : _inquilinoEstadoController.text.trim(),
-          'telefone': _inquilinoTelefoneController.text.trim().isEmpty ? null : _inquilinoTelefoneController.text.trim(),
-          'celular': _inquilinoCelularController.text.trim().isEmpty ? null : _inquilinoCelularController.text.trim(),
-          'email': _inquilinoEmailController.text.trim().isEmpty ? null : _inquilinoEmailController.text.trim(),
-          'conjuge': _inquilinoConjugeController.text.trim().isEmpty ? null : _inquilinoConjugeController.text.trim(),
-          'multiproprietarios': _inquilinoMultiproprietariosController.text.trim().isEmpty ? null : _inquilinoMultiproprietariosController.text.trim(),
-          'moradores': _inquilinoMoradoresController.text.trim().isEmpty ? null : _inquilinoMoradoresController.text.trim(),
+          'cep': _inquilinoCepController.text.trim().isEmpty
+              ? null
+              : _inquilinoCepController.text.trim(),
+          'endereco': _inquilinoEnderecoController.text.trim().isEmpty
+              ? null
+              : _inquilinoEnderecoController.text.trim(),
+          'numero': _inquilinoNumeroController.text.trim().isEmpty
+              ? null
+              : _inquilinoNumeroController.text.trim(),
+          'bairro': _inquilinoBairroController.text.trim().isEmpty
+              ? null
+              : _inquilinoBairroController.text.trim(),
+          'cidade': _inquilinoCidadeController.text.trim().isEmpty
+              ? null
+              : _inquilinoCidadeController.text.trim(),
+          'estado': _inquilinoEstadoController.text.trim().isEmpty
+              ? null
+              : _inquilinoEstadoController.text.trim(),
+          'telefone': _inquilinoTelefoneController.text.trim().isEmpty
+              ? null
+              : _inquilinoTelefoneController.text.trim(),
+          'celular': _inquilinoCelularController.text.trim().isEmpty
+              ? null
+              : _inquilinoCelularController.text.trim(),
+          'email': _inquilinoEmailController.text.trim().isEmpty
+              ? null
+              : _inquilinoEmailController.text.trim(),
+          'conjuge': _inquilinoConjugeController.text.trim().isEmpty
+              ? null
+              : _inquilinoConjugeController.text.trim(),
+          'multiproprietarios':
+              _inquilinoMultiproprietariosController.text.trim().isEmpty
+              ? null
+              : _inquilinoMultiproprietariosController.text.trim(),
+          'moradores': _inquilinoMoradoresController.text.trim().isEmpty
+              ? null
+              : _inquilinoMoradoresController.text.trim(),
           'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
           'controle_locacao': _controleLocacaoSelecionado == 'sim',
           'foto_perfil': fotoUrl,
@@ -841,15 +1005,17 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     } catch (e) {
       // Tratamento melhorado de erros
       String mensagemErro = 'Erro ao salvar inquilino';
-      
-      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+
+      if (e.toString().contains('duplicate') ||
+          e.toString().contains('unique')) {
         mensagemErro = 'Este CPF/CNPJ já está cadastrado';
       } else if (e.toString().contains('constraint')) {
         mensagemErro = 'Dados inválidos. Verifique os campos obrigatórios';
-      } else if (e.toString().contains('connection') || e.toString().contains('network')) {
+      } else if (e.toString().contains('connection') ||
+          e.toString().contains('network')) {
         mensagemErro = 'Erro de conexão. Verifique sua internet';
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensagemErro),
@@ -872,11 +1038,11 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
     try {
       String imobiliariaId;
-      
+
       // Se não tem imobiliária cadastrada, criar uma nova
       if (_imobiliaria == null || _imobiliaria!.id.isEmpty) {
         // Validar dados obrigatórios
-        if (_imobiliariaNomeController.text.trim().isEmpty || 
+        if (_imobiliariaNomeController.text.trim().isEmpty ||
             _imobiliariaCnpjController.text.trim().isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -894,7 +1060,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         if (!Formatters.isValidCNPJ(_imobiliariaCnpjController.text.trim())) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('CNPJ inválido. Verifique se o número está correto.'),
+              content: Text(
+                'CNPJ inválido. Verifique se o número está correto.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
@@ -910,13 +1078,19 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           unidadeId: widget.unidade,
           nome: _imobiliariaNomeController.text.trim(),
           cnpj: _imobiliariaCnpjController.text.trim(),
-          telefone: _imobiliariaTelefoneController.text.trim().isEmpty ? null : _imobiliariaTelefoneController.text.trim(),
-          celular: _imobiliariaCelularController.text.trim().isEmpty ? null : _imobiliariaCelularController.text.trim(),
-          email: _imobiliariaEmailController.text.trim().isEmpty ? null : _imobiliariaEmailController.text.trim(),
+          telefone: _imobiliariaTelefoneController.text.trim().isEmpty
+              ? null
+              : _imobiliariaTelefoneController.text.trim(),
+          celular: _imobiliariaCelularController.text.trim().isEmpty
+              ? null
+              : _imobiliariaCelularController.text.trim(),
+          email: _imobiliariaEmailController.text.trim().isEmpty
+              ? null
+              : _imobiliariaEmailController.text.trim(),
         );
 
         imobiliariaId = novaImobiliaria.id;
-        
+
         // Atualizar state com a nova imobiliária
         setState(() {
           _imobiliaria = novaImobiliaria;
@@ -938,12 +1112,12 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
       // Se tem foto selecionada (em bytes), fazer upload
       String? fotoUrl = _imobiliaria?.fotoUrl;
-      
+
       if (_fotoImobiliariaBytes != null) {
         // Fazer upload da foto para o Supabase Storage
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = 'imobiliaria_${imobiliariaId}_$timestamp.jpg';
-        
+
         fotoUrl = await SupabaseService.uploadArquivoDocumentoBytes(
           _fotoImobiliariaBytes!,
           fileName,
@@ -959,9 +1133,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       final dadosAtualizacao = <String, dynamic>{
         'nome': _imobiliariaNomeController.text.trim(),
         'cnpj': _imobiliariaCnpjController.text.trim(),
-        'telefone': _imobiliariaTelefoneController.text.trim().isEmpty ? null : _imobiliariaTelefoneController.text.trim(),
-        'celular': _imobiliariaCelularController.text.trim().isEmpty ? null : _imobiliariaCelularController.text.trim(),
-        'email': _imobiliariaEmailController.text.trim().isEmpty ? null : _imobiliariaEmailController.text.trim(),
+        'telefone': _imobiliariaTelefoneController.text.trim().isEmpty
+            ? null
+            : _imobiliariaTelefoneController.text.trim(),
+        'celular': _imobiliariaCelularController.text.trim().isEmpty
+            ? null
+            : _imobiliariaCelularController.text.trim(),
+        'email': _imobiliariaEmailController.text.trim().isEmpty
+            ? null
+            : _imobiliariaEmailController.text.trim(),
         'foto_url': fotoUrl,
       };
 
@@ -1050,7 +1230,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        
+
         setState(() {
           _fotoImobiliariaBytes = bytes;
         });
@@ -1059,7 +1239,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Foto selecionada. Clique em "SALVAR IMOBILIÁRIA" para confirmar.'),
+              content: Text(
+                'Foto selecionada. Clique em "SALVAR IMOBILIÁRIA" para confirmar.',
+              ),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -1127,7 +1309,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   }
 
   void _showFotoProprietarioZoom() {
-    if (_proprietario?.fotoPerfil == null || _proprietario!.fotoPerfil!.isEmpty) {
+    if (_proprietario?.fotoPerfil == null ||
+        _proprietario!.fotoPerfil!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nenhuma foto disponível'),
@@ -1261,7 +1444,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        
+
         setState(() {
           _fotoProprietarioBytes = bytes;
         });
@@ -1270,7 +1453,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Foto selecionada. Clique em "SALVAR PROPRIETÁRIO" para confirmar.'),
+              content: Text(
+                'Foto selecionada. Clique em "SALVAR PROPRIETÁRIO" para confirmar.',
+              ),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -1332,7 +1517,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        
+
         setState(() {
           _fotoInquilinoBytes = bytes;
         });
@@ -1341,7 +1526,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Foto selecionada. Clique em "SALVAR INQUILINO" para confirmar.'),
+              content: Text(
+                'Foto selecionada. Clique em "SALVAR INQUILINO" para confirmar.',
+              ),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -1364,8 +1551,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Método para editar unidade
   Future<void> _editarUnidade() async {
-    final TextEditingController nomeController = TextEditingController(text: widget.unidade);
-    
+    final TextEditingController nomeController = TextEditingController(
+      text: widget.unidade,
+    );
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1387,9 +1576,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nomeController.text.isNotEmpty && nomeController.text != widget.unidade) {
+                if (nomeController.text.isNotEmpty &&
+                    nomeController.text != widget.unidade) {
                   Navigator.of(context).pop();
-                  
+
                   // Mostrar feedback de sucesso
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1397,7 +1587,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       backgroundColor: Colors.green,
                     ),
                   );
-                  
+
                   // Voltar para a tela anterior
                   Navigator.of(context).pop(true);
                 } else {
@@ -1407,7 +1597,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4A90E2),
               ),
-              child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Salvar',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -1417,12 +1610,25 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Método para excluir unidade
   Future<void> _excluirUnidade() async {
+    // Verificar se unidade tem ID valido
+    if (_unidade == null || _unidade!.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: Não é possível excluir uma unidade não salva.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Excluir Unidade'),
-          content: Text('Tem certeza que deseja excluir a unidade ${widget.bloco}/${widget.unidade}?'),
+          content: Text(
+            'Tem certeza que deseja excluir a unidade ${widget.bloco}/${widget.unidade}? Esta ação não pode ser desfeita e removerá todos os dados vinculados.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -1432,23 +1638,50 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop();
-                
-                // Mostrar feedback de sucesso
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Unidade excluída com sucesso!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                
-                // Voltar para a tela anterior
-                Navigator.of(context).pop(true);
+                Navigator.of(context).pop(); // Fechar diálogo
+
+                setState(() {
+                  _isLoadingUnidade = true;
+                });
+
+                try {
+                  // Chamar serviço para deletar
+                  await _service.deletarUnidade(unidadeId: _unidade!.id);
+
+                  if (mounted) {
+                    // Mostrar feedback de sucesso
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Unidade excluída com sucesso!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+
+                    // Voltar para a tela anterior
+                    Navigator.of(context).pop(true);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao excluir unidade: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      _isLoadingUnidade = false;
+                    });
+                  }
+                }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Colors.white),
               ),
-              child: const Text('Excluir', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -1471,9 +1704,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           backgroundColor: const Color(0xFF2E3A59),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 2,
         ),
         child: isLoading
@@ -1527,16 +1758,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   ),
                   const Spacer(),
                   Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: const Color(0xFF666666),
                     size: 24,
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
-                    Icons.edit,
-                    color: Color(0xFF666666),
-                    size: 20,
-                  ),
+                  const Icon(Icons.edit, color: Color(0xFF666666), size: 20),
                 ],
               ),
             ),
@@ -1560,7 +1789,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           color: const Color(0xFFE0E0E0),
           margin: const EdgeInsets.only(bottom: 16),
         ),
-        
+
         // Primeira linha - Unidade e Bloco
         Row(
           children: [
@@ -1585,17 +1814,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       color: Colors.white,
                     ),
                     child: TextField(
-                       controller: _unidadeController,
-                       decoration: const InputDecoration(
-                         hintText: '101',
-                         hintStyle: TextStyle(
-                           color: Color(0xFF999999),
-                           fontSize: 14,
-                         ),
-                         border: InputBorder.none,
-                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                       ),
-                     ),
+                      controller: _unidadeController,
+                      decoration: const InputDecoration(
+                        hintText: '101',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF999999),
+                          fontSize: 14,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1623,26 +1855,29 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         color: Colors.white,
                       ),
                       child: TextField(
-                         controller: _blocoController,
-                         decoration: const InputDecoration(
-                           hintText: 'B',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 14,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                         ),
-                       ),
+                        controller: _blocoController,
+                        decoration: const InputDecoration(
+                          hintText: 'B',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Segunda linha - Fração Ideal e Área
         Row(
           children: [
@@ -1667,17 +1902,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       color: Colors.white,
                     ),
                     child: TextField(
-                       controller: _fracaoIdealController,
-                       decoration: const InputDecoration(
-                         hintText: '0,014',
-                         hintStyle: TextStyle(
-                           color: Color(0xFF999999),
-                           fontSize: 14,
-                         ),
-                         border: InputBorder.none,
-                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                       ),
-                     ),
+                      controller: _fracaoIdealController,
+                      decoration: const InputDecoration(
+                        hintText: '0,014',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF999999),
+                          fontSize: 14,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1707,7 +1945,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       controller: _areaController,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -1716,9 +1957,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Terceira linha - Vencto dia diferente e Pagar valor diferente
         Row(
           children: [
@@ -1746,7 +1987,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       controller: _vencimentoDiferenteController,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -1778,7 +2022,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       controller: _valorDiferenteController,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -1787,9 +2034,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Dropdown Tipo - Apenas se temBlocos = true
         if (_temBlocos)
           Column(
@@ -1815,15 +2062,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 child: DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   value: _tipoSelecionado,
                   hint: const Text(
                     'A',
-                    style: TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   ),
                   items: ['A', 'B', 'C', 'D'].map((String value) {
                     return DropdownMenuItem<String>(
@@ -1840,9 +2087,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ],
           ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Seção Isenção
         const Text(
           'Isenção',
@@ -1853,7 +2100,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Checkboxes Isenção
         Row(
           children: [
@@ -1870,10 +2117,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Nenhum',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
@@ -1891,10 +2135,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Total',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
@@ -1912,16 +2153,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Cota',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
           ],
         ),
-        
+
         Row(
           children: [
             Row(
@@ -1937,18 +2175,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Fundo Reserva',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Seção Ação Judicial
         const Text(
           'Ação Judicial',
@@ -1959,7 +2194,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Radio buttons Ação Judicial
         Row(
           children: [
@@ -1977,10 +2212,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Sim',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
@@ -1999,18 +2231,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Não',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Seção Correios
         const Text(
           'Correios',
@@ -2021,7 +2250,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Radio buttons Correios
         Row(
           children: [
@@ -2039,10 +2268,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Sim',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
@@ -2061,18 +2287,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Não',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Seção Nome Pagador do Boleto
         const Text(
           'Nome Pagador do Boleto',
@@ -2083,7 +2306,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Radio buttons Nome Pagador do Boleto
         Row(
           children: [
@@ -2101,10 +2324,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Proprietário',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
@@ -2123,18 +2343,15 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ),
                 const Text(
                   'Inquilino',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
                 ),
               ],
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Campo Observação
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2167,9 +2384,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // QR Code da Unidade (se existir ou está carregando)
         if (_unidade != null)
           if (_unidade!.qrCodeUrl != null && _unidade!.qrCodeUrl!.isNotEmpty)
@@ -2186,10 +2403,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               decoration: BoxDecoration(
                 color: Colors.blue[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.blue[300]!,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.blue[300]!, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2220,17 +2434,14 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Aguarde enquanto o código é gerado e salvo no banco',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.blue[600]),
                   ),
                 ],
               ),
             ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Botão de salvar para a seção Unidade
         _buildSaveButton(
           text: 'SALVAR UNIDADE',
@@ -2246,7 +2457,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        
+
         // Seção Anexar foto - Foto do Proprietário
         Container(
           width: double.infinity,
@@ -2265,39 +2476,45 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Se houver foto salva, exibir em círculo
-                  if (_proprietario?.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty)
+                  if (_proprietario?.fotoPerfil != null &&
+                      _proprietario!.fotoPerfil!.isNotEmpty)
                     Stack(
                       alignment: Alignment.center,
                       children: [
                         GestureDetector(
                           onTap: _showFotoProprietarioZoom,
                           child: ClipOval(
-                            child: _proprietario!.fotoPerfil != null && _proprietario!.fotoPerfil!.isNotEmpty
+                            child:
+                                _proprietario!.fotoPerfil != null &&
+                                    _proprietario!.fotoPerfil!.isNotEmpty
                                 ? Image.network(
                                     _proprietario!.fotoPerfil!,
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        width: 100,
-                                        height: 100,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFE0E0E0),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Center(
-                                          child: SizedBox(
-                                            width: 30,
-                                            height: 30,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Container(
+                                            width: 100,
+                                            height: 100,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFE0E0E0),
+                                              shape: BoxShape.circle,
                                             ),
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                            child: const Center(
+                                              child: SizedBox(
+                                                width: 30,
+                                                height: 30,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                     errorBuilder: (context, error, stackTrace) {
                                       // Se falhar ao carregar, mostrar ícone padrão
                                       return Container(
@@ -2321,13 +2538,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                                     decoration: const BoxDecoration(
                                       color: Color(0xFFE0E0E0),
                                       shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt_outlined,
-                                  color: Color(0xFF666666),
-                                  size: 32,
-                                ),
-                              ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_outlined,
+                                      color: Color(0xFF666666),
+                                      size: 32,
+                                    ),
+                                  ),
                           ),
                         ),
                         // Lupa de zoom na borda do círculo
@@ -2464,22 +2681,19 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       ),
                     ],
                   ),
-              ],
+                ],
               ),
               const SizedBox(height: 12),
               const Text(
                 'Foto do Proprietário',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF666666),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
               ),
             ],
           ),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Campo Nome
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2517,20 +2731,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioNomeController,
                 decoration: const InputDecoration(
                   hintText: 'José Marcos da Silva',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo CPF/CNPJ
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2567,25 +2781,23 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               child: TextField(
                 controller: _proprietarioCpfCnpjController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   hintText: '066.556.902-06',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Email
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2623,20 +2835,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioEmailController,
                 decoration: const InputDecoration(
                   hintText: 'josesilva@gmail.com',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo CEP
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2660,20 +2872,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioCepController,
                 decoration: const InputDecoration(
                   hintText: '11123-456',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campos Endereço e Número
         Row(
           children: [
@@ -2706,7 +2918,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -2743,7 +2958,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -2752,9 +2970,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campos Bairro
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2778,20 +2996,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioBairroController,
                 decoration: const InputDecoration(
                   hintText: '',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campos Cidade e Estado
         Row(
           children: [
@@ -2824,7 +3042,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -2861,7 +3082,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -2870,9 +3094,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Telefone
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2896,20 +3120,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioTelefoneController,
                 decoration: const InputDecoration(
                   hintText: '51 3246-5866',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Celular
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2933,20 +3157,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _proprietarioCelularController,
                 decoration: const InputDecoration(
                   hintText: '51 9996-33541',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Seção Cônjuge
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2959,692 +3183,717 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 color: Color(0xFF333333),
               ),
             ),
-             const SizedBox(height: 8),
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-                 color: Colors.white,
-               ),
-               child: TextField(
-                 controller: _proprietarioConjugeController,
-                 decoration: const InputDecoration(
-                   hintText: '',
-                   hintStyle: TextStyle(
-                     color: Color(0xFF999999),
-                     fontSize: 14,
-                   ),
-                   border: InputBorder.none,
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                 ),
-               ),
-             ),
-           ],
-         ),
-         
-         const SizedBox(height: 16),
-         
-         // Seção Multiproprietários
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Multiproprietários:',
-               style: TextStyle(
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
-             const SizedBox(height: 8),
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-                 color: Colors.white,
-               ),
-               child: TextField(
-                 controller: _proprietarioMultiproprietariosController,
-                 decoration: const InputDecoration(
-                   hintText: '',
-                   hintStyle: TextStyle(
-                     color: Color(0xFF999999),
-                     fontSize: 14,
-                   ),
-                   border: InputBorder.none,
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                 ),
-               ),
-             ),
-           ],
-         ),
-         
-         const SizedBox(height: 16),
-         
-         // Seção Moradores
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Moradores:',
-               style: TextStyle(
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
-             const SizedBox(height: 8),
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-                 color: Colors.white,
-               ),
-               child: TextField(
-                 controller: _proprietarioMoradoresController,
-                 decoration: const InputDecoration(
-                   hintText: '',
-                   hintStyle: TextStyle(
-                     color: Color(0xFF999999),
-                     fontSize: 14,
-                   ),
-                   border: InputBorder.none,
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                 ),
-               ),
-             ),
-           ],
-         ),
-         
-         const SizedBox(height: 24),
-         
-         // Seção Agrupar boletos
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Agrupar boletos:',
-               style: TextStyle(
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
-             const SizedBox(height: 8),
-             Row(
-               children: [
-                 Row(
-                   children: [
-                     Radio<String>(
-                       value: 'Sim',
-                       groupValue: _agruparBoletosSelecionado,
-                       onChanged: (String? value) {
-                         setState(() {
-                           _agruparBoletosSelecionado = value!;
-                         });
-                       },
-                       activeColor: const Color(0xFF2196F3),
-                     ),
-                     const Text(
-                       'Sim',
-                       style: TextStyle(
-                         fontSize: 14,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ],
-                 ),
-                 const SizedBox(width: 24),
-                 Row(
-                   children: [
-                     Radio<String>(
-                       value: 'Não',
-                       groupValue: _agruparBoletosSelecionado,
-                       onChanged: (String? value) {
-                         setState(() {
-                           _agruparBoletosSelecionado = value!;
-                         });
-                       },
-                       activeColor: const Color(0xFF2196F3),
-                     ),
-                     const Text(
-                       'Não',
-                       style: TextStyle(
-                         fontSize: 14,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ],
-                 ),
-               ],
-             ),
-           ],
-         ),
-         
-         const SizedBox(height: 16),
-         
-         // Seção Matrícula do Imóvel
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Matrícula do Imóvel:',
-               style: TextStyle(
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
-             const SizedBox(height: 8),
-             Row(
-               children: [
-                 Row(
-                   children: [
-                     Radio<String>(
-                       value: 'Fazer Upload',
-                       groupValue: _matriculaImovelSelecionado,
-                       onChanged: (String? value) {
-                         setState(() {
-                           _matriculaImovelSelecionado = value!;
-                         });
-                       },
-                       activeColor: const Color(0xFF2196F3),
-                     ),
-                     const Text(
-                       'Fazer Upload',
-                       style: TextStyle(
-                         fontSize: 14,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ],
-                 ),
-                 const SizedBox(width: 24),
-                 Row(
-                   children: [
-                     Radio<String>(
-                       value: 'Não',
-                       groupValue: _matriculaImovelSelecionado,
-                       onChanged: (String? value) {
-                         setState(() {
-                           _matriculaImovelSelecionado = value!;
-                         });
-                       },
-                       activeColor: const Color(0xFF2196F3),
-                     ),
-                     const Text(
-                       'Não',
-                       style: TextStyle(
-                         fontSize: 14,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ],
-                 ),
-               ],
-             ),
-           ],
-         ),
-         
-         const SizedBox(height: 24),
-         
-         // Seção Veículos
-         Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const Text(
-               'Veículos:',
-               style: TextStyle(
-                 fontSize: 16,
-                 fontWeight: FontWeight.w500,
-                 color: Color(0xFF333333),
-               ),
-             ),
-             const SizedBox(height: 12),
-             
-             // Cabeçalho da tabela
-             Container(
-               decoration: BoxDecoration(
-                 color: const Color(0xFFF5F5F5),
-                 borderRadius: BorderRadius.circular(8),
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-               ),
-               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-               child: const Row(
-                 children: [
-                   Expanded(
-                     flex: 2,
-                     child: Text(
-                       'Placa:',
-                       style: TextStyle(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ),
-                   Expanded(
-                     flex: 2,
-                     child: Text(
-                       'Marca:',
-                       style: TextStyle(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ),
-                   Expanded(
-                     flex: 2,
-                     child: Text(
-                       'Modelo:',
-                       style: TextStyle(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ),
-                   Expanded(
-                     flex: 2,
-                     child: Text(
-                       'Cor:',
-                       style: TextStyle(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500,
-                         color: Color(0xFF333333),
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ),
-             
-             // Primeira linha da tabela
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               margin: const EdgeInsets.only(top: 8),
-               padding: const EdgeInsets.all(8),
-               child: Row(
-                 children: [
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Placa',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Marca',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Modelo',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Cor',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ),
-             
-             // Segunda linha da tabela
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               margin: const EdgeInsets.only(top: 8),
-               padding: const EdgeInsets.all(8),
-               child: Row(
-                 children: [
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Placa',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Marca',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Modelo',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Cor',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ),
-             
-             // Terceira linha da tabela
-             Container(
-               decoration: BoxDecoration(
-                 border: Border.all(color: const Color(0xFFE0E0E0)),
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               margin: const EdgeInsets.only(top: 8),
-               padding: const EdgeInsets.all(8),
-               child: Row(
-                 children: [
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Placa',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Marca',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Modelo',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     flex: 2,
-                     child: Container(
-                       decoration: BoxDecoration(
-                         border: Border.all(color: const Color(0xFFE0E0E0)),
-                         borderRadius: BorderRadius.circular(4),
-                         color: Colors.white,
-                       ),
-                       child: const TextField(
-                         decoration: InputDecoration(
-                           hintText: 'Cor',
-                           hintStyle: TextStyle(
-                             color: Color(0xFF999999),
-                             fontSize: 12,
-                           ),
-                           border: InputBorder.none,
-                           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                         ),
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ),
-           ],
-       ),
-       
-       const SizedBox(height: 24),
-       
-       // QR Code do Proprietário (se existir ou está carregando)
-       if (_proprietario != null)
-         if (_proprietario!.qrCodeUrl != null && _proprietario!.qrCodeUrl!.isNotEmpty)
-           Container(
-             width: double.infinity,
-             padding: const EdgeInsets.all(16),
-             decoration: BoxDecoration(
-               border: Border.all(color: const Color(0xFFE0E0E0)),
-               borderRadius: BorderRadius.circular(8),
-               color: const Color(0xFFFAFAFA),
-             ),
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.center,
-               children: [
-                 const Text(
-                   'QR Code do Proprietário',
-                   style: TextStyle(
-                     fontSize: 14,
-                     fontWeight: FontWeight.w600,
-                     color: Color(0xFF333333),
-                   ),
-                 ),
-                 const SizedBox(height: 12),
-                 QrCodeDisplayWidget(
-                   qrCodeUrl: _proprietario!.qrCodeUrl,
-                   visitanteNome: _proprietario!.nome,
-                   visitanteCpf: _proprietario!.cpfCnpj,
-                   unidade: '${widget.bloco}-${widget.unidade}',
-                 ),
-               ],
-             ),
-           )
-         else
-           // Mostrar mensagem simples de processamento
-           Container(
-             width: double.infinity,
-             padding: const EdgeInsets.all(16),
-             decoration: BoxDecoration(
-               border: Border.all(color: const Color(0xFFE0E0E0)),
-               borderRadius: BorderRadius.circular(8),
-               color: const Color(0xFFFAFAFA),
-             ),
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.center,
-               children: [
-                 const Text(
-                   'QR Code do Proprietário',
-                   style: TextStyle(
-                     fontSize: 14,
-                     fontWeight: FontWeight.w600,
-                     color: Color(0xFF333333),
-                   ),
-                 ),
-                 const SizedBox(height: 12),
-                 Text(
-                   'ℹ️ QR Code em processamento...\nActualizando em breve',
-                   textAlign: TextAlign.center,
-                   style: TextStyle(
-                     fontSize: 13,
-                     color: Colors.grey[600],
-                     fontWeight: FontWeight.w400,
-                   ),
-                 ),
-               ],
-             ),
-           ),
-       
-       const SizedBox(height: 24),
-       
-       // Botão de salvar para a seção Proprietário
-       _buildSaveButton(
-         text: 'SALVAR PROPRIETÁRIO',
-         onPressed: _salvarProprietario,
-         isLoading: _isLoadingProprietario,
-       ),
-     ],
-   );
- }
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: TextField(
+                controller: _proprietarioConjugeController,
+                decoration: const InputDecoration(
+                  hintText: '',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Seção Multiproprietários
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Multiproprietários:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: TextField(
+                controller: _proprietarioMultiproprietariosController,
+                decoration: const InputDecoration(
+                  hintText: '',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Seção Moradores
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Moradores:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: TextField(
+                controller: _proprietarioMoradoresController,
+                decoration: const InputDecoration(
+                  hintText: '',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // Seção Agrupar boletos
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Agrupar boletos:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Sim',
+                      groupValue: _agruparBoletosSelecionado,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _agruparBoletosSelecionado = value!;
+                        });
+                      },
+                      activeColor: const Color(0xFF2196F3),
+                    ),
+                    const Text(
+                      'Sim',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 24),
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Não',
+                      groupValue: _agruparBoletosSelecionado,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _agruparBoletosSelecionado = value!;
+                        });
+                      },
+                      activeColor: const Color(0xFF2196F3),
+                    ),
+                    const Text(
+                      'Não',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Seção Matrícula do Imóvel
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Matrícula do Imóvel:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Fazer Upload',
+                      groupValue: _matriculaImovelSelecionado,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _matriculaImovelSelecionado = value!;
+                        });
+                      },
+                      activeColor: const Color(0xFF2196F3),
+                    ),
+                    const Text(
+                      'Fazer Upload',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 24),
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Não',
+                      groupValue: _matriculaImovelSelecionado,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _matriculaImovelSelecionado = value!;
+                        });
+                      },
+                      activeColor: const Color(0xFF2196F3),
+                    ),
+                    const Text(
+                      'Não',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // Seção Veículos
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Veículos:',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Cabeçalho da tabela
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: const Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Placa:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Marca:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Modelo:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Cor:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Primeira linha da tabela
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Placa',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Marca',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Modelo',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Cor',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Segunda linha da tabela
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Placa',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Marca',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Modelo',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Cor',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Terceira linha da tabela
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Placa',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Marca',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Modelo',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                      ),
+                      child: const TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Cor',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 12,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // QR Code do Proprietário (se existir ou está carregando)
+        if (_proprietario != null)
+          if (_proprietario!.qrCodeUrl != null &&
+              _proprietario!.qrCodeUrl!.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFFAFAFA),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'QR Code do Proprietário',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  QrCodeDisplayWidget(
+                    qrCodeUrl: _proprietario!.qrCodeUrl,
+                    visitanteNome: _proprietario!.nome,
+                    visitanteCpf: _proprietario!.cpfCnpj,
+                    unidade: '${widget.bloco}-${widget.unidade}',
+                  ),
+                ],
+              ),
+            )
+          else
+            // Mostrar mensagem simples de processamento
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFFAFAFA),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'QR Code do Proprietário',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'ℹ️ QR Code em processamento...\nActualizando em breve',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+        const SizedBox(height: 24),
+
+        // Botão de salvar para a seção Proprietário
+        _buildSaveButton(
+          text: 'SALVAR PROPRIETÁRIO',
+          onPressed: _salvarProprietario,
+          isLoading: _isLoadingProprietario,
+        ),
+      ],
+    );
+  }
 
   Widget _buildInquilinoContent() {
     return Padding(
@@ -3670,39 +3919,45 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Se houver foto salva, exibir em círculo
-                    if (_inquilino?.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty)
+                    if (_inquilino?.fotoPerfil != null &&
+                        _inquilino!.fotoPerfil!.isNotEmpty)
                       Stack(
                         alignment: Alignment.center,
                         children: [
                           GestureDetector(
                             onTap: _showFotoInquilinoZoom,
                             child: ClipOval(
-                              child: _inquilino!.fotoPerfil != null && _inquilino!.fotoPerfil!.isNotEmpty
+                              child:
+                                  _inquilino!.fotoPerfil != null &&
+                                      _inquilino!.fotoPerfil!.isNotEmpty
                                   ? Image.network(
                                       _inquilino!.fotoPerfil!,
                                       width: 100,
                                       height: 100,
                                       fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
-                                        return Container(
-                                          width: 100,
-                                          height: 100,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFFE0E0E0),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Center(
-                                            child: SizedBox(
-                                              width: 30,
-                                              height: 30,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return Container(
+                                              width: 100,
+                                              height: 100,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFFE0E0E0),
+                                                shape: BoxShape.circle,
                                               ),
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                              child: const Center(
+                                                child: SizedBox(
+                                                  width: 30,
+                                                  height: 30,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                ),
+                                              ),
+                                            );
+                                          },
                                       errorBuilder: (context, error, stackTrace) {
                                         // Se falhar ao carregar, mostrar ícone padrão
                                         return Container(
@@ -3731,8 +3986,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                                         Icons.camera_alt_outlined,
                                         color: Color(0xFF666666),
                                         size: 32,
-                                  ),
-                                ),
+                                      ),
+                                    ),
                             ),
                           ),
                           // Lupa de zoom na borda do círculo
@@ -3871,10 +4126,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Foto do Inquilino',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF666666),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
                 ),
               ],
             ),
@@ -3922,7 +4174,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -3954,9 +4209,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           TextField(
             controller: _inquilinoCpfCnpjController,
             keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               hintText: 'Digite o CPF ou CNPJ',
               hintStyle: const TextStyle(color: Color(0xFF999999)),
@@ -3972,7 +4225,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4018,7 +4274,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4050,7 +4309,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4078,17 +4340,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         hintStyle: const TextStyle(color: Color(0xFF999999)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3A59),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -4115,17 +4386,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         hintStyle: const TextStyle(color: Color(0xFF999999)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3A59),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -4162,7 +4442,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4190,17 +4473,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         hintStyle: const TextStyle(color: Color(0xFF999999)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3A59),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -4227,17 +4519,26 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         hintStyle: const TextStyle(color: Color(0xFF999999)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2E3A59)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3A59),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -4274,7 +4575,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4306,7 +4610,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4338,7 +4645,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4371,7 +4681,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -4404,7 +4717,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF2E3A59)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -4433,10 +4749,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               const Text(
                 'Sim',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF333333),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
               ),
               const SizedBox(width: 24),
               Radio<String>(
@@ -4451,10 +4764,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               const Text(
                 'Não',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF333333),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
               ),
             ],
           ),
@@ -4484,10 +4794,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               const Text(
                 'Fazer Upload',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF333333),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
               ),
               const SizedBox(width: 24),
               Radio<String>(
@@ -4502,10 +4809,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
               const Text(
                 'Não',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF333333),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
               ),
             ],
           ),
@@ -4521,7 +4825,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Tabela de Veículos
           Container(
             decoration: BoxDecoration(
@@ -4532,7 +4836,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               children: [
                 // Cabeçalho da tabela
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                   decoration: const BoxDecoration(
                     color: Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.only(
@@ -4590,129 +4897,184 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   ),
                 ),
                 // Linhas da tabela
-                ...List.generate(3, (index) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color: const Color(0xFFE0E0E0),
-                        width: index == 0 ? 1 : 0,
+                ...List.generate(
+                  3,
+                  (index) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: const Color(0xFFE0E0E0),
+                          width: index == 0 ? 1 : 0,
+                        ),
+                        bottom: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
-                      bottom: const BorderSide(color: Color(0xFFE0E0E0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Placa',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2E3A59),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                              isDense: true,
+                            ),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Marca',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2E3A59),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                              isDense: true,
+                            ),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Modelo',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2E3A59),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                              isDense: true,
+                            ),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Cor',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF999999),
+                                fontSize: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2E3A59),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                              isDense: true,
+                            ),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Placa',
-                            hintStyle: const TextStyle(color: Color(0xFF999999), fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            isDense: true,
-                          ),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Marca',
-                            hintStyle: const TextStyle(color: Color(0xFF999999), fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            isDense: true,
-                          ),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Modelo',
-                            hintStyle: const TextStyle(color: Color(0xFF999999), fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            isDense: true,
-                          ),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Cor',
-                            hintStyle: const TextStyle(color: Color(0xFF999999), fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(color: Color(0xFF2E3A59)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            isDense: true,
-                          ),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // QR Code do Inquilino (se existir ou está carregando)
           if (_inquilino != null)
-            if (_inquilino!.qrCodeUrl != null && _inquilino!.qrCodeUrl!.isNotEmpty)
+            if (_inquilino!.qrCodeUrl != null &&
+                _inquilino!.qrCodeUrl!.isNotEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -4776,9 +5138,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   ],
                 ),
               ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Botão de salvar para a seção Inquilino
           _buildSaveButton(
             text: 'SALVAR INQUILINO',
@@ -4799,7 +5161,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           color: const Color(0xFFE0E0E0),
           margin: const EdgeInsets.only(bottom: 16),
         ),
-        
+
         // Seção para anexar/visualizar foto em círculo
         Container(
           width: double.infinity,
@@ -4813,7 +5175,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (_imobiliaria?.fotoUrl != null && _imobiliaria!.fotoUrl!.isNotEmpty)
+              if (_imobiliaria?.fotoUrl != null &&
+                  _imobiliaria!.fotoUrl!.isNotEmpty)
                 // Se já tem foto salva no banco, mostrar a foto circular com opção de zoom
                 Stack(
                   alignment: Alignment.center,
@@ -4949,8 +5312,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _isUploadingFotoImobiliaria 
-                              ? Icons.hourglass_empty 
+                          _isUploadingFotoImobiliaria
+                              ? Icons.hourglass_empty
                               : Icons.camera_alt_outlined,
                           color: const Color(0xFF999999),
                           size: 40,
@@ -4973,9 +5336,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Campo Nome
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5013,20 +5376,20 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _imobiliariaNomeController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: 'Digite o nome da imobiliária',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
+                  hintText: 'Digite o nome da imobiliária',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo CNPJ
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5064,25 +5427,25 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _imobiliariaCnpjController,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
-                  Formatters.cnpjFormatter
+                  Formatters.cnpjFormatter,
                 ],
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: '00.000.000/0000-00',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
+                  hintText: '00.000.000/0000-00',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Telefone
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5105,25 +5468,23 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               child: TextField(
                 controller: _imobiliariaTelefoneController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: 'Digite o telefone',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
+                  hintText: 'Digite o telefone',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Celular
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5160,25 +5521,23 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               child: TextField(
                 controller: _imobiliariaCelularController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: 'Digite o celular',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
+                  hintText: 'Digite o celular',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Campo Email
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5216,23 +5575,24 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 controller: _imobiliariaEmailController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  hintText: 'Digite o email',
-                  hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 14,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
+                  hintText: 'Digite o email',
+                  hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 14),
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // QR Code da Imobiliária (se existir ou está carregando)
         if (_imobiliaria != null)
-          if (_imobiliaria!.qrCodeUrl != null && _imobiliaria!.qrCodeUrl!.isNotEmpty)
+          if (_imobiliaria!.qrCodeUrl != null &&
+              _imobiliaria!.qrCodeUrl!.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -5296,9 +5656,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                 ],
               ),
             ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Botão de salvar para a seção Imobiliária
         _buildSaveButton(
           text: 'SALVAR IMOBILIÁRIA',
@@ -5331,14 +5691,17 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
+                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
                     children: [
+                      // Botão de excluir visível diretamente
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Excluir Unidade',
+                        onPressed: _excluirUnidade,
+                      ),
                       // Menu de ações da unidade
                       PopupMenuButton<String>(
                         icon: const Icon(
@@ -5351,9 +5714,6 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                             case 'editar':
                               _editarUnidade();
                               break;
-                            case 'excluir':
-                              _excluirUnidade();
-                              break;
                           }
                         },
                         itemBuilder: (context) => [
@@ -5361,19 +5721,13 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                             value: 'editar',
                             child: Row(
                               children: [
-                                Icon(Icons.edit, size: 18, color: Color(0xFF4A90E2)),
+                                Icon(
+                                  Icons.edit,
+                                  size: 18,
+                                  color: Color(0xFF4A90E2),
+                                ),
                                 SizedBox(width: 8),
                                 Text('Editar Unidade'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'excluir',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Excluir Unidade', style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
@@ -5409,11 +5763,8 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ),
             // Linha de separação
-            Container(
-              height: 1,
-              color: const Color(0xFFE0E0E0),
-            ),
-            
+            Container(height: 1, color: const Color(0xFFE0E0E0)),
+
             // Breadcrumb
             Container(
               color: Colors.white,
@@ -5436,7 +5787,10 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             if (widget.modo == 'criar')
               Container(
                 color: Colors.orange.shade50,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Icon(Icons.info_outline, color: Colors.orange.shade700),
@@ -5476,114 +5830,126 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFF4A90E2),
+                            ),
                           ),
                           SizedBox(height: 16),
                           Text(
                             'Carregando dados...',
-                            style: TextStyle(fontSize: 16, color: Color(0xFF666666)),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF666666),
+                            ),
                           ),
                         ],
                       ),
                     )
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                              const SizedBox(height: 16),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(fontSize: 16, color: Colors.red),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _carregarDados,
-                                child: const Text('Tentar Novamente'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red,
                           ),
-                        )
-                      : SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 24),
-                              
-                              // Seção principal com número da unidade
-                              Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 16),
-                                padding: const EdgeInsets.symmetric(vertical: 20),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF4A90E2),
-                                  borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.red,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _carregarDados,
+                            child: const Text('Tentar Novamente'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 24),
+
+                          // Seção principal com número da unidade
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A90E2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _temBlocos
+                                    ? '${widget.bloco}/${widget.unidade}'
+                                    : widget.unidade,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    _temBlocos
-                                        ? '${widget.bloco}/${widget.unidade}'
-                                        : widget.unidade,
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
+
+                          const SizedBox(height: 24),
+
+                          // Seções expansíveis
+                          _buildExpandableSection(
+                            title: 'Unidade',
+                            isExpanded: _unidadeExpanded,
+                            onTap: () {
+                              setState(() {
+                                _unidadeExpanded = !_unidadeExpanded;
+                              });
+                            },
+                            content: _buildUnidadeContent(),
+                          ),
+
+                          _buildExpandableSection(
+                            title: 'Proprietário',
+                            isExpanded: _proprietarioExpanded,
+                            onTap: () {
+                              setState(() {
+                                _proprietarioExpanded = !_proprietarioExpanded;
+                              });
+                            },
+                            content: _buildProprietarioContent(),
+                          ),
+
+                          _buildExpandableSection(
+                            title: 'Inquilino',
+                            isExpanded: _inquilinoExpanded,
+                            onTap: () {
+                              setState(() {
+                                _inquilinoExpanded = !_inquilinoExpanded;
+                              });
+                            },
+                            content: _buildInquilinoContent(),
+                          ),
+
+                          _buildExpandableSection(
+                            title: 'Imobiliária',
+                            isExpanded: _imobiliariaExpanded,
+                            onTap: () {
+                              setState(() {
+                                _imobiliariaExpanded = !_imobiliariaExpanded;
+                              });
+                            },
+                            content: _buildImobiliariaContent(),
+                          ),
+
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Seções expansíveis
-                    _buildExpandableSection(
-                      title: 'Unidade',
-                      isExpanded: _unidadeExpanded,
-                      onTap: () {
-                        setState(() {
-                          _unidadeExpanded = !_unidadeExpanded;
-                        });
-                      },
-                      content: _buildUnidadeContent(),
-                    ),
-
-                    _buildExpandableSection(
-                      title: 'Proprietário',
-                      isExpanded: _proprietarioExpanded,
-                      onTap: () {
-                        setState(() {
-                          _proprietarioExpanded = !_proprietarioExpanded;
-                        });
-                      },
-                      content: _buildProprietarioContent(),
-                    ),
-
-                    _buildExpandableSection(
-                      title: 'Inquilino',
-                      isExpanded: _inquilinoExpanded,
-                      onTap: () {
-                        setState(() {
-                          _inquilinoExpanded = !_inquilinoExpanded;
-                        });
-                      },
-                      content: _buildInquilinoContent(),
-                    ),
-
-                    _buildExpandableSection(
-                      title: 'Imobiliária',
-                      isExpanded: _imobiliariaExpanded,
-                      onTap: () {
-                        setState(() {
-                          _imobiliariaExpanded = !_imobiliariaExpanded;
-                        });
-                      },
-                      content: _buildImobiliariaContent(),
-                    ),
-
-                    const SizedBox(height: 24),
-                  ],
-                ),
-                        ),
             ),
           ],
         ),
@@ -5601,7 +5967,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     _vencimentoDiferenteController.dispose();
     _valorDiferenteController.dispose();
     _observacaoController.dispose();
-    
+
     // Controladores da seção Proprietário
     _proprietarioNomeController.dispose();
     _proprietarioCpfCnpjController.dispose();
@@ -5617,7 +5983,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     _proprietarioConjugeController.dispose();
     _proprietarioMultiproprietariosController.dispose();
     _proprietarioMoradoresController.dispose();
-    
+
     // Controladores da seção Inquilino
     _inquilinoNomeController.dispose();
     _inquilinoCpfCnpjController.dispose();
@@ -5640,7 +6006,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
     _imobiliariaTelefoneController.dispose();
     _imobiliariaCelularController.dispose();
     _imobiliariaEmailController.dispose();
-    
+
     super.dispose();
   }
 }

@@ -120,10 +120,7 @@ class UnidadeDetalhesService {
     required Map<String, dynamic> dados,
   }) async {
     try {
-      await _supabase
-          .from('unidades')
-          .update(dados)
-          .eq('id', unidadeId);
+      await _supabase.from('unidades').update(dados).eq('id', unidadeId);
     } catch (e) {
       throw Exception('Erro ao atualizar unidade: $e');
     }
@@ -141,11 +138,13 @@ class UnidadeDetalhesService {
           .eq('id', proprietarioId)
           .select()
           .single();
-      
+
       // ✅ Regenerar QR Code com os novos dados
       final proprietarioAtualizado = Proprietario.fromJson(response);
-      _gerarQRCodeProprietarioAsync(proprietarioAtualizado, proprietarioAtualizado.cpfCnpj);
-      
+      _gerarQRCodeProprietarioAsync(
+        proprietarioAtualizado,
+        proprietarioAtualizado.cpfCnpj,
+      );
     } catch (e) {
       throw Exception('Erro ao atualizar proprietário: $e');
     }
@@ -176,7 +175,7 @@ class UnidadeDetalhesService {
       String senhaGerada;
       String? emailHerdado;
       String? fotoHerdada;
-      
+
       final existente = await _supabase
           .from('proprietarios')
           .select('email, senha_acesso, foto_perfil')
@@ -186,10 +185,14 @@ class UnidadeDetalhesService {
 
       if (existente != null) {
         // ♻️ HERDAR credenciais existentes
-        senhaGerada = existente['senha_acesso'] ?? PasswordGenerator.generatePasswordFromName(nome);
+        senhaGerada =
+            existente['senha_acesso'] ??
+            PasswordGenerator.generatePasswordFromName(nome);
         emailHerdado = existente['email'];
         fotoHerdada = existente['foto_perfil'];
-        print('♻️ CPF existente! Herdando credenciais de: ${existente['email']}');
+        print(
+          '♻️ CPF existente! Herdando credenciais de: ${existente['email']}',
+        );
         print('✅ Usando senha existente para manter acesso unificado');
       } else {
         // 🔐 Gerar nova senha automática baseada no nome
@@ -214,21 +217,21 @@ class UnidadeDetalhesService {
             'estado': estado,
             'telefone': telefone,
             'celular': celular,
-            'email': emailHerdado ?? email,  // ✅ Usar email herdado se existir
+            'email': emailHerdado ?? email, // ✅ Usar email herdado se existir
             'conjuge': conjuge,
             'multiproprietarios': multiproprietarios,
             'moradores': moradores,
             'senha_acesso': senhaGerada,
-            'foto_perfil': fotoHerdada,  // ✅ Herdar foto se existir
+            'foto_perfil': fotoHerdada, // ✅ Herdar foto se existir
           })
           .select()
           .single();
 
       final proprietario = Proprietario.fromJson(response);
-      
+
       // ✅ NOVO: Gerar QR code em background
       _gerarQRCodeProprietarioAsync(proprietario, cpfCnpj);
-      
+
       return proprietario;
     } catch (e) {
       throw Exception('Erro ao criar proprietário: $e');
@@ -247,11 +250,13 @@ class UnidadeDetalhesService {
           .eq('id', inquilinoId)
           .select()
           .single();
-      
+
       // ✅ Regenerar QR Code com os novos dados
       final inquilinoAtualizado = Inquilino.fromJson(response);
-      _gerarQRCodeInquilinoAsync(inquilinoAtualizado, inquilinoAtualizado.cpfCnpj);
-      
+      _gerarQRCodeInquilinoAsync(
+        inquilinoAtualizado,
+        inquilinoAtualizado.cpfCnpj,
+      );
     } catch (e) {
       throw Exception('Erro ao atualizar inquilino: $e');
     }
@@ -304,16 +309,16 @@ class UnidadeDetalhesService {
             'moradores': moradores,
             'receber_boleto_email': receberBoletoEmail,
             'controle_locacao': controleLocacao,
-            'senha_acesso': senhaGerada,  // ✅ Adicionar senha gerada
+            'senha_acesso': senhaGerada, // ✅ Adicionar senha gerada
           })
           .select()
           .single();
 
       final inquilino = Inquilino.fromJson(response);
-      
+
       // ✅ NOVO: Gerar QR code em background
       _gerarQRCodeInquilinoAsync(inquilino, cpfCnpj);
-      
+
       return inquilino;
     } catch (e) {
       throw Exception('Erro ao criar inquilino: $e');
@@ -332,11 +337,13 @@ class UnidadeDetalhesService {
           .eq('id', imobiliariaId)
           .select()
           .single();
-      
+
       // ✅ Regenerar QR Code com os novos dados
       final imobiliariaAtualizada = Imobiliaria.fromJson(response);
-      _gerarQRCodeImobiliariaAsync(imobiliariaAtualizada, imobiliariaAtualizada.cnpj);
-      
+      _gerarQRCodeImobiliariaAsync(
+        imobiliariaAtualizada,
+        imobiliariaAtualizada.cnpj,
+      );
     } catch (e) {
       throw Exception('Erro ao atualizar imobiliária: $e');
     }
@@ -371,10 +378,10 @@ class UnidadeDetalhesService {
           .single();
 
       final imobiliaria = Imobiliaria.fromJson(response);
-      
+
       // ✅ NOVO: Gerar QR code em background
       _gerarQRCodeImobiliariaAsync(imobiliaria, cnpj);
-      
+
       return imobiliaria;
     } catch (e) {
       throw Exception('Erro ao criar imobiliária: $e');
@@ -382,7 +389,9 @@ class UnidadeDetalhesService {
   }
 
   /// Busca todas as imobiliárias do condomínio
-  Future<List<Imobiliaria>> buscarImobiliariasCondominio(String condominioId) async {
+  Future<List<Imobiliaria>> buscarImobiliariasCondominio(
+    String condominioId,
+  ) async {
     try {
       final response = await _supabase
           .from('imobiliarias')
@@ -401,26 +410,32 @@ class UnidadeDetalhesService {
   // ========== MÉTODOS AUXILIARES PARA GERAÇÃO DE QR CODES ==========
 
   /// Gera QR code para o proprietário em background
-  void _gerarQRCodeProprietarioAsync(Proprietario proprietario, String cpfCnpj) {
+  void _gerarQRCodeProprietarioAsync(
+    Proprietario proprietario,
+    String cpfCnpj,
+  ) {
     Future.delayed(const Duration(milliseconds: 500), () async {
       try {
-        print('🔄 [Proprietário] Iniciando geração de QR Code para: ${proprietario.nome}');
-
-        final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-          tipo: 'proprietario',
-          id: proprietario.id,
-          nome: proprietario.nome,
-          tabelaNome: 'proprietarios',
-          dados: {
-            'id': proprietario.id,
-            'nome': proprietario.nome,
-            'cpf': _sanitizarCPF(cpfCnpj),
-            'email': proprietario.email ?? '',
-            'telefone': proprietario.celular ?? proprietario.telefone ?? '',
-            'condominio_id': proprietario.condominioId,
-            'data_criacao': DateTime.now().toIso8601String(),
-          },
+        print(
+          '🔄 [Proprietário] Iniciando geração de QR Code para: ${proprietario.nome}',
         );
+
+        final qrCodeUrl =
+            await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+              tipo: 'proprietario',
+              id: proprietario.id,
+              nome: proprietario.nome,
+              tabelaNome: 'proprietarios',
+              dados: {
+                'id': proprietario.id,
+                'nome': proprietario.nome,
+                'cpf': _sanitizarCPF(cpfCnpj),
+                'email': proprietario.email ?? '',
+                'telefone': proprietario.celular ?? proprietario.telefone ?? '',
+                'condominio_id': proprietario.condominioId,
+                'data_criacao': DateTime.now().toIso8601String(),
+              },
+            );
 
         if (qrCodeUrl != null) {
           print('✅ [Proprietário] QR Code gerado e salvo: $qrCodeUrl');
@@ -437,23 +452,26 @@ class UnidadeDetalhesService {
   void _gerarQRCodeInquilinoAsync(Inquilino inquilino, String cpfCnpj) {
     Future.delayed(const Duration(milliseconds: 500), () async {
       try {
-        print('🔄 [Inquilino] Iniciando geração de QR Code para: ${inquilino.nome}');
-
-        final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-          tipo: 'inquilino',
-          id: inquilino.id,
-          nome: inquilino.nome,
-          tabelaNome: 'inquilinos',
-          dados: {
-            'id': inquilino.id,
-            'nome': inquilino.nome,
-            'cpf': _sanitizarCPF(cpfCnpj),
-            'email': inquilino.email ?? '',
-            'telefone': inquilino.celular ?? inquilino.telefone ?? '',
-            'condominio_id': inquilino.condominioId,
-            'data_criacao': DateTime.now().toIso8601String(),
-          },
+        print(
+          '🔄 [Inquilino] Iniciando geração de QR Code para: ${inquilino.nome}',
         );
+
+        final qrCodeUrl =
+            await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+              tipo: 'inquilino',
+              id: inquilino.id,
+              nome: inquilino.nome,
+              tabelaNome: 'inquilinos',
+              dados: {
+                'id': inquilino.id,
+                'nome': inquilino.nome,
+                'cpf': _sanitizarCPF(cpfCnpj),
+                'email': inquilino.email ?? '',
+                'telefone': inquilino.celular ?? inquilino.telefone ?? '',
+                'condominio_id': inquilino.condominioId,
+                'data_criacao': DateTime.now().toIso8601String(),
+              },
+            );
 
         if (qrCodeUrl != null) {
           print('✅ [Inquilino] QR Code gerado e salvo: $qrCodeUrl');
@@ -470,23 +488,26 @@ class UnidadeDetalhesService {
   void _gerarQRCodeImobiliariaAsync(Imobiliaria imobiliaria, String cnpj) {
     Future.delayed(const Duration(milliseconds: 500), () async {
       try {
-        print('🔄 [Imobiliária] Iniciando geração de QR Code para: ${imobiliaria.nome}');
-
-        final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-          tipo: 'imobiliaria',
-          id: imobiliaria.id,
-          nome: imobiliaria.nome,
-          tabelaNome: 'imobiliarias',
-          dados: {
-            'id': imobiliaria.id,
-            'nome': imobiliaria.nome,
-            'cnpj': _sanitizarCNPJ(cnpj),
-            'email': imobiliaria.email ?? '',
-            'telefone': imobiliaria.celular ?? imobiliaria.telefone ?? '',
-            'condominio_id': imobiliaria.condominioId,
-            'data_criacao': DateTime.now().toIso8601String(),
-          },
+        print(
+          '🔄 [Imobiliária] Iniciando geração de QR Code para: ${imobiliaria.nome}',
         );
+
+        final qrCodeUrl =
+            await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+              tipo: 'imobiliaria',
+              id: imobiliaria.id,
+              nome: imobiliaria.nome,
+              tabelaNome: 'imobiliarias',
+              dados: {
+                'id': imobiliaria.id,
+                'nome': imobiliaria.nome,
+                'cnpj': _sanitizarCNPJ(cnpj),
+                'email': imobiliaria.email ?? '',
+                'telefone': imobiliaria.celular ?? imobiliaria.telefone ?? '',
+                'condominio_id': imobiliaria.condominioId,
+                'data_criacao': DateTime.now().toIso8601String(),
+              },
+            );
 
         if (qrCodeUrl != null) {
           print('✅ [Imobiliária] QR Code gerado e salvo: $qrCodeUrl');
@@ -517,12 +538,9 @@ class UnidadeDetalhesService {
   Future<void> deletarProprietario({required String proprietarioId}) async {
     try {
       print('🗑️ Deletando proprietário com ID: $proprietarioId');
-      
-      await _supabase
-          .from('proprietarios')
-          .delete()
-          .eq('id', proprietarioId);
-      
+
+      await _supabase.from('proprietarios').delete().eq('id', proprietarioId);
+
       print('✅ Proprietário deletado com sucesso!');
     } catch (e) {
       print('❌ Erro ao deletar proprietário: $e');
@@ -534,12 +552,9 @@ class UnidadeDetalhesService {
   Future<void> deletarInquilino({required String inquilinoId}) async {
     try {
       print('🗑️ Deletando inquilino com ID: $inquilinoId');
-      
-      await _supabase
-          .from('inquilinos')
-          .delete()
-          .eq('id', inquilinoId);
-      
+
+      await _supabase.from('inquilinos').delete().eq('id', inquilinoId);
+
       print('✅ Inquilino deletado com sucesso!');
     } catch (e) {
       print('❌ Erro ao deletar inquilino: $e');
@@ -551,12 +566,9 @@ class UnidadeDetalhesService {
   Future<void> deletarImobiliaria({required String imobiliariaId}) async {
     try {
       print('🗑️ Deletando imobiliária com ID: $imobiliariaId');
-      
-      await _supabase
-          .from('imobiliarias')
-          .delete()
-          .eq('id', imobiliariaId);
-      
+
+      await _supabase.from('imobiliarias').delete().eq('id', imobiliariaId);
+
       print('✅ Imobiliária deletada com sucesso!');
     } catch (e) {
       print('❌ Erro ao deletar imobiliária: $e');
@@ -568,16 +580,27 @@ class UnidadeDetalhesService {
   Future<void> deletarRepresentante({required String representanteId}) async {
     try {
       print('🗑️ Deletando representante com ID: $representanteId');
-      
-      await _supabase
-          .from('representantes')
-          .delete()
-          .eq('id', representanteId);
-      
+
+      await _supabase.from('representantes').delete().eq('id', representanteId);
+
       print('✅ Representante deletado com sucesso!');
     } catch (e) {
       print('❌ Erro ao deletar representante: $e');
       throw Exception('Erro ao deletar representante: $e');
+    }
+  }
+
+  /// Deleta uma unidade e todos os seus dados vinculados
+  Future<void> deletarUnidade({required String unidadeId}) async {
+    try {
+      print('🗑️ Deletando unidade com ID: $unidadeId');
+
+      await _supabase.from('unidades').delete().eq('id', unidadeId);
+
+      print('✅ Unidade deletada com sucesso!');
+    } catch (e) {
+      print('❌ Erro ao deletar unidade: $e');
+      throw Exception('Erro ao deletar unidade: $e');
     }
   }
 }

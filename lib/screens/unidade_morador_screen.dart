@@ -53,9 +53,15 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   @override
   void initState() {
     print('📱 [UnidadeMoradorScreen] initState() chamado');
-    print('📱 [UnidadeMoradorScreen] condominioId recebido: ${widget.condominioId}');
-    print('📱 [UnidadeMoradorScreen] condominioNome recebido: ${widget.condominioNome}');
-    print('📱 [UnidadeMoradorScreen] condominioCnpj recebido: ${widget.condominioCnpj}');
+    print(
+      '📱 [UnidadeMoradorScreen] condominioId recebido: ${widget.condominioId}',
+    );
+    print(
+      '📱 [UnidadeMoradorScreen] condominioNome recebido: ${widget.condominioNome}',
+    );
+    print(
+      '📱 [UnidadeMoradorScreen] condominioCnpj recebido: ${widget.condominioCnpj}',
+    );
     super.initState();
     _carregarDados();
     _searchController.addListener(_filtrarUnidades);
@@ -69,10 +75,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   }
 
   Future<void> _carregarDados() async {
-    print('📱 [UnidadeMoradorScreen] ===== INICIANDO CARREGAMENTO DE DADOS =====');
+    print(
+      '📱 [UnidadeMoradorScreen] ===== INICIANDO CARREGAMENTO DE DADOS =====',
+    );
     print('📱 [UnidadeMoradorScreen] condominioId: ${widget.condominioId}');
     print('📱 [UnidadeMoradorScreen] condominioNome: ${widget.condominioNome}');
-    
+
     if (widget.condominioId == null) {
       print('❌ [UnidadeMoradorScreen] ERRO: ID do condomínio é NULL');
       setState(() {
@@ -88,30 +96,36 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     });
 
     try {
-      print('🔄 [UnidadeMoradorScreen] Chamando listarUnidadesCondominio com ID: ${widget.condominioId!}');
-      
+      print(
+        '🔄 [UnidadeMoradorScreen] Chamando listarUnidadesCondominio com ID: ${widget.condominioId!}',
+      );
+
       // Carrega os dados do banco
       final blocosUnidades = await _unidadeService.listarUnidadesCondominio(
         widget.condominioId!,
       );
-      
+
       // Carrega o flag tem_blocos do condomínio
       final temBlocos = await _carregarTemBlocos();
-      
+
       print('✅ [UnidadeMoradorScreen] Dados carregados com sucesso!');
-      print('📊 [UnidadeMoradorScreen] Total de blocos retornados: ${blocosUnidades.length}');
+      print(
+        '📊 [UnidadeMoradorScreen] Total de blocos retornados: ${blocosUnidades.length}',
+      );
       print('📊 [UnidadeMoradorScreen] tem_blocos: $temBlocos');
-      
+
       // Log detalhado de cada bloco
       for (int i = 0; i < blocosUnidades.length; i++) {
         final bloco = blocosUnidades[i];
-        print('   Bloco $i: ${bloco.bloco.nome} - ${bloco.unidades.length} unidades');
+        print(
+          '   Bloco $i: ${bloco.bloco.nome} - ${bloco.unidades.length} unidades',
+        );
         for (int j = 0; j < bloco.unidades.length; j++) {
           final unidade = bloco.unidades[j];
           print('      Unidade ${j + 1}: ${unidade.numero} (${unidade.id})');
         }
       }
-      
+
       setState(() {
         _blocosUnidades = blocosUnidades;
         _blocosUnidadesFiltrados = blocosUnidades;
@@ -132,9 +146,12 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   /// Carrega o flag tem_blocos do banco de dados
   Future<bool> _carregarTemBlocos() async {
     try {
-      if (widget.condominioId == null) return true; // Default true se não houver ID
-      
-      final condominio = await _unidadeService.obterCondominioById(widget.condominioId!);
+      if (widget.condominioId == null)
+        return true; // Default true se não houver ID
+
+      final condominio = await _unidadeService.obterCondominioById(
+        widget.condominioId!,
+      );
       return condominio?.temBlocos ?? true; // Default true se não encontrar
     } catch (e) {
       print('⚠️ Erro ao carregar tem_blocos: $e');
@@ -145,31 +162,31 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   /// Atualiza o flag tem_blocos no banco
   Future<void> _alternarTemBlocos(bool novoValor) async {
     if (widget.condominioId == null) return;
-    
+
     setState(() {
       _atualizandoTemBlocos = true;
     });
 
     try {
       print('🔄 Alternando tem_blocos para $novoValor');
-      
+
       await _condominioInitService.atualizarTemBlocos(
         widget.condominioId!,
         novoValor,
       );
-      
+
       setState(() {
         _temBlocos = novoValor;
         _atualizandoTemBlocos = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              novoValor 
-                ? '✅ Condomínio com blocos ativado' 
-                : '✅ Exibição sem blocos ativada',
+              novoValor
+                  ? '✅ Condomínio com blocos ativado'
+                  : '✅ Exibição sem blocos ativada',
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
@@ -181,7 +198,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       setState(() {
         _atualizandoTemBlocos = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -207,24 +224,27 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
 
     for (var blocoComUnidades in _blocosUnidades) {
       // Verifica se o nome ou código do bloco contém o termo
-      final blocoMatches = blocoComUnidades.bloco.nome.toLowerCase().contains(termo) ||
-                           blocoComUnidades.bloco.codigo.toLowerCase().contains(termo);
+      final blocoMatches =
+          blocoComUnidades.bloco.nome.toLowerCase().contains(termo) ||
+          blocoComUnidades.bloco.codigo.toLowerCase().contains(termo);
 
       if (blocoMatches) {
         // Se o bloco corresponde ao termo (ex: "Bloco A"), incluímos o bloco inteiro com todas as suas unidades.
-        filtrados.add(blocoComUnidades); 
+        filtrados.add(blocoComUnidades);
       } else {
         // Se o bloco NÃO corresponde, verificamos se alguma unidade interna corresponde (ex: "101")
         final unidadesFiltradas = blocoComUnidades.unidades.where((unidade) {
-            return unidade.numero.toLowerCase().contains(termo);
+          return unidade.numero.toLowerCase().contains(termo);
         }).toList();
 
         // Se houver unidades que correspondem, criamos uma nova instância do bloco contendo APENAS essas unidades
         if (unidadesFiltradas.isNotEmpty) {
-            filtrados.add(BlocoComUnidades(
-                bloco: blocoComUnidades.bloco,
-                unidades: unidadesFiltradas,
-            ));
+          filtrados.add(
+            BlocoComUnidades(
+              bloco: blocoComUnidades.bloco,
+              unidades: unidadesFiltradas,
+            ),
+          );
         }
       }
     }
@@ -574,10 +594,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         final Uri uri = Uri.parse(downloadUrl);
 
         if (await canLaunchUrl(uri)) {
-          await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
         } else {
           throw Exception('Não foi possível abrir a URL');
         }
@@ -696,7 +713,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           return ImportacaoModalWidget(
             condominioId: widget.condominioId ?? 'sem-id',
             condominioNome: widget.condominioNome ?? 'Condomínio',
-            cpfsExistentes: const {},  // Todo: implementar cache se necessário
+            cpfsExistentes: const {}, // Todo: implementar cache se necessário
             emailsExistentes: const {},
             onImportarConfirmado: (dados) async {
               // Callback opcional, lógica principal está no modal
@@ -708,7 +725,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       if (resultado == true && mounted) {
         print('✅ Importação concluída, recarregando dados...');
         await _carregarDados();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Row(
@@ -796,8 +813,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
       child: ElevatedButton(
         onPressed: isEditando || isExcluindo
             ? null
-            : () {
-                Navigator.push(
+            : () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => DetalhesUnidadeScreen(
@@ -809,6 +826,14 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     ),
                   ),
                 );
+
+                if (result == true) {
+                  // Se retornou true, significa que houve alteração (ex: exclusão)
+                  print(
+                    '🔄 Recarregando lista de unidades após retorno da tela de detalhes...',
+                  );
+                  _carregarDados();
+                }
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF4A90E2),
@@ -846,8 +871,9 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   /// Constrói grid de unidades sem blocos
   Widget _buildUnidadesGridSemBlocos(List<BlocoComUnidades> blocos) {
     // Extrai todas as unidades de todos os blocos
-    final todasAsUnidades = <(String numero, String blocoId, String unidadeId, String blocoNome)>[];
-    
+    final todasAsUnidades =
+        <(String numero, String blocoId, String unidadeId, String blocoNome)>[];
+
     for (var blocoComUnidades in blocos) {
       for (var unidade in blocoComUnidades.unidades) {
         todasAsUnidades.add((
@@ -858,7 +884,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
         ));
       }
     }
-    
+
     // Ordena por número de unidade
     todasAsUnidades.sort((a, b) {
       final numA = int.tryParse(a.$1) ?? 0;
@@ -867,9 +893,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
     });
 
     if (todasAsUnidades.isEmpty) {
-      return const Center(
-        child: Text('Nenhuma unidade encontrada'),
-      );
+      return const Center(child: Text('Nenhuma unidade encontrada'));
     }
 
     return Padding(
@@ -881,7 +905,7 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
           final numero = unidadeData.$1;
           final unidadeId = unidadeData.$3;
           final blocoNome = unidadeData.$4;
-          
+
           return _buildUnidadeButton(numero, blocoNome, unidadeId, blocoNome);
         }).toList(),
       ),
@@ -1241,28 +1265,30 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
   /// Constrói o card de configuração de blocos
   Widget _buildConfiguracaoBlocosCard() {
     return GestureDetector(
-      onTap: _atualizandoTemBlocos ? null : () => _alternarTemBlocos(!_temBlocos),
+      onTap: _atualizandoTemBlocos
+          ? null
+          : () => _alternarTemBlocos(!_temBlocos),
       child: AnimatedScale(
         duration: const Duration(milliseconds: 200),
         scale: _atualizandoTemBlocos ? 0.98 : 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 350),
           decoration: BoxDecoration(
-            color: _temBlocos 
-              ? const Color(0xFF4A90E2).withOpacity(0.06)
-              : const Color(0xFFFF9800).withOpacity(0.06),
+            color: _temBlocos
+                ? const Color(0xFF4A90E2).withOpacity(0.06)
+                : const Color(0xFFFF9800).withOpacity(0.06),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: _temBlocos 
-                ? const Color(0xFF4A90E2).withOpacity(0.4)
-                : const Color(0xFFFF9800).withOpacity(0.4),
+              color: _temBlocos
+                  ? const Color(0xFF4A90E2).withOpacity(0.4)
+                  : const Color(0xFFFF9800).withOpacity(0.4),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
                 color: _temBlocos
-                  ? const Color(0xFF4A90E2).withOpacity(0.15)
-                  : const Color(0xFFFF9800).withOpacity(0.15),
+                    ? const Color(0xFF4A90E2).withOpacity(0.15)
+                    : const Color(0xFFFF9800).withOpacity(0.15),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1279,31 +1305,31 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: _temBlocos
-                      ? [
-                          const Color(0xFF4A90E2).withOpacity(0.12),
-                          const Color(0xFF4A90E2).withOpacity(0.04),
-                        ]
-                      : [
-                          const Color(0xFFFF9800).withOpacity(0.12),
-                          const Color(0xFFFF9800).withOpacity(0.04),
-                        ],
+                        ? [
+                            const Color(0xFF4A90E2).withOpacity(0.12),
+                            const Color(0xFF4A90E2).withOpacity(0.04),
+                          ]
+                        : [
+                            const Color(0xFFFF9800).withOpacity(0.12),
+                            const Color(0xFFFF9800).withOpacity(0.04),
+                          ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _temBlocos
-                      ? const Color(0xFF4A90E2).withOpacity(0.2)
-                      : const Color(0xFFFF9800).withOpacity(0.2),
+                        ? const Color(0xFF4A90E2).withOpacity(0.2)
+                        : const Color(0xFFFF9800).withOpacity(0.2),
                     width: 1.5,
                   ),
                 ),
                 child: Icon(
                   _temBlocos ? Icons.layers_rounded : Icons.list_alt_rounded,
                   size: 32,
-                  color: _temBlocos 
-                    ? const Color(0xFF4A90E2)
-                    : const Color(0xFFFF9800),
+                  color: _temBlocos
+                      ? const Color(0xFF4A90E2)
+                      : const Color(0xFFFF9800),
                 ),
               ),
               const SizedBox(width: 18),
@@ -1317,17 +1343,17 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: _temBlocos 
-                          ? const Color(0xFF2E5C9F)
-                          : const Color(0xFFE65100),
+                        color: _temBlocos
+                            ? const Color(0xFF2E5C9F)
+                            : const Color(0xFFE65100),
                         letterSpacing: 0.3,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       _temBlocos
-                        ? 'Unidades organizadas por blocos'
-                        : 'Lista simplificada de unidades',
+                          ? 'Unidades organizadas por blocos'
+                          : 'Lista simplificada de unidades',
                       style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF555555),
@@ -1346,8 +1372,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   height: 44,
                   decoration: BoxDecoration(
                     color: _temBlocos
-                      ? const Color(0xFF4A90E2).withOpacity(0.1)
-                      : const Color(0xFFFF9800).withOpacity(0.1),
+                        ? const Color(0xFF4A90E2).withOpacity(0.1)
+                        : const Color(0xFFFF9800).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -1358,8 +1384,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                         strokeWidth: 2.5,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           _temBlocos
-                            ? const Color(0xFF4A90E2)
-                            : const Color(0xFFFF9800),
+                              ? const Color(0xFF4A90E2)
+                              : const Color(0xFFFF9800),
                         ),
                       ),
                     ),
@@ -1371,14 +1397,8 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: _temBlocos
-                        ? [
-                            const Color(0xFF4A90E2),
-                            const Color(0xFF357ABD),
-                          ]
-                        : [
-                            const Color(0xFFFF9800),
-                            const Color(0xFFF57C00),
-                          ],
+                          ? [const Color(0xFF4A90E2), const Color(0xFF357ABD)]
+                          : [const Color(0xFFFF9800), const Color(0xFFF57C00)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1386,14 +1406,17 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: _temBlocos
-                          ? const Color(0xFF4A90E2).withOpacity(0.3)
-                          : const Color(0xFFFF9800).withOpacity(0.3),
+                            ? const Color(0xFF4A90E2).withOpacity(0.3)
+                            : const Color(0xFFFF9800).withOpacity(0.3),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1477,8 +1500,11 @@ class _UnidadeMoradorScreenState extends State<UnidadeMoradorScreen> {
             child: Column(
               children: _temBlocos
                   ? blocoComUnidadesValidas
-                      .map((blocoComUnidades) => _buildBlocoSection(blocoComUnidades))
-                      .toList()
+                        .map(
+                          (blocoComUnidades) =>
+                              _buildBlocoSection(blocoComUnidades),
+                        )
+                        .toList()
                   : [_buildUnidadesGridSemBlocos(blocoComUnidadesValidas)],
             ),
           ),
