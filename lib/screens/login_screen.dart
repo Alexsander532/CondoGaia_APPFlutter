@@ -280,7 +280,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 proprietarioId:
                     unidades[0]['id'], // Usar o ID do registro específico
                 unidadeId: unidadeData['id'],
-                unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+                unidadeNome:
+                    '${unidadeData['bloco'] != null ? 'Bloco ${unidadeData['bloco']} - ' : ''}Unidade ${unidadeData['numero'] ?? 'N/A'}',
                 proprietarioData: result.proprietario,
               ),
             ),
@@ -364,7 +365,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 condominioCnpj: condominioData['cnpj'] ?? 'N/A',
                 inquilinoId: result.inquilino!.id,
                 unidadeId: unidadeData['id'],
-                unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+                unidadeNome:
+                    '${unidadeData['bloco'] != null ? 'Bloco ${unidadeData['bloco']} - ' : ''}Unidade ${unidadeData['numero'] ?? 'N/A'}',
               ),
             ),
           );

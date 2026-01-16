@@ -9,7 +9,6 @@ import 'proprietario_dashboard_screen.dart';
 import 'inquilino_dashboard_screen.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
-import '../models/proprietario.dart';
 import '../services/auth_service.dart';
 import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
@@ -716,7 +715,7 @@ Copiado da CondoGaia''';
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Unidade: ${widget.unidadeNome}',
+                              widget.unidadeNome,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
