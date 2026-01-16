@@ -19,7 +19,7 @@ class ProprietarioDashboardScreen extends StatefulWidget {
 class _ProprietarioDashboardScreenState
     extends State<ProprietarioDashboardScreen> {
   final AuthService _authService = AuthService();
-  
+
   // ✅ MULTI-UNIT: Lista de todas as unidades do proprietário
   List<Map<String, dynamic>> _todasUnidades = [];
   bool _isLoading = true;
@@ -33,8 +33,10 @@ class _ProprietarioDashboardScreenState
   /// ✅ MULTI-UNIT: Carrega TODAS as unidades do proprietário pelo CPF
   Future<void> _loadTodasUnidades() async {
     try {
-      print('🔵 Buscando todas as unidades para CPF: ${widget.proprietario.cpfCnpj}');
-      
+      print(
+        '🔵 Buscando todas as unidades para CPF: ${widget.proprietario.cpfCnpj}',
+      );
+
       // Buscar todos os registros de proprietário com este CPF
       final registros = await SupabaseService.client
           .from('proprietarios')
@@ -129,7 +131,7 @@ class _ProprietarioDashboardScreenState
     if (widget.proprietario.temFotoPerfil) {
       try {
         final fotoUrl = widget.proprietario.fotoPerfil!;
-        
+
         if (fotoUrl.startsWith('http')) {
           return ClipOval(
             child: Image.network(
@@ -190,7 +192,7 @@ class _ProprietarioDashboardScreenState
   /// ✅ MULTI-UNIT: Constrói card de uma unidade
   Widget _buildUnidadeCard(Map<String, dynamic> unidadeInfo) {
     final temBlocos = unidadeInfo['tem_blocos'] ?? true;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -219,7 +221,8 @@ class _ProprietarioDashboardScreenState
                   condominioCnpj: unidadeInfo['condominio_cnpj'],
                   proprietarioId: unidadeInfo['proprietario_id'].toString(),
                   unidadeId: unidadeInfo['unidade_id'].toString(),
-                  unidadeNome: 'Unidade ${unidadeInfo['unidade_numero']}',
+                  unidadeNome:
+                      '${(temBlocos && unidadeInfo['bloco'] != null) ? "Bloco ${unidadeInfo['bloco']} - " : ""}Unidade ${unidadeInfo['unidade_numero']}',
                   proprietarioData: widget.proprietario,
                 ),
               ),
@@ -237,13 +240,10 @@ class _ProprietarioDashboardScreenState
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.home_mini,
-                    color: Colors.orange,
-                  ),
+                  child: const Icon(Icons.home_mini, color: Colors.orange),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Informações da unidade
                 Expanded(
                   child: Column(
@@ -268,15 +268,12 @@ class _ProprietarioDashboardScreenState
                         ),
                       Text(
                         unidadeInfo['condominio_nome'],
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
                     ],
                   ),
                 ),
-                
+
                 // Seta para entrar
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -398,7 +395,10 @@ class _ProprietarioDashboardScreenState
                   ),
                   if (!_isLoading)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -451,7 +451,9 @@ class _ProprietarioDashboardScreenState
                 )
               else
                 Column(
-                  children: _todasUnidades.map((unidade) => _buildUnidadeCard(unidade)).toList(),
+                  children: _todasUnidades
+                      .map((unidade) => _buildUnidadeCard(unidade))
+                      .toList(),
                 ),
 
               const SizedBox(height: 32),

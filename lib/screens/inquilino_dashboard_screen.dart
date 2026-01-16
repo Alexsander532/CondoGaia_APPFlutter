@@ -72,7 +72,7 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
     if (widget.inquilino.temFotoPerfil) {
       try {
         final fotoUrl = widget.inquilino.fotoPerfil!;
-        
+
         // Verificar se é URL (começa com http) ou Base64
         if (fotoUrl.startsWith('http')) {
           // É URL do Storage - usar Image.network
@@ -319,17 +319,14 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Divisor
-                          Container(
-                            height: 1,
-                            color: Colors.grey[200],
-                          ),
-                          
+                          Container(height: 1, color: Colors.grey[200]),
+
                           const SizedBox(height: 16),
-                          
+
                           // Unidade dentro do condomínio
                           GestureDetector(
                             onTap: () {
@@ -341,11 +338,12 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                     condominioNome:
                                         _condominio!['nome_condominio'] ??
                                         'Condomínio',
-                                    condominioCnpj: _condominio!['cnpj'] ?? 'N/A',
+                                    condominioCnpj:
+                                        _condominio!['cnpj'] ?? 'N/A',
                                     inquilinoId: widget.inquilino.id,
                                     unidadeId: _unidade!['id'].toString(),
                                     unidadeNome:
-                                        'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
+                                        '${_unidade!['bloco'] != null ? "Bloco ${_unidade!['bloco']} - " : ""}Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
                                   ),
                                 ),
                               );
@@ -371,7 +369,8 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Unidade ${_unidade!['numero_unidade'] ?? _unidade!['numero'] ?? _unidade!['unidade'] ?? 'N/A'}',
@@ -381,7 +380,8 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                           color: Colors.black87,
                                         ),
                                       ),
-                                      if (_condominio != null && (_condominio!['tem_blocos'] ?? true))
+                                      if (_condominio != null &&
+                                          (_condominio!['tem_blocos'] ?? true))
                                         Text(
                                           'Bloco: ${_unidade!['bloco'] ?? 'N/A'}',
                                           style: TextStyle(
@@ -404,7 +404,10 @@ class _InquilinoDashboardScreenState extends State<InquilinoDashboardScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Icon(Icons.chevron_right, color: Colors.grey),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                    ),
                                   ],
                                 ),
                               ],

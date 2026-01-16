@@ -17,11 +17,7 @@ class ReservasScreen extends StatefulWidget {
   final Representante? representante;
   final String? condominioId;
 
-  const ReservasScreen({
-    super.key,
-    this.representante,
-    this.condominioId,
-  });
+  const ReservasScreen({super.key, this.representante, this.condominioId});
 
   @override
   State<ReservasScreen> createState() => _ReservasScreenState();
@@ -34,39 +30,52 @@ class _ReservasScreenState extends State<ReservasScreen> {
   late int _currentMonthIndex;
   late int _currentYear;
   final List<String> _months = const [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril',
-    'Maio', 'Junho', 'Julho', 'Agosto',
-    'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
-  
+
   // Controladores para os campos do formulário
-  final TextEditingController _valorController = TextEditingController(text: 'R\$ 100,00');
+  final TextEditingController _valorController = TextEditingController(
+    text: 'R\$ 100,00',
+  );
   final TextEditingController _horaInicioController = TextEditingController();
   final TextEditingController _horaFimController = TextEditingController();
-  final TextEditingController _listaPresentesController = TextEditingController();
-  
+  final TextEditingController _listaPresentesController =
+      TextEditingController();
+
   // Variáveis para controle do formulário
   bool _isCondominio = true;
   bool _isBlocoUnid = false;
   bool _termoLocacaoAceito = false;
-  
+
   // Unidades para Bloco/Unid
   List<Unidade> _unidades = [];
   String? _selectedUnidadeId;
-  
+
   // Ambientes carregados
   List<Ambiente> _ambientes = [];
   bool _ambientesCarregando = false;
   String? _selectedAmbienteId;
-  
+
   // Reservas carregadas
   List<Reserva> _reservas = [];
   Set<int> _diasComReservas = {};
-  
+
   // Arquivo de lista de presentes
   String? _uploadedFileName;
-  List<String> _listaPresentesArray = []; // Lista de presença como array para salvar no banco
-  
+  List<String> _listaPresentesArray =
+      []; // Lista de presença como array para salvar no banco
+
   // Formata a lista de presença para exibição no MODAL (numerado)
   String _formatarListaPresencaModal(List<String> nomes) {
     final buffer = StringBuffer();
@@ -109,12 +118,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
     _carregarUnidades();
     _carregarReservas();
   }
-  
+
   Future<void> _carregarAmbientes() async {
     setState(() {
       _ambientesCarregando = true;
     });
-    
+
     try {
       final ambientes = await AmbienteService.getAmbientes();
       setState(() {
@@ -182,20 +191,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
   Future<void> _carregarReservas() async {
     // Se representante não está disponível, não carrega reservas
     if (widget.representante == null) return;
-    
+
     try {
-      final reservas = await ReservaService.getReservasRepresentante(widget.representante!.id);
-      
+      final reservas = await ReservaService.getReservasRepresentante(
+        widget.representante!.id,
+      );
+
       // Extrair os dias que têm reservas
       final diasComReservas = <int>{};
       for (var reserva in reservas) {
         // Se a reserva for no mesmo mês e ano, adiciona o dia
-        if (reserva.dataReserva.month == _currentMonthIndex + 1 && 
+        if (reserva.dataReserva.month == _currentMonthIndex + 1 &&
             reserva.dataReserva.year == _currentYear) {
           diasComReservas.add(reserva.dataReserva.day);
         }
       }
-      
+
       setState(() {
         _reservas = reservas;
         _diasComReservas = diasComReservas;
@@ -218,12 +229,13 @@ class _ReservasScreenState extends State<ReservasScreen> {
     }
   }
 
-  Future<void> _salvarReserva() async {
+  Future<void> _salvarReserva([BuildContext? context]) async {
+    final ctx = context ?? this.context;
     try {
       // Validar campos obrigatórios
       if (_selectedAmbienteId == null || _selectedAmbienteId!.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(content: Text('Selecione um ambiente')),
           );
         }
@@ -232,7 +244,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       if (_horaInicioController.text.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(content: Text('Preencha a hora de início')),
           );
         }
@@ -241,7 +253,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       if (_horaFimController.text.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(content: Text('Preencha a hora de fim')),
           );
         }
@@ -251,11 +263,13 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se hora de fim é maior que hora de início
       final horaInicio = _horaInicioController.text;
       final horaFim = _horaFimController.text;
-      
+
       if (horaFim.compareTo(horaInicio) <= 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hora de fim deve ser posterior à hora de início')),
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Hora de fim deve ser posterior à hora de início'),
+            ),
           );
         }
         return;
@@ -264,9 +278,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se o termo de locação foi aceito
       if (!_termoLocacaoAceito) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(
-              content: Text('Você deve aceitar os termos e condições de locação'),
+              content: Text(
+                'Você deve aceitar os termos e condições de locação',
+              ),
               backgroundColor: Color(0xFFE74C3C),
             ),
           );
@@ -277,13 +293,24 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se a data é no futuro (usando horário de Brasília)
       final agora = DateTime.now().toUtc();
       final agoraBrasilia = agora.add(const Duration(hours: -3));
-      final todayBrasilia = DateTime(agoraBrasilia.year, agoraBrasilia.month, agoraBrasilia.day);
-      final selectedDateWithoutTime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-      
-      if (selectedDateWithoutTime.isBefore(todayBrasilia) || selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
+      final todayBrasilia = DateTime(
+        agoraBrasilia.year,
+        agoraBrasilia.month,
+        agoraBrasilia.day,
+      );
+      final selectedDateWithoutTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+
+      if (selectedDateWithoutTime.isBefore(todayBrasilia) ||
+          selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('A reserva deve ser para uma data futura')),
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('A reserva deve ser para uma data futura'),
+            ),
           );
         }
         return;
@@ -305,9 +332,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
         valorLocacao = double.parse(valorText);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Valor inválido')),
-          );
+          ScaffoldMessenger.of(
+            ctx,
+          ).showSnackBar(const SnackBar(content: Text('Valor inválido')));
         }
         return;
       }
@@ -315,7 +342,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Mostrar indicador de carregamento
       if (mounted) {
         showDialog(
-          context: context,
+          context: ctx,
           barrierDismissible: false,
           builder: (BuildContext dialogContext) {
             return const Dialog(
@@ -338,8 +365,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se representante está disponível
       if (widget.representante == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro: Representante não identificado')),
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Erro: Representante não identificado'),
+            ),
           );
         }
         return;
@@ -348,8 +377,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se unidade foi selecionada quando é Bloco/Unid
       if (_isBlocoUnid && _selectedUnidadeId == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Selecione uma unidade para continuar')),
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Selecione uma unidade para continuar'),
+            ),
           );
         }
         return;
@@ -357,9 +388,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       // Criar a reserva
       print('🔵 [ReservasScreen] Iniciando save da reserva...');
-      print('🔵 [ReservasScreen] Representante ID: ${widget.representante!.id}');
+      print(
+        '🔵 [ReservasScreen] Representante ID: ${widget.representante!.id}',
+      );
       print('🔵 [ReservasScreen] Ambiente ID: $_selectedAmbienteId');
-      
+
       // Converter lista de presentes em JSON se houver
       String? listaPresEntesJson;
       if (_listaPresentesArray.isNotEmpty) {
@@ -375,24 +408,25 @@ class _ReservasScreenState extends State<ReservasScreen> {
         valorLocacao: valorLocacao,
         para: _isCondominio ? 'Condomínio' : 'Bloco/Unid',
         local: ambiente.titulo,
-        listaPresentes: listaPresEntesJson ?? 
-            (_listaPresentesController.text.isNotEmpty 
-            ? _listaPresentesController.text 
-            : null),
+        listaPresentes:
+            listaPresEntesJson ??
+            (_listaPresentesController.text.isNotEmpty
+                ? _listaPresentesController.text
+                : null),
         termoLocacao: _termoLocacaoAceito,
         blocoUnidadeId: _isBlocoUnid ? _selectedUnidadeId : null,
       );
 
       // Fechar o diálogo de carregamento
       if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o dialog
+        Navigator.of(ctx, rootNavigator: false).pop(); // Fecha apenas o dialog
       }
 
       print('✅ [ReservasScreen] Reserva criada com sucesso!');
-      
+
       // Mostrar mensagem de sucesso
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(ctx).showSnackBar(
           const SnackBar(
             content: Text('Reserva criada com sucesso!'),
             backgroundColor: Colors.green,
@@ -402,26 +436,23 @@ class _ReservasScreenState extends State<ReservasScreen> {
       }
       // Recarregar reservas para aparecer automaticamente
       await _carregarReservas();
-     
 
       // Limpar os campos
       _horaInicioController.clear();
       _horaFimController.clear();
       _listaPresentesController.clear();
-  _listaPresentesArray = [];
+      _listaPresentesArray = [];
       _valorController.text = 'R\$ 100,00';
-      
+
       // Fechar o modal após um curto delay
       await Future.delayed(const Duration(milliseconds: 00));
       if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o modal
+        Navigator.of(ctx, rootNavigator: false).pop(); // Fecha apenas o modal
       }
-      
     } catch (e, stackTrace) {
       print('❌ [ReservasScreen] ERRO: $e');
       print('❌ [ReservasScreen] Stack trace: $stackTrace');
-      
-     
+
       // Fechar o diálogo de carregamento se estiver aberto
       //if (mounted) {
       //  Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o dialog
@@ -429,7 +460,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       // Mostrar mensagem de erro
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(ctx).showSnackBar(
           SnackBar(
             content: Text('Erro ao criar reserva: $e'),
             backgroundColor: Colors.red,
@@ -443,11 +474,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
   Future<void> _editarReserva(Reserva reserva) async {
     // Preencher os campos com os dados da reserva
     _selectedAmbienteId = reserva.ambienteId;
-    
+
     // Encontrar a hora inicial e final
     final horaInicio = reserva.horaInicio;
     final horaFim = reserva.horaFim;
-    
+
     _horaInicioController.text = horaInicio;
     _horaFimController.text = horaFim;
 
@@ -459,7 +490,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
         final decoded = jsonDecode(rawLista);
         if (decoded is List) {
           _listaPresentesArray = decoded.map((e) => e.toString()).toList();
-          _listaPresentesController.text = _formatarListaPresencaModal(_listaPresentesArray);
+          _listaPresentesController.text = _formatarListaPresencaModal(
+            _listaPresentesArray,
+          );
           conseguiuConverter = true;
         }
       } catch (_) {
@@ -472,17 +505,17 @@ class _ReservasScreenState extends State<ReservasScreen> {
     } else {
       _listaPresentesController.clear();
     }
-    
+
     final ambiente = _ambientes.firstWhere(
       (a) => a.id == reserva.ambienteId,
       orElse: () => Ambiente(titulo: '', valor: 0),
     );
     _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
-    
+
     // Determinar se é condomínio ou bloco/unid
     _isCondominio = reserva.para == 'Condomínio';
     _isBlocoUnid = !_isCondominio;
-    
+
     // Mostrar o modal de edição
     showModalBottomSheet(
       context: context,
@@ -498,60 +531,83 @@ class _ReservasScreenState extends State<ReservasScreen> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Editar Reserva dia $_selectedDayLabel',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF003E7E),
-                        ),
-                        overflow: TextOverflow.ellipsis,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Builder(
+              builder: (innerContext) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Editar Reserva dia $_selectedDayLabel',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF003E7E),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () => Navigator.of(
+                              context,
+                              rootNavigator: false,
+                            ).pop(),
+                            child: const Icon(
+                              Icons.close,
+                              color: Color(0xFF003E7E),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context, rootNavigator: false).pop(),
-                      child: const Icon(Icons.close, color: Color(0xFF003E7E)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildReservationForm(isEditing: true, setModalState: setModalState),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _atualizarReserva(reserva),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF003E7E),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildReservationForm(
+                            isEditing: true,
+                            setModalState: setModalState,
+                            context: innerContext,
                           ),
                         ),
-                        child: const Text(
-                          'Salvar Alterações',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () =>
+                                  _atualizarReserva(reserva, innerContext),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF003E7E),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'Salvar Alterações',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -559,11 +615,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
     );
   }
 
-  Future<void> _atualizarReserva(Reserva reserva) async {
+  Future<void> _atualizarReserva(
+    Reserva reserva, [
+    BuildContext? context,
+  ]) async {
+    final ctx = context ?? this.context;
     try {
       // Validar campos
       if (_selectedAmbienteId == null || _selectedAmbienteId!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(ctx).showSnackBar(
           const SnackBar(
             content: Text('Selecione um ambiente'),
             backgroundColor: Colors.red,
@@ -572,8 +632,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
-      if (_horaInicioController.text.isEmpty || _horaFimController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (_horaInicioController.text.isEmpty ||
+          _horaFimController.text.isEmpty) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
           const SnackBar(
             content: Text('Preencha os horários'),
             backgroundColor: Colors.red,
@@ -588,11 +649,20 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Validar se a data é no futuro (usando horário de Brasília)
       final agora = DateTime.now().toUtc();
       final agoraBrasilia = agora.add(const Duration(hours: -3));
-      final todayBrasilia = DateTime(agoraBrasilia.year, agoraBrasilia.month, agoraBrasilia.day);
-      final selectedDateWithoutTime = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-      
-      if (selectedDateWithoutTime.isBefore(todayBrasilia) || selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      final todayBrasilia = DateTime(
+        agoraBrasilia.year,
+        agoraBrasilia.month,
+        agoraBrasilia.day,
+      );
+      final selectedDateWithoutTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+
+      if (selectedDateWithoutTime.isBefore(todayBrasilia) ||
+          selectedDateWithoutTime.isAtSameMomentAs(todayBrasilia)) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
           const SnackBar(
             content: Text('A reserva deve ser para uma data futura'),
             backgroundColor: Colors.red,
@@ -604,7 +674,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Mostrar loading
       if (mounted) {
         showDialog(
-          context: context,
+          context: ctx,
           barrierDismissible: false,
           builder: (context) => const AlertDialog(
             content: Row(
@@ -641,20 +711,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
         valorLocacao: valorLocacao,
         para: _isCondominio ? 'Condomínio' : 'Bloco/Unid',
         local: ambiente.titulo,
-    listaPresentes: listaPresencaJson ??
-      (_listaPresentesController.text.isNotEmpty
-        ? _listaPresentesController.text
-        : null),
+        listaPresentes:
+            listaPresencaJson ??
+            (_listaPresentesController.text.isNotEmpty
+                ? _listaPresentesController.text
+                : null),
       );
 
       // Fechar o diálogo de carregamento
       if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop();
+        Navigator.of(ctx, rootNavigator: false).pop();
       }
 
       // Mostrar mensagem de sucesso
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(ctx).showSnackBar(
           const SnackBar(
             content: Text('Reserva atualizada com sucesso!'),
             backgroundColor: Colors.green,
@@ -669,19 +740,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
       // Fechar o modal após um curto delay
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop();
+        Navigator.of(ctx, rootNavigator: false).pop();
       }
     } catch (e) {
       print('❌ [ReservasScreen] ERRO ao atualizar: $e');
 
       // Fechar o diálogo de carregamento se estiver aberto
       if (mounted) {
-        Navigator.of(context, rootNavigator: false).pop();
+        Navigator.of(ctx, rootNavigator: false).pop();
       }
 
       // Mostrar mensagem de erro
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(ctx).showSnackBar(
           SnackBar(
             content: Text('Erro ao atualizar reserva: $e'),
             backgroundColor: Colors.red,
@@ -757,7 +828,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       // Recarregar as reservas
       await _carregarReservas();
-      
+
       if (mounted) {
         setState(() {});
       }
@@ -781,7 +852,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       }
     }
   }
-  
+
   @override
   void dispose() {
     _valorController.dispose();
@@ -833,10 +904,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
     try {
       final Uri url = Uri.parse(locacaoUrl);
       if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
+        await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -869,9 +937,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
         _currentMonthIndex--;
       }
 
-      final daysInNewMonth = _getDaysInMonth(_currentMonthIndex + 1, _currentYear);
-      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
-      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      final daysInNewMonth = _getDaysInMonth(
+        _currentMonthIndex + 1,
+        _currentYear,
+      );
+      final selectedDay = _selectedDate.day > daysInNewMonth
+          ? daysInNewMonth
+          : _selectedDate.day;
+      _selectedDate = DateTime(
+        _currentYear,
+        _currentMonthIndex + 1,
+        selectedDay,
+      );
     });
   }
 
@@ -885,9 +962,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
         _currentMonthIndex++;
       }
 
-      final daysInNewMonth = _getDaysInMonth(_currentMonthIndex + 1, _currentYear);
-      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
-      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      final daysInNewMonth = _getDaysInMonth(
+        _currentMonthIndex + 1,
+        _currentYear,
+      );
+      final selectedDay = _selectedDate.day > daysInNewMonth
+          ? daysInNewMonth
+          : _selectedDate.day;
+      _selectedDate = DateTime(
+        _currentYear,
+        _currentMonthIndex + 1,
+        selectedDay,
+      );
     });
   }
 
@@ -920,20 +1006,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
   Widget _buildCalendarHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: const [
-        'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'
-      ].map((day) => Expanded(
-        child: Center(
-          child: Text(
-            day,
-            style: TextStyle(
-              color: Color(0xFF6B7280),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+      children: const ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+          .map(
+            (day) => Expanded(
+              child: Center(
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
@@ -997,7 +1085,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
     final List<Widget> days = [];
     final monthNumber = _currentMonthIndex + 1;
     final daysInMonth = _getDaysInMonth(monthNumber, _currentYear);
-    final firstDayOfWeek = _getFirstDayOfWeekFromMonth(monthNumber, _currentYear);
+    final firstDayOfWeek = _getFirstDayOfWeekFromMonth(
+      monthNumber,
+      _currentYear,
+    );
 
     for (int i = 0; i < firstDayOfWeek; i++) {
       days.add(Container());
@@ -1005,16 +1096,24 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentYear, monthNumber, day);
-      final isSelected = date.day == _selectedDate.day && date.month == _selectedDate.month && date.year == _selectedDate.year;
-      final isToday = date.day == _today.day && date.month == _today.month && date.year == _today.year;
+      final isSelected =
+          date.day == _selectedDate.day &&
+          date.month == _selectedDate.month &&
+          date.year == _selectedDate.year;
+      final isToday =
+          date.day == _today.day &&
+          date.month == _today.month &&
+          date.year == _today.year;
       final hasReservation = _hasReservationOn(date);
 
-      days.add(_buildCalendarDay(
-        day: day,
-        isSelected: isSelected,
-        isToday: isToday,
-        hasReservation: hasReservation,
-      ));
+      days.add(
+        _buildCalendarDay(
+          day: day,
+          isSelected: isSelected,
+          isToday: isToday,
+          hasReservation: hasReservation,
+        ),
+      );
     }
 
     return GridView.count(
@@ -1079,8 +1178,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   bool _hasReservationOn(DateTime date) {
     return _diasComReservas.contains(date.day) &&
-           date.month == _currentMonthIndex + 1 &&
-           date.year == _currentYear;
+        date.month == _currentMonthIndex + 1 &&
+        date.year == _currentYear;
   }
 
   // Função para verificar se há reservas para o dia selecionado
@@ -1103,11 +1202,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 shape: BoxShape.circle,
                 color: Color(0xFF003E7E),
               ),
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 24.0,
-              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 24.0),
             ),
           ),
           const SizedBox(height: 16.0),
@@ -1147,7 +1242,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       );
       _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
     }
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1162,29 +1257,39 @@ class _ReservasScreenState extends State<ReservasScreen> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Título do modal
-                Text(
-                  'Reservar Dia $_selectedDayLabel',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF003E7E),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Builder(
+              builder: (innerContext) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título do modal
+                      Text(
+                        'Reservar Dia $_selectedDayLabel',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF003E7E),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Conteúdo do formulário
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildReservationForm(
+                            setModalState: setModalState,
+                            context: innerContext,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Conteúdo do formulário
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildReservationForm(setModalState: setModalState),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -1197,8 +1302,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
     // Filtra reservas para o dia selecionado
     final reservasDoDia = _reservas.where((reserva) {
       return reserva.dataReserva.day == _selectedDate.day &&
-             reserva.dataReserva.month == _selectedDate.month &&
-             reserva.dataReserva.year == _selectedDate.year;
+          reserva.dataReserva.month == _selectedDate.month &&
+          reserva.dataReserva.year == _selectedDate.year;
     }).toList();
 
     if (reservasDoDia.isEmpty) {
@@ -1213,11 +1318,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
         final reserva = reservasDoDia[index];
         final ambiente = _ambientes.firstWhere(
           (a) => a.id == reserva.ambienteId,
-          orElse: () => Ambiente(
-            id: '',
-            titulo: 'Ambiente desconhecido',
-            valor: 0,
-          ),
+          orElse: () =>
+              Ambiente(id: '', titulo: 'Ambiente desconhecido', valor: 0),
         );
 
         return Container(
@@ -1255,22 +1357,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 ],
               ),
               const SizedBox(height: 4.0),
-              
+
               // Segunda linha: Descrição
               Text(
                 reserva.para,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13.0,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 13.0),
               ),
-              
+
               // Exibir unidade se for Bloco/Unid
-              if (reserva.para == 'Bloco/Unid' && reserva.blocoUnidadeId != null)
+              if (reserva.para == 'Bloco/Unid' &&
+                  reserva.blocoUnidadeId != null)
                 FutureBuilder<Unidade?>(
                   future: _getUnidadeById(reserva.blocoUnidadeId!),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done && snapshot.data != null) {
+                    if (snapshot.connectionState == ConnectionState.done &&
+                        snapshot.data != null) {
                       final unidade = snapshot.data!;
                       return Padding(
                         padding: const EdgeInsets.only(top: 2.0),
@@ -1286,7 +1387,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     return const SizedBox.shrink();
                   },
                 ),
-              
+
               if (reserva.local.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 2.0),
@@ -1298,11 +1399,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     ),
                   ),
                 ),
-              
+
               const SizedBox(height: 12.0),
-              
+
               // Lista de Presentes (se houver)
-              if (reserva.listaPresentes != null && reserva.listaPresentes!.isNotEmpty)
+              if (reserva.listaPresentes != null &&
+                  reserva.listaPresentes!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: Text(
@@ -1314,7 +1416,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     ),
                   ),
                 ),
-              
+
               // Terceira linha: Botões
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -1326,7 +1428,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white70),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8.0),
@@ -1337,7 +1442,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                     ),
                   ),
                 ],
@@ -1350,7 +1458,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
   }
 
   // Função para construir o formulário de reserva
-  Widget _buildReservationForm({bool isEditing = false, Function? setModalState}) {
+  Widget _buildReservationForm({
+    bool isEditing = false,
+    Function? setModalState,
+    BuildContext? context,
+  }) {
+    final ctx = context ?? this.context;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -1425,7 +1538,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                   children: [
                     const Text(
                       'Bloco/Unidade:',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const Text(
                       ' *',
@@ -1441,7 +1557,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 if (_unidades.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12.0,
+                      horizontal: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.orange),
                       borderRadius: BorderRadius.circular(4.0),
@@ -1468,10 +1587,14 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         isExpanded: true,
                         value: _selectedUnidadeId,
                         hint: const Text('Selecione uma unidade'),
-                        items: _unidades.map<DropdownMenuItem<String>>((Unidade unidade) {
+                        items: _unidades.map<DropdownMenuItem<String>>((
+                          Unidade unidade,
+                        ) {
                           return DropdownMenuItem<String>(
                             value: unidade.id,
-                            child: Text('${unidade.bloco != null && unidade.bloco!.isNotEmpty ? "${unidade.bloco} - " : ""}${unidade.numero}'),
+                            child: Text(
+                              '${unidade.bloco != null && unidade.bloco!.isNotEmpty ? "${unidade.bloco} - " : ""}${unidade.numero}',
+                            ),
                           );
                         }).toList(),
                         onChanged: (String? value) {
@@ -1537,7 +1660,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
                                 (a) => a.id == newValue,
                                 orElse: () => _ambientes.first,
                               );
-                              _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+                              _valorController.text =
+                                  'R\$ ${ambiente.valor.toStringAsFixed(2)}';
                             });
                           } else {
                             setState(() {
@@ -1546,13 +1670,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
                                 (a) => a.id == newValue,
                                 orElse: () => _ambientes.first,
                               );
-                              _valorController.text = 'R\$ ${ambiente.valor.toStringAsFixed(2)}';
+                              _valorController.text =
+                                  'R\$ ${ambiente.valor.toStringAsFixed(2)}';
                             });
                           }
                         }
                       },
-                      items: _ambientes
-                          .map<DropdownMenuItem<String>>((Ambiente ambiente) {
+                      items: _ambientes.map<DropdownMenuItem<String>>((
+                        Ambiente ambiente,
+                      ) {
                         return DropdownMenuItem<String>(
                           value: ambiente.id,
                           child: Text(ambiente.titulo),
@@ -1587,7 +1713,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
             ),
           ),
           const SizedBox(height: 16.0),
@@ -1602,7 +1731,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       children: [
                         const Text(
                           'Hora de Início',
-                          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const Text(
                           ' *',
@@ -1618,14 +1750,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     TextField(
                       controller: _horaInicioController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        _TimeInputFormatter(),
-                      ],
+                      inputFormatters: [_TimeInputFormatter()],
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4.0),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
                         hintText: 'HH:MM',
                         counterText: '',
                       ),
@@ -1643,7 +1776,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       children: [
                         const Text(
                           'Hora de Fim',
-                          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const Text(
                           ' *',
@@ -1659,14 +1795,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     TextField(
                       controller: _horaFimController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        _TimeInputFormatter(),
-                      ],
+                      inputFormatters: [_TimeInputFormatter()],
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4.0),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
                         hintText: 'HH:MM',
                         counterText: '',
                       ),
@@ -1694,8 +1831,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              hintText: 'Ex: Reserva da área da churrasqueira para a unidade 201/A',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
+              hintText:
+                  'Ex: Reserva da área da churrasqueira para a unidade 201/A',
             ),
           ),
           const SizedBox(height: 8.0),
@@ -1711,18 +1852,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
                   // Mostrar indicador de carregamento
                   if (setModalState != null) {
                     setModalState(() {
-                      _uploadedFileName = '${result.files.single.name} (lendo...)';
+                      _uploadedFileName =
+                          '${result.files.single.name} (lendo...)';
                     });
                   } else {
                     setState(() {
-                      _uploadedFileName = '${result.files.single.name} (lendo...)';
+                      _uploadedFileName =
+                          '${result.files.single.name} (lendo...)';
                     });
                   }
 
                   try {
                     // Ler os nomes do arquivo Excel
                     // Passar o PlatformFile direto (funciona em web e mobile)
-                    final nomes = await ExcelService.lerColuna(result.files.single);
+                    final nomes = await ExcelService.lerColuna(
+                      result.files.single,
+                    );
 
                     if (nomes.isNotEmpty) {
                       final listaNumerada = _formatarListaPresencaModal(nomes);
@@ -1731,21 +1876,27 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       if (setModalState != null) {
                         setModalState(() {
                           _listaPresentesController.text = listaNumerada;
-                          _listaPresentesArray = nomes; // Guardar o array de nomes
-                          _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
+                          _listaPresentesArray =
+                              nomes; // Guardar o array de nomes
+                          _uploadedFileName =
+                              '${result.files.single.name} ✓ (${nomes.length} nomes)';
                         });
                       } else {
                         setState(() {
                           _listaPresentesController.text = listaNumerada;
-                          _listaPresentesArray = nomes; // Guardar o array de nomes
-                          _uploadedFileName = '${result.files.single.name} ✓ (${nomes.length} nomes)';
+                          _listaPresentesArray =
+                              nomes; // Guardar o array de nomes
+                          _uploadedFileName =
+                              '${result.files.single.name} ✓ (${nomes.length} nomes)';
                         });
                       }
 
                       // Mostrar sucesso
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(ctx).showSnackBar(
                         SnackBar(
-                          content: Text('✓ ${nomes.length} nome(s) importado(s) com sucesso!'),
+                          content: Text(
+                            '✓ ${nomes.length} nome(s) importado(s) com sucesso!',
+                          ),
                           backgroundColor: Colors.green,
                           duration: const Duration(seconds: 2),
                         ),
@@ -1762,7 +1913,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         });
                       }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(ctx).showSnackBar(
                         const SnackBar(
                           content: Text('❌ Nenhum nome encontrado na coluna A'),
                           backgroundColor: Colors.orange,
@@ -1771,7 +1922,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     }
                   } catch (e) {
                     print('Erro ao ler Excel: $e');
-                    
+
                     if (setModalState != null) {
                       setModalState(() {
                         _uploadedFileName = null;
@@ -1782,7 +1933,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       });
                     }
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(ctx).showSnackBar(
                       SnackBar(
                         content: Text('❌ Erro ao ler arquivo: $e'),
                         backgroundColor: Colors.red,
@@ -1796,17 +1947,24 @@ class _ReservasScreenState extends State<ReservasScreen> {
             },
             child: Row(
               children: [
-                const Icon(Icons.cloud_upload_outlined, color: Color(0xFF003E7E)),
+                const Icon(
+                  Icons.cloud_upload_outlined,
+                  color: Color(0xFF003E7E),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _uploadedFileName ?? 'Fazer Upload da Lista',
                     style: TextStyle(
-                      color: _uploadedFileName != null && _uploadedFileName!.contains('✓')
+                      color:
+                          _uploadedFileName != null &&
+                              _uploadedFileName!.contains('✓')
                           ? Colors.green
                           : Colors.black87,
                       fontSize: 14,
-                      fontWeight: _uploadedFileName != null && _uploadedFileName!.contains('✓')
+                      fontWeight:
+                          _uploadedFileName != null &&
+                              _uploadedFileName!.contains('✓')
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),
@@ -1848,8 +2006,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 orElse: () => Ambiente(titulo: '', valor: 0),
               );
 
-              final temTermoLocacao = ambienteSelecionado.locacaoUrl != null && 
-                                      ambienteSelecionado.locacaoUrl!.isNotEmpty;
+              final temTermoLocacao =
+                  ambienteSelecionado.locacaoUrl != null &&
+                  ambienteSelecionado.locacaoUrl!.isNotEmpty;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1888,7 +2047,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.description, color: Color(0xFF1E3A8A), size: 20),
+                              const Icon(
+                                Icons.description,
+                                color: Color(0xFF1E3A8A),
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
@@ -1896,11 +2059,16 @@ class _ReservasScreenState extends State<ReservasScreen> {
                                   children: [
                                     const Text(
                                       'Termo de locação',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     GestureDetector(
-                                      onTap: () => _abrirTermoLocacao(ambienteSelecionado.locacaoUrl),
+                                      onTap: () => _abrirTermoLocacao(
+                                        ambienteSelecionado.locacaoUrl,
+                                      ),
                                       child: const Text(
                                         'Clique para abrir no navegador',
                                         style: TextStyle(
@@ -1943,14 +2111,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     GestureDetector(
                       onTap: () async {
                         try {
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['pdf'],
-                          );
+                          FilePickerResult? result = await FilePicker.platform
+                              .pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['pdf'],
+                              );
 
                           if (result != null && result.files.isNotEmpty) {
                             final file = result.files.single;
-                            
+
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -1960,17 +2129,21 @@ class _ReservasScreenState extends State<ReservasScreen> {
                               );
                             }
 
-                            final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
-                              file,
-                              nomeArquivo: file.name,
-                            );
+                            final pdfUrl =
+                                await AmbienteService.uploadLocacaoPdfAmbiente(
+                                  file,
+                                  nomeArquivo: file.name,
+                                );
 
-                            final ambienteAtualizado = await AmbienteService.atualizarAmbiente(
-                              ambienteSelecionado.id!,
-                              locacaoUrl: pdfUrl,
-                            );
+                            final ambienteAtualizado =
+                                await AmbienteService.atualizarAmbiente(
+                                  ambienteSelecionado.id!,
+                                  locacaoUrl: pdfUrl,
+                                );
 
-                            final ambienteIndex = _ambientes.indexWhere((a) => a.id == ambienteSelecionado.id);
+                            final ambienteIndex = _ambientes.indexWhere(
+                              (a) => a.id == ambienteSelecionado.id,
+                            );
                             if (ambienteIndex != -1) {
                               setState(() {
                                 _ambientes[ambienteIndex] = ambienteAtualizado;
@@ -2008,7 +2181,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                            const Icon(
+                              Icons.cloud_upload_outlined,
+                              color: Color(0xFF1E3A8A),
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'Anexar termo em PDF',
@@ -2052,19 +2228,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
           if (!isEditing)
             Center(
               child: ElevatedButton(
-                  onPressed: _salvarReserva,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF003E7E),
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
+                onPressed: () => _salvarReserva(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF003E7E),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32.0,
+                    vertical: 12.0,
                   ),
-                  child: const Text(
-                    'Reservar',
-                    style: TextStyle(color: Colors.white),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.0),
                   ),
                 ),
+                child: const Text(
+                  'Reservar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             ),
           const SizedBox(height: 16.0),
         ],
@@ -2080,173 +2259,185 @@ class _ReservasScreenState extends State<ReservasScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-            // Cabeçalho superior padronizado
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  // Botão de voltar
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, size: 24),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                  const Spacer(),
-                  // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
-                  const Spacer(),
-                  // Ícones do lado direito
-                  Row(
-                    children: [
-                      // Ícone de notificação
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Implementar notificações
-                        },
-                        child: Image.asset(
-                          'assets/images/Sino_Notificacao.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Ícone de fone de ouvido
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: Implementar suporte/ajuda
-                        },
-                        child: Image.asset(
-                          'assets/images/Fone_Ouvido_Cabecalho.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Linha de separação
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-            
-            // Caminho de navegação
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Center(
+              // Cabeçalho superior padronizado
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Home',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    // Botão de voltar
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, size: 24),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                     ),
-                    const Text(
-                      ' / ',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                    const Text(
-                      'Gestão',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                    const Text(
-                      ' / ',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                    const Text(
-                      'Reservas',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    const Spacer(),
+                    // Logo CondoGaia
+                    Image.asset('assets/images/logo_CondoGaia.png', height: 32),
+                    const Spacer(),
+                    // Ícones do lado direito
+                    Row(
+                      children: [
+                        // Ícone de notificação
+                        GestureDetector(
+                          onTap: () {
+                            // TODO: Implementar notificações
+                          },
+                          child: Image.asset(
+                            'assets/images/Sino_Notificacao.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Ícone de fone de ouvido
+                        GestureDetector(
+                          onTap: () {
+                            // TODO: Implementar suporte/ajuda
+                          },
+                          child: Image.asset(
+                            'assets/images/Fone_Ouvido_Cabecalho.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-            
-            // Botão Configurar Ambientes
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    // Navegar para ConfigurarAmbientesScreen e aguardar resultado
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ConfigurarAmbientesScreen(),
+              // Linha de separação
+              Container(height: 1, color: Colors.grey[300]),
+
+              // Caminho de navegação
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Home',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
-                    );
-                    
-                    // Recarregar os ambientes quando retornar
-                    await _carregarAmbientes();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF003E7E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
-                  ),
-                  child: const Text(
-                    'Configurar Ambientes',
-                    style: TextStyle(color: Colors.white),
+                      const Text(
+                        ' / ',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                      const Text(
+                        'Gestão',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                      const Text(
+                        ' / ',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                      const Text(
+                        'Reservas',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            
-            // Calendário
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-              child: Column(
-                children: [
-                  _buildMonthSelector(),
-                  const SizedBox(height: 20),
-                  _buildCalendarHeader(),
-                  const SizedBox(height: 10),
-                  _buildCalendarGrid(),
-                ],
-              ),
-            ),
-            
-            // Reservas do dia selecionado
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Reservados - Dia $_selectedDayLabel',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _showReservationModal,
-                    child: Container(
-                      width: 24.0,
-                      height: 24.0,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF003E7E),
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 16.0,
+
+              // Botão Configurar Ambientes
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      // Navegar para ConfigurarAmbientesScreen e aguardar resultado
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ConfigurarAmbientesScreen(),
+                        ),
+                      );
+
+                      // Recarregar os ambientes quando retornar
+                      await _carregarAmbientes();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF003E7E),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
                     ),
+                    child: const Text(
+                      'Configurar Ambientes',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-            
-            // Verificar se há reservas para o dia selecionado
-            _hasReservationsForSelectedDay() ? _buildReservationCard() : _buildAddEventSection(),
+
+              // Calendário
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
+                child: Column(
+                  children: [
+                    _buildMonthSelector(),
+                    const SizedBox(height: 20),
+                    _buildCalendarHeader(),
+                    const SizedBox(height: 10),
+                    _buildCalendarGrid(),
+                  ],
+                ),
+              ),
+
+              // Reservas do dia selecionado
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Reservados - Dia $_selectedDayLabel',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _showReservationModal,
+                      child: Container(
+                        width: 24.0,
+                        height: 24.0,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF003E7E),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 16.0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Verificar se há reservas para o dia selecionado
+              _hasReservationsForSelectedDay()
+                  ? _buildReservationCard()
+                  : _buildAddEventSection(),
             ],
           ),
         ),

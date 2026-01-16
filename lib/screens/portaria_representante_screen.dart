@@ -3949,6 +3949,7 @@ class _PortariaRepresentanteScreenState
                                     visitantesFiltrados,
                                     searchVisitantesController,
                                     (val) => setStateModal(() {}),
+                                    onUpdate: () => setStateModal(() {}),
                                   ),
                                 ],
                               ),
@@ -4443,11 +4444,143 @@ class _PortariaRepresentanteScreenState
     );
   }
 
+  void _mostrarDialogEditarVisitante(
+    Map<String, dynamic> visitante, {
+    VoidCallback? onSuccess,
+  }) {
+    final nomeController = TextEditingController(text: visitante['nome']);
+    final cpfController = TextEditingController(text: visitante['cpf']);
+    final celularController = TextEditingController(text: visitante['celular']);
+    final placaController = TextEditingController(
+      text: visitante['veiculo_placa'],
+    );
+
+    showDialog(
+      context: context,
+      builder: (contextDialog) => AlertDialog(
+        title: const Text('Editar Visitante'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nomeController,
+                decoration: const InputDecoration(labelText: 'Nome'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: cpfController,
+                decoration: const InputDecoration(labelText: 'CPF'),
+                inputFormatters: [Formatters.cpfFormatter],
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: celularController,
+                decoration: const InputDecoration(labelText: 'Celular'),
+                inputFormatters: [Formatters.phoneFormatter],
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: placaController,
+                decoration: const InputDecoration(labelText: 'Placa Veículo'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contextDialog),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // Validações básicas
+                if (nomeController.text.trim().isEmpty ||
+                    cpfController.text.trim().isEmpty ||
+                    celularController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Preencha os campos obrigatórios!'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                // Mostrar loading
+                showDialog(
+                  context: contextDialog,
+                  barrierDismissible: false,
+                  builder: (ctx) =>
+                      const Center(child: CircularProgressIndicator()),
+                );
+
+                await VisitantePortariaService.updateVisitante(
+                  visitante['id'],
+                  {
+                    'nome': nomeController.text.trim(),
+                    'cpf': cpfController.text.trim(),
+                    'celular': celularController.text.trim(),
+                    'veiculo_placa': placaController.text.trim().isEmpty
+                        ? null
+                        : placaController.text.trim().toUpperCase(),
+                  },
+                );
+
+                // Fechar loading e dialog de edição
+                if (mounted) {
+                  Navigator.of(contextDialog).pop(); // Fecha loading
+                  Navigator.of(contextDialog).pop(); // Fecha dialog edição
+                }
+
+                // Recarregar lista e mostrar sucesso
+                await _carregarVisitantesCadastrados();
+
+                // Chamar callback de sucesso se existir (para atualizar modal)
+                if (onSuccess != null) {
+                  onSuccess();
+                }
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Visitante atualizado com sucesso!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Fechar loading se erro
+                Navigator.of(contextDialog).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao atualizar: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1976D2),
+            ),
+            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVisitantesCadastradosTab(
     List<Map<String, dynamic>> visitantes,
     TextEditingController controller,
-    Function(String) onChanged,
-  ) {
+    Function(String) onChanged, {
+    VoidCallback? onUpdate,
+  }) {
     return Column(
       children: [
         // Campo de pesquisa
@@ -4531,6 +4664,19 @@ class _PortariaRepresentanteScreenState
                           ),
                         ),
                         title: Text(visitante['nome'] ?? 'Nome não informado'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _mostrarDialogEditarVisitante(
+                                visitante,
+                                onSuccess: onUpdate,
+                              ),
+                            ),
+                            const Icon(Icons.expand_more, color: Colors.grey),
+                          ],
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
