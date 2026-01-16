@@ -5,7 +5,7 @@ import 'package:condogaiaapp/services/mensagens_service.dart';
 import 'package:intl/intl.dart';
 
 /// Tela de chat para INQUILINO/PROPRIETÁRIO conversar com a PORTARIA
-/// 
+///
 /// Fluxo:
 /// 1. Inquilino clica em "Portaria 24 horas" em portaria_inquilino_screen.dart
 /// 2. Abre esta tela (ChatInquilinoV2Screen)
@@ -81,6 +81,9 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
           _conversaId = conversa.id;
           _isLoading = false;
         });
+
+        // Marcar como lida (limpar contador de não lidas do usuário)
+        await _conversasService.marcarComoLida(conversa.id, false);
       }
     } catch (e) {
       print('❌ Erro ao inicializar conversa: $e');
@@ -133,22 +136,22 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
     try {
       if (_scrollController.hasClients) {
         // Tentar scroll imediato com jump
-        _scrollController.jumpTo(
-          _scrollController.position.maxScrollExtent,
-        );
-        
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+
         print('[CHAT_INQV2] ✅ Jump scroll para o final');
-        
+
         // Também tentar com animação como backup
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            ).catchError((e) {
-              print('[CHAT_INQV2] Erro no animate scroll: $e');
-            });
+            _scrollController
+                .animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                )
+                .catchError((e) {
+                  print('[CHAT_INQV2] Erro no animate scroll: $e');
+                });
           }
         });
       } else {
@@ -165,7 +168,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
     // Converter para fuso horário de Brasília (UTC-3 = UTC + 3 horas)
     final dataUtc = data.isUtc ? data : data.toUtc();
     final dataBrasilia = dataUtc.add(const Duration(hours: 0));
-    
+
     // Sempre mostrar a data e hora no formato DD/MM/AA - HH:mm
     final formatter = DateFormat('dd/MM/yy - HH:mm');
     return formatter.format(dataBrasilia);
@@ -226,9 +229,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                 // Lista de mensagens
                 Expanded(
                   child: _conversaId == null
-                      ? const Center(
-                          child: Text('Erro ao carregar conversa'),
-                        )
+                      ? const Center(child: Text('Erro ao carregar conversa'))
                       : StreamBuilder<List<Mensagem>>(
                           stream: _mensagensService.streamMensagens(
                             _conversaId!,
@@ -286,9 +287,12 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
 
                             // Faz scroll para a última mensagem quando chega uma nova
                             WidgetsBinding.instance.addPostFrameCallback((_) {
-                              Future.delayed(const Duration(milliseconds: 50), () {
-                                _scrollToBottom();
-                              });
+                              Future.delayed(
+                                const Duration(milliseconds: 50),
+                                () {
+                                  _scrollToBottom();
+                                },
+                              );
                             });
 
                             return ListView.builder(
@@ -301,16 +305,21 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                               reverse: false,
                               itemBuilder: (context, index) {
                                 final mensagem = mensagens[index];
-                                
+
                                 // Após renderizar o último item, faz scroll
                                 if (index == mensagens.length - 1) {
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    Future.delayed(const Duration(milliseconds: 10), () {
-                                      _scrollToBottom();
-                                    });
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Future.delayed(
+                                      const Duration(milliseconds: 10),
+                                      () {
+                                        _scrollToBottom();
+                                      },
+                                    );
                                   });
                                 }
-                                
+
                                 return _buildMensagemBubble(mensagem);
                               },
                             );
@@ -332,18 +341,14 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration(
                             hintText: 'Digite sua mensagem...',
-                            hintStyle: TextStyle(
-                              color: Colors.grey[400],
-                            ),
+                            hintStyle: TextStyle(color: Colors.grey[400]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
-                              borderSide:
-                                  BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
-                              borderSide:
-                                  BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
@@ -371,8 +376,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                                   height: 24,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.white,
                                     ),
                                   ),
@@ -406,18 +410,11 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
             maxWidth: MediaQuery.of(context).size.width * 0.75,
           ),
           decoration: BoxDecoration(
-            color: isUsuario
-                ? const Color(0xFF1976D2)
-                : Colors.white,
+            color: isUsuario ? const Color(0xFF1976D2) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: isUsuario
-                ? null
-                : Border.all(color: Colors.grey[300]!),
+            border: isUsuario ? null : Border.all(color: Colors.grey[300]!),
           ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             crossAxisAlignment: isUsuario
                 ? CrossAxisAlignment.end
@@ -453,9 +450,7 @@ class _ChatInquilinoV2ScreenState extends State<ChatInquilinoV2Screen> {
                     _formatarHora(mensagem.createdAt),
                     style: TextStyle(
                       fontSize: 11,
-                      color: isUsuario
-                          ? Colors.white70
-                          : Colors.grey[600],
+                      color: isUsuario ? Colors.white70 : Colors.grey[600],
                     ),
                   ),
                   if (isUsuario) ...[
