@@ -1,3 +1,4 @@
+import 'package:condogaiaapp/services/conversas_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
+import 'dart:async'; // Added for StreamSubscription
 import 'chat_inquilino_v2_screen.dart';
 import '../services/photo_picker_service.dart';
 import '../models/autorizado_inquilino.dart';
@@ -60,6 +62,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   final TextEditingController _modeloController = TextEditingController();
   final TextEditingController _corController = TextEditingController();
 
+  // Serviço de conversas para contador de mensagens não lidas
+  final ConversasService _conversasService = ConversasService();
+  int _mensagensNaoLidas = 0;
+  StreamSubscription<int>? _unreadSubscription;
+
   // Máscara para CPF
   final _cpfMask = MaskTextInputFormatter(
     mask: '###.###.###-##',
@@ -77,9 +84,14 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   XFile? _fotoAutorizado; // Usar XFile em vez de File para compatibilidade web
 
   // 🆕 Variáveis para seleção de dias/horários (Passo 2)
-  String _tipoSelecaoDias = 'dias_semana'; // 'dias_semana' ou 'dias_especificos'
-  List<bool> _diasSemanasSelecionados = List.filled(7, false); // Dias da semana selecionados
-  List<DateTime> _diasEspecificosSelecionados = []; // Datas selecionadas (DateTime, convertidas para ISO ao salvar)
+  String _tipoSelecaoDias =
+      'dias_semana'; // 'dias_semana' ou 'dias_especificos'
+  List<bool> _diasSemanasSelecionados = List.filled(
+    7,
+    false,
+  ); // Dias da semana selecionados
+  List<DateTime> _diasEspecificosSelecionados =
+      []; // Datas selecionadas (DateTime, convertidas para ISO ao salvar)
 
   // Lista de horários disponíveis (00:00 até 23:00)
   final List<String> _horariosDisponiveis = List.generate(24, (index) {
@@ -100,6 +112,51 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
     _carregarAutorizados(); // Carregar autorizados ao inicializar
     _carregarEncomendas(); // Carregar encomendas ao inicializar
+    _inicializarContadorMensagens(); // Inicializar contador de mensagens
+  }
+
+  @override
+  void dispose() {
+    _unreadSubscription?.cancel();
+    _tabController.dispose();
+    _nomeController.dispose();
+    _cpfController.dispose();
+    _parentescoController.dispose();
+    _carroMotoController.dispose();
+    _marcaController.dispose();
+    _placaController.dispose();
+    _modeloController.dispose();
+    _corController.dispose();
+    super.dispose();
+  }
+
+  /// Inicializa o contador de mensagens não lidas
+  Future<void> _inicializarContadorMensagens() async {
+    try {
+      if (widget.unidadeId == null) return;
+
+      // 1. Obter ou criar a conversa para ter o ID
+      final conversa = await _conversasService.buscarOuCriar(
+        condominioId: widget.condominioId ?? '',
+        unidadeId: widget.unidadeId!,
+        usuarioTipo: widget.inquilinoId != null ? 'inquilino' : 'proprietario',
+        usuarioId: widget.inquilinoId ?? widget.proprietarioId ?? '',
+        usuarioNome: widget.inquilinoId != null ? 'Inquilino' : 'Proprietário',
+      );
+
+      // 2. Inscrever no stream de não lidas
+      _unreadSubscription = _conversasService
+          .streamNaoLidasUsuario(conversa.id)
+          .listen((count) {
+            if (mounted) {
+              setState(() {
+                _mensagensNaoLidas = count;
+              });
+            }
+          });
+    } catch (e) {
+      print('❌ Erro ao inicializar contador de mensagens: $e');
+    }
   }
 
   // Método para carregar autorizados do banco de dados
@@ -204,20 +261,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         );
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _nomeController.dispose();
-    _cpfController.dispose();
-    _parentescoController.dispose();
-    _carroMotoController.dispose();
-    _marcaController.dispose();
-    _placaController.dispose();
-    _modeloController.dispose();
-    _corController.dispose();
-    super.dispose();
   }
 
   @override
@@ -455,8 +498,12 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                 children: [
                   // Foto ou ícone de pessoa
                   GestureDetector(
-                    onTap: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
-                        ? () => _mostrarFotoAmpliadaAutorizado(autorizado.fotoUrl!)
+                    onTap:
+                        autorizado.fotoUrl != null &&
+                            autorizado.fotoUrl!.isNotEmpty
+                        ? () => _mostrarFotoAmpliadaAutorizado(
+                            autorizado.fotoUrl!,
+                          )
                         : null,
                     child: Container(
                       width: 60,
@@ -464,14 +511,18 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: const Color(0xFF4A90E2).withOpacity(0.1),
-                        border: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                        border:
+                            autorizado.fotoUrl != null &&
+                                autorizado.fotoUrl!.isNotEmpty
                             ? Border.all(
                                 color: const Color(0xFF4A90E2),
                                 width: 2,
                               )
                             : null,
                       ),
-                      child: autorizado.fotoUrl != null && autorizado.fotoUrl!.isNotEmpty
+                      child:
+                          autorizado.fotoUrl != null &&
+                              autorizado.fotoUrl!.isNotEmpty
                           ? Stack(
                               fit: StackFit.expand,
                               children: [
@@ -709,7 +760,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         const SizedBox(height: 24),
         const Divider(color: Color(0xFFE0E0E0)),
         const SizedBox(height: 8),
-
       ],
     );
   }
@@ -1016,12 +1066,15 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
     try {
       // Criar o mapa de dados para o autorizado
-      
+
       // 🆕 Preparar datas específicas em formato ISO
       List<String> diasEspecificosISO = [];
-      if (_tipoSelecaoDias == 'dias_especificos' && _diasEspecificosSelecionados.isNotEmpty) {
+      if (_tipoSelecaoDias == 'dias_especificos' &&
+          _diasEspecificosSelecionados.isNotEmpty) {
         diasEspecificosISO = _diasEspecificosSelecionados
-            .map((date) => date.toIso8601String().split('T')[0]) // Formato YYYY-MM-DD
+            .map(
+              (date) => date.toIso8601String().split('T')[0],
+            ) // Formato YYYY-MM-DD
             .toList();
       }
 
@@ -1097,20 +1150,22 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       if (_fotoAutorizado != null) {
         try {
           print('🔵 Iniciando upload da foto do autorizado...');
-          
+
           // Gerar nome único para a foto
-          final String nomeArquivo = 'autorizado_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          
+          final String nomeArquivo =
+              'autorizado_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
           // Fazer upload para Supabase Storage
           // Bucket: visitante_adicionado_pelo_inquilino
           // Caminho: /condominio_id/unidade_id/autorizado_id/foto.jpg
-          final fotoUrlPublica = await AutorizadoInquilinoService.uploadFotoAutorizado(
-            condominioId: widget.condominioId!,
-            unidadeId: widget.unidadeId!,
-            arquivo: _fotoAutorizado!,
-            nomeArquivo: nomeArquivo,
-          );
-          
+          final fotoUrlPublica =
+              await AutorizadoInquilinoService.uploadFotoAutorizado(
+                condominioId: widget.condominioId!,
+                unidadeId: widget.unidadeId!,
+                arquivo: _fotoAutorizado!,
+                nomeArquivo: nomeArquivo,
+              );
+
           if (fotoUrlPublica != null) {
             autorizadoData['foto_url'] = fotoUrlPublica;
             print('✅ Upload da foto realizado com sucesso: $fotoUrlPublica');
@@ -1130,18 +1185,15 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       }
 
       // Salvar no banco de dados
-      AutorizadoInquilino? resultado;
       if (autorizadoExistente != null) {
         // Editar autorizado existente
-        resultado = await AutorizadoInquilinoService.updateAutorizado(
-          autorizadoExistente.id!,
+        await AutorizadoInquilinoService.updateAutorizado(
+          autorizadoExistente.id,
           autorizadoData,
         );
       } else {
         // Adicionar novo autorizado
-        resultado = await AutorizadoInquilinoService.insertAutorizado(
-          autorizadoData,
-        );
+        await AutorizadoInquilinoService.insertAutorizado(autorizadoData);
       }
 
       // Recarregar a lista
@@ -1349,10 +1401,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           onTap: () {
             setModalState(() {
               _diasSemana[index] = !_diasSemana[index];
-              
+
               // 🔧 Sincronizar com _diasSemanasSelecionados também
-              _diasSemanasSelecionados[index] = !_diasSemanasSelecionados[index];
-              
+              _diasSemanasSelecionados[index] =
+                  !_diasSemanasSelecionados[index];
+
               print('[DEBUG] Dias selecionados: $_diasSemanasSelecionados');
             });
           },
@@ -1379,7 +1432,6 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     );
   }
 
-  // Métodos auxiliares para o modal de adicionar autorizado
   void _limparCamposModal() {
     try {
       if (_nomeController.text.isNotEmpty) _nomeController.clear();
@@ -1434,7 +1486,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     try {
       // Preencher campos básicos
       _nomeController.text = autorizado.nome;
-      _cpfController.text = autorizado.cpf ?? '';
+      _cpfController.text = autorizado.cpf;
       _parentescoController.text = autorizado.parentesco ?? '';
 
       // Preencher dados do veículo
@@ -1488,8 +1540,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
 
             // 🆕 Carregar tipo de seleção de dias e datas específicas
             _tipoSelecaoDias = autorizado.tipoSelecaoDias ?? 'dias_semana';
-            
-            if (autorizado.diasEspecificos != null && autorizado.diasEspecificos!.isNotEmpty) {
+
+            if (autorizado.diasEspecificos != null &&
+                autorizado.diasEspecificos!.isNotEmpty) {
               _diasEspecificosSelecionados = autorizado.diasEspecificos!
                   .map((dateStr) => DateTime.parse(dateStr))
                   .toList();
@@ -1625,7 +1678,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                             // Widget para selecionar/capturar foto
                             GestureDetector(
                               onTap: () async {
-                                await _mostrarDialogSelecaoFotoAutorizado(setModalState);
+                                await _mostrarDialogSelecaoFotoAutorizado(
+                                  setModalState,
+                                );
                               },
                               child: Container(
                                 height: 150,
@@ -1639,7 +1694,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                 ),
                                 child: _fotoAutorizado == null
                                     ? Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.camera_alt,
@@ -1667,7 +1723,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                         fit: StackFit.expand,
                                         children: [
                                           ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                             child: kIsWeb
                                                 ? Image.network(
                                                     _fotoAutorizado!.path,
@@ -1698,10 +1756,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                                   size: 20,
                                                 ),
                                                 padding: EdgeInsets.zero,
-                                                constraints: const BoxConstraints(
-                                                  minWidth: 32,
-                                                  minHeight: 32,
-                                                ),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 32,
+                                                      minHeight: 32,
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -1729,7 +1788,11 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                       _permissaoSelecionada = value!;
                                       // Resetar quando muda para 'qualquer'
                                       _diasSemana.fillRange(0, 7, false);
-                                      _diasSemanasSelecionados.fillRange(0, 7, false);
+                                      _diasSemanasSelecionados.fillRange(
+                                        0,
+                                        7,
+                                        false,
+                                      );
                                       _diasEspecificosSelecionados.clear();
                                     });
                                   },
@@ -1795,7 +1858,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                                     ),
                                     RadioListTile<String>(
                                       title: const Text('Datas específicas'),
-                                      subtitle: const Text('Permissão por data'),
+                                      subtitle: const Text(
+                                        'Permissão por data',
+                                      ),
                                       value: 'dias_especificos',
                                       groupValue: _tipoSelecaoDias,
                                       onChanged: (value) {
@@ -1994,6 +2059,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           data: contatoPortaria['data'],
           icone: contatoPortaria['icone'],
           corFundo: contatoPortaria['corFundo'],
+          badgeCount: _mensagensNaoLidas,
         ),
       ),
     );
@@ -2005,6 +2071,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
     required String data,
     required IconData icone,
     required Color corFundo,
+    int badgeCount = 0,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -2020,8 +2087,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
         ],
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 50,
           height: 50,
@@ -2043,6 +2109,25 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           data,
           style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
         ),
+        trailing: badgeCount > 0
+            ? Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1976D2), // Azul igual ao do representante
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            : null,
         onTap: () {
           // Abre ChatInquilinoV2Screen com dados reais
           Navigator.push(
@@ -2051,7 +2136,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
               builder: (context) => ChatInquilinoV2Screen(
                 condominioId: widget.condominioId ?? '',
                 unidadeId: widget.unidadeId ?? '',
-                usuarioId: widget.inquilinoId ??
+                usuarioId:
+                    widget.inquilinoId ??
                     widget.proprietarioId ??
                     '', // Inquilino ou Proprietário
                 usuarioNome: widget.inquilinoId != null
@@ -2060,11 +2146,13 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                 usuarioTipo: widget.inquilinoId != null
                     ? 'inquilino'
                     : 'proprietario',
-                unidadeNumero:
-                    'Sua Unidade', // Seria obtido do banco (B/501)
+                unidadeNumero: 'Sua Unidade', // Seria obtido do banco (B/501)
               ),
             ),
-          );
+          ).then((_) {
+            // Recarregar contador ao voltar
+            _inicializarContadorMensagens();
+          });
         },
       ),
     );
@@ -2284,9 +2372,10 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                             ),
                           ],
                         ),
-                        
+
                         // Informação de quem recebeu (se disponível)
-                        if (encomenda.recebidoPor != null && encomenda.recebidoPor!.isNotEmpty) ...[
+                        if (encomenda.recebidoPor != null &&
+                            encomenda.recebidoPor!.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Row(
                             children: [
@@ -2410,31 +2499,27 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _diasEspecificosSelecionados
-                      .map(
-                        (data) {
-                          final formatted = DateFormat('dd/MM/yyyy').format(data);
-                          return Chip(
-                            label: Text(formatted),
-                            onDeleted: () {
-                              setModalState(() {
-                                _diasEspecificosSelecionados.remove(data);
-                              });
-                            },
-                            backgroundColor: const Color(0xFF4A90E2),
-                            labelStyle: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            deleteIcon: const Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                      )
-                      .toList(),
+                  children: _diasEspecificosSelecionados.map((data) {
+                    final formatted = DateFormat('dd/MM/yyyy').format(data);
+                    return Chip(
+                      label: Text(formatted),
+                      onDeleted: () {
+                        setModalState(() {
+                          _diasEspecificosSelecionados.remove(data);
+                        });
+                      },
+                      backgroundColor: const Color(0xFF4A90E2),
+                      labelStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      deleteIcon: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ],
@@ -2449,11 +2534,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Colors.grey[600],
-                  size: 20,
-                ),
+                Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
                 const SizedBox(width: 12),
                 Text(
                   'Nenhuma data selecionada',
@@ -2506,24 +2587,30 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                     lastDay: DateTime(2030),
                     focusedDay: _focusedDay,
                     selectedDayPredicate: (day) {
-                      return selectedDates.any((date) =>
-                          date.year == day.year &&
-                          date.month == day.month &&
-                          date.day == day.day);
+                      return selectedDates.any(
+                        (date) =>
+                            date.year == day.year &&
+                            date.month == day.month &&
+                            date.day == day.day,
+                      );
                     },
                     onDaySelected: (selectedDay, focusedDay) {
                       setState(() {
                         _focusedDay = focusedDay;
-                        final isSelected = selectedDates.any((date) =>
-                            date.year == selectedDay.year &&
-                            date.month == selectedDay.month &&
-                            date.day == selectedDay.day);
-
-                        if (isSelected) {
-                          selectedDates.removeWhere((date) =>
+                        final isSelected = selectedDates.any(
+                          (date) =>
                               date.year == selectedDay.year &&
                               date.month == selectedDay.month &&
-                              date.day == selectedDay.day);
+                              date.day == selectedDay.day,
+                        );
+
+                        if (isSelected) {
+                          selectedDates.removeWhere(
+                            (date) =>
+                                date.year == selectedDay.year &&
+                                date.month == selectedDay.month &&
+                                date.day == selectedDay.day,
+                          );
                         } else {
                           selectedDates.add(selectedDay);
                         }
@@ -2542,12 +2629,8 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                         color: Colors.grey[300],
                         shape: BoxShape.circle,
                       ),
-                      defaultDecoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                      ),
-                      weekendDecoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                      ),
+                      defaultDecoration: BoxDecoration(shape: BoxShape.circle),
+                      weekendDecoration: BoxDecoration(shape: BoxShape.circle),
                     ),
                     headerStyle: HeaderStyle(
                       formatButtonVisible: false,
@@ -2682,10 +2765,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
           ),
           content: const Text(
             'De onde você gostaria de tirar a foto?',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF666666),
-            ),
+            style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
           ),
           actions: [
             // Botão Câmera
@@ -2714,11 +2794,7 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
                 Navigator.of(context).pop();
                 _selecionarFotoAutorizadoGaleria(setModalState);
               },
-              icon: const Icon(
-                Icons.image,
-                color: Color(0xFF1976D2),
-                size: 24,
-              ),
+              icon: const Icon(Icons.image, color: Color(0xFF1976D2), size: 24),
               label: const Text(
                 'Galeria',
                 style: TextStyle(
@@ -2735,7 +2811,9 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   }
 
   /// Tirar foto com a câmera do celular
-  Future<void> _selecionarFotoAutorizadoCamera(StateSetter setModalState) async {
+  Future<void> _selecionarFotoAutorizadoCamera(
+    StateSetter setModalState,
+  ) async {
     try {
       final photoPickerService = PhotoPickerService();
       final XFile? image = await photoPickerService.pickImageFromCamera();
