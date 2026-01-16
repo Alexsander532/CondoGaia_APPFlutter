@@ -6,6 +6,7 @@ import '../models/administrator.dart';
 import '../models/representante.dart';
 import '../models/proprietario.dart';
 import '../models/inquilino.dart';
+import '../models/porteiro.dart';
 import 'supabase_service.dart';
 
 class AuthService {
@@ -179,8 +180,10 @@ class AuthService {
           if (logado.isNotEmpty) {
             final proprietario = Proprietario.fromJson(logado);
             print('DEBUG AUTH: Proprietário encontrado: ${proprietario.nome}');
-            print('DEBUG AUTH: ✅ Login como proprietário APROVADO (${proprietariosResponse.length} unidades vinculadas)');
-            
+            print(
+              'DEBUG AUTH: ✅ Login como proprietário APROVADO (${proprietariosResponse.length} unidades vinculadas)',
+            );
+
             // Salvar estado de login como proprietário
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool(_isLoggedInKey, true);
@@ -256,6 +259,58 @@ class AuthService {
         }
       }
 
+      // Se não encontrou inquilino, tentar como porteiro
+      print('DEBUG AUTH: Tentando login como porteiro...');
+      try {
+        // Porteiros fazem login usando CPF ou Email
+        final porteiroResponse = await _supabase
+            .from('porteiros')
+            .select('*')
+            .or('cpf.eq.$emailOriginal,email.eq.$emailOriginal')
+            .eq('ativo', true)
+            .maybeSingle();
+
+        print(
+          'DEBUG AUTH: Resposta da busca de porteiro: ${porteiroResponse != null ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}',
+        );
+
+        if (porteiroResponse != null) {
+          final porteiro = Porteiro.fromJson(porteiroResponse);
+          print('DEBUG AUTH: Porteiro encontrado: ${porteiro.nomeCompleto}');
+          print('DEBUG AUTH: Verificando senha...');
+
+          // Verificar senha diretamente (porteiros usam senha simples)
+          if (porteiro.senhaAcesso == password) {
+            print('DEBUG AUTH: ✅ Login como porteiro APROVADO');
+            // Salvar estado de login como porteiro
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool(_isLoggedInKey, true);
+            await prefs.setString(_userEmailKey, email);
+            await prefs.setBool(_autoLoginKey, autoLogin);
+            await prefs.setString(_userTypeKey, 'porteiro');
+            await prefs.setString('porteiro_id', porteiro.id);
+            await prefs.setString('condominio_id', porteiro.condominioId);
+
+            return LoginResult(
+              success: true,
+              message: 'Login realizado com sucesso',
+              porteiro: porteiro,
+              userType: UserType.porteiro,
+            );
+          } else {
+            print('DEBUG AUTH: ❌ Senha incorreta para porteiro');
+          }
+        }
+      } catch (e) {
+        print('DEBUG AUTH: ❌ ERRO ao buscar porteiro: $e');
+        print('DEBUG AUTH: Tipo do erro: ${e.runtimeType}');
+        if (e is PostgrestException) {
+          print('DEBUG AUTH: Código do erro: ${e.code}');
+          print('DEBUG AUTH: Mensagem do erro: ${e.message}');
+          print('DEBUG AUTH: Detalhes do erro: ${e.details}');
+        }
+      }
+
       print('DEBUG AUTH: ❌ Nenhum usuário encontrado ou senha incorreta');
 
       return LoginResult(success: false, message: 'Credenciais inválidas');
@@ -279,6 +334,8 @@ class AuthService {
       return UserType.proprietario;
     } else if (userTypeString == 'inquilino') {
       return UserType.inquilino;
+    } else if (userTypeString == 'porteiro') {
+      return UserType.porteiro;
     }
     return null;
   }
@@ -289,7 +346,7 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final userType = prefs.getString(_userTypeKey);
       final email = prefs.getString(_userEmailKey);
-      
+
       if (userType != 'representante' || email == null) {
         return null;
       }
@@ -304,6 +361,31 @@ class AuthService {
       return Representante.fromJson(response);
     } catch (e) {
       print('Erro ao obter representante atual: $e');
+      return null;
+    }
+  }
+
+  /// Obtém o porteiro atual logado
+  static Future<Porteiro?> getCurrentPorteiro() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userType = prefs.getString(_userTypeKey);
+      final emailOrCpf = prefs.getString(_userEmailKey);
+
+      if (userType != 'porteiro' || emailOrCpf == null) {
+        return null;
+      }
+
+      // Buscar porteiro por CPF ou Email
+      final response = await SupabaseService.client
+          .from('porteiros')
+          .select()
+          .or('cpf.eq.$emailOrCpf,email.eq.$emailOrCpf')
+          .single();
+
+      return Porteiro.fromJson(response);
+    } catch (e) {
+      print('Erro ao obter porteiro atual: $e');
       return null;
     }
   }
@@ -446,7 +528,13 @@ class AuthService {
   }
 }
 
-enum UserType { administrator, representante, proprietario, inquilino }
+enum UserType {
+  administrator,
+  representante,
+  proprietario,
+  inquilino,
+  porteiro,
+}
 
 class LoginResult {
   final bool success;
@@ -455,6 +543,7 @@ class LoginResult {
   final Representante? representante;
   final Proprietario? proprietario;
   final Inquilino? inquilino;
+  final Porteiro? porteiro;
   final UserType? userType;
 
   LoginResult({
@@ -464,6 +553,7 @@ class LoginResult {
     this.representante,
     this.proprietario,
     this.inquilino,
+    this.porteiro,
     this.userType,
   });
 
@@ -478,4 +568,7 @@ class LoginResult {
 
   // Getter para verificar se é inquilino
   bool get isInquilino => userType == UserType.inquilino;
+
+  // Getter para verificar se é porteiro
+  bool get isPorteiro => userType == UserType.porteiro;
 }

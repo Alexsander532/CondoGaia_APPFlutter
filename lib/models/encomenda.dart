@@ -24,6 +24,9 @@ class Encomenda {
   /// ID da unidade destinatária da encomenda
   final String unidadeId;
 
+  /// ID do porteiro que cadastrou a encomenda (opcional se foi representante)
+  final String? porteiroId;
+
   // =====================================================
   // PESSOA SELECIONADA (EXCLUSIVO)
   // =====================================================
@@ -102,7 +105,15 @@ class Encomenda {
     this.ativo = true,
     required this.createdAt,
     required this.updatedAt,
+    this.porteiroId,
   }) : assert(
+         // Validação: deve ter OU representante OU porteiro (pelo menos um)
+         // Nota: Na prática, o banco pode permitir ambos ou um deles, mas nosso app sempre terá um responsável
+         (representanteId.isNotEmpty ||
+             (porteiroId != null && porteiroId.isNotEmpty)),
+         'Deve ter um responsável pelo cadastro (representante ou porteiro)',
+       ),
+       assert(
          // Validação: deve ter OU proprietário OU inquilino (não ambos, não nenhum)
          (proprietarioId != null && inquilinoId == null) ||
              (proprietarioId == null && inquilinoId != null),
@@ -119,11 +130,18 @@ class Encomenda {
     required this.condominioId,
     required this.representanteId,
     required this.unidadeId,
+    this.porteiroId,
     this.proprietarioId,
     this.inquilinoId,
     this.fotoUrl,
     this.notificarUnidade = false,
   }) : assert(
+         // Validação: deve ter OU representante OU porteiro (pelo menos um)
+         (representanteId.isNotEmpty ||
+             (porteiroId != null && porteiroId.isNotEmpty)),
+         'Deve ter um responsável pelo cadastro (representante ou porteiro)',
+       ),
+       assert(
          // Validação: deve ter OU proprietário OU inquilino (não ambos, não nenhum)
          (proprietarioId != null && inquilinoId == null) ||
              (proprietarioId == null && inquilinoId != null),
@@ -148,6 +166,7 @@ class Encomenda {
       id: json['id'] ?? '',
       condominioId: json['condominio_id'] ?? '',
       representanteId: json['representante_id'] ?? '',
+      porteiroId: json['porteiro_id'],
       unidadeId: json['unidade_id'] ?? '',
       proprietarioId: json['proprietario_id'],
       inquilinoId: json['inquilino_id'],
@@ -176,7 +195,8 @@ class Encomenda {
     return {
       'id': id.isEmpty ? null : id, // Null para novas encomendas
       'condominio_id': condominioId,
-      'representante_id': representanteId,
+      'representante_id': representanteId.isEmpty ? null : representanteId,
+      'porteiro_id': porteiroId,
       'unidade_id': unidadeId,
       'proprietario_id': proprietarioId,
       'inquilino_id': inquilinoId,
@@ -232,6 +252,7 @@ class Encomenda {
     String? id,
     String? condominioId,
     String? representanteId,
+    String? porteiroId,
     String? unidadeId,
     String? proprietarioId,
     String? inquilinoId,
@@ -249,6 +270,7 @@ class Encomenda {
       id: id ?? this.id,
       condominioId: condominioId ?? this.condominioId,
       representanteId: representanteId ?? this.representanteId,
+      porteiroId: porteiroId ?? this.porteiroId,
       unidadeId: unidadeId ?? this.unidadeId,
       proprietarioId: proprietarioId ?? this.proprietarioId,
       inquilinoId: inquilinoId ?? this.inquilinoId,

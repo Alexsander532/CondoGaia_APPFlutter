@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'login_screen.dart';
 import 'conversas_simples_screen.dart';
 import '../models/proprietario.dart';
+import '../models/porteiro.dart';
 import '../models/inquilino.dart';
 import '../models/unidade.dart';
 import '../models/encomenda.dart';
@@ -263,11 +265,44 @@ class _PortariaRepresentanteScreenState
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  // Botão de voltar
+                  // Botão de voltar ou Sair
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios, size: 24),
-                    onPressed: () {
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        // Se não tem para onde voltar, é provável que seja logout (Porteiro)
+                        final shouldLogout = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Sair'),
+                            content: const Text('Deseja sair do aplicativo?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Não'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Sim'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (shouldLogout == true) {
+                          await AuthService().logout();
+                          if (context.mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        }
+                      }
                     },
                   ),
                   const Spacer(),
@@ -1287,17 +1322,39 @@ class _PortariaRepresentanteScreenState
 
   Future<void> _carregarRepresentanteAtual() async {
     debugPrint('═' * 80);
-    debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO REPRESENTANTE ═══');
+    debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO USUÁRIO ATUAL ═══');
     debugPrint('═' * 80);
 
     try {
       debugPrint(
         '🔄 [PORTARIA_REP] Chamando AuthService.getCurrentRepresentante()...',
       );
-      final representante = await AuthService.getCurrentRepresentante();
+      // Tentar carregar representante
+      var representante = await AuthService.getCurrentRepresentante();
+
+      // Se não for representante, tentar carregar porteiro
+      if (representante == null) {
+        debugPrint(
+          '🔄 [PORTARIA_REP] Representante NULL, tentando AuthService.getCurrentPorteiro()...',
+        );
+        final porteiro = await AuthService.getCurrentPorteiro();
+        if (porteiro != null) {
+          debugPrint('[PORTARIA_REP] OK: Porteiro obtido com sucesso');
+          debugPrint('[PORTARIA_REP] ID: ${porteiro.id}');
+          debugPrint('[PORTARIA_REP] Nome: ${porteiro.nomeCompleto}');
+
+          setState(() {
+            _representanteAtual = porteiro; // Usando a mesma variável dinâmica
+            _isLoadingRepresentante = false;
+          });
+          return;
+        }
+      }
 
       if (representante == null) {
-        debugPrint('[PORTARIA_REP] ERROR: AuthService retornou NULL');
+        debugPrint(
+          '[PORTARIA_REP] ERROR: AuthService retornou NULL para Rep e Porteiro',
+        );
         setState(() {
           _isLoadingRepresentante = false;
         });
@@ -1322,9 +1379,9 @@ class _PortariaRepresentanteScreenState
         _isLoadingRepresentante = false;
       });
 
-      debugPrint('[PORTARIA_REP] OK: Estado atualizado com representante');
+      debugPrint('[PORTARIA_REP] OK: Estado atualizado com usuário');
     } catch (e, stackTrace) {
-      debugPrint('[PORTARIA_REP] ERROR: ao carregar representante!');
+      debugPrint('[PORTARIA_REP] ERROR: ao carregar usuário!');
       debugPrint('[PORTARIA_REP] Erro: $e');
       debugPrint('[PORTARIA_REP] Stack: $stackTrace');
 
@@ -2602,6 +2659,7 @@ class _PortariaRepresentanteScreenState
     // Converte os dados para objeto Encomenda para manter compatibilidade
     final encomenda = Encomenda.fromJson(encomendaData);
     final String nomeDestinatario = encomendaData['nome_destinatario'] ?? 'N/A';
+    final String registradoPor = encomendaData['registrado_por'] ?? 'Sistema';
 
     final bool isRecebida = encomenda.recebido;
     final String statusText = isRecebida ? 'RECEBIDA' : 'PENDENTE';
@@ -2779,6 +2837,19 @@ class _PortariaRepresentanteScreenState
                 ),
               ),
             ],
+
+            // Quem registrou (Registrado por)
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.edit_note, size: 16, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text(
+                  'Registrado por: $registradoPor',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -5468,18 +5539,19 @@ class _PortariaRepresentanteScreenState
     if (_pessoaSelecionadaEncomenda == null) return;
 
     // Obter representante atual
-    final representanteAtual = await AuthService.getCurrentRepresentante();
-    if (representanteAtual == null) {
+    // Obter usuário atual (Representante ou Porteiro)
+    // Já carregado em _representanteAtual
+    if (_representanteAtual == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Erro: Não foi possível identificar o representante atual',
-          ),
+          content: Text('Erro: Não foi possível identificar o usuário atual'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
+    final String usuarioId = _representanteAtual.id;
 
     // Criar objeto Encomenda
     final now = DateTime.now();
@@ -5491,9 +5563,9 @@ class _PortariaRepresentanteScreenState
     print('  Nome: ${_pessoaSelecionadaEncomenda!.nome}');
     print('  Unidade ID: ${_pessoaSelecionadaEncomenda!.unidadeId}');
 
-    // Debug: verificar representante atual
-    print('🔍 Debug - Representante atual:');
-    print('  ID: ${representanteAtual.id}');
+    // Debug: verificar usuário atual
+    print('🔍 Debug - Usuário atual:');
+    print('  ID: $usuarioId');
     //print('  Nome: ${representanteAtual.nome}');
     //print('  Email: ${representanteAtual.email}');
 
@@ -5513,12 +5585,25 @@ class _PortariaRepresentanteScreenState
     print('  Inquilino ID: $inquilinoId');
     print('  Notificar Unidade: $_notificarUnidade');
 
+    // Determinar IDs baseados no tipo de usuário
+    String? finalRepresentanteId;
+    String? finalPorteiroId;
+
+    if (_representanteAtual is Porteiro) {
+      finalPorteiroId = usuarioId;
+      finalRepresentanteId =
+          ''; // Encomenda model espera string vazia para null na conversão
+    } else {
+      finalRepresentanteId = usuarioId;
+      finalPorteiroId = null;
+    }
+
     try {
       final encomenda = Encomenda(
         id: '', // Será gerado pelo Supabase
         condominioId: widget.condominioId!,
-        representanteId:
-            representanteAtual.id, // Usar ID do representante atual
+        representanteId: finalRepresentanteId ?? '',
+        porteiroId: finalPorteiroId,
         unidadeId: _pessoaSelecionadaEncomenda!.unidadeId,
         proprietarioId: proprietarioId,
         inquilinoId: inquilinoId,

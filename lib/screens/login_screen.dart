@@ -10,14 +10,12 @@ import '../screens/inquilino_home_screen.dart';
 import '../screens/upload_foto_perfil_screen.dart';
 import '../screens/upload_foto_perfil_proprietario_screen.dart';
 import '../screens/upload_foto_perfil_inquilino_screen.dart';
+import '../screens/portaria_representante_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final String? usuarioDeletado;  // Nome do usuário que foi deletado
+  final String? usuarioDeletado; // Nome do usuário que foi deletado
 
-  const LoginScreen({
-    super.key,
-    this.usuarioDeletado,
-  });
+  const LoginScreen({super.key, this.usuarioDeletado});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -28,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
-  
+
   bool _isPasswordVisible = false;
   bool _autoLogin = false;
   bool _isLoading = false;
@@ -41,7 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Usuário "${ widget.usuarioDeletado}" foi deletado com sucesso!'),
+            content: Text(
+              '✅ Usuário "${widget.usuarioDeletado}" foi deletado com sucesso!',
+            ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -69,9 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // DEBUG: Log dos dados de entrada
       print('DEBUG LOGIN SCREEN: Email digitado: "${_emailController.text}"');
-      print('DEBUG LOGIN SCREEN: Senha digitada: "${_passwordController.text}"');
+      print(
+        'DEBUG LOGIN SCREEN: Senha digitada: "${_passwordController.text}"',
+      );
       print('DEBUG LOGIN SCREEN: Auto login: $_autoLogin');
-      
+
       final result = await _authService.login(
         _emailController.text,
         _passwordController.text,
@@ -87,10 +89,15 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           } else if (result.userType == UserType.representante) {
             // Verificar se representante tem foto de perfil
-            if (result.representante?.fotoPerfil == null || result.representante!.fotoPerfil!.isEmpty) {
+            if (result.representante?.fotoPerfil == null ||
+                result.representante!.fotoPerfil!.isEmpty) {
               // Primeira vez - ir para upload de foto
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => UploadFotoPerfilScreen(representante: result.representante!)),
+                MaterialPageRoute(
+                  builder: (context) => UploadFotoPerfilScreen(
+                    representante: result.representante!,
+                  ),
+                ),
               );
             } else {
               // Já tem foto - verificar se tem múltiplas unidades/condominios
@@ -98,10 +105,15 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           } else if (result.userType == UserType.proprietario) {
             // Verificar se proprietário tem foto de perfil
-            if (result.proprietario?.fotoPerfil == null || result.proprietario!.fotoPerfil!.isEmpty) {
+            if (result.proprietario?.fotoPerfil == null ||
+                result.proprietario!.fotoPerfil!.isEmpty) {
               // Primeira vez - ir para upload de foto
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => UploadFotoPerfilProprietarioScreen(proprietario: result.proprietario!)),
+                MaterialPageRoute(
+                  builder: (context) => UploadFotoPerfilProprietarioScreen(
+                    proprietario: result.proprietario!,
+                  ),
+                ),
               );
             } else {
               // Já tem foto - verificar se tem múltiplas unidades/condominios
@@ -109,15 +121,23 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           } else if (result.userType == UserType.inquilino) {
             // Verificar se inquilino tem foto de perfil
-            if (result.inquilino?.fotoPerfil == null || result.inquilino!.fotoPerfil!.isEmpty) {
+            if (result.inquilino?.fotoPerfil == null ||
+                result.inquilino!.fotoPerfil!.isEmpty) {
               // Primeira vez - ir para upload de foto
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => UploadFotoPerfilInquilinoScreen(inquilino: result.inquilino!)),
+                MaterialPageRoute(
+                  builder: (context) => UploadFotoPerfilInquilinoScreen(
+                    inquilino: result.inquilino!,
+                  ),
+                ),
               );
             } else {
               // Já tem foto - verificar se tem múltiplas unidades/condominios
               _redirectInquilino(result);
             }
+          } else if (result.userType == UserType.porteiro) {
+            // Porteiro vai direto para a tela de Portaria
+            _redirectPorteiro(result);
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -146,43 +166,49 @@ class _LoginScreenState extends State<LoginScreen> {
           .from('condominios')
           .select('id, nome_condominio, cnpj')
           .eq('representante_id', result.representante!.id);
-      
+
       if (condominios.isEmpty) {
         // Sem condominios, ir para dashboard (que mostrará erro)
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-              representante: result.representante!,
-            )),
+            MaterialPageRoute(
+              builder: (context) => RepresentanteDashboardScreen(
+                representante: result.representante!,
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 condomínio
       if (condominios.length == 1) {
         final condominio = condominios[0];
-        
+
         // Ir direto para a home desse condomínio
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => RepresentanteHomeScreen(
-              representante: result.representante!,
-              condominioId: condominio['id'],
-              condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
-              condominioCnpj: condominio['cnpj'] ?? 'N/A',
-            )),
+            MaterialPageRoute(
+              builder: (context) => RepresentanteHomeScreen(
+                representante: result.representante!,
+                condominioId: condominio['id'],
+                condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
+                condominioCnpj: condominio['cnpj'] ?? 'N/A',
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem múltiplos condominios, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-            representante: result.representante!,
-          )),
+          MaterialPageRoute(
+            builder: (context) => RepresentanteDashboardScreen(
+              representante: result.representante!,
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -190,9 +216,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // Em caso de erro, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-            representante: result.representante!,
-          )),
+          MaterialPageRoute(
+            builder: (context) => RepresentanteDashboardScreen(
+              representante: result.representante!,
+            ),
+          ),
         );
       }
     }
@@ -207,60 +235,67 @@ class _LoginScreenState extends State<LoginScreen> {
           .from('proprietarios')
           .select('id, unidade_id')
           .eq('cpf_cnpj', result.proprietario!.cpfCnpj);
-      
+
       if (unidades.isEmpty) {
         // Sem unidades, ir para dashboard
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-              proprietario: result.proprietario!,
-            )),
+            MaterialPageRoute(
+              builder: (context) => ProprietarioDashboardScreen(
+                proprietario: result.proprietario!,
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 unidade
       if (unidades.length == 1) {
         final unidadeId = unidades[0]['unidade_id'];
-        
+
         // Buscar dados da unidade
         final unidadeData = await SupabaseService.client
             .from('unidades')
             .select('id, numero, bloco, condominio_id')
             .eq('id', unidadeId)
             .single();
-        
+
         // Buscar dados do condomínio
         final condominioData = await SupabaseService.client
             .from('condominios')
             .select('id, nome_condominio, cnpj')
             .eq('id', unidadeData['condominio_id'])
             .single();
-        
+
         // Ir direto para a home
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
-              condominioId: condominioData['id'],
-              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
-              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-              proprietarioId: unidades[0]['id'], // Usar o ID do registro específico
-              unidadeId: unidadeData['id'],
-              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
-              proprietarioData: result.proprietario,
-            )),
+            MaterialPageRoute(
+              builder: (context) => InquilinoHomeScreen(
+                condominioId: condominioData['id'],
+                condominioNome:
+                    condominioData['nome_condominio'] ?? 'Condomínio',
+                condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+                proprietarioId:
+                    unidades[0]['id'], // Usar o ID do registro específico
+                unidadeId: unidadeData['id'],
+                unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+                proprietarioData: result.proprietario,
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem múltiplas unidades, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-            proprietario: result.proprietario!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                ProprietarioDashboardScreen(proprietario: result.proprietario!),
+          ),
         );
       }
     } catch (e) {
@@ -268,9 +303,10 @@ class _LoginScreenState extends State<LoginScreen> {
       // Em caso de erro, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-            proprietario: result.proprietario!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                ProprietarioDashboardScreen(proprietario: result.proprietario!),
+          ),
         );
       }
     }
@@ -285,59 +321,64 @@ class _LoginScreenState extends State<LoginScreen> {
           .from('inquilinos')
           .select('unidade_id')
           .eq('id', result.inquilino!.id);
-      
+
       if (unidades.isEmpty) {
         // Sem unidades, ir para dashboard
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-              inquilino: result.inquilino!,
-            )),
+            MaterialPageRoute(
+              builder: (context) =>
+                  InquilinoDashboardScreen(inquilino: result.inquilino!),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 unidade
       if (unidades.length == 1) {
         final unidadeId = unidades[0]['unidade_id'];
-        
+
         // Buscar dados da unidade
         final unidadeData = await SupabaseService.client
             .from('unidades')
             .select('id, numero, bloco, condominio_id')
             .eq('id', unidadeId)
             .single();
-        
+
         // Buscar dados do condomínio
         final condominioData = await SupabaseService.client
             .from('condominios')
             .select('id, nome_condominio, cnpj')
             .eq('id', unidadeData['condominio_id'])
             .single();
-        
+
         // Ir direto para a home
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
-              condominioId: condominioData['id'],
-              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
-              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-              inquilinoId: result.inquilino!.id,
-              unidadeId: unidadeData['id'],
-              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
-            )),
+            MaterialPageRoute(
+              builder: (context) => InquilinoHomeScreen(
+                condominioId: condominioData['id'],
+                condominioNome:
+                    condominioData['nome_condominio'] ?? 'Condomínio',
+                condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+                inquilinoId: result.inquilino!.id,
+                unidadeId: unidadeData['id'],
+                unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem múltiplas unidades, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-            inquilino: result.inquilino!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                InquilinoDashboardScreen(inquilino: result.inquilino!),
+          ),
         );
       }
     } catch (e) {
@@ -345,9 +386,45 @@ class _LoginScreenState extends State<LoginScreen> {
       // Em caso de erro, ir para dashboard
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-            inquilino: result.inquilino!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                InquilinoDashboardScreen(inquilino: result.inquilino!),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Redireciona porteiro diretamente para a tela de Portaria
+  Future<void> _redirectPorteiro(LoginResult result) async {
+    try {
+      // Buscar dados do condomínio do porteiro
+      final condominioData = await SupabaseService.client
+          .from('condominios')
+          .select('id, nome_condominio, cnpj, tem_blocos')
+          .eq('id', result.porteiro!.condominioId)
+          .single();
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => PortariaRepresentanteScreen(
+              condominioId: condominioData['id'],
+              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+              temBlocos: condominioData['tem_blocos'] ?? true,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Erro ao redirecionar porteiro: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar dados do condomínio: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -386,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                
+
                 // Campo E-mail
                 const Text(
                   'E-mail',
@@ -425,14 +502,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, digite seu e-mail';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Por favor, digite um e-mail válido';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Campo Senha
                 const Text(
                   'Senha',
@@ -468,7 +547,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: Colors.grey[600],
                       ),
                       onPressed: () {
@@ -486,7 +567,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Link Esqueci a senha
                 Align(
                   alignment: Alignment.centerRight,
@@ -494,15 +575,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _handleForgotPassword,
                     child: const Text(
                       'Esqueci a senha',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.blue, fontSize: 14),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Checkbox Login Automático
                 Row(
                   children: [
@@ -517,15 +595,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const Text(
                       'Login Automático',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
                     ),
                   ],
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Botão Entrar
                 SizedBox(
                   height: 50,
@@ -546,7 +621,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
