@@ -144,14 +144,15 @@ class _PortariaRepresentanteScreenState
   bool _isLoadingVisitantesCadastrados = false;
   final TextEditingController _pesquisaVisitanteController =
       TextEditingController();
-  final TextEditingController _searchAcessosController = TextEditingController();
+  final TextEditingController _searchAcessosController =
+      TextEditingController();
 
   // Variáveis para a seção de Encomendas
   // Variável para encomenda selecionada (removendo a antiga)
   // Unidade? _unidadeSelecionadaEncomenda;
   XFile? _imagemEncomenda; // Usar XFile em vez de File para compatibilidade web
   bool _notificarUnidade = false;
-  
+
   // Variáveis para o histórico de encomendas
   List<Map<String, dynamic>> _historicoEncomendas = [];
   bool _isLoadingHistoricoEncomendas = false;
@@ -171,38 +172,44 @@ class _PortariaRepresentanteScreenState
     debugPrint('🔵 [PORTARIA] ═══ INIT STATE ═══');
     debugPrint('═' * 80);
     debugPrint('[PORTARIA] ⚡ initState() CHAMADO');
-    debugPrint('[PORTARIA] widget.temBlocos (parâmetro recebido): ${widget.temBlocos}');
-    debugPrint('[PORTARIA] Tipo de widget.temBlocos: ${widget.temBlocos.runtimeType}');
-    
+    debugPrint(
+      '[PORTARIA] widget.temBlocos (parâmetro recebido): ${widget.temBlocos}',
+    );
+    debugPrint(
+      '[PORTARIA] Tipo de widget.temBlocos: ${widget.temBlocos.runtimeType}',
+    );
+
     _tabController = TabController(length: 6, vsync: this);
     _encomendasTabController = TabController(length: 2, vsync: this);
-    
+
     // Carregar temBlocos do parâmetro ou do banco de dados
     debugPrint('[PORTARIA] Definindo _temBlocos = widget.temBlocos');
     _temBlocos = widget.temBlocos;
     debugPrint('[PORTARIA] _temBlocos APÓS atribuição: $_temBlocos');
     debugPrint('[PORTARIA] Chamando _carregarTemBlocos()...');
-    
+
     _carregarTemBlocos();
     debugPrint('[PORTARIA] _carregarTemBlocos() retornou');
     debugPrint('[PORTARIA] _temBlocos APÓS _carregarTemBlocos(): $_temBlocos');
     debugPrint('═' * 80);
-    
-    debugPrint('[PORTARIA] _temBlocos DEPOIS de _carregarTemBlocos: $_temBlocos');
+
+    debugPrint(
+      '[PORTARIA] _temBlocos DEPOIS de _carregarTemBlocos: $_temBlocos',
+    );
     debugPrint('[PORTARIA] Iniciando carregamento de dados...');
     debugPrint('═' * 80);
-    
+
     _carregarRepresentanteAtual();
     _carregarDadosPropInq();
     _carregarAutorizados();
     _carregarVisitantesNoCondominio();
     _carregarVisitantesCadastrados();
     _carregarHistoricoEncomendas();
-    
+
     // ✅ Corrigir URLs duplicadas ao carregar a tela
     _corrigirURLsQRCode();
   }
-  
+
   /// Corrige URLs duplicadas do QR Code no banco de dados
   void _corrigirURLsQRCode() {
     QrCodeGenerationService.corrigirURLsDuplicadas();
@@ -902,9 +909,11 @@ class _PortariaRepresentanteScreenState
                                         size: 20,
                                       ),
                                       title: Text(
-                                        _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
-                                          ? '${unidade.bloco}/${unidade.numero}'
-                                          : unidade.numero,
+                                        _temBlocos &&
+                                                unidade.bloco != null &&
+                                                unidade.bloco!.isNotEmpty
+                                            ? '${unidade.bloco}/${unidade.numero}'
+                                            : unidade.numero,
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: isSelected
@@ -1226,11 +1235,13 @@ class _PortariaRepresentanteScreenState
     debugPrint('[PORTARIA] widget.temBlocos recebido: ${widget.temBlocos}');
     debugPrint('[PORTARIA] widget.condominioId: ${widget.condominioId}');
     debugPrint('[PORTARIA] _temBlocos ANTES: $_temBlocos');
-    
+
     // Sempre usar o valor passado pelo widget (que foi carregado em gestao_screen)
     _temBlocos = widget.temBlocos;
     debugPrint('[PORTARIA] ✓ _temBlocos APÓS atribuição: $_temBlocos');
-    debugPrint('[PORTARIA] Este valor veio de: gestao_screen.dart (_carregarTemBlocosDoCondominio)');
+    debugPrint(
+      '[PORTARIA] Este valor veio de: gestao_screen.dart (_carregarTemBlocosDoCondominio)',
+    );
     debugPrint('═' * 80);
   }
 
@@ -1244,10 +1255,12 @@ class _PortariaRepresentanteScreenState
   }) {
     final blocoStr = (bloco?.isNotEmpty ?? false) ? bloco : null;
     final numeroStr = numero ?? '';
-    
+
     if (_temBlocos && blocoStr != null) {
       // Com blocos: "A 101"
-      return incluirPrefixo ? 'Unidade $blocoStr $numeroStr' : '$blocoStr $numeroStr';
+      return incluirPrefixo
+          ? 'Unidade $blocoStr $numeroStr'
+          : '$blocoStr $numeroStr';
     } else {
       // Sem blocos: apenas "101"
       return incluirPrefixo ? 'Unidade $numeroStr' : numeroStr;
@@ -1261,7 +1274,11 @@ class _PortariaRepresentanteScreenState
       final partes = chaveUnidade.split('/');
       final bloco = partes[0];
       final numero = partes[1];
-      return _formatarUnidade(bloco: bloco, numero: numero, incluirPrefixo: false);
+      return _formatarUnidade(
+        bloco: bloco,
+        numero: numero,
+        incluirPrefixo: false,
+      );
     } else {
       // Sem barra: apenas número
       return chaveUnidade;
@@ -1272,11 +1289,13 @@ class _PortariaRepresentanteScreenState
     debugPrint('═' * 80);
     debugPrint('🟦 [PORTARIA_REP] ═══ CARREGANDO REPRESENTANTE ═══');
     debugPrint('═' * 80);
-    
+
     try {
-      debugPrint('🔄 [PORTARIA_REP] Chamando AuthService.getCurrentRepresentante()...');
+      debugPrint(
+        '🔄 [PORTARIA_REP] Chamando AuthService.getCurrentRepresentante()...',
+      );
       final representante = await AuthService.getCurrentRepresentante();
-      
+
       if (representante == null) {
         debugPrint('[PORTARIA_REP] ERROR: AuthService retornou NULL');
         setState(() {
@@ -1284,12 +1303,12 @@ class _PortariaRepresentanteScreenState
         });
         return;
       }
-      
+
       debugPrint('[PORTARIA_REP] OK: Representante obtido com sucesso');
       debugPrint('[PORTARIA_REP] ID: ${representante.id}');
       debugPrint('[PORTARIA_REP] Nome: ${representante.nomeCompleto}');
       debugPrint('[PORTARIA_REP] CPF: ${representante.cpf}');
-      
+
       if (representante.id.isEmpty) {
         debugPrint('[PORTARIA_REP] ERROR: ID está VAZIO!');
         setState(() {
@@ -1297,18 +1316,18 @@ class _PortariaRepresentanteScreenState
         });
         return;
       }
-      
+
       setState(() {
         _representanteAtual = representante;
         _isLoadingRepresentante = false;
       });
-      
+
       debugPrint('[PORTARIA_REP] OK: Estado atualizado com representante');
     } catch (e, stackTrace) {
       debugPrint('[PORTARIA_REP] ERROR: ao carregar representante!');
       debugPrint('[PORTARIA_REP] Erro: $e');
       debugPrint('[PORTARIA_REP] Stack: $stackTrace');
-      
+
       setState(() {
         _isLoadingRepresentante = false;
       });
@@ -1318,15 +1337,15 @@ class _PortariaRepresentanteScreenState
   Widget _buildMensagemTab() {
     debugPrint('═' * 80);
     debugPrint('[PORTARIA_REP] BUILD MENSAGEM TAB');
-    debugPrint('[PORTARIA_REP] _isLoadingRepresentante: $_isLoadingRepresentante');
+    debugPrint(
+      '[PORTARIA_REP] _isLoadingRepresentante: $_isLoadingRepresentante',
+    );
     debugPrint('[PORTARIA_REP] _representanteAtual: $_representanteAtual');
-    
+
     // Se ainda está carregando o representante, mostra loading
     if (_isLoadingRepresentante) {
       debugPrint('[PORTARIA_REP] Ainda está carregando representante...');
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     // Se não conseguiu carregar o representante, mostra erro
@@ -1339,7 +1358,7 @@ class _PortariaRepresentanteScreenState
 
     final repId = _representanteAtual.id;
     final repNome = _representanteAtual.nomeCompleto;
-    
+
     debugPrint('[PORTARIA_REP] OK: Representante carregado com sucesso');
     debugPrint('[PORTARIA_REP] ID a passar para ConversasSimples: $repId');
     debugPrint('[PORTARIA_REP] Nome a passar para ConversasSimples: $repNome');
@@ -1482,7 +1501,7 @@ class _PortariaRepresentanteScreenState
         String chaveB = _temBlocos && b.unidadeBloco != 'N/A'
             ? '${b.unidadeNumero}/${b.unidadeBloco}'
             : b.unidadeNumero;
-        
+
         final unidadeComparison = chaveA.compareTo(chaveB);
         if (unidadeComparison != 0) return unidadeComparison;
         return a.nome.compareTo(b.nome);
@@ -1636,7 +1655,8 @@ class _PortariaRepresentanteScreenState
         ),
       );
 
-      String chaveUnidade = _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
+      String chaveUnidade =
+          _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
           ? '${unidade.bloco}/${unidade.numero}'
           : unidade.numero;
 
@@ -1676,7 +1696,8 @@ class _PortariaRepresentanteScreenState
         ),
       );
 
-      String chaveUnidade = _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
+      String chaveUnidade =
+          _temBlocos && unidade.bloco != null && unidade.bloco!.isNotEmpty
           ? '${unidade.bloco}/${unidade.numero}'
           : unidade.numero;
 
@@ -1815,7 +1836,7 @@ class _PortariaRepresentanteScreenState
             // Se temBlocos = true e tem '/', formata como "Unidade Bloco A - 101"
             // Se temBlocos = false, extrai apenas o número (depois da '/')
             final bool temBlocosCheck = _temBlocos && unidade.contains('/');
-            
+
             String label;
             if (temBlocosCheck) {
               // Com blocos: "A/101" → "Unidade Bloco A - 101"
@@ -1828,14 +1849,18 @@ class _PortariaRepresentanteScreenState
               // Sem blocos e sem '/': mostra como está (já é apenas número)
               label = 'Unidade $unidade';
             }
-            
-            debugPrint('[PORTARIA] _buildUnidadeExpandible() - Label formatting:');
+
+            debugPrint(
+              '[PORTARIA] _buildUnidadeExpandible() - Label formatting:',
+            );
             debugPrint('[PORTARIA]   - unidade: $unidade');
             debugPrint('[PORTARIA]   - _temBlocos: $_temBlocos');
-            debugPrint('[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}');
+            debugPrint(
+              '[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}',
+            );
             debugPrint('[PORTARIA]   - temBlocosCheck: $temBlocosCheck');
             debugPrint('[PORTARIA]   - label final: $label');
-            
+
             return Text(
               label,
               style: const TextStyle(
@@ -1888,8 +1913,10 @@ class _PortariaRepresentanteScreenState
         children: [
           // Avatar - com opção de ampliar ao clicar
           GestureDetector(
-            onTap: pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
-                ? () => _mostrarFotoAmpliada(pessoa['fotoPerfil'], pessoa['nome'])
+            onTap:
+                pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
+                ? () =>
+                      _mostrarFotoAmpliada(pessoa['fotoPerfil'], pessoa['nome'])
                 : null,
             child: Container(
               width: 50,
@@ -1906,7 +1933,8 @@ class _PortariaRepresentanteScreenState
                 ],
               ),
               child:
-                  pessoa['fotoPerfil'] != null && pessoa['fotoPerfil'].isNotEmpty
+                  pessoa['fotoPerfil'] != null &&
+                      pessoa['fotoPerfil'].isNotEmpty
                   ? ClipOval(
                       child: Image.network(
                         pessoa['fotoPerfil'],
@@ -2175,8 +2203,8 @@ class _PortariaRepresentanteScreenState
                                   flex: 2,
                                   child: Text(
                                     _temBlocos && pessoa.unidadeBloco != 'N/A'
-                                      ? '${pessoa.unidadeNumero}/${pessoa.unidadeBloco}'
-                                      : pessoa.unidadeNumero,
+                                        ? '${pessoa.unidadeNumero}/${pessoa.unidadeBloco}'
+                                        : pessoa.unidadeNumero,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -2259,12 +2287,18 @@ class _PortariaRepresentanteScreenState
                                 ListTile(
                                   leading: const Icon(Icons.camera_alt),
                                   title: const Text('Câmera'),
-                                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                                  onTap: () => Navigator.pop(
+                                    context,
+                                    ImageSource.camera,
+                                  ),
                                 ),
                                 ListTile(
                                   leading: const Icon(Icons.photo_library),
                                   title: const Text('Galeria'),
-                                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                                  onTap: () => Navigator.pop(
+                                    context,
+                                    ImageSource.gallery,
+                                  ),
                                 ),
                               ],
                             ),
@@ -2278,7 +2312,7 @@ class _PortariaRepresentanteScreenState
                           final XFile? image = source == ImageSource.camera
                               ? await photoPickerService.pickImageFromCamera()
                               : await photoPickerService.pickImage();
-                          
+
                           if (image != null) {
                             setState(() {
                               _imagemEncomenda = image;
@@ -2288,7 +2322,9 @@ class _PortariaRepresentanteScreenState
                           print('Erro ao selecionar imagem: $e');
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+                              SnackBar(
+                                content: Text('Erro ao selecionar imagem: $e'),
+                              ),
                             );
                           }
                         }
@@ -2333,14 +2369,14 @@ class _PortariaRepresentanteScreenState
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                        return Container(
-                                          height: 116,
-                                          color: Colors.grey[300],
-                                          child: const Center(
-                                            child: Icon(Icons.broken_image),
-                                          ),
-                                        );
-                                      },
+                                            return Container(
+                                              height: 116,
+                                              color: Colors.grey[300],
+                                              child: const Center(
+                                                child: Icon(Icons.broken_image),
+                                              ),
+                                            );
+                                          },
                                     )
                                   : Image.file(
                                       File(_imagemEncomenda!.path),
@@ -2417,7 +2453,7 @@ class _PortariaRepresentanteScreenState
   // Método para mostrar diálogo de quem recebeu a encomenda
   Future<void> _mostrarDialogoRecebidoPor(Encomenda encomenda) async {
     final TextEditingController recebidoPorController = TextEditingController();
-    
+
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -2468,16 +2504,19 @@ class _PortariaRepresentanteScreenState
   }
 
   // Método para marcar encomenda como recebida
-  Future<void> _marcarEncomendaComoRecebida(Encomenda encomenda, String recebidoPor) async {
+  Future<void> _marcarEncomendaComoRecebida(
+    Encomenda encomenda,
+    String recebidoPor,
+  ) async {
     try {
       await _encomendaService.marcarComoRecebida(
         encomenda.id,
         recebidoPor: recebidoPor,
       );
-      
+
       // Recarregar o histórico
       await _carregarHistoricoEncomendas();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -2502,10 +2541,10 @@ class _PortariaRepresentanteScreenState
   Future<void> _desmarcarEncomendaComoRecebida(Encomenda encomenda) async {
     try {
       await _encomendaService.marcarComoPendente(encomenda.id);
-      
+
       // Recarregar o histórico
       await _carregarHistoricoEncomendas();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -2529,7 +2568,7 @@ class _PortariaRepresentanteScreenState
   // Método para carregar histórico de encomendas
   Future<void> _carregarHistoricoEncomendas() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingHistoricoEncomendas = true;
       _errorHistoricoEncomendas = null;
@@ -2539,7 +2578,7 @@ class _PortariaRepresentanteScreenState
       final encomendas = await _encomendaService.listarEncomendasComNomes(
         condominioId: widget.condominioId!,
       );
-      
+
       if (mounted) {
         setState(() {
           _historicoEncomendas = encomendas;
@@ -2563,11 +2602,11 @@ class _PortariaRepresentanteScreenState
     // Converte os dados para objeto Encomenda para manter compatibilidade
     final encomenda = Encomenda.fromJson(encomendaData);
     final String nomeDestinatario = encomendaData['nome_destinatario'] ?? 'N/A';
-    
+
     final bool isRecebida = encomenda.recebido;
     final String statusText = isRecebida ? 'RECEBIDA' : 'PENDENTE';
     final Color statusColor = isRecebida ? Colors.green : Colors.orange;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -2582,7 +2621,10 @@ class _PortariaRepresentanteScreenState
               children: [
                 // Status badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -2615,7 +2657,7 @@ class _PortariaRepresentanteScreenState
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Informações do destinatário
             Row(
               children: [
@@ -2634,7 +2676,7 @@ class _PortariaRepresentanteScreenState
               ],
             ),
             const SizedBox(height: 8),
-            
+
             // Data de cadastro
             Row(
               children: [
@@ -2646,7 +2688,7 @@ class _PortariaRepresentanteScreenState
                 ),
               ],
             ),
-            
+
             // Data de recebimento (se recebida)
             if (isRecebida && encomenda.dataRecebimento != null) ...[
               const SizedBox(height: 8),
@@ -2661,9 +2703,11 @@ class _PortariaRepresentanteScreenState
                 ],
               ),
             ],
-            
+
             // Quem recebeu (se disponível)
-            if (isRecebida && encomenda.recebidoPor != null && encomenda.recebidoPor!.isNotEmpty) ...[
+            if (isRecebida &&
+                encomenda.recebidoPor != null &&
+                encomenda.recebidoPor!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -2678,7 +2722,7 @@ class _PortariaRepresentanteScreenState
                 ],
               ),
             ],
-            
+
             // Foto da encomenda (se disponível)
             if (encomenda.fotoUrl != null && encomenda.fotoUrl!.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -2704,7 +2748,10 @@ class _PortariaRepresentanteScreenState
                             return Container(
                               color: Colors.grey.shade100,
                               child: const Center(
-                                child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.grey,
+                                ),
                               ),
                             );
                           },
@@ -2742,8 +2789,10 @@ class _PortariaRepresentanteScreenState
   String _formatarData(dynamic data) {
     try {
       // Converter para DateTime se for String
-      DateTime dateTime = data is String ? DateTime.parse(data) : data as DateTime;
-      
+      DateTime dateTime = data is String
+          ? DateTime.parse(data)
+          : data as DateTime;
+
       // Usar o horário como está (sem conversão)
       return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} às ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
@@ -2827,9 +2876,7 @@ class _PortariaRepresentanteScreenState
           // Cabeçalho
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1976D2),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF1976D2)),
             child: Row(
               children: [
                 const Icon(Icons.history, color: Colors.white, size: 24),
@@ -2868,8 +2915,6 @@ class _PortariaRepresentanteScreenState
       ),
     );
   }
-
-
 
   // Widget da aba Autorizados
   Widget _buildAutorizadosTab() {
@@ -3014,7 +3059,7 @@ class _PortariaRepresentanteScreenState
             // Se temBlocos = true e tem '/', formata como "Unidade Bloco A - 101"
             // Se temBlocos = false, extrai apenas o número (depois da '/')
             final bool temBlocosCheck = _temBlocos && unidade.contains('/');
-            
+
             String label;
             if (temBlocosCheck) {
               // Com blocos: "A/101" → "Unidade Bloco A - 101"
@@ -3027,14 +3072,18 @@ class _PortariaRepresentanteScreenState
               // Sem blocos e sem '/': mostra como está (já é apenas número)
               label = 'Unidade $unidade';
             }
-            
-            debugPrint('[PORTARIA] _buildUnidadeAutorizadosExpandible() - Label formatting:');
+
+            debugPrint(
+              '[PORTARIA] _buildUnidadeAutorizadosExpandible() - Label formatting:',
+            );
             debugPrint('[PORTARIA]   - unidade: $unidade');
             debugPrint('[PORTARIA]   - _temBlocos: $_temBlocos');
-            debugPrint('[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}');
+            debugPrint(
+              '[PORTARIA]   - unidade.contains("/"): ${unidade.contains("/")}',
+            );
             debugPrint('[PORTARIA]   - temBlocosCheck: $temBlocosCheck');
             debugPrint('[PORTARIA]   - label final: $label');
-            
+
             return Text(
               label,
               style: const TextStyle(
@@ -3097,9 +3146,9 @@ class _PortariaRepresentanteScreenState
                   GestureDetector(
                     onTap: temFoto
                         ? () => _mostrarFotoAmpliada(
-                              fotoUrl,
-                              autorizado['nome'] ?? 'Autorizado',
-                            )
+                            fotoUrl,
+                            autorizado['nome'] ?? 'Autorizado',
+                          )
                         : null,
                     child: Container(
                       width: 50,
@@ -3121,10 +3170,10 @@ class _PortariaRepresentanteScreenState
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Icon(
-                                  Icons.person,
-                                  color: Color(0xFF1976D2),
-                                  size: 28,
-                                ),
+                                      Icons.person,
+                                      color: Color(0xFF1976D2),
+                                      size: 28,
+                                    ),
                               ),
                             )
                           : const Icon(
@@ -3159,7 +3208,10 @@ class _PortariaRepresentanteScreenState
                         if (autorizado['cpfTresPrimeiros'].isNotEmpty)
                           Text(
                             'CPF: ${autorizado['cpfTresPrimeiros']}***',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
                           ),
                       ],
                     ),
@@ -3281,10 +3333,14 @@ class _PortariaRepresentanteScreenState
     setState(() {
       _visitantesNoCondominioFiltrados = _visitantesNoCondominio.where((vis) {
         final nome = (vis['nome'] ?? '').toString().toLowerCase();
-        final cpf = (vis['cpf'] ?? vis['documento'] ?? '').toString().toLowerCase();
+        final cpf = (vis['cpf'] ?? vis['documento'] ?? '')
+            .toString()
+            .toLowerCase();
         final placa = (vis['veiculo_placa'] ?? '').toString().toLowerCase();
-        
-        return nome.contains(termo) || cpf.contains(termo) || placa.contains(termo);
+
+        return nome.contains(termo) ||
+            cpf.contains(termo) ||
+            placa.contains(termo);
       }).toList();
     });
   }
@@ -3506,15 +3562,20 @@ class _PortariaRepresentanteScreenState
                                   // Lista de acessos
                                   Expanded(
                                     child: ListView.builder(
-                                      itemCount: _visitantesNoCondominioFiltrados.length,
+                                      itemCount:
+                                          _visitantesNoCondominioFiltrados
+                                              .length,
                                       itemBuilder: (context, index) {
                                         final visitante =
                                             _visitantesNoCondominioFiltrados[index];
                                         final unidadeInfo =
                                             visitante['unidades'] != null
                                             ? _formatarUnidade(
-                                                bloco: visitante['unidades']['bloco'],
-                                                numero: visitante['unidades']['numero']?.toString(),
+                                                bloco:
+                                                    visitante['unidades']['bloco'],
+                                                numero:
+                                                    visitante['unidades']['numero']
+                                                        ?.toString(),
                                                 incluirPrefixo: false,
                                               )
                                             : 'N/A';
@@ -3566,8 +3627,10 @@ class _PortariaRepresentanteScreenState
                                                   child: Text(
                                                     visitante['hora_entrada_real'] !=
                                                             null
-                                                      ? _formatarData(visitante['hora_entrada_real'])
-                                                      : 'N/A',
+                                                        ? _formatarData(
+                                                            visitante['hora_entrada_real'],
+                                                          )
+                                                        : 'N/A',
                                                     style: const TextStyle(
                                                       fontSize: 14,
                                                       color: Color(0xFF2E3A59),
@@ -3593,61 +3656,76 @@ class _PortariaRepresentanteScreenState
                                                 width: 120,
                                                 child: Center(
                                                   child: GestureDetector(
-                                                    onTap: visitante['foto_url'] != null && 
-                                                            (visitante['foto_url'] as String?)?.isNotEmpty == true
+                                                    onTap:
+                                                        visitante['foto_url'] !=
+                                                                null &&
+                                                            (visitante['foto_url']
+                                                                        as String?)
+                                                                    ?.isNotEmpty ==
+                                                                true
                                                         ? () => _mostrarFotoAmpliada(
-                                                              visitante['foto_url'] as String,
-                                                              visitante['nome'] ?? 'Visitante',
-                                                            )
+                                                            visitante['foto_url']
+                                                                as String,
+                                                            visitante['nome'] ??
+                                                                'Visitante',
+                                                          )
                                                         : null,
                                                     child: Container(
                                                       width: 50,
                                                       height: 50,
                                                       decoration: BoxDecoration(
                                                         shape: BoxShape.circle,
-                                                        color: const Color(0xFF4A90E2)
-                                                            .withOpacity(0.1),
-                                                        border: visitante['foto_url'] !=
+                                                        color: const Color(
+                                                          0xFF4A90E2,
+                                                        ).withOpacity(0.1),
+                                                        border:
+                                                            visitante['foto_url'] !=
                                                                     null &&
                                                                 (visitante['foto_url']
-                                                                        as String?)
-                                                                    ?.isNotEmpty ==
-                                                                true
+                                                                            as String?)
+                                                                        ?.isNotEmpty ==
+                                                                    true
                                                             ? Border.all(
-                                                                color: const Color(
-                                                                    0xFF4A90E2),
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF4A90E2,
+                                                                    ),
                                                                 width: 2,
                                                               )
                                                             : null,
                                                       ),
-                                                      child: visitante['foto_url'] !=
+                                                      child:
+                                                          visitante['foto_url'] !=
                                                                   null &&
                                                               (visitante['foto_url']
-                                                                      as String?)
-                                                                  ?.isNotEmpty ==
-                                                              true
+                                                                          as String?)
+                                                                      ?.isNotEmpty ==
+                                                                  true
                                                           ? Stack(
-                                                              fit: StackFit.expand,
+                                                              fit: StackFit
+                                                                  .expand,
                                                               children: [
                                                                 ClipOval(
-                                                                  child:
-                                                                      Image.network(
-                                                                    visitante[
-                                                                        'foto_url'] as String,
-                                                                    fit:
-                                                                        BoxFit.cover,
+                                                                  child: Image.network(
+                                                                    visitante['foto_url']
+                                                                        as String,
+                                                                    fit: BoxFit
+                                                                        .cover,
                                                                     errorBuilder:
-                                                                        (context,
-                                                                            error,
-                                                                            stackTrace) {
-                                                                      return const Icon(
-                                                                        Icons
-                                                                            .person,
-                                                                        size: 24,
-                                                                        color: Color(
-                                                                            0xFF4A90E2),
-                                                                      );
-                                                                    },
+                                                                        (
+                                                                          context,
+                                                                          error,
+                                                                          stackTrace,
+                                                                        ) {
+                                                                          return const Icon(
+                                                                            Icons.person,
+                                                                            size:
+                                                                                24,
+                                                                            color: Color(
+                                                                              0xFF4A90E2,
+                                                                            ),
+                                                                          );
+                                                                        },
                                                                   ),
                                                                 ),
                                                                 Positioned(
@@ -3655,23 +3733,25 @@ class _PortariaRepresentanteScreenState
                                                                   right: -2,
                                                                   child: Container(
                                                                     padding:
-                                                                        const EdgeInsets
-                                                                            .all(2),
-                                                                    decoration:
-                                                                        BoxDecoration(
+                                                                        const EdgeInsets.all(
+                                                                          2,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
                                                                       shape: BoxShape
                                                                           .circle,
                                                                       color: const Color(
-                                                                          0xFF4A90E2),
-                                                                      border:
-                                                                          Border.all(
+                                                                        0xFF4A90E2,
+                                                                      ),
+                                                                      border: Border.all(
                                                                         color: Colors
                                                                             .white,
-                                                                        width: 2,
+                                                                        width:
+                                                                            2,
                                                                       ),
                                                                     ),
                                                                     child: const Icon(
-                                                                      Icons.zoom_in,
+                                                                      Icons
+                                                                          .zoom_in,
                                                                       size: 8,
                                                                       color: Colors
                                                                           .white,
@@ -3684,7 +3764,8 @@ class _PortariaRepresentanteScreenState
                                                               Icons.person,
                                                               size: 24,
                                                               color: Color(
-                                                                  0xFF4A90E2),
+                                                                0xFF4A90E2,
+                                                              ),
                                                             ),
                                                     ),
                                                   ),
@@ -3695,11 +3776,15 @@ class _PortariaRepresentanteScreenState
                                                 child: Center(
                                                   child: ElevatedButton(
                                                     onPressed: () {
-                                                      _registrarSaida(visitante);
+                                                      _registrarSaida(
+                                                        visitante,
+                                                      );
                                                     },
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor:
-                                                          const Color(0xFF1976D2),
+                                                          const Color(
+                                                            0xFF1976D2,
+                                                          ),
                                                       padding:
                                                           const EdgeInsets.symmetric(
                                                             horizontal: 8,
@@ -3738,7 +3823,7 @@ class _PortariaRepresentanteScreenState
                               ),
                             ),
                           ),
-                        ),
+                  ),
                 ],
               ),
             ),
@@ -3766,8 +3851,8 @@ class _PortariaRepresentanteScreenState
           builder: (context, setStateModal) {
             // Lógica de filtro para Autorizados
             Map<String, List<Map<String, dynamic>>> autorizadosFiltrados = {};
-            String queryAutorizados =
-                searchAutorizadosController.text.toLowerCase();
+            String queryAutorizados = searchAutorizadosController.text
+                .toLowerCase();
 
             if (queryAutorizados.isEmpty) {
               autorizadosFiltrados = _autorizadosPorUnidade;
@@ -3791,8 +3876,8 @@ class _PortariaRepresentanteScreenState
 
             // Lógica de filtro para Visitantes
             List<Map<String, dynamic>> visitantesFiltrados = [];
-            String queryVisitantes =
-                searchVisitantesController.text.toLowerCase();
+            String queryVisitantes = searchVisitantesController.text
+                .toLowerCase();
 
             if (queryVisitantes.isEmpty) {
               visitantesFiltrados = _visitantesCadastrados;
@@ -4113,9 +4198,7 @@ class _PortariaRepresentanteScreenState
               : ListView.builder(
                   itemCount: autorizados.length,
                   itemBuilder: (context, index) {
-                    String unidade = autorizados.keys.elementAt(
-                      index,
-                    );
+                    String unidade = autorizados.keys.elementAt(index);
                     List<Map<String, dynamic>> listaAutorizados =
                         autorizados[unidade]!;
 
@@ -4129,7 +4212,10 @@ class _PortariaRepresentanteScreenState
                       ),
                       children: listaAutorizados.map((autorizado) {
                         return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 0,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             border: Border.all(color: const Color(0xFFE0E0E0)),
@@ -4146,62 +4232,112 @@ class _PortariaRepresentanteScreenState
                                   children: [
                                     // Avatar
                                     GestureDetector(
-                                      onTap: autorizado['foto_url'] != null && 
-                                              (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                      onTap:
+                                          autorizado['foto_url'] != null &&
+                                              (autorizado['foto_url']
+                                                          as String?)
+                                                      ?.isNotEmpty ==
+                                                  true
                                           ? () => _mostrarFotoAmpliada(
-                                                autorizado['foto_url'] as String,
-                                                autorizado['nome'] ?? 'Autorizado',
-                                              )
+                                              autorizado['foto_url'] as String,
+                                              autorizado['nome'] ??
+                                                  'Autorizado',
+                                            )
                                           : null,
                                       child: Container(
                                         width: 50,
                                         height: 50,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: const Color(0xFF1976D2).withOpacity(0.2),
-                                          border: autorizado['foto_url'] != null &&
-                                                  (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                          color: const Color(
+                                            0xFF1976D2,
+                                          ).withOpacity(0.2),
+                                          border:
+                                              autorizado['foto_url'] != null &&
+                                                  (autorizado['foto_url']
+                                                              as String?)
+                                                          ?.isNotEmpty ==
+                                                      true
                                               ? Border.all(
-                                                  color: const Color(0xFF1976D2),
+                                                  color: const Color(
+                                                    0xFF1976D2,
+                                                  ),
                                                   width: 2,
                                                 )
                                               : null,
                                         ),
-                                        child: autorizado['foto_url'] != null &&
-                                                (autorizado['foto_url'] as String?)?.isNotEmpty == true
+                                        child:
+                                            autorizado['foto_url'] != null &&
+                                                (autorizado['foto_url']
+                                                            as String?)
+                                                        ?.isNotEmpty ==
+                                                    true
                                             ? Stack(
                                                 fit: StackFit.expand,
                                                 children: [
                                                   ClipOval(
                                                     child: Image.network(
-                                                      autorizado['foto_url'] as String,
+                                                      autorizado['foto_url']
+                                                          as String,
                                                       fit: BoxFit.cover,
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return Container(
-                                                          color: const Color(0xFF1976D2).withOpacity(0.2),
-                                                          child: const Center(
-                                                            child: SizedBox(
-                                                              width: 20,
-                                                              height: 20,
-                                                              child: CircularProgressIndicator(
-                                                                strokeWidth: 2,
-                                                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                                                      loadingBuilder:
+                                                          (
+                                                            context,
+                                                            child,
+                                                            loadingProgress,
+                                                          ) {
+                                                            if (loadingProgress ==
+                                                                null)
+                                                              return child;
+                                                            return Container(
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF1976D2,
+                                                                  ).withOpacity(
+                                                                    0.2,
+                                                                  ),
+                                                              child: const Center(
+                                                                child: SizedBox(
+                                                                  width: 20,
+                                                                  height: 20,
+                                                                  child: CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                    valueColor:
+                                                                        AlwaysStoppedAnimation<
+                                                                          Color
+                                                                        >(
+                                                                          Color(
+                                                                            0xFF1976D2,
+                                                                          ),
+                                                                        ),
+                                                                  ),
+                                                                ),
                                                               ),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      },
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return Container(
-                                                          color: const Color(0xFF1976D2).withOpacity(0.2),
-                                                          child: const Icon(
-                                                            Icons.person,
-                                                            size: 24,
-                                                            color: Color(0xFF1976D2),
-                                                          ),
-                                                        );
-                                                      },
+                                                            );
+                                                          },
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return Container(
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF1976D2,
+                                                                  ).withOpacity(
+                                                                    0.2,
+                                                                  ),
+                                                              child: const Icon(
+                                                                Icons.person,
+                                                                size: 24,
+                                                                color: Color(
+                                                                  0xFF1976D2,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
                                                     ),
                                                   ),
                                                 ],
@@ -4225,10 +4361,12 @@ class _PortariaRepresentanteScreenState
                                     // Nome e Botão
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            autorizado['nome'] ?? 'Nome não informado',
+                                            autorizado['nome'] ??
+                                                'Nome não informado',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 15,
@@ -4252,8 +4390,12 @@ class _PortariaRepresentanteScreenState
                                           );
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF2E7D32),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                                          backgroundColor: const Color(
+                                            0xFF2E7D32,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
                                         ),
                                         child: const Text(
                                           'Selecionar',
@@ -4272,11 +4414,20 @@ class _PortariaRepresentanteScreenState
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInfoLine('CPF:', autorizado['cpf'] ?? 'N/A'),
+                                    _buildInfoLine(
+                                      'CPF:',
+                                      autorizado['cpf'] ?? 'N/A',
+                                    ),
                                     const SizedBox(height: 6),
-                                    _buildInfoLine('Criado por:', autorizado['criado_por'] ?? 'N/A'),
+                                    _buildInfoLine(
+                                      'Criado por:',
+                                      autorizado['criado_por'] ?? 'N/A',
+                                    ),
                                     const SizedBox(height: 6),
-                                    _buildInfoLine('Dias:', autorizado['dias_permitidos'] ?? 'N/A'),
+                                    _buildInfoLine(
+                                      'Dias:',
+                                      autorizado['dias_permitidos'] ?? 'N/A',
+                                    ),
                                   ],
                                 ),
                               ],
@@ -4345,24 +4496,35 @@ class _PortariaRepresentanteScreenState
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ExpansionTile(
                         leading: GestureDetector(
-                          onTap: visitante['foto_url'] != null && 
-                                  (visitante['foto_url'] as String?)?.isNotEmpty == true
+                          onTap:
+                              visitante['foto_url'] != null &&
+                                  (visitante['foto_url'] as String?)
+                                          ?.isNotEmpty ==
+                                      true
                               ? () => _mostrarFotoAmpliada(
-                                    visitante['foto_url'] as String,
-                                    visitante['nome'] ?? 'Visitante',
-                                  )
+                                  visitante['foto_url'] as String,
+                                  visitante['nome'] ?? 'Visitante',
+                                )
                               : null,
                           child: CircleAvatar(
                             backgroundColor: const Color(0xFF1976D2),
-                            backgroundImage: visitante['foto_url'] != null &&
-                                    (visitante['foto_url'] as String?)?.isNotEmpty == true
+                            backgroundImage:
+                                visitante['foto_url'] != null &&
+                                    (visitante['foto_url'] as String?)
+                                            ?.isNotEmpty ==
+                                        true
                                 ? NetworkImage(visitante['foto_url'] as String)
                                 : null,
-                            child: visitante['foto_url'] != null &&
-                                    (visitante['foto_url'] as String?)?.isNotEmpty == true
+                            child:
+                                visitante['foto_url'] != null &&
+                                    (visitante['foto_url'] as String?)
+                                            ?.isNotEmpty ==
+                                        true
                                 ? null
                                 : Text(
-                                    visitante['nome']?.substring(0, 1).toUpperCase() ??
+                                    visitante['nome']
+                                            ?.substring(0, 1)
+                                            .toUpperCase() ??
                                         'V',
                                     style: const TextStyle(color: Colors.white),
                                   ),
@@ -4391,9 +4553,12 @@ class _PortariaRepresentanteScreenState
                               children: [
                                 QrCodeDisplayWidget(
                                   qrCodeUrl: visitante['qr_code_url'],
-                                  visitanteNome: visitante['nome'] ?? 'Visitante',
+                                  visitanteNome:
+                                      visitante['nome'] ?? 'Visitante',
                                   visitanteCpf: visitante['cpf'] ?? '',
-                                  unidade: visitante['unidade_numero']?.toString() ?? '',
+                                  unidade:
+                                      visitante['unidade_numero']?.toString() ??
+                                      '',
                                 ),
                                 const SizedBox(height: 16),
                                 SizedBox(
@@ -4487,8 +4652,9 @@ class _PortariaRepresentanteScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Foto do visitante (pequena)
-                          if (pessoa['foto_url'] != null && 
-                              (pessoa['foto_url'] as String?)?.isNotEmpty == true)
+                          if (pessoa['foto_url'] != null &&
+                              (pessoa['foto_url'] as String?)?.isNotEmpty ==
+                                  true)
                             Padding(
                               padding: const EdgeInsets.only(right: 16),
                               child: GestureDetector(
@@ -4513,13 +4679,14 @@ class _PortariaRepresentanteScreenState
                                         child: Image.network(
                                           pessoa['foto_url'] as String,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Icon(
-                                              Icons.person,
-                                              size: 40,
-                                              color: Color(0xFF4A90E2),
-                                            );
-                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Icon(
+                                                  Icons.person,
+                                                  size: 40,
+                                                  color: Color(0xFF4A90E2),
+                                                );
+                                              },
                                         ),
                                       ),
                                       Positioned(
@@ -4547,7 +4714,7 @@ class _PortariaRepresentanteScreenState
                                 ),
                               ),
                             ),
-                          
+
                           // Informações do lado da foto
                           Expanded(
                             child: Column(
@@ -4759,18 +4926,20 @@ class _PortariaRepresentanteScreenState
       if (_fotoVisitante != null) {
         try {
           print('🔵 Iniciando upload da foto do visitante...');
-          
+
           // Gerar nome único para a foto
-          final String nomeArquivo = 'visitante_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          
+          final String nomeArquivo =
+              'visitante_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
           // Fazer upload para Supabase Storage
           // Bucket: visitante_adicionado_pelo_representante
-          final fotoUrlPublica = await VisitantePortariaService.uploadFotoVisitante(
-            condominioId: widget.condominioId!,
-            arquivo: _fotoVisitante!,
-            nomeArquivo: nomeArquivo,
-          );
-          
+          final fotoUrlPublica =
+              await VisitantePortariaService.uploadFotoVisitante(
+                condominioId: widget.condominioId!,
+                arquivo: _fotoVisitante!,
+                nomeArquivo: nomeArquivo,
+              );
+
           if (fotoUrlPublica != null) {
             visitanteData['foto_url'] = fotoUrlPublica;
             print('✅ Upload da foto realizado com sucesso: $fotoUrlPublica');
@@ -4866,7 +5035,9 @@ class _PortariaRepresentanteScreenState
       unidadeId = _unidadeSelecionadaVisitante!.id;
       print('[Visitante] Unidade selecionada: $unidadeId');
     } else if (_isUnidadeSelecionada && _unidadeSelecionadaVisitante == null) {
-      print('❌ [Visitante] ERRO: Unidade marcada como selecionada mas está nula!');
+      print(
+        '❌ [Visitante] ERRO: Unidade marcada como selecionada mas está nula!',
+      );
       unidadeId = null;
     } else {
       print('[Visitante] Sem unidade selecionada (Condomínio)');
@@ -4943,12 +5114,14 @@ class _PortariaRepresentanteScreenState
         duration: Duration(seconds: 3),
       ),
     );
-    
+
     // ✅ Recarregar a lista de visitantes cadastrados automaticamente
     // Esperar um pouco para garantir que o QR Code foi salvo no banco
     if (mounted) {
       await Future.delayed(const Duration(milliseconds: 800));
       _carregarVisitantesCadastrados();
+      // ✅ Recarregar também a lista de acessos (visitantes no condomínio)
+      _carregarVisitantesNoCondominio();
     }
   }
 
@@ -4990,10 +5163,7 @@ class _PortariaRepresentanteScreenState
           ),
           content: const Text(
             'De onde você gostaria de tirar a foto?',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF666666),
-            ),
+            style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
           ),
           actions: [
             // Botão Câmera
@@ -5022,11 +5192,7 @@ class _PortariaRepresentanteScreenState
                 Navigator.of(context).pop();
                 _selecionarFotoVisitanteGaleria();
               },
-              icon: const Icon(
-                Icons.image,
-                color: Color(0xFF1976D2),
-                size: 24,
-              ),
+              icon: const Icon(Icons.image, color: Color(0xFF1976D2), size: 24),
               label: const Text(
                 'Galeria',
                 style: TextStyle(
@@ -5150,6 +5316,7 @@ class _PortariaRepresentanteScreenState
       }
     });
   }
+
   // Método para salvar encomenda
   Future<void> _salvarEncomenda() async {
     if (_pessoaSelecionadaEncomenda == null) return;
@@ -5159,7 +5326,9 @@ class _PortariaRepresentanteScreenState
     if (representanteAtual == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Erro: Não foi possível identificar o representante atual'),
+          content: Text(
+            'Erro: Não foi possível identificar o representante atual',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -5168,41 +5337,42 @@ class _PortariaRepresentanteScreenState
 
     // Criar objeto Encomenda
     final now = DateTime.now();
-    
+
     // Debug: verificar dados da pessoa selecionada
     print('🔍 Debug - Pessoa selecionada:');
     print('  ID: ${_pessoaSelecionadaEncomenda!.id}');
     print('  Tipo: ${_pessoaSelecionadaEncomenda!.tipo}');
     print('  Nome: ${_pessoaSelecionadaEncomenda!.nome}');
     print('  Unidade ID: ${_pessoaSelecionadaEncomenda!.unidadeId}');
-    
+
     // Debug: verificar representante atual
     print('🔍 Debug - Representante atual:');
     print('  ID: ${representanteAtual.id}');
     //print('  Nome: ${representanteAtual.nome}');
     //print('  Email: ${representanteAtual.email}');
-    
+
     // Debug: verificar parâmetros do widget
     print('🔍 Debug - Parâmetros do widget:');
     print('  Condomínio ID: ${widget.condominioId}');
     print('  Representante ID (widget): ${widget.representanteId}');
-    
-    final proprietarioId = _pessoaSelecionadaEncomenda!.tipo == 'P' 
-        ? _pessoaSelecionadaEncomenda!.id 
+
+    final proprietarioId = _pessoaSelecionadaEncomenda!.tipo == 'P'
+        ? _pessoaSelecionadaEncomenda!.id
         : null;
-    final inquilinoId = _pessoaSelecionadaEncomenda!.tipo == 'I' 
-        ? _pessoaSelecionadaEncomenda!.id 
+    final inquilinoId = _pessoaSelecionadaEncomenda!.tipo == 'I'
+        ? _pessoaSelecionadaEncomenda!.id
         : null;
-        
+
     print('  Proprietário ID: $proprietarioId');
     print('  Inquilino ID: $inquilinoId');
     print('  Notificar Unidade: $_notificarUnidade');
-    
+
     try {
       final encomenda = Encomenda(
         id: '', // Será gerado pelo Supabase
         condominioId: widget.condominioId!,
-        representanteId: representanteAtual.id, // Usar ID do representante atual
+        representanteId:
+            representanteAtual.id, // Usar ID do representante atual
         unidadeId: _pessoaSelecionadaEncomenda!.unidadeId,
         proprietarioId: proprietarioId,
         inquilinoId: inquilinoId,
@@ -5213,7 +5383,7 @@ class _PortariaRepresentanteScreenState
         createdAt: now,
         updatedAt: now,
       );
-      
+
       print('✅ Encomenda criada com sucesso!');
       print('🚀 Iniciando salvamento da encomenda...');
       print('📦 Dados da encomenda: ${encomenda.toJson()}');
@@ -5222,20 +5392,24 @@ class _PortariaRepresentanteScreenState
       String? encomendaId;
       if (_imagemEncomenda != null) {
         print('📸 Iniciando upload de foto da encomenda...');
-        encomendaId = await _encomendaService.criarEncomendaComFoto(encomenda, _imagemEncomenda);
+        encomendaId = await _encomendaService.criarEncomendaComFoto(
+          encomenda,
+          _imagemEncomenda,
+        );
       } else {
         encomendaId = await _encomendaService.criarEncomenda(encomenda);
       }
 
       if (encomendaId.isNotEmpty) {
         print('✅ Encomenda salva com sucesso! ID: $encomendaId');
-        
+
         // Mostrar mensagem de sucesso
         if (mounted) {
-          final unidadeDisplay = _temBlocos && _pessoaSelecionadaEncomenda!.unidadeBloco != 'N/A'
+          final unidadeDisplay =
+              _temBlocos && _pessoaSelecionadaEncomenda!.unidadeBloco != 'N/A'
               ? '${_pessoaSelecionadaEncomenda!.unidadeNumero}/${_pessoaSelecionadaEncomenda!.unidadeBloco}'
               : _pessoaSelecionadaEncomenda!.unidadeNumero;
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -5258,7 +5432,7 @@ class _PortariaRepresentanteScreenState
       }
     } catch (e) {
       print('❌ Erro ao salvar encomenda: $e');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
