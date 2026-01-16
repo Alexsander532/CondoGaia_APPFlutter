@@ -11,14 +11,15 @@ class ConfigurarAmbientesScreen extends StatefulWidget {
   const ConfigurarAmbientesScreen({super.key});
 
   @override
-  State<ConfigurarAmbientesScreen> createState() => _ConfigurarAmbientesScreenState();
+  State<ConfigurarAmbientesScreen> createState() =>
+      _ConfigurarAmbientesScreenState();
 }
 
 class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
   List<Ambiente> ambientes = [];
   bool isLoading = true;
   String? errorMessage;
-  
+
   // TODO: Obter condominioId do usuário logado
   final String condominioId = '1'; // Temporário para teste
 
@@ -34,9 +35,10 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
         isLoading = true;
         errorMessage = null;
       });
-      
+
       final ambientesCarregados = await AmbienteService.getAmbientes();
-      
+
+      if (!mounted) return;
       setState(() {
         ambientes = ambientesCarregados;
         isLoading = false;
@@ -57,7 +59,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
       // URL format: https://.../{bucket}/{path}
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
-      
+
       if (pathSegments.isNotEmpty) {
         final nomeCompleto = pathSegments.last;
         // Remove o timestamp do início: locacao_123456_nomefile.pdf -> nomefile.pdf
@@ -97,10 +99,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
+                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
@@ -134,11 +133,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
               ),
             ),
             // Linha de separação
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-            
+            Container(height: 1, color: Colors.grey[300]),
+
             // Caminho de navegação
             Container(
               width: double.infinity,
@@ -153,7 +149,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                 ),
               ),
             ),
-            
+
             // Título da seção
             Container(
               width: double.infinity,
@@ -168,11 +164,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                 ),
               ),
             ),
-            
+
             // Conteúdo principal
-            Expanded(
-              child: _buildContent(),
-            ),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
@@ -182,28 +176,19 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
   // Gerencia o conteúdo baseado no estado atual
   Widget _buildContent() {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[300],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
             const SizedBox(height: 16),
             Text(
               errorMessage!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.red,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.red),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -215,14 +200,14 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
         ),
       );
     }
-    
+
     if (ambientes.isEmpty) {
       return _buildEmptyState();
     }
-    
+
     return _buildAmbientesList();
   }
-  
+
   // Estado vazio - quando não há ambientes cadastrados
   Widget _buildEmptyState() {
     return Padding(
@@ -232,16 +217,13 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
           const SizedBox(height: 20),
           const Text(
             'Nenhum',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.black87),
           ),
           const SizedBox(height: 40),
-          
+
           // Espaço flexível para centralizar o botão
           const Spacer(),
-          
+
           // Botão Adicionar Novo Ambiente
           GestureDetector(
             onTap: () {
@@ -286,13 +268,13 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
               ],
             ),
           ),
-          
+
           const Spacer(),
         ],
       ),
     );
   }
-  
+
   // Lista de ambientes - quando há ambientes cadastrados
   Widget _buildAmbientesList() {
     return Padding(
@@ -300,7 +282,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
       child: Column(
         children: [
           const SizedBox(height: 20),
-          
+
           // Lista de ambientes
           Expanded(
             child: ListView.builder(
@@ -318,7 +300,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Foto do ambiente (se houver)
-                      if (ambiente.fotoUrl != null && ambiente.fotoUrl!.isNotEmpty)
+                      if (ambiente.fotoUrl != null &&
+                          ambiente.fotoUrl!.isNotEmpty)
                         GestureDetector(
                           onTap: () {
                             // Abrir zoom da foto
@@ -329,17 +312,22 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                 child: InteractiveViewer(
                                   child: Image.network(
                                     ambiente.fotoUrl!,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        color: Colors.black87,
-                                        child: const Center(
-                                          child: CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Container(
+                                            color: Colors.black87,
+                                            child: const Center(
+                                              child: CircularProgressIndicator(
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(Colors.white),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
                                         color: Colors.grey[800],
@@ -360,25 +348,26 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           child: Container(
                             width: double.infinity,
                             height: 150,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                            ),
+                            decoration: BoxDecoration(color: Colors.grey[200]),
                             child: Image.network(
                               ambiente.fotoUrl!,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: SizedBox(
-                                      width: 30,
-                                      height: 30,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    ),
-                                  ),
-                                );
-                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 30,
+                                          height: 30,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
                                   color: Colors.grey[300],
@@ -394,10 +383,13 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                           ),
                         ),
-                      
+
                       // Informações do ambiente
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                         child: Row(
                           children: [
                             Expanded(
@@ -412,7 +404,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                       color: Colors.black87,
                                     ),
                                   ),
-                                  if (ambiente.descricao != null && ambiente.descricao!.isNotEmpty)
+                                  if (ambiente.descricao != null &&
+                                      ambiente.descricao!.isNotEmpty)
                                     Text(
                                       ambiente.descricao!,
                                       style: TextStyle(
@@ -428,7 +421,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                       color: Color(0xFF1E3A8A),
                                     ),
                                   ),
-                                  if (ambiente.locacaoUrl != null && ambiente.locacaoUrl!.isNotEmpty)
+                                  if (ambiente.locacaoUrl != null &&
+                                      ambiente.locacaoUrl!.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 8.0),
                                       child: Row(
@@ -474,9 +468,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
               },
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Botão Adicionar Novo Ambiente (quando já há ambientes)
           GestureDetector(
             onTap: () {
@@ -525,22 +519,25 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
       ),
     );
   }
-  
+
   // Modal para adicionar novo ambiente
-  void _showAddAmbienteModal() {
+  Future<void> _showAddAmbienteModal() async {
     final TextEditingController tituloController = TextEditingController();
     final TextEditingController descricaoController = TextEditingController();
     final TextEditingController valorController = TextEditingController();
-    final TextEditingController limiteHorarioController = TextEditingController();
-    final TextEditingController limiteDuracaoController = TextEditingController();
-    final TextEditingController diasBloqueadosController = TextEditingController();
-    
+    final TextEditingController limiteHorarioController =
+        TextEditingController();
+    final TextEditingController limiteDuracaoController =
+        TextEditingController();
+    final TextEditingController diasBloqueadosController =
+        TextEditingController();
+
     bool inadimplentesPodemReservar = true;
     XFile? fotoAmbiente;
     String? termoFileName;
     String? locacaoUrl; // URL do PDF do termo de locação
-    
-    showModalBottomSheet(
+
+    final result = await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -569,7 +566,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Conteúdo scrollável
                 Expanded(
                   child: SingleChildScrollView(
@@ -586,7 +583,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Widget de foto ou botão para selecionar
                         if (fotoAmbiente != null)
                           Stack(
@@ -629,7 +626,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                             child: SizedBox(
                                               width: 30,
                                               height: 30,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
                                             ),
                                           ),
                                         );
@@ -674,14 +673,19 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                 builder: (BuildContext dialogContext) {
                                   return AlertDialog(
                                     title: const Text('Selecionar Imagem'),
-                                    content: const Text('De onde você deseja selecionar a imagem?'),
+                                    content: const Text(
+                                      'De onde você deseja selecionar a imagem?',
+                                    ),
                                     actions: [
                                       TextButton(
                                         onPressed: () async {
                                           Navigator.pop(dialogContext);
                                           // Câmera
-                                          final photoPickerService = PhotoPickerService();
-                                          final XFile? imagem = await photoPickerService.pickImageFromCamera();
+                                          final photoPickerService =
+                                              PhotoPickerService();
+                                          final XFile? imagem =
+                                              await photoPickerService
+                                                  .pickImageFromCamera();
                                           if (imagem != null) {
                                             setModalState(() {
                                               fotoAmbiente = imagem;
@@ -694,8 +698,11 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         onPressed: () async {
                                           Navigator.pop(dialogContext);
                                           // Galeria
-                                          final photoPickerService = PhotoPickerService();
-                                          final XFile? imagem = await photoPickerService.pickImage();
+                                          final photoPickerService =
+                                              PhotoPickerService();
+                                          final XFile? imagem =
+                                              await photoPickerService
+                                                  .pickImage();
                                           if (imagem != null) {
                                             setModalState(() {
                                               fotoAmbiente = imagem;
@@ -740,9 +747,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                               ),
                             ),
                           ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Campo Título
                         const Text(
                           'Título:',
@@ -766,7 +773,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -775,98 +784,109 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Descrição
-                         const Text(
-                           'Descrição:',
-                           style: TextStyle(
-                             fontSize: 16,
-                             fontWeight: FontWeight.w500,
-                             color: Colors.black87,
-                           ),
-                         ),
-                         const SizedBox(height: 8),
-                         TextField(
-                           controller: descricaoController,
-                           maxLines: 4,
-                           decoration: InputDecoration(
-                             border: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: BorderSide(color: Colors.grey[300]!),
-                             ),
-                             enabledBorder: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: BorderSide(color: Colors.grey[300]!),
-                             ),
-                             focusedBorder: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
-                             ),
-                             contentPadding: const EdgeInsets.symmetric(
-                               horizontal: 12,
-                               vertical: 12,
-                             ),
-                           ),
-                         ),
+                        const Text(
+                          'Descrição:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descricaoController,
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Valor
-                         const Text(
-                           'Valor:',
-                           style: TextStyle(
-                             fontSize: 16,
-                             fontWeight: FontWeight.w500,
-                             color: Colors.black87,
-                           ),
-                         ),
-                         const SizedBox(height: 8),
-                         TextField(
-                           controller: valorController,
-                           keyboardType: TextInputType.number,
-                           onChanged: (value) {
-                             // Remove todos os caracteres não numéricos
-                             String numericValue = value.replaceAll(RegExp(r'[^0-9]'), '');
-                             
-                             if (numericValue.isNotEmpty) {
-                               // Converte para double e divide por 100 para ter centavos
-                               double doubleValue = double.parse(numericValue) / 100;
-                               
-                               // Formata como moeda brasileira
-                               String formattedValue = 'R\$ ${doubleValue.toStringAsFixed(2).replaceAll('.', ',')}';
-                               
-                               // Atualiza o controller sem causar loop infinito
-                               if (valorController.text != formattedValue) {
-                                 valorController.value = TextEditingValue(
-                                   text: formattedValue,
-                                   selection: TextSelection.collapsed(offset: formattedValue.length),
-                                 );
-                               }
-                             } else {
-                               valorController.clear();
-                             }
-                           },
-                           decoration: InputDecoration(
-                             hintText: 'R\$ 0,00',
-                             border: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: BorderSide(color: Colors.grey[300]!),
-                             ),
-                             enabledBorder: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: BorderSide(color: Colors.grey[300]!),
-                             ),
-                             focusedBorder: OutlineInputBorder(
-                               borderRadius: BorderRadius.circular(8),
-                               borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
-                             ),
-                             contentPadding: const EdgeInsets.symmetric(
-                               horizontal: 12,
-                               vertical: 12,
-                             ),
-                           ),
-                         ),
+                        const Text(
+                          'Valor:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: valorController,
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            // Remove todos os caracteres não numéricos
+                            String numericValue = value.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            );
+
+                            if (numericValue.isNotEmpty) {
+                              // Converte para double e divide por 100 para ter centavos
+                              double doubleValue =
+                                  double.parse(numericValue) / 100;
+
+                              // Formata como moeda brasileira
+                              String formattedValue =
+                                  'R\$ ${doubleValue.toStringAsFixed(2).replaceAll('.', ',')}';
+
+                              // Atualiza o controller sem causar loop infinito
+                              if (valorController.text != formattedValue) {
+                                valorController.value = TextEditingValue(
+                                  text: formattedValue,
+                                  selection: TextSelection.collapsed(
+                                    offset: formattedValue.length,
+                                  ),
+                                );
+                              }
+                            } else {
+                              valorController.clear();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'R\$ 0,00',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 20),
-                        
+
                         // Seção Especificações
                         const Text(
                           'Especificações',
@@ -877,7 +897,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Limite de Horário
                         const Text(
                           'Limite de Horário:',
@@ -901,7 +921,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -910,7 +932,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Limite de Tempo de Duração
                         const Text(
                           'Limite de Tempo de Duração:',
@@ -934,7 +956,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -943,7 +967,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Dias Bloqueados
                         const Text(
                           'Dias Bloqueados:',
@@ -967,7 +991,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -976,7 +1002,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Pergunta sobre inadimplentes
                         const Text(
                           'Inadimplentes podem reservar?',
@@ -1027,39 +1053,46 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Campo Anexar termo
                         GestureDetector(
                           onTap: () async {
                             try {
-                              FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                type: FileType.custom,
-                                allowedExtensions: ['pdf'],
-                              );
+                              FilePickerResult? result = await FilePicker
+                                  .platform
+                                  .pickFiles(
+                                    type: FileType.custom,
+                                    allowedExtensions: ['pdf'],
+                                  );
 
                               if (result != null) {
                                 // Mostrar indicador de envio
                                 setModalState(() {
-                                  termoFileName = '${result.files.single.name} (enviando...)';
+                                  termoFileName =
+                                      '${result.files.single.name} (enviando...)';
                                 });
 
                                 try {
                                   // Fazer upload do arquivo
-                                  final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
-                                    result.files.single,
-                                    nomeArquivo: result.files.single.name,
-                                  );
+                                  final pdfUrl =
+                                      await AmbienteService.uploadLocacaoPdfAmbiente(
+                                        result.files.single,
+                                        nomeArquivo: result.files.single.name,
+                                      );
 
                                   if (pdfUrl != null && pdfUrl.isNotEmpty) {
                                     // Atualizar estado com sucesso
                                     setModalState(() {
                                       locacaoUrl = pdfUrl;
-                                      termoFileName = '${result.files.single.name} ✓';
+                                      termoFileName =
+                                          '${result.files.single.name} ✓';
                                     });
 
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Termo de locação enviado com sucesso'),
+                                        content: Text(
+                                          'Termo de locação enviado com sucesso',
+                                        ),
                                         backgroundColor: Colors.green,
                                         duration: Duration(seconds: 2),
                                       ),
@@ -1072,7 +1105,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
 
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Erro: Não foi possível gerar URL do arquivo'),
+                                        content: Text(
+                                          'Erro: Não foi possível gerar URL do arquivo',
+                                        ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -1086,7 +1121,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                   print('Erro ao fazer upload do PDF: $e');
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Erro ao enviar PDF: ${e.toString()}'),
+                                      content: Text(
+                                        'Erro ao enviar PDF: ${e.toString()}',
+                                      ),
                                       backgroundColor: Colors.red,
                                       duration: const Duration(seconds: 3),
                                     ),
@@ -1102,7 +1139,10 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                                  const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    color: Color(0xFF1E3A8A),
+                                  ),
                                   const SizedBox(width: 8),
                                   const Text(
                                     'Anexar termo',
@@ -1116,16 +1156,24 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                               ),
                               if (termoFileName != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 8.0, left: 32.0),
+                                  padding: const EdgeInsets.only(
+                                    top: 8.0,
+                                    left: 32.0,
+                                  ),
                                   child: Row(
                                     children: [
                                       Expanded(
                                         child: Text(
                                           termoFileName!,
                                           style: TextStyle(
-                                            color: termoFileName!.contains('✓') ? Colors.green : Colors.black87,
+                                            color: termoFileName!.contains('✓')
+                                                ? Colors.green
+                                                : Colors.black87,
                                             fontSize: 14,
-                                            fontWeight: termoFileName!.contains('✓') ? FontWeight.bold : FontWeight.normal,
+                                            fontWeight:
+                                                termoFileName!.contains('✓')
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1139,7 +1187,11 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         },
                                         child: const Padding(
                                           padding: EdgeInsets.only(left: 8.0),
-                                          child: Icon(Icons.close, size: 18, color: Colors.red),
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 18,
+                                            color: Colors.red,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1153,7 +1205,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Botão Criar Ambiente
                 SizedBox(
                   width: double.infinity,
@@ -1172,43 +1224,46 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           }
 
                           // Obter valores diretamente como strings
-                          final String? diasBloqueados = diasBloqueadosController.text.trim().isEmpty 
-                              ? null 
+                          final String? diasBloqueados =
+                              diasBloqueadosController.text.trim().isEmpty
+                              ? null
                               : diasBloqueadosController.text.trim();
-                          
-                          final String? limiteTempoDuracao = limiteDuracaoController.text.trim().isEmpty 
-                              ? null 
+
+                          final String? limiteTempoDuracao =
+                              limiteDuracaoController.text.trim().isEmpty
+                              ? null
                               : limiteDuracaoController.text.trim();
 
                           // Upload de foto se selecionada
                           String? fotoUrl;
                           if (fotoAmbiente != null) {
-                            fotoUrl = await AmbienteService.uploadFotoAmbiente(fotoAmbiente);
+                            fotoUrl = await AmbienteService.uploadFotoAmbiente(
+                              fotoAmbiente,
+                            );
                           }
 
                           // Criar novo ambiente usando o AmbienteService
                           await AmbienteService.criarAmbiente(
                             titulo: tituloController.text.trim(),
-                            descricao: descricaoController.text.trim().isEmpty 
-                                ? null 
+                            descricao: descricaoController.text.trim().isEmpty
+                                ? null
                                 : descricaoController.text.trim(),
                             valor: valor,
-                            limiteHorario: limiteHorarioController.text.trim().isEmpty 
-                                ? null 
+                            limiteHorario:
+                                limiteHorarioController.text.trim().isEmpty
+                                ? null
                                 : limiteHorarioController.text.trim(),
                             limiteTempoDuracao: limiteTempoDuracao,
                             diasBloqueados: diasBloqueados,
-                            inadimplentePodemReservar: inadimplentesPodemReservar,
+                            inadimplentePodemReservar:
+                                inadimplentesPodemReservar,
                             fotoUrl: fotoUrl,
                             locacaoUrl: locacaoUrl,
                             // Removido createdBy temporariamente até implementar autenticação
                           );
 
-                          // Recarregar a lista de ambientes
-                          await _carregarAmbientes();
-                          
-                          Navigator.pop(context);
-                          
+                          Navigator.pop(context, true);
+
                           // Mostrar mensagem de sucesso
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -1241,19 +1296,24 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-      );
-  }  // Modal para editar ambiente existente
-  void _showEditAmbienteModal(int index) {
+      ),
+    );
+
+    if (result == true) {
+      _carregarAmbientes();
+    }
+  } // Modal para editar ambiente existente
+
+  Future<void> _showEditAmbienteModal(int index) async {
     final ambiente = ambientes[index];
-    
+
     final TextEditingController tituloController = TextEditingController(
       text: ambiente.titulo,
     );
@@ -1269,16 +1329,15 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
     final TextEditingController limiteDuracaoController = TextEditingController(
       text: ambiente.limiteTempoDuracao ?? '',
     );
-    final TextEditingController diasBloqueadosController = TextEditingController(
-      text: ambiente.diasBloqueados ?? '',
-    );
-    
+    final TextEditingController diasBloqueadosController =
+        TextEditingController(text: ambiente.diasBloqueados ?? '');
+
     bool inadimplentesPodemReservar = ambiente.inadimplentePodemReservar;
     XFile? fotoAmbienteEditada;
     String? termoFileName; // TODO: Carregar nome do termo existente se houver
     String? locacaoUrl = ambiente.locacaoUrl;
-    
-    showModalBottomSheet(
+
+    final result = await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1317,7 +1376,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text('Confirmar Desativação'),
-                              content: Text('Tem certeza que deseja desativar o ambiente "${ambientes[index].titulo}"?\n\nO ambiente não será excluído permanentemente, apenas ficará inativo.'),
+                              content: Text(
+                                'Tem certeza que deseja desativar o ambiente "${ambientes[index].titulo}"?\n\nO ambiente não será excluído permanentemente, apenas ficará inativo.',
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
@@ -1329,29 +1390,41 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                       // Desativar ambiente usando o AmbienteService
                                       await AmbienteService.desativarAmbiente(
                                         ambientes[index].id!,
-                                        atualizadoPor: 'user_id_placeholder', // TODO: Obter ID do usuário logado
+                                        atualizadoPor:
+                                            'user_id_placeholder', // TODO: Obter ID do usuário logado
                                       );
-                                      
-                                      // Recarregar a lista de ambientes
-                                      await _carregarAmbientes();
-                                      
+
+                                      // Recarregar a lista de ambientes e fechar
+                                      // Será feito após o fechamento do modal
+
                                       Navigator.pop(context); // Fechar dialog
-                                      Navigator.pop(context); // Fechar modal de edição
-                                      
+                                      Navigator.pop(
+                                        context,
+                                        true,
+                                      ); // Fechar modal de edição com sucesso
+
                                       // Mostrar mensagem de sucesso
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Ambiente desativado com sucesso!'),
+                                          content: Text(
+                                            'Ambiente desativado com sucesso!',
+                                          ),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
                                     } catch (e) {
                                       Navigator.pop(context); // Fechar dialog
-                                      
+
                                       // Mostrar mensagem de erro
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('Erro ao desativar ambiente: $e'),
+                                          content: Text(
+                                            'Erro ao desativar ambiente: $e',
+                                          ),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -1376,7 +1449,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Conteúdo scrollável
                 Expanded(
                   child: SingleChildScrollView(
@@ -1406,7 +1479,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1415,7 +1490,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Descrição
                         const Text(
                           'Descrição:',
@@ -1440,7 +1515,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1449,7 +1526,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Valor
                         const Text(
                           'Valor:',
@@ -1465,22 +1542,32 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
                             // Remove todos os caracteres não numéricos
-                            String numericValue = value.replaceAll(RegExp(r'[^0-9]'), '');
-                            
+                            String numericValue = value.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            );
+
                             if (numericValue.isEmpty) {
                               valorController.text = '';
-                              valorController.selection = TextSelection.fromPosition(
-                                TextPosition(offset: valorController.text.length),
-                              );
+                              valorController.selection =
+                                  TextSelection.fromPosition(
+                                    TextPosition(
+                                      offset: valorController.text.length,
+                                    ),
+                                  );
                               return;
                             }
-                            
+
                             // Converte para double e formata como moeda
-                            double valueAsDouble = double.parse(numericValue) / 100;
-                            String formattedValue = valueAsDouble.toStringAsFixed(2).replaceAll('.', ',');
-                            
+                            double valueAsDouble =
+                                double.parse(numericValue) / 100;
+                            String formattedValue = valueAsDouble
+                                .toStringAsFixed(2)
+                                .replaceAll('.', ',');
+
                             valorController.text = formattedValue;
-                            valorController.selection = TextSelection.fromPosition(
+                            valorController
+                                .selection = TextSelection.fromPosition(
                               TextPosition(offset: valorController.text.length),
                             );
                           },
@@ -1497,7 +1584,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1506,7 +1595,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Seção Especificações
                         const Text(
                           'Especificações',
@@ -1517,7 +1606,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Limite de Hora
                         const Text(
                           'Limite de Hora:',
@@ -1532,16 +1621,22 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           controller: limiteHorarioController,
                           onChanged: (value) {
                             // Remove todos os caracteres não numéricos
-                            String numericValue = value.replaceAll(RegExp(r'[^0-9]'), '');
-                            
+                            String numericValue = value.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            );
+
                             if (numericValue.isEmpty) {
                               limiteHorarioController.text = '';
-                              limiteHorarioController.selection = TextSelection.fromPosition(
-                                TextPosition(offset: limiteHorarioController.text.length),
+                              limiteHorarioController
+                                  .selection = TextSelection.fromPosition(
+                                TextPosition(
+                                  offset: limiteHorarioController.text.length,
+                                ),
                               );
                               return;
                             }
-                            
+
                             // Formata como xxhyymin
                             String formatted = '';
                             if (numericValue.length >= 1) {
@@ -1557,11 +1652,14 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                 formatted = hours + 'h' + minutes + 'min';
                               }
                             }
-                            
+
                             limiteHorarioController.text = formatted;
-                            limiteHorarioController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: limiteHorarioController.text.length),
-                            );
+                            limiteHorarioController.selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: limiteHorarioController.text.length,
+                                  ),
+                                );
                           },
                           decoration: InputDecoration(
                             hintText: '',
@@ -1575,7 +1673,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1584,7 +1684,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Limite de Tempo de Duração
                         const Text(
                           'Limite de Tempo de Duração:',
@@ -1599,23 +1699,32 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           controller: limiteDuracaoController,
                           onChanged: (value) {
                             // Remove todos os caracteres não numéricos
-                            String numericValue = value.replaceAll(RegExp(r'[^0-9]'), '');
-                            
+                            String numericValue = value.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            );
+
                             if (numericValue.isEmpty) {
                               limiteDuracaoController.text = '';
-                              limiteDuracaoController.selection = TextSelection.fromPosition(
-                                TextPosition(offset: limiteDuracaoController.text.length),
+                              limiteDuracaoController
+                                  .selection = TextSelection.fromPosition(
+                                TextPosition(
+                                  offset: limiteDuracaoController.text.length,
+                                ),
                               );
                               return;
                             }
-                            
+
                             // Formata como xh
                             String formatted = numericValue + 'h';
-                            
+
                             limiteDuracaoController.text = formatted;
-                            limiteDuracaoController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: limiteDuracaoController.text.length),
-                            );
+                            limiteDuracaoController.selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: limiteDuracaoController.text.length,
+                                  ),
+                                );
                           },
                           decoration: InputDecoration(
                             hintText: '',
@@ -1629,7 +1738,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1638,7 +1749,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Campo Dias Bloqueados
                         const Text(
                           'Dias Bloqueados:',
@@ -1654,39 +1765,59 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           onChanged: (value) {
                             // Implementa máscara dd/mm/yyyy com múltiplas datas separadas por ;
                             String formatted = '';
-                            String numericValue = value.replaceAll(RegExp(r'[^0-9;]'), '');
-                            
+                            String numericValue = value.replaceAll(
+                              RegExp(r'[^0-9;]'),
+                              '',
+                            );
+
                             List<String> dates = numericValue.split(';');
                             List<String> formattedDates = [];
-                            
+
                             for (String date in dates) {
                               if (date.isNotEmpty) {
                                 String formattedDate = '';
-                                String cleanDate = date.replaceAll(RegExp(r'[^0-9]'), '');
-                                
+                                String cleanDate = date.replaceAll(
+                                  RegExp(r'[^0-9]'),
+                                  '',
+                                );
+
                                 if (cleanDate.length >= 1) {
                                   if (cleanDate.length <= 2) {
                                     formattedDate = cleanDate;
                                   } else if (cleanDate.length <= 4) {
-                                    formattedDate = cleanDate.substring(0, 2) + '/' + cleanDate.substring(2);
+                                    formattedDate =
+                                        cleanDate.substring(0, 2) +
+                                        '/' +
+                                        cleanDate.substring(2);
                                   } else {
-                                    formattedDate = cleanDate.substring(0, 2) + '/' + 
-                                                  cleanDate.substring(2, 4) + '/' + 
-                                                  cleanDate.substring(4, cleanDate.length > 8 ? 8 : cleanDate.length);
+                                    formattedDate =
+                                        cleanDate.substring(0, 2) +
+                                        '/' +
+                                        cleanDate.substring(2, 4) +
+                                        '/' +
+                                        cleanDate.substring(
+                                          4,
+                                          cleanDate.length > 8
+                                              ? 8
+                                              : cleanDate.length,
+                                        );
                                   }
                                 }
-                                
+
                                 if (formattedDate.isNotEmpty) {
                                   formattedDates.add(formattedDate);
                                 }
                               }
                             }
-                            
+
                             formatted = formattedDates.join(';');
-                            
+
                             diasBloqueadosController.text = formatted;
-                            diasBloqueadosController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: diasBloqueadosController.text.length),
+                            diasBloqueadosController
+                                .selection = TextSelection.fromPosition(
+                              TextPosition(
+                                offset: diasBloqueadosController.text.length,
+                              ),
                             );
                           },
                           decoration: InputDecoration(
@@ -1701,7 +1832,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1E3A8A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF1E3A8A),
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1710,7 +1843,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Seção Foto do Ambiente (Edição)
                         const Text(
                           'Foto do Ambiente:',
@@ -1728,13 +1861,18 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                               builder: (BuildContext context) {
                                 return AlertDialog(
                                   title: const Text('Selecionar Imagem'),
-                                  content: const Text('Escolha a origem da imagem:'),
+                                  content: const Text(
+                                    'Escolha a origem da imagem:',
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () async {
                                         Navigator.pop(context);
-                                        final photoPickerService = PhotoPickerService();
-                                        final XFile? picked = await photoPickerService.pickImageFromCamera();
+                                        final photoPickerService =
+                                            PhotoPickerService();
+                                        final XFile? picked =
+                                            await photoPickerService
+                                                .pickImageFromCamera();
                                         if (picked != null) {
                                           setModalState(() {
                                             fotoAmbienteEditada = picked;
@@ -1746,8 +1884,11 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                     TextButton(
                                       onPressed: () async {
                                         Navigator.pop(context);
-                                        final photoPickerService = PhotoPickerService();
-                                        final XFile? picked = await photoPickerService.pickImage();
+                                        final photoPickerService =
+                                            PhotoPickerService();
+                                        final XFile? picked =
+                                            await photoPickerService
+                                                .pickImage();
                                         if (picked != null) {
                                           setModalState(() {
                                             fotoAmbienteEditada = picked;
@@ -1801,13 +1942,17 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         builder: (context) => Dialog(
                                           child: InteractiveViewer(
                                             child: FutureBuilder<Uint8List>(
-                                              future: fotoAmbienteEditada!.readAsBytes(),
+                                              future: fotoAmbienteEditada!
+                                                  .readAsBytes(),
                                               builder: (context, snapshot) {
                                                 if (snapshot.hasData) {
-                                                  return Image.memory(snapshot.data!);
+                                                  return Image.memory(
+                                                    snapshot.data!,
+                                                  );
                                                 }
                                                 return const Center(
-                                                  child: CircularProgressIndicator(),
+                                                  child:
+                                                      CircularProgressIndicator(),
                                                 );
                                               },
                                             ),
@@ -1825,7 +1970,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: FutureBuilder<Uint8List>(
-                                          future: fotoAmbienteEditada!.readAsBytes(),
+                                          future: fotoAmbienteEditada!
+                                              .readAsBytes(),
                                           builder: (context, snapshot) {
                                             if (snapshot.hasData) {
                                               return Image.memory(
@@ -1834,7 +1980,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                               );
                                             }
                                             return const Center(
-                                              child: CircularProgressIndicator(),
+                                              child:
+                                                  CircularProgressIndicator(),
                                             );
                                           },
                                         ),
@@ -1872,7 +2019,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                         else
                           const SizedBox(height: 16),
                         // Exibir foto existente se houver
-                        if (ambiente.fotoUrl != null && ambiente.fotoUrl!.isNotEmpty)
+                        if (ambiente.fotoUrl != null &&
+                            ambiente.fotoUrl!.isNotEmpty)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1914,20 +2062,31 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                           ambiente.fotoUrl!,
                                           fit: BoxFit.cover,
                                           loadingBuilder: (context, child, loadingProgress) {
-                                            if (loadingProgress == null) return child;
+                                            if (loadingProgress == null)
+                                              return child;
                                             return Center(
                                               child: CircularProgressIndicator(
-                                                value: loadingProgress.expectedTotalBytes != null
-                                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                value:
+                                                    loadingProgress
+                                                            .expectedTotalBytes !=
+                                                        null
+                                                    ? loadingProgress
+                                                              .cumulativeBytesLoaded /
+                                                          loadingProgress
+                                                              .expectedTotalBytes!
                                                     : null,
                                               ),
                                             );
                                           },
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Center(
-                                              child: Icon(Icons.error_outline, color: Colors.red),
-                                            );
-                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Center(
+                                                  child: Icon(
+                                                    Icons.error_outline,
+                                                    color: Colors.red,
+                                                  ),
+                                                );
+                                              },
                                         ),
                                       ),
                                     ),
@@ -1947,16 +2106,24 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                           );
                                           await _carregarAmbientes();
                                           setModalState(() {});
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             const SnackBar(
-                                              content: Text('Foto removida com sucesso!'),
+                                              content: Text(
+                                                'Foto removida com sucesso!',
+                                              ),
                                               backgroundColor: Colors.green,
                                             ),
                                           );
                                         } catch (e) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
-                                              content: Text('Erro ao remover foto: $e'),
+                                              content: Text(
+                                                'Erro ao remover foto: $e',
+                                              ),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
@@ -1982,7 +2149,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                             ],
                           ),
                         const SizedBox(height: 24),
-                        
+
                         // Seção Inadimplentes podem reservar?
                         const Text(
                           'Inadimplentes podem reservar?',
@@ -2041,39 +2208,48 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Campo Anexar termo - Mostra diferente se já tem termo
                         if (locacaoUrl == null || locacaoUrl!.isEmpty)
                           // Se NÃO HÁ termo: mostrar botão de upload
                           GestureDetector(
                             onTap: () async {
                               try {
-                                FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                  type: FileType.custom,
-                                  allowedExtensions: ['pdf'],
-                                );
+                                FilePickerResult? result = await FilePicker
+                                    .platform
+                                    .pickFiles(
+                                      type: FileType.custom,
+                                      allowedExtensions: ['pdf'],
+                                    );
 
                                 if (result != null) {
                                   setModalState(() {
-                                    termoFileName = '${result.files.single.name} (enviando...)';
+                                    termoFileName =
+                                        '${result.files.single.name} (enviando...)';
                                   });
-                                  
+
                                   // Fazer upload do PDF
                                   try {
-                                    final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
-                                      result.files.single,
-                                      nomeArquivo: result.files.single.name,
-                                    );
-                                    
+                                    final pdfUrl =
+                                        await AmbienteService.uploadLocacaoPdfAmbiente(
+                                          result.files.single,
+                                          nomeArquivo: result.files.single.name,
+                                        );
+
                                     if (pdfUrl != null && pdfUrl.isNotEmpty) {
                                       setModalState(() {
                                         locacaoUrl = pdfUrl;
-                                        termoFileName = '${result.files.single.name} ✓';
+                                        termoFileName =
+                                            '${result.files.single.name} ✓';
                                       });
-                                      
-                                      ScaffoldMessenger.of(context).showSnackBar(
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Termo de locação enviado com sucesso'),
+                                          content: Text(
+                                            'Termo de locação enviado com sucesso',
+                                          ),
                                           backgroundColor: Colors.green,
                                           duration: Duration(seconds: 2),
                                         ),
@@ -2083,9 +2259,13 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         termoFileName = null;
                                       });
 
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Erro: Não foi possível gerar URL do arquivo'),
+                                          content: Text(
+                                            'Erro: Não foi possível gerar URL do arquivo',
+                                          ),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -2094,11 +2274,13 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                     setModalState(() {
                                       termoFileName = null;
                                     });
-                                    
+
                                     print('Erro ao fazer upload do PDF: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Erro ao enviar PDF: ${e.toString()}'),
+                                        content: Text(
+                                          'Erro ao enviar PDF: ${e.toString()}',
+                                        ),
                                         backgroundColor: Colors.red,
                                         duration: const Duration(seconds: 3),
                                       ),
@@ -2120,7 +2302,10 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E3A8A)),
+                                    const Icon(
+                                      Icons.cloud_upload_outlined,
+                                      color: Color(0xFF1E3A8A),
+                                    ),
                                     const SizedBox(width: 8),
                                     const Text(
                                       'Anexar termo',
@@ -2152,17 +2337,25 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.green, width: 2),
+                                  border: Border.all(
+                                    color: Colors.green,
+                                    width: 2,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                   color: Colors.green[50],
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.description, color: Color(0xFF1E3A8A), size: 24),
+                                    const Icon(
+                                      Icons.description,
+                                      color: Color(0xFF1E3A8A),
+                                      size: 24,
+                                    ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Termo Carregado',
@@ -2176,24 +2369,36 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                           GestureDetector(
                                             onTap: () async {
                                               try {
-                                                final Uri url = Uri.parse(locacaoUrl!);
+                                                final Uri url = Uri.parse(
+                                                  locacaoUrl!,
+                                                );
                                                 if (await canLaunchUrl(url)) {
                                                   await launchUrl(
                                                     url,
-                                                    mode: LaunchMode.externalApplication,
+                                                    mode: LaunchMode
+                                                        .externalApplication,
                                                   );
                                                 } else {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     const SnackBar(
-                                                      content: Text('Não foi possível abrir o termo'),
-                                                      backgroundColor: Colors.red,
+                                                      content: Text(
+                                                        'Não foi possível abrir o termo',
+                                                      ),
+                                                      backgroundColor:
+                                                          Colors.red,
                                                     ),
                                                   );
                                                 }
                                               } catch (e) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   SnackBar(
-                                                    content: Text('Erro ao abrir: $e'),
+                                                    content: Text(
+                                                      'Erro ao abrir: $e',
+                                                    ),
                                                     backgroundColor: Colors.red,
                                                   ),
                                                 );
@@ -2204,7 +2409,8 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                               style: TextStyle(
                                                 color: Colors.blue,
                                                 fontSize: 12,
-                                                decoration: TextDecoration.underline,
+                                                decoration:
+                                                    TextDecoration.underline,
                                               ),
                                             ),
                                           ),
@@ -2218,33 +2424,51 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                         GestureDetector(
                                           onTap: () async {
                                             try {
-                                              FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                                type: FileType.custom,
-                                                allowedExtensions: ['pdf'],
-                                              );
+                                              FilePickerResult? result =
+                                                  await FilePicker.platform
+                                                      .pickFiles(
+                                                        type: FileType.custom,
+                                                        allowedExtensions: [
+                                                          'pdf',
+                                                        ],
+                                                      );
 
                                               if (result != null) {
                                                 setModalState(() {
-                                                  termoFileName = '${result.files.single.name} (enviando...)';
+                                                  termoFileName =
+                                                      '${result.files.single.name} (enviando...)';
                                                 });
-                                                
+
                                                 try {
-                                                  final pdfUrl = await AmbienteService.uploadLocacaoPdfAmbiente(
-                                                    result.files.single,
-                                                    nomeArquivo: result.files.single.name,
-                                                  );
-                                                  
-                                                  if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                                                  final pdfUrl =
+                                                      await AmbienteService.uploadLocacaoPdfAmbiente(
+                                                        result.files.single,
+                                                        nomeArquivo: result
+                                                            .files
+                                                            .single
+                                                            .name,
+                                                      );
+
+                                                  if (pdfUrl != null &&
+                                                      pdfUrl.isNotEmpty) {
                                                     setModalState(() {
                                                       locacaoUrl = pdfUrl;
-                                                      termoFileName = '${result.files.single.name} ✓';
+                                                      termoFileName =
+                                                          '${result.files.single.name} ✓';
                                                     });
-                                                    
-                                                    ScaffoldMessenger.of(context).showSnackBar(
+
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
                                                       const SnackBar(
-                                                        content: Text('Termo atualizado com sucesso'),
-                                                        backgroundColor: Colors.green,
-                                                        duration: Duration(seconds: 2),
+                                                        content: Text(
+                                                          'Termo atualizado com sucesso',
+                                                        ),
+                                                        backgroundColor:
+                                                            Colors.green,
+                                                        duration: Duration(
+                                                          seconds: 2,
+                                                        ),
                                                       ),
                                                     );
                                                   }
@@ -2252,23 +2476,34 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                                   setModalState(() {
                                                     termoFileName = null;
                                                   });
-                                                  
-                                                  print('Erro ao fazer upload: $e');
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+
+                                                  print(
+                                                    'Erro ao fazer upload: $e',
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     SnackBar(
                                                       content: Text('Erro: $e'),
-                                                      backgroundColor: Colors.red,
+                                                      backgroundColor:
+                                                          Colors.red,
                                                     ),
                                                   );
                                                 }
                                               }
                                             } catch (e) {
-                                              print('Erro ao selecionar arquivo: $e');
+                                              print(
+                                                'Erro ao selecionar arquivo: $e',
+                                              );
                                             }
                                           },
                                           child: const Tooltip(
                                             message: 'Trocar termo',
-                                            child: Icon(Icons.edit, color: Color(0xFF1E3A8A), size: 20),
+                                            child: Icon(
+                                              Icons.edit,
+                                              color: Color(0xFF1E3A8A),
+                                              size: 20,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -2279,7 +2514,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                               locacaoUrl = null;
                                               termoFileName = null;
                                             });
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
                                               const SnackBar(
                                                 content: Text('Termo removido'),
                                                 backgroundColor: Colors.orange,
@@ -2289,7 +2526,11 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                           },
                                           child: const Tooltip(
                                             message: 'Remover termo',
-                                            child: Icon(Icons.close, color: Colors.red, size: 20),
+                                            child: Icon(
+                                              Icons.close,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -2305,7 +2546,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Botão Salvar
                 SizedBox(
                   width: double.infinity,
@@ -2324,12 +2565,14 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           }
 
                           // Obter valores diretamente como strings
-                          final String? diasBloqueados = diasBloqueadosController.text.trim().isEmpty 
-                              ? null 
+                          final String? diasBloqueados =
+                              diasBloqueadosController.text.trim().isEmpty
+                              ? null
                               : diasBloqueadosController.text.trim();
-                          
-                          final String? limiteTempoDuracao = limiteDuracaoController.text.trim().isEmpty 
-                              ? null 
+
+                          final String? limiteTempoDuracao =
+                              limiteDuracaoController.text.trim().isEmpty
+                              ? null
                               : limiteDuracaoController.text.trim();
 
                           // Variável para armazenar a URL da foto
@@ -2338,11 +2581,16 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           // Se uma nova foto foi selecionada, fazer upload
                           if (fotoAmbienteEditada != null) {
                             try {
-                              fotoUrlAtualizada = await AmbienteService.uploadFotoAmbiente(fotoAmbienteEditada);
+                              fotoUrlAtualizada =
+                                  await AmbienteService.uploadFotoAmbiente(
+                                    fotoAmbienteEditada,
+                                  );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Erro ao fazer upload da foto: $e'),
+                                  content: Text(
+                                    'Erro ao fazer upload da foto: $e',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -2354,27 +2602,28 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                           await AmbienteService.atualizarAmbiente(
                             ambientes[index].id!,
                             titulo: tituloController.text.trim(),
-                            descricao: descricaoController.text.trim().isEmpty 
-                                ? null 
+                            descricao: descricaoController.text.trim().isEmpty
+                                ? null
                                 : descricaoController.text.trim(),
                             valor: valor,
-                            limiteHorario: limiteHorarioController.text.trim().isEmpty 
-                                ? null 
+                            limiteHorario:
+                                limiteHorarioController.text.trim().isEmpty
+                                ? null
                                 : limiteHorarioController.text.trim(),
                             limiteTempoDuracao: limiteTempoDuracao,
                             diasBloqueados: diasBloqueados,
-                            inadimplentePodemReservar: inadimplentesPodemReservar,
+                            inadimplentePodemReservar:
+                                inadimplentesPodemReservar,
                             fotoUrl: fotoUrlAtualizada,
                             locacaoUrl: locacaoUrl,
-                            removerLocacao: locacaoUrl == null && ambientes[index].locacaoUrl != null,
+                            removerLocacao:
+                                locacaoUrl == null &&
+                                ambientes[index].locacaoUrl != null,
                             // Removido updatedBy temporariamente até implementar autenticação
                           );
 
-                          // Recarregar a lista de ambientes
-                          await _carregarAmbientes();
-                          
-                          Navigator.pop(context);
-                          
+                          Navigator.pop(context, true);
+
                           // Mostrar mensagem de sucesso
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -2416,5 +2665,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
         ),
       ),
     );
+
+    if (result == true) {
+      _carregarAmbientes();
+    }
   }
 }
