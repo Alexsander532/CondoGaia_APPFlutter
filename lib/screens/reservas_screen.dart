@@ -69,7 +69,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   // Reservas carregadas
   List<Reserva> _reservas = [];
-  Set<int> _diasComReservas = {};
+  Set<DateTime> _diasComReservas = {};
 
   // Arquivo de lista de presentes
   String? _uploadedFileName;
@@ -198,13 +198,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
       );
 
       // Extrair os dias que têm reservas
-      final diasComReservas = <int>{};
+      final diasComReservas = <DateTime>{};
       for (var reserva in reservas) {
-        // Se a reserva for no mesmo mês e ano, adiciona o dia
-        if (reserva.dataReserva.month == _currentMonthIndex + 1 &&
-            reserva.dataReserva.year == _currentYear) {
-          diasComReservas.add(reserva.dataReserva.day);
-        }
+        // Normalizar para meia-noite para comparação correta
+        final dataNormalizada = DateTime(
+          reserva.dataReserva.year,
+          reserva.dataReserva.month,
+          reserva.dataReserva.day,
+        );
+        diasComReservas.add(dataNormalizada);
       }
 
       setState(() {
@@ -1177,9 +1179,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
   }
 
   bool _hasReservationOn(DateTime date) {
-    return _diasComReservas.contains(date.day) &&
-        date.month == _currentMonthIndex + 1 &&
-        date.year == _currentYear;
+    // Normalizar a data recebida para garantir comparação correta
+    final dataNormalizada = DateTime(date.year, date.month, date.day);
+    return _diasComReservas.contains(dataNormalizada);
   }
 
   // Função para verificar se há reservas para o dia selecionado

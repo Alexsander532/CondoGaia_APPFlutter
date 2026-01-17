@@ -17,29 +17,30 @@ import 'services/supabase_service.dart';
 // Credenciais Supabase - carregadas dinamicamente
 class _SupabaseConfig {
   static const String supabaseUrl = 'https://tukpgefrddfchmvtiujp.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a3BnZWZyZGRmY2htdnRpdWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MTg1NTEsImV4cCI6MjA2ODA5NDU1MX0.dZ1Pna1_dwelIJTlhrSN0iiH5nhuzL0y4p6llYJsLp8';
+  static const String supabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a3BnZWZyZGRmY2htdnRpdWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MTg1NTEsImV4cCI6MjA2ODA5NDU1MX0.dZ1Pna1_dwelIJTlhrSN0iiH5nhuzL0y4p6llYJsLp8';
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   String supabaseUrl = _SupabaseConfig.supabaseUrl;
   String supabaseAnonKey = _SupabaseConfig.supabaseAnonKey;
-  
+
   // Tentar carregar variáveis de ambiente do arquivo .env (funciona em mobile)
   try {
     await dotenv.load();
     debugPrint('[MAIN] ✅ Arquivo .env carregado com sucesso');
-    
+
     // Tentar obter credenciais do .env
     final envUrl = dotenv.env['SUPABASE_URL'];
     final envKey = dotenv.env['SUPABASE_ANON_KEY'];
-    
+
     if (envUrl != null && envUrl.isNotEmpty) {
       supabaseUrl = envUrl;
       debugPrint('[MAIN] Usando SUPABASE_URL do .env');
     }
-    
+
     if (envKey != null && envKey.isNotEmpty) {
       supabaseAnonKey = envKey;
       debugPrint('[MAIN] Usando SUPABASE_ANON_KEY do .env');
@@ -49,18 +50,15 @@ void main() async {
     debugPrint('[MAIN] ⚠️ Não foi possível carregar .env: $e');
     debugPrint('[MAIN] ✅ Usando credenciais hardcoded padrão');
   }
-  
+
   debugPrint('[MAIN] Inicializando Supabase...');
   debugPrint('[MAIN] URL: $supabaseUrl');
-  
+
   // Inicializar Supabase com credenciais
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
-  
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
   debugPrint('[MAIN] ✅ Supabase inicializado com sucesso');
-  
+
   runApp(const CondoGaiaApp());
 }
 
@@ -89,29 +87,58 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   final _authService = AuthService();
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Configurar animação
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _controller.forward();
+
     _checkAuthStatus();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkAuthStatus() async {
-    // Aguardar um pouco para mostrar a splash screen
-    await Future.delayed(const Duration(seconds: 2));
-    
+    // Aguardar o tempo da animação + um pouco
+    await Future.delayed(const Duration(seconds: 3));
+
     if (!mounted) return;
-    
+
     // Verificar se o usuário está logado e se o login automático está habilitado
     final isLoggedIn = await _authService.isLoggedIn();
     final isAutoLoginEnabled = await _authService.isAutoLoginEnabled();
-    
+
     if (isLoggedIn && isAutoLoginEnabled) {
       // Tentar login automático
       final result = await _authService.tryAutoLogin();
-      
+
       if (mounted) {
         if (result.success) {
           // Redirecionar conforme o tipo de usuário
@@ -142,27 +169,40 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     } else if (result.userType == UserType.representante) {
       // Verificar se representante tem foto de perfil
-      if (result.representante?.fotoPerfil == null || result.representante!.fotoPerfil!.isEmpty) {
+      if (result.representante?.fotoPerfil == null ||
+          result.representante!.fotoPerfil!.isEmpty) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => UploadFotoPerfilScreen(representante: result.representante!)),
+          MaterialPageRoute(
+            builder: (context) =>
+                UploadFotoPerfilScreen(representante: result.representante!),
+          ),
         );
       } else {
         await _redirectRepresentante(result);
       }
     } else if (result.userType == UserType.proprietario) {
       // Verificar se proprietário tem foto de perfil
-      if (result.proprietario?.fotoPerfil == null || result.proprietario!.fotoPerfil!.isEmpty) {
+      if (result.proprietario?.fotoPerfil == null ||
+          result.proprietario!.fotoPerfil!.isEmpty) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => UploadFotoPerfilProprietarioScreen(proprietario: result.proprietario!)),
+          MaterialPageRoute(
+            builder: (context) => UploadFotoPerfilProprietarioScreen(
+              proprietario: result.proprietario!,
+            ),
+          ),
         );
       } else {
         await _redirectProprietario(result);
       }
     } else if (result.userType == UserType.inquilino) {
       // Verificar se inquilino tem foto de perfil
-      if (result.inquilino?.fotoPerfil == null || result.inquilino!.fotoPerfil!.isEmpty) {
+      if (result.inquilino?.fotoPerfil == null ||
+          result.inquilino!.fotoPerfil!.isEmpty) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => UploadFotoPerfilInquilinoScreen(inquilino: result.inquilino!)),
+          MaterialPageRoute(
+            builder: (context) =>
+                UploadFotoPerfilInquilinoScreen(inquilino: result.inquilino!),
+          ),
         );
       } else {
         await _redirectInquilino(result);
@@ -183,38 +223,44 @@ class _SplashScreenState extends State<SplashScreen> {
           .from('condominios')
           .select('id, nome_condominio, cnpj')
           .eq('representante_id', result.representante!.id);
-      
+
       if (condominios.isEmpty || condominios.length > 1) {
         // Sem condominios ou múltiplos - ir para dashboard
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-              representante: result.representante!,
-            )),
+            MaterialPageRoute(
+              builder: (context) => RepresentanteDashboardScreen(
+                representante: result.representante!,
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 condomínio - ir direto para home
       final condominio = condominios[0];
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => RepresentanteHomeScreen(
-            representante: result.representante!,
-            condominioId: condominio['id'],
-            condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
-            condominioCnpj: condominio['cnpj'] ?? 'N/A',
-          )),
+          MaterialPageRoute(
+            builder: (context) => RepresentanteHomeScreen(
+              representante: result.representante!,
+              condominioId: condominio['id'],
+              condominioNome: condominio['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominio['cnpj'] ?? 'N/A',
+            ),
+          ),
         );
       }
     } catch (e) {
       print('Erro ao verificar condominios: $e');
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => RepresentanteDashboardScreen(
-            representante: result.representante!,
-          )),
+          MaterialPageRoute(
+            builder: (context) => RepresentanteDashboardScreen(
+              representante: result.representante!,
+            ),
+          ),
         );
       }
     }
@@ -228,18 +274,20 @@ class _SplashScreenState extends State<SplashScreen> {
           .from('proprietarios')
           .select('unidade_id')
           .eq('id', result.proprietario!.id);
-      
+
       if (unidades.isEmpty || unidades.length > 1) {
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-              proprietario: result.proprietario!,
-            )),
+            MaterialPageRoute(
+              builder: (context) => ProprietarioDashboardScreen(
+                proprietario: result.proprietario!,
+              ),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 unidade
       final unidadeId = unidades[0]['unidade_id'];
       final unidadeData = await SupabaseService.client
@@ -247,33 +295,36 @@ class _SplashScreenState extends State<SplashScreen> {
           .select('id, numero, bloco, condominio_id')
           .eq('id', unidadeId)
           .single();
-      
+
       final condominioData = await SupabaseService.client
           .from('condominios')
           .select('id, nome_condominio, cnpj')
           .eq('id', unidadeData['condominio_id'])
           .single();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
-            condominioId: condominioData['id'],
-            condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
-            condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-            proprietarioId: result.proprietario!.id,
-            unidadeId: unidadeData['id'],
-            unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
-            proprietarioData: result.proprietario,
-          )),
+          MaterialPageRoute(
+            builder: (context) => InquilinoHomeScreen(
+              condominioId: condominioData['id'],
+              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+              proprietarioId: result.proprietario!.id,
+              unidadeId: unidadeData['id'],
+              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+              proprietarioData: result.proprietario,
+            ),
+          ),
         );
       }
     } catch (e) {
       print('Erro ao verificar unidades do proprietário: $e');
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => ProprietarioDashboardScreen(
-            proprietario: result.proprietario!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                ProprietarioDashboardScreen(proprietario: result.proprietario!),
+          ),
         );
       }
     }
@@ -287,18 +338,19 @@ class _SplashScreenState extends State<SplashScreen> {
           .from('inquilinos')
           .select('unidade_id')
           .eq('id', result.inquilino!.id);
-      
+
       if (unidades.isEmpty || unidades.length > 1) {
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-              inquilino: result.inquilino!,
-            )),
+            MaterialPageRoute(
+              builder: (context) =>
+                  InquilinoDashboardScreen(inquilino: result.inquilino!),
+            ),
           );
         }
         return;
       }
-      
+
       // Se tem apenas 1 unidade
       final unidadeId = unidades[0]['unidade_id'];
       final unidadeData = await SupabaseService.client
@@ -306,32 +358,35 @@ class _SplashScreenState extends State<SplashScreen> {
           .select('id, numero, bloco, condominio_id')
           .eq('id', unidadeId)
           .single();
-      
+
       final condominioData = await SupabaseService.client
           .from('condominios')
           .select('id, nome_condominio, cnpj')
           .eq('id', unidadeData['condominio_id'])
           .single();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => InquilinoHomeScreen(
-            condominioId: condominioData['id'],
-            condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
-            condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-            inquilinoId: result.inquilino!.id,
-            unidadeId: unidadeData['id'],
-            unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
-          )),
+          MaterialPageRoute(
+            builder: (context) => InquilinoHomeScreen(
+              condominioId: condominioData['id'],
+              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+              inquilinoId: result.inquilino!.id,
+              unidadeId: unidadeData['id'],
+              unidadeNome: 'Unidade ${unidadeData['numero'] ?? 'N/A'}',
+            ),
+          ),
         );
       }
     } catch (e) {
       print('Erro ao verificar unidades do inquilino: $e');
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => InquilinoDashboardScreen(
-            inquilino: result.inquilino!,
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                InquilinoDashboardScreen(inquilino: result.inquilino!),
+          ),
         );
       }
     }
@@ -340,52 +395,33 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo ou ícone do app
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(60),
-              ),
-              child: const Icon(
-                Icons.home,
-                size: 60,
-                color: Colors.blue,
+            // Imagem com animação
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Image.asset(
+                  'assets/images/condogaia_logo_text.png',
+                  width: 250,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-            
-            // Nome do app
-            const Text(
-              'CondoGaia',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Subtítulo
-            const Text(
-              'Sistema de Gestão Condominial',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+
+            // Loading indicator discreto (com Fade também)
             const SizedBox(height: 48),
-            
-            // Loading indicator
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Color(0xFF4A90E2),
+                ), // Azul padrão
+              ),
             ),
           ],
         ),
