@@ -188,6 +188,12 @@ class _ReservasScreenState extends State<ReservasScreen> {
     }
   }
 
+  Future<void> _refreshData() async {
+    await _carregarAmbientes();
+    await _carregarUnidades();
+    await _carregarReservas();
+  }
+
   Future<void> _carregarReservas() async {
     // Se representante não está disponível, não carrega reservas
     if (widget.representante == null) return;
@@ -2320,32 +2326,46 @@ class _ReservasScreenState extends State<ReservasScreen> {
                   horizontal: 16.0,
                   vertical: 8.0,
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Home',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Home',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                        const Text(
+                          ' / ',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                        const Text(
+                          'Gestão',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                        const Text(
+                          ' / ',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                        const Text(
+                          'Reservas',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Color(0xFF003E7E),
+                        ),
+                        onPressed: _refreshData,
+                        tooltip: 'Recarregar tela',
                       ),
-                      const Text(
-                        ' / ',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                      const Text(
-                        'Gestão',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                      const Text(
-                        ' / ',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                      const Text(
-                        'Reservas',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 
