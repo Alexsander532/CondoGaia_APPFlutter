@@ -811,7 +811,15 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
   // Método para excluir autorizado
   Future<void> _excluirAutorizado(AutorizadoInquilino autorizado) async {
     try {
-      await AutorizadoInquilinoService.deleteAutorizado(autorizado.id);
+      bool sucesso = await AutorizadoInquilinoService.deleteAutorizado(
+        autorizado.id,
+      );
+
+      if (!sucesso) {
+        throw Exception(
+          'Não foi possível excluir. Verifique se você tem permissão ou se o item já foi removido.',
+        );
+      }
 
       // Recarregar a lista
       await _carregarAutorizados();
@@ -1213,9 +1221,19 @@ class _PortariaInquilinoScreenState extends State<PortariaInquilinoScreen>
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Erro ao salvar autorizado';
+
+        // Verificar erro de duplicidade (PostgreSQL code 23505)
+        if (e.toString().contains('23505') ||
+            e.toString().contains('duplicate key')) {
+          errorMessage = 'Este CPF já está cadastrado para esta unidade.';
+        } else {
+          errorMessage = 'Erro ao salvar autorizado: $e';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao salvar autorizado: $e'),
+            content: Text(errorMessage),
             backgroundColor: const Color(0xFFE74C3C),
           ),
         );

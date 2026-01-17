@@ -126,7 +126,9 @@ class AutorizadoInquilinoService {
       print(
         '🔍 DEBUG SERVICE: Response recebido: ${response.length} registros',
       );
-      print('🔍 DEBUG SERVICE: Primeiro item (verificando foto_url): ${response.isNotEmpty ? response.first : 'vazio'}');
+      print(
+        '🔍 DEBUG SERVICE: Primeiro item (verificando foto_url): ${response.isNotEmpty ? response.first : 'vazio'}',
+      );
 
       Map<String, List<Map<String, dynamic>>> autorizadosPorUnidade = {};
 
@@ -223,7 +225,8 @@ class AutorizadoInquilinoService {
           'nome': item['nome'] ?? 'N/A',
           'cpf': cpfCompleto, // 🔧 CPF completo
           'cpfTresPrimeiros': cpfTresPrimeiros,
-          'telefone': telefoneFormatado, // 🔧 Telefone do inquilino/proprietário
+          'telefone':
+              telefoneFormatado, // 🔧 Telefone do inquilino/proprietário
           'unidade': unidadeFormatada, // 🔧 Unidade formatada
           'nomeCriador': nomeCriador,
           'diasHorarios': '$diasFormatados • $horariosFormatados',
@@ -236,11 +239,13 @@ class AutorizadoInquilinoService {
                     .trim()
               : null,
           'foto_url': item['foto_url'], // Adicionando foto do autorizado
-          'qr_code_url': item['qr_code_url'], // Adicionando QR code do autorizado
+          'qr_code_url':
+              item['qr_code_url'], // Adicionando QR code do autorizado
         };
 
         // Debug: Verificar se foto_url foi corretamente adicionada
-        if (item['foto_url'] != null && (item['foto_url'] as String).isNotEmpty) {
+        if (item['foto_url'] != null &&
+            (item['foto_url'] as String).isNotEmpty) {
           print('✅ Foto do autorizado ${item['nome']}: ${item['foto_url']}');
         }
 
@@ -327,7 +332,9 @@ class AutorizadoInquilinoService {
       final autorizado = AutorizadoInquilino.fromJson(response);
 
       // 2️⃣ Gerar QR Code UMA VEZ após criar (novo fluxo!)
-      print('[Service] Gerando QR Code para novo autorizado: ${autorizado.nome}');
+      print(
+        '[Service] Gerando QR Code para novo autorizado: ${autorizado.nome}',
+      );
       final qrUrl = await QrCodeHelper.gerarESalvarQRNoSupabase(
         autorizado.gerarDadosQR(
           unidade: autorizadoData['unidade_id'],
@@ -392,15 +399,14 @@ class AutorizadoInquilinoService {
   /// Remove um autorizado (soft delete - marca como inativo)
   static Future<bool> deleteAutorizado(String id) async {
     try {
-      await _client
+      final response = await _client
           .from('autorizados_inquilinos')
-          .update({
-            'ativo': false,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', id);
+          .delete()
+          .eq('id', id)
+          .select();
 
-      return true;
+      // Se a lista retornada não estiver vazia, significa que deletou com sucesso
+      return response.isNotEmpty;
     } catch (e) {
       print('Erro ao remover autorizado: $e');
       return false;
@@ -503,7 +509,7 @@ class AutorizadoInquilinoService {
       print('   - Arquivo: $nomeArquivo');
 
       late Uint8List bytes;
-      
+
       // Tentar obter bytes de forma compatível com web e mobile
       if (arquivo is File) {
         // Mobile/Desktop
@@ -524,10 +530,7 @@ class AutorizadoInquilinoService {
       // Fazer upload para o bucket 'visitante_adicionado_pelo_inquilino' usando uploadBinary
       await _client.storage
           .from('visitante_adicionado_pelo_inquilino')
-          .uploadBinary(
-            caminhoStorage,
-            bytes,
-          );
+          .uploadBinary(caminhoStorage, bytes);
 
       print('✅ Upload realizado com sucesso: $caminhoStorage');
 
@@ -598,7 +601,7 @@ class AutorizadoInquilinoService {
     }
 
     final tipoSelecao = data['tipo_selecao_dias'] ?? 'dias_semana';
-    
+
     if (tipoSelecao == 'dias_semana') {
       // Validar se tem dias da semana selecionados
       if (diasSemana is List && diasSemana.isEmpty) {
@@ -607,7 +610,8 @@ class AutorizadoInquilinoService {
     } else if (tipoSelecao == 'dias_especificos') {
       // Validar se tem datas específicas selecionadas
       final diasEspecificos = data['dias_especificos'];
-      if (diasEspecificos == null || (diasEspecificos is List && diasEspecificos.isEmpty)) {
+      if (diasEspecificos == null ||
+          (diasEspecificos is List && diasEspecificos.isEmpty)) {
         throw Exception('Selecione pelo menos uma data específica');
       }
     }
