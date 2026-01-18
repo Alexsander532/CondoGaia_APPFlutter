@@ -26,7 +26,7 @@ class ReservasScreen extends StatefulWidget {
 class _ReservasScreenState extends State<ReservasScreen> {
   // Variáveis para controle do calendário
   late final DateTime _today;
-  late DateTime _selectedDate;
+  DateTime? _selectedDate;
   late int _currentMonthIndex;
   late int _currentYear;
   final List<String> _months = const [
@@ -112,8 +112,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
     super.initState();
     _today = DateTime.now();
     _selectedDate = _today;
-    _currentMonthIndex = _selectedDate.month - 1;
-    _currentYear = _selectedDate.year;
+    _currentMonthIndex = _selectedDate!.month - 1;
+    _currentYear = _selectedDate!.year;
     _carregarAmbientes();
     _carregarUnidades();
     _carregarReservas();
@@ -307,9 +307,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
         agoraBrasilia.day,
       );
       final selectedDateWithoutTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
       );
 
       if (selectedDateWithoutTime.isBefore(todayBrasilia) ||
@@ -409,8 +409,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       await ReservaService.criarReserva(
         representanteId: widget.representante!.id,
+        condominioId: widget.condominioId,
         ambienteId: _selectedAmbienteId!,
-        dataReserva: _selectedDate,
+        dataReserva: _selectedDate!,
         horaInicio: horaInicio,
         horaFim: horaFim,
         valorLocacao: valorLocacao,
@@ -663,9 +664,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
         agoraBrasilia.day,
       );
       final selectedDateWithoutTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
       );
 
       if (selectedDateWithoutTime.isBefore(todayBrasilia) ||
@@ -713,7 +714,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       await ReservaService.atualizarReserva(
         reserva.id ?? '',
         ambienteId: _selectedAmbienteId!,
-        dataReserva: _selectedDate,
+        dataReserva: _selectedDate!,
         horaInicio: horaInicio,
         horaFim: horaFim,
         valorLocacao: valorLocacao,
@@ -871,8 +872,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
   }
 
   String get _selectedDayLabel {
-    final monthName = _months[_selectedDate.month - 1].toUpperCase();
-    return '${_selectedDate.day.toString().padLeft(2, '0')}/$monthName/${_selectedDate.year}';
+    if (_selectedDate == null) return '--/--/----';
+    final monthName = _months[_selectedDate!.month - 1].toUpperCase();
+    return '${_selectedDate!.day.toString().padLeft(2, '0')}/$monthName/${_selectedDate!.year}';
   }
 
   // Função para obter o nome do mês
@@ -944,19 +946,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
       } else {
         _currentMonthIndex--;
       }
-
-      final daysInNewMonth = _getDaysInMonth(
-        _currentMonthIndex + 1,
-        _currentYear,
-      );
-      final selectedDay = _selectedDate.day > daysInNewMonth
-          ? daysInNewMonth
-          : _selectedDate.day;
-      _selectedDate = DateTime(
-        _currentYear,
-        _currentMonthIndex + 1,
-        selectedDay,
-      );
+      // Limpa a seleção ao mudar de mês
+      _selectedDate = null;
     });
   }
 
@@ -969,19 +960,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
       } else {
         _currentMonthIndex++;
       }
-
-      final daysInNewMonth = _getDaysInMonth(
-        _currentMonthIndex + 1,
-        _currentYear,
-      );
-      final selectedDay = _selectedDate.day > daysInNewMonth
-          ? daysInNewMonth
-          : _selectedDate.day;
-      _selectedDate = DateTime(
-        _currentYear,
-        _currentMonthIndex + 1,
-        selectedDay,
-      );
+      // Limpa a seleção ao mudar de mês
+      _selectedDate = null;
     });
   }
 
@@ -1105,9 +1085,10 @@ class _ReservasScreenState extends State<ReservasScreen> {
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentYear, monthNumber, day);
       final isSelected =
-          date.day == _selectedDate.day &&
-          date.month == _selectedDate.month &&
-          date.year == _selectedDate.year;
+          _selectedDate != null &&
+          date.day == _selectedDate!.day &&
+          date.month == _selectedDate!.month &&
+          date.year == _selectedDate!.year;
       final isToday =
           date.day == _today.day &&
           date.month == _today.month &&
@@ -1192,7 +1173,8 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   // Função para verificar se há reservas para o dia selecionado
   bool _hasReservationsForSelectedDay() {
-    return _hasReservationOn(_selectedDate);
+    if (_selectedDate == null) return false;
+    return _hasReservationOn(_selectedDate!);
   }
 
   // Função para construir a seção "Adicionar nova tarefa"
@@ -1307,11 +1289,13 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
   // Função para construir os cards de reserva existentes
   Widget _buildReservationCard() {
+    if (_selectedDate == null) return const SizedBox.shrink();
+
     // Filtra reservas para o dia selecionado
     final reservasDoDia = _reservas.where((reserva) {
-      return reserva.dataReserva.day == _selectedDate.day &&
-          reserva.dataReserva.month == _selectedDate.month &&
-          reserva.dataReserva.year == _selectedDate.year;
+      return reserva.dataReserva.day == _selectedDate!.day &&
+          reserva.dataReserva.month == _selectedDate!.month &&
+          reserva.dataReserva.year == _selectedDate!.year;
     }).toList();
 
     if (reservasDoDia.isEmpty) {
@@ -2432,7 +2416,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Reservados - Dia $_selectedDayLabel',
+                        'Reservados - Dia ${_selectedDate != null ? _selectedDate!.day.toString().padLeft(2, '0') : '--'}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),

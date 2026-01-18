@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../models/evento_diario.dart';
 import '../models/evento_agenda.dart';
@@ -7,7 +6,8 @@ import '../services/evento_agenda_service.dart';
 
 class AgendaInquilinoScreen extends StatefulWidget {
   final String condominioId;
-  const AgendaInquilinoScreen({Key? key, required this.condominioId}) : super(key: key);
+  const AgendaInquilinoScreen({Key? key, required this.condominioId})
+    : super(key: key);
 
   @override
   State<AgendaInquilinoScreen> createState() => _AgendaInquilinoScreenState();
@@ -15,13 +15,22 @@ class AgendaInquilinoScreen extends StatefulWidget {
 
 class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
   late final DateTime _today;
-  late DateTime _selectedDate;
+  DateTime? _selectedDate;
   late int _currentMonthIndex;
   late int _currentYear;
   final List<String> _months = const [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril',
-    'Maio', 'Junho', 'Julho', 'Agosto',
-    'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
   List<EventoDiario> _eventos = [];
@@ -33,8 +42,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
     super.initState();
     _today = DateTime.now();
     _selectedDate = _today;
-    _currentMonthIndex = _selectedDate.month - 1;
-    _currentYear = _selectedDate.year;
+    _currentMonthIndex = _selectedDate!.month - 1;
+    _currentYear = _selectedDate!.year;
     print('🔵 AgendaInquilinoScreen - condominioId: ${widget.condominioId}');
     _carregarAmbientes();
     _carregarReservas();
@@ -51,34 +60,43 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
         return;
       }
       print('🔵 Carregando eventos para condominio: ${widget.condominioId}');
-      
+
       // Carrega eventos de diário
-      final eventos = await EventoDiarioService.buscarEventosPorCondominio(widget.condominioId);
+      final eventos = await EventoDiarioService.buscarEventosPorCondominio(
+        widget.condominioId,
+      );
       print('📅 Eventos de diário: ${eventos.length}');
-      
+
       // Carrega eventos de agenda
-      final eventosAgenda = await EventoAgendaService.buscarEventosPorCondominio(widget.condominioId);
+      final eventosAgenda =
+          await EventoAgendaService.buscarEventosPorCondominio(
+            widget.condominioId,
+          );
       print('📅 Eventos de agenda: ${eventosAgenda.length}');
-      
+
       // Combina os eventos de ambos os tipos
       final todosDias = <int>{};
-      
+
       for (var evento in eventos) {
-        print('📅 Evento diário encontrado: ${evento.titulo} em ${evento.dataEvento}');
+        print(
+          '📅 Evento diário encontrado: ${evento.titulo} em ${evento.dataEvento}',
+        );
         if (evento.dataEvento.month == _currentMonthIndex + 1 &&
             evento.dataEvento.year == _currentYear) {
           todosDias.add(evento.dataEvento.day);
         }
       }
-      
+
       for (var evento in eventosAgenda) {
-        print('📅 Evento agenda encontrado: ${evento.titulo} em ${evento.dataEvento}');
+        print(
+          '📅 Evento agenda encontrado: ${evento.titulo} em ${evento.dataEvento}',
+        );
         if (evento.dataEvento.month == _currentMonthIndex + 1 &&
             evento.dataEvento.year == _currentYear) {
           todosDias.add(evento.dataEvento.day);
         }
       }
-      
+
       setState(() {
         _eventos = eventos;
         _eventosAgenda = eventosAgenda;
@@ -94,8 +112,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
 
   bool _hasReservationOn(DateTime date) {
     return _diasComEventos.contains(date.day) &&
-           date.month == _currentMonthIndex + 1 &&
-           date.year == _currentYear;
+        date.month == _currentMonthIndex + 1 &&
+        date.year == _currentYear;
   }
 
   String _formatarHora(String hora) {
@@ -116,9 +134,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
         _currentMonthIndex = 11;
         _currentYear--;
       }
-      final daysInCurrentMonth = DateTime(_currentYear, _currentMonthIndex + 2, 0).day;
-      final selectedDay = _selectedDate.day > daysInCurrentMonth ? daysInCurrentMonth : _selectedDate.day;
-      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      // Limpa a seleção ao mudar de mês
+      _selectedDate = null;
       _carregarReservas();
     });
   }
@@ -130,9 +147,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
         _currentMonthIndex = 0;
         _currentYear++;
       }
-      final daysInNewMonth = DateTime(_currentYear, _currentMonthIndex + 2, 0).day;
-      final selectedDay = _selectedDate.day > daysInNewMonth ? daysInNewMonth : _selectedDate.day;
-      _selectedDate = DateTime(_currentYear, _currentMonthIndex + 1, selectedDay);
+      // Limpa a seleção ao mudar de mês
+      _selectedDate = null;
       _carregarReservas();
     });
   }
@@ -164,20 +180,22 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
   Widget _buildCalendarHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: const [
-        'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'
-      ].map((day) => Expanded(
-        child: Center(
-          child: Text(
-            day,
-            style: TextStyle(
-              color: Color(0xFF6B7280),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+      children: const ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+          .map(
+            (day) => Expanded(
+              child: Center(
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
@@ -195,20 +213,25 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
 
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentYear, _currentMonthIndex + 1, day);
-      final isSelected = _selectedDate.day == day &&
-          _selectedDate.month == _currentMonthIndex + 1 &&
-          _selectedDate.year == _currentYear;
-      final isToday = _today.day == day &&
+      final isSelected =
+          _selectedDate != null &&
+          _selectedDate!.day == day &&
+          _selectedDate!.month == _currentMonthIndex + 1 &&
+          _selectedDate!.year == _currentYear;
+      final isToday =
+          _today.day == day &&
           _today.month == _currentMonthIndex + 1 &&
           _today.year == _currentYear;
       final hasReservation = _hasReservationOn(date);
 
-      days.add(_buildCalendarDay(
-        day: day,
-        isSelected: isSelected,
-        isToday: isToday,
-        hasReservation: hasReservation,
-      ));
+      days.add(
+        _buildCalendarDay(
+          day: day,
+          isSelected: isSelected,
+          isToday: isToday,
+          hasReservation: hasReservation,
+        ),
+      );
     }
 
     return GridView.count(
@@ -276,16 +299,18 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
   Widget _buildReservationCard() {
     // Filtra eventos de diário do dia selecionado
     final eventosDoDia = _eventos.where((evento) {
-      return evento.dataEvento.day == _selectedDate.day &&
-             evento.dataEvento.month == _selectedDate.month &&
-             evento.dataEvento.year == _selectedDate.year;
+      if (_selectedDate == null) return false;
+      return evento.dataEvento.day == _selectedDate!.day &&
+          evento.dataEvento.month == _selectedDate!.month &&
+          evento.dataEvento.year == _selectedDate!.year;
     }).toList();
 
     // Filtra eventos de agenda do dia selecionado
     final eventosAgendaDoDia = _eventosAgenda.where((evento) {
-      return evento.dataEvento.day == _selectedDate.day &&
-             evento.dataEvento.month == _selectedDate.month &&
-             evento.dataEvento.year == _selectedDate.year;
+      if (_selectedDate == null) return false;
+      return evento.dataEvento.day == _selectedDate!.day &&
+          evento.dataEvento.month == _selectedDate!.month &&
+          evento.dataEvento.year == _selectedDate!.year;
     }).toList();
 
     // Se não houver eventos de nenhum tipo
@@ -328,7 +353,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: GestureDetector(
-                      onTap: () => _abrirImagemAmpliada(context, evento.fotoUrl!),
+                      onTap: () =>
+                          _abrirImagemAmpliada(context, evento.fotoUrl!),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
                         child: Stack(
@@ -344,21 +370,25 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                                   width: double.infinity,
                                   color: Colors.grey[300],
                                   child: const Center(
-                                    child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 );
                               },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      height: 200,
+                                      width: double.infinity,
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  },
                             ),
                             // Overlay com ícone de ampliação
                             Positioned.fill(
@@ -407,7 +437,10 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
 
                 // Badge de tipo
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -443,7 +476,8 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: GestureDetector(
-                      onTap: () => _abrirImagemAmpliada(context, evento.fotoUrl!),
+                      onTap: () =>
+                          _abrirImagemAmpliada(context, evento.fotoUrl!),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
                         child: Stack(
@@ -458,20 +492,24 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                                   height: 200,
                                   color: Colors.grey[300],
                                   child: const Center(
-                                    child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 );
                               },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  height: 200,
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      height: 200,
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  },
                             ),
                             // Overlay com ícone de ampliação
                             Positioned.fill(
@@ -551,7 +589,10 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
 
                 // Badge de tipo
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -604,7 +645,7 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
                           ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
+                                loadingProgress.expectedTotalBytes!
                           : null,
                     ),
                   );
@@ -638,7 +679,10 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
             children: [
               // Cabeçalho superior padronizado
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     // Botão de voltar
@@ -650,10 +694,7 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                     ),
                     const Spacer(),
                     // Logo CondoGaia
-                    Image.asset(
-                      'assets/images/logo_CondoGaia.png',
-                      height: 32,
-                    ),
+                    Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                     const Spacer(),
                     // Ícones do lado direito
                     Row(
@@ -687,15 +728,15 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                 ),
               ),
               // Linha de separação
-              Container(
-                height: 1,
-                color: Colors.grey[300],
-              ),
-              
+              Container(height: 1, color: Colors.grey[300]),
+
               // Título da página
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: const Text(
                   'Home/Diário-Agenda',
                   textAlign: TextAlign.center,
@@ -706,7 +747,7 @@ class _AgendaInquilinoScreenState extends State<AgendaInquilinoScreen> {
                   ),
                 ),
               ),
-              
+
               // Conteúdo da agenda
               Padding(
                 padding: const EdgeInsets.all(16.0),

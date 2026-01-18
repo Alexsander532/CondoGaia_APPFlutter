@@ -72,14 +72,20 @@ class TimeInputFormatter extends TextInputFormatter {
 class AgendaScreen extends StatefulWidget {
   final Representante representante;
 
-  const AgendaScreen({super.key, required this.representante});
+  final String? condominioId;
+
+  const AgendaScreen({
+    super.key,
+    required this.representante,
+    this.condominioId,
+  });
 
   @override
   State<AgendaScreen> createState() => _AgendaScreenState();
 }
 
 class _AgendaScreenState extends State<AgendaScreen> {
-  late int selectedDay;
+  int? selectedDay;
   late String currentMonth;
   late int currentYear;
 
@@ -145,7 +151,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
       setState(() {
         // Seleciona o primeiro condomínio como padrão, se existir
         if (condominios.isNotEmpty) {
-          _selectedCondominioId = condominios.first['id'];
+          if (widget.condominioId != null &&
+              condominios.any((c) => c['id'] == widget.condominioId)) {
+            _selectedCondominioId = widget.condominioId;
+          } else {
+            _selectedCondominioId = condominios.first['id'];
+          }
         }
       });
     } catch (e) {
@@ -284,11 +295,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
         currentMonth = months[11];
         currentYear--;
       }
-      // Ajustar o dia selecionado se não existir no novo mês
-      int daysInNewMonth = _getDaysInMonth(currentMonthIndex + 1, currentYear);
-      if (selectedDay > daysInNewMonth) {
-        selectedDay = 1;
-      }
+      // Limpa a seleção ao mudar de mês
+      selectedDay = null;
     });
     _loadEvents(); // Recarregar eventos do novo mês
   }
@@ -301,11 +309,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
         currentMonth = months[0];
         currentYear++;
       }
-      // Ajustar o dia selecionado se não existir no novo mês
-      int daysInNewMonth = _getDaysInMonth(currentMonthIndex + 1, currentYear);
-      if (selectedDay > daysInNewMonth) {
-        selectedDay = 1;
-      }
+      // Limpa a seleção ao mudar de mês
+      selectedDay = null;
     });
     _loadEvents(); // Recarregar eventos do novo mês
   }
@@ -1957,6 +1962,16 @@ class _AgendaScreenState extends State<AgendaScreen> {
       return;
     }
 
+    if (selectedDay == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, selecione um dia para o evento'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -1966,7 +1981,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       DateTime dataEvento = DateTime(
         currentYear,
         currentMonthIndex + 1,
-        selectedDay,
+        selectedDay!,
       );
 
       // Verificar o tipo de evento selecionado
@@ -2712,7 +2727,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
     // Adicionar os dias do mês
     for (int day = 1; day <= daysInMonth; day++) {
-      days.add(_buildCalendarDay(day, isSelected: day == selectedDay));
+      days.add(
+        _buildCalendarDay(
+          day,
+          isSelected: selectedDay != null && day == selectedDay!,
+        ),
+      );
     }
 
     return GridView.count(
@@ -2852,7 +2872,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       Row(
                         children: [
                           Text(
-                            'Eventos - Dia ${selectedDay.toString().padLeft(2, '0')}/${currentMonth.toUpperCase()}/$currentYear',
+                            'Eventos - Dia ${selectedDay != null ? selectedDay.toString().padLeft(2, '0') : '--'}/${currentMonth.toUpperCase()}/$currentYear',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -2900,8 +2920,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
 
   List<Widget> _buildEventsList() {
-    List<EventoAgenda> eventsForDay = _getEventsForDay(selectedDay);
-    List<EventoDiario> diaryEventsForDay = _getDiaryEventsForDay(selectedDay);
+    if (selectedDay == null) return [const SizedBox.shrink()];
+
+    List<EventoAgenda> eventsForDay = _getEventsForDay(selectedDay!);
+    List<EventoDiario> diaryEventsForDay = _getDiaryEventsForDay(selectedDay!);
 
     if (eventsForDay.isEmpty && diaryEventsForDay.isEmpty) {
       return [

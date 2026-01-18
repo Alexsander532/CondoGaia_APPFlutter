@@ -3,7 +3,9 @@ import 'supabase_service.dart';
 
 class ReservaService {
   /// Buscar todas as reservas de um condomínio
-  static Future<List<Reserva>> getReservasPorCondominio(String condominioId) async {
+  static Future<List<Reserva>> getReservasPorCondominio(
+    String condominioId,
+  ) async {
     try {
       final response = await SupabaseService.client
           .from('reservas')
@@ -16,8 +18,11 @@ class ReservaService {
       throw Exception('Erro ao buscar reservas por condomínio: $e');
     }
   }
+
   /// Buscar todas as reservas do representante atual
-  static Future<List<Reserva>> getReservasRepresentante(String representanteId) async {
+  static Future<List<Reserva>> getReservasRepresentante(
+    String representanteId,
+  ) async {
     try {
       final response = await SupabaseService.client
           .from('reservas')
@@ -25,7 +30,7 @@ class ReservaService {
           .eq('representante_id', representanteId)
           .order('data_reserva', ascending: true)
           .order('hora_inicio', ascending: true);
-      
+
       return response.map((json) => Reserva.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar reservas: $e');
@@ -39,14 +44,14 @@ class ReservaService {
   ) async {
     try {
       final dataFormatada = data.toIso8601String().split('T')[0];
-      
+
       final response = await SupabaseService.client
           .from('reservas')
           .select()
           .eq('representante_id', representanteId)
           .eq('data_reserva', dataFormatada)
           .order('hora_inicio', ascending: true);
-      
+
       return response.map((json) => Reserva.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar reservas por data: $e');
@@ -61,7 +66,7 @@ class ReservaService {
           .select()
           .eq('id', reservaId)
           .single();
-      
+
       return Reserva.fromJson(response);
     } catch (e) {
       return null;
@@ -72,6 +77,7 @@ class ReservaService {
   static Future<Reserva> criarReserva({
     required String representanteId,
     required String ambienteId,
+    String? condominioId,
     required DateTime dataReserva,
     required String horaInicio,
     required String horaFim,
@@ -86,19 +92,24 @@ class ReservaService {
       print('🔵 [ReservaService] Iniciando criarReserva...');
       print('🔵 [ReservaService] representanteId: $representanteId');
       print('🔵 [ReservaService] ambienteId: $ambienteId');
+      print('🔵 [ReservaService] condominioId: $condominioId');
       print('🔵 [ReservaService] horaInicio recebido: $horaInicio');
       print('🔵 [ReservaService] horaFim recebido: $horaFim');
-      
+
       // Normalizar horários para o formato HH:MM:SS
       final horaInicioNormalizada = _normalizeTime(horaInicio);
       final horaFimNormalizada = _normalizeTime(horaFim);
-      
-      print('🔵 [ReservaService] horaInicio normalizada: $horaInicioNormalizada');
+
+      print(
+        '🔵 [ReservaService] horaInicio normalizada: $horaInicioNormalizada',
+      );
       print('🔵 [ReservaService] horaFim normalizada: $horaFimNormalizada');
-      
+
       // Validar se o horário é válido
       if (!_isValidTimeRange(horaInicioNormalizada, horaFimNormalizada)) {
-        throw Exception('Horário inválido: hora de fim deve ser posterior à hora de início');
+        throw Exception(
+          'Horário inválido: hora de fim deve ser posterior à hora de início',
+        );
       }
 
       // Preparar dados para insert
@@ -113,10 +124,11 @@ class ReservaService {
         'local': local,
         'termo_locacao': termoLocacao,
         if (blocoUnidadeId != null) 'bloco_unidade_id': blocoUnidadeId,
+        if (condominioId != null) 'condominio_id': condominioId,
       };
-      
+
       print('🔵 [ReservaService] Dados preparados: $dados');
-      
+
       // Adicionar lista_presentes se fornecido
       if (listaPresentes != null && listaPresentes.isNotEmpty) {
         dados['lista_presentes'] = listaPresentes;
@@ -125,21 +137,17 @@ class ReservaService {
       // Inserir com rpc call para evitar problemas com índices
       try {
         print('🔵 [ReservaService] Tentando inserir na tabela...');
-        await SupabaseService.client
-            .from('reservas')
-            .insert(dados);
+        await SupabaseService.client.from('reservas').insert(dados);
         print('✅ [ReservaService] Insert realizado com sucesso!');
       } catch (e) {
         print('❌ [ReservaService] Erro no insert: $e');
         // Se o insert direto falhar, tenta sem o campo lista_presentes
         dados.remove('lista_presentes');
         print('🔵 [ReservaService] Tentando novamente sem lista_presentes...');
-        await SupabaseService.client
-            .from('reservas')
-            .insert(dados);
+        await SupabaseService.client.from('reservas').insert(dados);
         print('✅ [ReservaService] Insert retry realizado com sucesso!');
       }
-      
+
       // Buscar a reserva criada - versão simplificada
       print('🔵 [ReservaService] Buscando reserva criada...');
       final List<dynamic> response = await SupabaseService.client
@@ -150,9 +158,9 @@ class ReservaService {
           .eq('hora_inicio', horaInicio)
           .order('created_at', ascending: false)
           .limit(1);
-      
+
       print('🔵 [ReservaService] Response: $response');
-      
+
       if (response.isEmpty) {
         print('⚠️  [ReservaService] Resposta vazia, criando objeto localmente');
         // Se não conseguir recuperar, cria um objeto com os dados enviados
@@ -170,7 +178,7 @@ class ReservaService {
           blocoUnidadeId: blocoUnidadeId,
         );
       }
-      
+
       print('✅ [ReservaService] Retornando reserva encontrada');
       return Reserva.fromJson(response.first);
     } catch (e, stackTrace) {
@@ -198,9 +206,10 @@ class ReservaService {
       final dados = <String, dynamic>{
         'updated_at': DateTime.now().toIso8601String(),
       };
-      
+
       if (ambienteId != null) dados['ambiente_id'] = ambienteId;
-      if (dataReserva != null) dados['data_reserva'] = dataReserva.toIso8601String().split('T')[0];
+      if (dataReserva != null)
+        dados['data_reserva'] = dataReserva.toIso8601String().split('T')[0];
       if (horaInicio != null) dados['hora_inicio'] = _normalizeTime(horaInicio);
       if (horaFim != null) dados['hora_fim'] = _normalizeTime(horaFim);
       if (listaPresentes != null) dados['lista_presentes'] = listaPresentes;
@@ -217,7 +226,9 @@ class ReservaService {
         final horaInicioNormalizada = _normalizeTime(horaInicio);
         final horaFimNormalizada = _normalizeTime(horaFim);
         if (!_isValidTimeRange(horaInicioNormalizada, horaFimNormalizada)) {
-          throw Exception('Horário inválido: hora de fim deve ser posterior à hora de início');
+          throw Exception(
+            'Horário inválido: hora de fim deve ser posterior à hora de início',
+          );
         }
       }
 
@@ -227,7 +238,7 @@ class ReservaService {
           .eq('id', reservaId)
           .select()
           .single();
-      
+
       return Reserva.fromJson(response);
     } catch (e) {
       throw Exception('Erro ao atualizar reserva: $e');
@@ -256,13 +267,13 @@ class ReservaService {
   }) async {
     try {
       final conflito = await _verificarConflitoHorario(
-        ambienteId, 
-        data, 
-        horaInicio, 
+        ambienteId,
+        data,
+        horaInicio,
         horaFim,
         reservaIdExcluir: reservaIdExcluir,
       );
-      
+
       return !conflito;
     } catch (e) {
       throw Exception('Erro ao verificar disponibilidade: $e');
@@ -278,7 +289,7 @@ class ReservaService {
       }
 
       final hoje = DateTime.now().toIso8601String().split('T')[0];
-      
+
       final response = await SupabaseService.client
           .from('reservas')
           .select()
@@ -286,7 +297,7 @@ class ReservaService {
           .gte('data_reserva', hoje)
           .order('data_reserva', ascending: true)
           .order('hora_inicio', ascending: true);
-      
+
       return response.map((json) => Reserva.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar reservas futuras: $e');
@@ -306,7 +317,7 @@ class ReservaService {
 
       final dataInicioFormatada = dataInicio.toIso8601String().split('T')[0];
       final dataFimFormatada = dataFim.toIso8601String().split('T')[0];
-      
+
       final response = await SupabaseService.client
           .from('reservas')
           .select()
@@ -315,7 +326,7 @@ class ReservaService {
           .lte('data_reserva', dataFimFormatada)
           .order('data_reserva', ascending: true)
           .order('hora_inicio', ascending: true);
-      
+
       return response.map((json) => Reserva.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar reservas por período: $e');
@@ -334,7 +345,7 @@ class ReservaService {
   }) async {
     try {
       final dataFormatada = data.toIso8601String().split('T')[0];
-      
+
       var query = SupabaseService.client
           .from('reservas')
           .select('id')
@@ -347,17 +358,22 @@ class ReservaService {
       }
 
       final response = await query;
-      
+
       // Verificar sobreposição de horários
       for (final reserva in response) {
         final reservaHoraInicio = reserva['hora_inicio'] as String;
         final reservaHoraFim = reserva['hora_fim'] as String;
-        
-        if (_horariosSesobrepoe(horaInicio, horaFim, reservaHoraInicio, reservaHoraFim)) {
+
+        if (_horariosSesobrepoe(
+          horaInicio,
+          horaFim,
+          reservaHoraInicio,
+          reservaHoraFim,
+        )) {
           return true;
         }
       }
-      
+
       return false;
     } catch (e) {
       throw Exception('Erro ao verificar conflito de horário: $e');
@@ -366,14 +382,16 @@ class ReservaService {
 
   /// Verificar se dois intervalos de horário se sobrepõem
   static bool _horariosSesobrepoe(
-    String inicio1, String fim1,
-    String inicio2, String fim2,
+    String inicio1,
+    String fim1,
+    String inicio2,
+    String fim2,
   ) {
     final time1Start = _parseTime(inicio1);
     final time1End = _parseTime(fim1);
     final time2Start = _parseTime(inicio2);
     final time2End = _parseTime(fim2);
-    
+
     return time1Start < time2End && time2Start < time1End;
   }
 
@@ -382,22 +400,22 @@ class ReservaService {
     try {
       // Remove espaços
       timeString = timeString.trim();
-      
+
       // Se já tem HH:MM:SS, retorna como está
       if (timeString.contains(':') && timeString.split(':').length == 3) {
         return timeString;
       }
-      
+
       // Se tem HH:MM, adiciona :00
       if (timeString.contains(':') && timeString.split(':').length == 2) {
         return '$timeString:00';
       }
-      
+
       // Se é apenas HH, converte para HH:00:00
       if (!timeString.contains(':')) {
         return '$timeString:00:00';
       }
-      
+
       return timeString;
     } catch (e) {
       return timeString;
