@@ -151,6 +151,74 @@ Copiado da CondoGaia''';
     );
   }
 
+  /// Card de menu com efeito "Em breve" (esmaecido com faixa vermelha)
+  Widget _buildMenuCardComingSoon({
+    required String imagePath,
+    required String title,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Conteúdo esmaecido (com opacidade reduzida)
+            Opacity(
+              opacity: 0.5,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(
+                          imagePath,
+                          fit: BoxFit.contain,
+                          height: 60,
+                          width: 60,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Faixa vermelha diagonal "Em breve"
+            Positioned.fill(
+              child: CustomPaint(painter: _ComingSoonBannerPainter()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Constrói o drawer (menu lateral)
   Widget _buildDrawer() {
     return Drawer(
@@ -401,33 +469,15 @@ Copiado da CondoGaia''';
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.9,
                       children: [
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_chat.png',
                           title: 'Chat',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Classificados.png',
                           title: 'Classificados',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
                         _buildMenuCard(
                           imagePath:
@@ -461,33 +511,15 @@ Copiado da CondoGaia''';
                             );
                           },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Controle.png',
                           title: 'Controle',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Cursos.png',
                           title: 'Cursos',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
                         _buildMenuCard(
                           imagePath:
@@ -522,33 +554,15 @@ Copiado da CondoGaia''';
                             );
                           },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_FolhaFunc.png',
                           title: 'Folha Func.',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Leitura.png',
                           title: 'Leitura',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Em breve'),
-                                backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
                         ),
                       ],
                     ),
@@ -640,4 +654,53 @@ Copiado da CondoGaia''';
       ),
     );
   }
+}
+
+/// CustomPainter para desenhar a faixa diagonal "Em breve"
+class _ComingSoonBannerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.red.withOpacity(0.85)
+      ..style = PaintingStyle.fill;
+
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'EM BREVE',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    // Desenhar retângulo diagonal
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(-0.785398); // -45 graus em radianos
+
+    final bannerWidth = size.width * 1.4;
+    final bannerHeight = 28.0;
+
+    final rect = Rect.fromCenter(
+      center: Offset.zero,
+      width: bannerWidth,
+      height: bannerHeight,
+    );
+
+    canvas.drawRect(rect, paint);
+
+    // Desenhar texto centralizado
+    final textOffset = Offset(-textPainter.width / 2, -textPainter.height / 2);
+    textPainter.paint(canvas, textOffset);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

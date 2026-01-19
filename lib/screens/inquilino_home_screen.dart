@@ -410,6 +410,60 @@ Copiado da CondoGaia''';
     );
   }
 
+  /// Card de menu com efeito "Em breve" (esmaecido com faixa vermelha)
+  Widget _buildMenuCardComingSoon({
+    required String imagePath,
+    required String title,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // Conteúdo esmaecido (com opacidade reduzida)
+            Opacity(
+              opacity: 0.5,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(imagePath, height: 48, width: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C3E50),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Faixa vermelha diagonal "Em breve"
+            Positioned.fill(
+              child: CustomPaint(painter: _ComingSoonBannerPainter()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -490,21 +544,15 @@ Copiado da CondoGaia''';
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.9,
                       children: [
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_chat.png',
                           title: 'Chat',
-                          onTap: () {
-                            // TODO: Implementar navegação para chat
-                          },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Classificados.png',
                           title: 'Classificados',
-                          onTap: () {
-                            // TODO: Implementar navegação para classificados
-                          },
                         ),
                         _buildMenuCard(
                           imagePath:
@@ -539,13 +587,10 @@ Copiado da CondoGaia''';
                             );
                           },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Controle.png',
                           title: 'Controle',
-                          onTap: () {
-                            // TODO: Implementar navegação para controle
-                          },
                         ),
                         _buildMenuCard(
                           imagePath:
@@ -567,13 +612,10 @@ Copiado da CondoGaia''';
                             );
                           },
                         ),
-                        _buildMenuCard(
+                        _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/HOME_Inquilino/Boleto_icone_Inquilino.png',
                           title: 'Boletos',
-                          onTap: () {
-                            // TODO: Implementar navegação para boletos
-                          },
                         ),
                         _buildMenuCard(
                           imagePath:
@@ -747,4 +789,53 @@ Copiado da CondoGaia''';
       ),
     );
   }
+}
+
+/// CustomPainter para desenhar a faixa diagonal "Em breve"
+class _ComingSoonBannerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.red.withOpacity(0.85)
+      ..style = PaintingStyle.fill;
+
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'EM BREVE',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    // Desenhar retângulo diagonal
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(-0.785398); // -45 graus em radianos
+
+    final bannerWidth = size.width * 1.4;
+    final bannerHeight = 28.0;
+
+    final rect = Rect.fromCenter(
+      center: Offset.zero,
+      width: bannerWidth,
+      height: bannerHeight,
+    );
+
+    canvas.drawRect(rect, paint);
+
+    // Desenhar texto centralizado
+    final textOffset = Offset(-textPainter.width / 2, -textPainter.height / 2);
+    textPainter.paint(canvas, textOffset);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
