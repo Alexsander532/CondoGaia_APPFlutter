@@ -1249,7 +1249,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveEvent,
+                      onPressed: _isSaving
+                          ? null
+                          : () => _saveEvent(setModalState),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A8A),
                         shape: RoundedRectangleBorder(
@@ -1825,7 +1827,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     width: double.infinity,
                     margin: const EdgeInsets.only(top: 20),
                     child: ElevatedButton(
-                      onPressed: _isSaving ? null : () => _updateEvent(),
+                      onPressed: _isSaving
+                          ? null
+                          : () => _updateEvent(setModalState),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A8A),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1863,7 +1867,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     );
   }
 
-  Future<void> _saveEvent() async {
+  Future<void> _saveEvent(StateSetter setModalState) async {
     // Validação do título
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1972,7 +1976,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       return;
     }
 
-    setState(() {
+    setModalState(() {
       _isSaving = true;
     });
 
@@ -2076,15 +2080,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
           _startTimeController.clear();
           _endTimeController.clear();
 
-          setState(() {
-            _eventType = 'Agenda';
-            _isRecurrent = false;
-            _recurrentMonths = 1;
-            _notifyAll = false;
-            _notifyMe = false;
-            _fotoEvento = null;
-            _fotoDiario = null;
-          });
+          // Resetar estado local (modal já fechou)
+          _eventType = 'Agenda';
+          _isRecurrent = false;
+          _recurrentMonths = 1;
+          _notifyAll = false;
+          _notifyMe = false;
+          _fotoEvento = null;
+          _fotoDiario = null;
+          _isSaving = false; // Resetar flag sem setModalState pois já fechou
         } else {
           throw Exception('Falha ao salvar evento diário');
         }
@@ -2196,14 +2200,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
         _startTimeController.clear();
         _endTimeController.clear();
 
-        setState(() {
-          _eventType = 'Agenda';
-          _isRecurrent = false;
-          _recurrentMonths = 1;
-          _notifyAll = false;
-          _notifyMe = false;
-          _fotoEvento = null;
-        });
+        // Resetar estado (modal fechou)
+        _eventType = 'Agenda';
+        _isRecurrent = false;
+        _recurrentMonths = 1;
+        _notifyAll = false;
+        _notifyMe = false;
+        _fotoEvento = null;
+        _isSaving = false;
       } else {
         throw Exception('Falha ao salvar evento');
       }
@@ -2215,14 +2219,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() {
+      // Resetar loading no modal em caso de erro
+      setModalState(() {
         _isSaving = false;
       });
     }
   }
 
-  Future<void> _updateEvent() async {
+  Future<void> _updateEvent(StateSetter setModalState) async {
     // Validação do título
     if (_editTitleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2292,7 +2296,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
     // Validar recorrência
 
-    setState(() {
+    setModalState(() {
       _isSaving = true;
     });
 
@@ -2398,6 +2402,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           _editFotoEvento = null;
           _removerFotoEvento = false;
         });
+        _isSaving = false; // Resetar sem setModalState pois fechou
       } else {
         throw Exception('Falha ao atualizar evento');
       }
@@ -2409,8 +2414,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() {
+      setModalState(() {
         _isSaving = false;
       });
     }

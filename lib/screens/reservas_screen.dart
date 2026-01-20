@@ -71,6 +71,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
   List<Reserva> _reservas = [];
   Set<DateTime> _diasComReservas = {};
 
+  // Controle de loading do botão salvar
+  bool _isSaving = false;
+
   // Arquivo de lista de presentes
   String? _uploadedFileName;
   List<String> _listaPresentesArray =
@@ -237,8 +240,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
     }
   }
 
-  Future<void> _salvarReserva([BuildContext? context]) async {
-    final ctx = context ?? this.context;
+  Future<void> _salvarReserva(
+    BuildContext context, {
+    StateSetter? setModalState,
+  }) async {
+    final ctx = context;
     try {
       // Validar campos obrigatórios
       if (_selectedAmbienteId == null || _selectedAmbienteId!.isEmpty) {
@@ -347,27 +353,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
-      // Mostrar indicador de carregamento
-      if (mounted) {
-        showDialog(
-          context: ctx,
-          barrierDismissible: false,
-          builder: (BuildContext dialogContext) {
-            return const Dialog(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Salvando reserva...'),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+      // Iniciar loading
+      if (setModalState != null) {
+        setModalState(() {
+          _isSaving = true;
+        });
+      } else {
+        setState(() {
+          _isSaving = true;
+        });
       }
 
       // Validar se representante está disponível
@@ -409,7 +403,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
       await ReservaService.criarReserva(
         representanteId: widget.representante!.id,
-        condominioId: widget.condominioId,
+
         ambienteId: _selectedAmbienteId!,
         dataReserva: _selectedDate!,
         horaInicio: horaInicio,
@@ -426,9 +420,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
         blocoUnidadeId: _isBlocoUnid ? _selectedUnidadeId : null,
       );
 
-      // Fechar o diálogo de carregamento
+      // Finalizar loading (será tratado no finally/catch, mas garantindo aqui caso sucesso antes de fechar modal)
+      // Não precisamos setar false se vamos fechar o modal logo em seguida, mas por segurança:
       if (mounted) {
-        Navigator.of(ctx, rootNavigator: false).pop(); // Fecha apenas o dialog
+        if (setModalState != null) {
+          setModalState(() {
+            _isSaving = false;
+          });
+        } else {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
 
       print('✅ [ReservasScreen] Reserva criada com sucesso!');
@@ -462,10 +465,18 @@ class _ReservasScreenState extends State<ReservasScreen> {
       print('❌ [ReservasScreen] ERRO: $e');
       print('❌ [ReservasScreen] Stack trace: $stackTrace');
 
-      // Fechar o diálogo de carregamento se estiver aberto
-      //if (mounted) {
-      //  Navigator.of(context, rootNavigator: false).pop(); // Fecha apenas o dialog
-      //}
+      // Finalizar loading em caso de erro
+      if (mounted) {
+        if (setModalState != null) {
+          setModalState(() {
+            _isSaving = false;
+          });
+        } else {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+      }
 
       // Mostrar mensagem de erro
       if (mounted) {
@@ -591,8 +602,13 @@ class _ReservasScreenState extends State<ReservasScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () =>
-                                  _atualizarReserva(reserva, innerContext),
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => _atualizarReserva(
+                                      reserva,
+                                      innerContext,
+                                      setModalState: setModalState,
+                                    ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF003E7E),
                                 padding: const EdgeInsets.symmetric(
@@ -602,13 +618,22 @@ class _ReservasScreenState extends State<ReservasScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: const Text(
-                                'Salvar Alterações',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Salvar Alterações',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
@@ -625,10 +650,11 @@ class _ReservasScreenState extends State<ReservasScreen> {
   }
 
   Future<void> _atualizarReserva(
-    Reserva reserva, [
-    BuildContext? context,
-  ]) async {
-    final ctx = context ?? this.context;
+    Reserva reserva,
+    BuildContext context, {
+    StateSetter? setModalState,
+  }) async {
+    final ctx = context;
     try {
       // Validar campos
       if (_selectedAmbienteId == null || _selectedAmbienteId!.isEmpty) {
@@ -680,21 +706,15 @@ class _ReservasScreenState extends State<ReservasScreen> {
         return;
       }
 
-      // Mostrar loading
-      if (mounted) {
-        showDialog(
-          context: ctx,
-          barrierDismissible: false,
-          builder: (context) => const AlertDialog(
-            content: Row(
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Text('Atualizando reserva...'),
-              ],
-            ),
-          ),
-        );
+      // Iniciar loading
+      if (setModalState != null) {
+        setModalState(() {
+          _isSaving = true;
+        });
+      } else {
+        setState(() {
+          _isSaving = true;
+        });
       }
 
       final ambiente = _ambientes.firstWhere(
@@ -727,9 +747,17 @@ class _ReservasScreenState extends State<ReservasScreen> {
                 : null),
       );
 
-      // Fechar o diálogo de carregamento
+      // Finalizar loading
       if (mounted) {
-        Navigator.of(ctx, rootNavigator: false).pop();
+        if (setModalState != null) {
+          setModalState(() {
+            _isSaving = false;
+          });
+        } else {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
 
       // Mostrar mensagem de sucesso
@@ -754,9 +782,17 @@ class _ReservasScreenState extends State<ReservasScreen> {
     } catch (e) {
       print('❌ [ReservasScreen] ERRO ao atualizar: $e');
 
-      // Fechar o diálogo de carregamento se estiver aberto
+      // Finalizar loading
       if (mounted) {
-        Navigator.of(ctx, rootNavigator: false).pop();
+        if (setModalState != null) {
+          setModalState(() {
+            _isSaving = false;
+          });
+        } else {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
 
       // Mostrar mensagem de erro
@@ -1452,7 +1488,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
   // Função para construir o formulário de reserva
   Widget _buildReservationForm({
     bool isEditing = false,
-    Function? setModalState,
+    StateSetter? setModalState,
     BuildContext? context,
   }) {
     final ctx = context ?? this.context;
@@ -2220,7 +2256,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
           if (!isEditing)
             Center(
               child: ElevatedButton(
-                onPressed: () => _salvarReserva(context),
+                onPressed: _isSaving
+                    ? null
+                    : () => _salvarReserva(ctx, setModalState: setModalState),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF003E7E),
                   padding: const EdgeInsets.symmetric(
@@ -2231,10 +2269,19 @@ class _ReservasScreenState extends State<ReservasScreen> {
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                 ),
-                child: const Text(
-                  'Reservar',
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Reservar',
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           const SizedBox(height: 16.0),
