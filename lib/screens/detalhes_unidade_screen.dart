@@ -208,16 +208,42 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
   Future<void> _abrirUrl(String? url) async {
     if (url == null || url.isEmpty) return;
 
-    final uri = Uri.parse(url);
+    // Mostrar feedback rápido
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Abrindo documento...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    String urlParaAbrir = url;
+
+    // Se for URL do Supabase, tenta gerar link assinado (para buckets privados)
+    if (url.contains('supabase')) {
+      try {
+        final signedUrl = await SupabaseService.getSignedDocumentUrl(url);
+        if (signedUrl != null) {
+          urlParaAbrir = signedUrl;
+        }
+      } catch (e) {
+        print('Erro ao gerar URL assinada: $e');
+      }
+    }
+
+    final uri = Uri.parse(urlParaAbrir);
     try {
+      // Tenta abrir em aplicação externa (navegador/leitor de PDF)
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch $url');
+        // Fallback: Tenta abrir no modo padrão da plataforma
+        if (!await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+          throw Exception('Não foi possível abrir o link');
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível abrir o link: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao abrir arquivo: $e')));
       }
     }
   }
