@@ -393,8 +393,10 @@ class SupabaseService {
     String? textoPesquisa,
   }) async {
     try {
-      print('🔍 PESQUISA REPRESENTANTES: uf=$uf, cidade=$cidade, texto=$textoPesquisa');
-      
+      print(
+        '🔍 PESQUISA REPRESENTANTES: uf=$uf, cidade=$cidade, texto=$textoPesquisa',
+      );
+
       // Busca representantes com filtros básicos
       var query = client.from('representantes').select('*');
 
@@ -423,11 +425,13 @@ class SupabaseService {
           .from('condominios')
           .select('*')
           .order('nome_condominio');
-      
+
       final condominiosMap = <String, Map<String, dynamic>>{};
       for (final cond in condominiosResponse) {
         condominiosMap[cond['id'] as String] = cond;
-        print('🏢 Condomínio carregado: ${cond['nome_condominio']} - representante_id: ${cond['representante_id']}');
+        print(
+          '🏢 Condomínio carregado: ${cond['nome_condominio']} - representante_id: ${cond['representante_id']}',
+        );
       }
       print('✅ Carregados ${condominiosMap.length} condomínios para matching');
 
@@ -436,7 +440,9 @@ class SupabaseService {
       for (final rep in representantes) {
         representantesMap[rep['id'] as String] = rep;
       }
-      print('✅ Carregados ${representantesMap.length} representantes para matching');
+      print(
+        '✅ Carregados ${representantesMap.length} representantes para matching',
+      );
 
       // Processa os resultados para criar uma linha por condomínio
       // CORRIÇÃO: Usar representante_id da tabela de condominios como fonte de verdade
@@ -449,26 +455,32 @@ class SupabaseService {
             .where((cond) => cond['representante_id'] == representante['id'])
             .toList();
 
-        print('👤 Representante ${representante['nome_completo']} (${representante['id']}): ${condominiosDoRepresentante.length} condomínios');
+        print(
+          '👤 Representante ${representante['nome_completo']} (${representante['id']}): ${condominiosDoRepresentante.length} condomínios',
+        );
 
         // Se não tiver condomínios, adicionar entrada apenas com dados do representante
         if (condominiosDoRepresentante.isEmpty) {
-          print('  ⚠️ ${representante['nome_completo']} não tem condomínios associados. Adicionando à lista.');
-          
+          print(
+            '  ⚠️ ${representante['nome_completo']} não tem condomínios associados. Adicionando à lista.',
+          );
+
           final resultado = Map<String, dynamic>.from(representante);
           resultado.remove('condominios_selecionados');
-          
+
           // Define campos de condomínio como nulos ou texto indicativo
           resultado['condominio_id'] = null;
           resultado['nome_condominio'] = 'Sem condomínio associado';
           resultado['cnpj'] = '-';
-          resultado['condominio_cidade'] = representante['cidade']; // Mostra a cidade do representante
-          resultado['condominio_estado'] = representante['uf'];     // Mostra o UF do representante
-          
+          resultado['condominio_cidade'] =
+              representante['cidade']; // Mostra a cidade do representante
+          resultado['condominio_estado'] =
+              representante['uf']; // Mostra o UF do representante
+
           // O representante associado é o próprio
           resultado['representante_associado'] = representante['nome_completo'];
           resultado['representante_id_associado'] = representante['id'];
-          
+
           // Aplica filtro de texto se necessário
           if (textoPesquisa == null ||
               textoPesquisa.isEmpty ||
@@ -477,7 +489,7 @@ class SupabaseService {
           }
           continue;
         }
-        
+
         // Para cada condomínio associado a este representante
         for (final condominio in condominiosDoRepresentante) {
           final resultado = Map<String, dynamic>.from(representante);
@@ -485,7 +497,8 @@ class SupabaseService {
 
           // Adiciona todos os campos do condomínio ao resultado
           resultado['condominio_id'] = condominio['id'];
-          resultado['nome_condominio'] = condominio['nome_condominio'] ?? 'Sem nome';
+          resultado['nome_condominio'] =
+              condominio['nome_condominio'] ?? 'Sem nome';
           resultado['cnpj'] = condominio['cnpj'] ?? 'N/A';
           resultado['cep'] = condominio['cep'];
           resultado['endereco'] = condominio['endereco'];
@@ -509,7 +522,9 @@ class SupabaseService {
           // O representante associado é o próprio representante
           resultado['representante_associado'] = representante['nome_completo'];
           resultado['representante_id_associado'] = representante['id'];
-          print('🔗 ${condominio['nome_condominio']}: Associado a ${representante['nome_completo']}');
+          print(
+            '🔗 ${condominio['nome_condominio']}: Associado a ${representante['nome_completo']}',
+          );
 
           // Aplica filtro de texto se necessário
           if (textoPesquisa == null ||
@@ -565,7 +580,7 @@ class SupabaseService {
   ) async {
     try {
       print('🔍 BUSCAR REPRESENTANTES DO CONDOMÍNIO: $condominioId');
-      
+
       // CORRIGIDO: Busca o condomínio e pega seu representante_id
       // Antes: iterava o array condominios_selecionados de todos os representantes
       // Agora: busca direto o representante_id do condomínio
@@ -662,7 +677,7 @@ class SupabaseService {
   ) async {
     try {
       print('🔍 BUSCAR CONDOMÍNIOS: representante=$representanteId');
-      
+
       // CORRIGIDO: Busca condomínios usando representante_id (fonte de verdade)
       // Antes: usava array condominios_selecionados
       // Agora: busca por representante_id na tabela de condomínios
@@ -801,11 +816,13 @@ class SupabaseService {
     List<String>? condominiosAntigoIds,
   ) async {
     try {
-      print('🔄 Atualizando representante_id para representante $representanteId');
+      print(
+        '🔄 Atualizando representante_id para representante $representanteId',
+      );
 
       // IDs antigos (condomínios que devem ser desassociados)
       final condominiosRemover = condominiosAntigoIds ?? [];
-      
+
       // Remover representante dos condomínios que foram deseleccionados
       for (final condominioId in condominiosRemover) {
         if (!condominiosIds.contains(condominioId)) {
@@ -819,14 +836,18 @@ class SupabaseService {
 
       // Adicionar representante aos condomínios selecionados
       for (final condominioId in condominiosIds) {
-        print('  ✅ Associando condomínio $condominioId ao representante $representanteId');
+        print(
+          '  ✅ Associando condomínio $condominioId ao representante $representanteId',
+        );
         await client
             .from('condominios')
             .update({'representante_id': representanteId})
             .eq('id', condominioId);
       }
 
-      print('✅ Representante_id atualizado com sucesso na tabela de condomínios');
+      print(
+        '✅ Representante_id atualizado com sucesso na tabela de condomínios',
+      );
     } catch (e) {
       print('❌ Erro ao atualizar representante_id nos condomínios: $e');
       rethrow;
@@ -922,7 +943,7 @@ class SupabaseService {
   ) async {
     try {
       print('🔍 Buscando pastas públicas do condominio: $condominioId');
-      
+
       final response = await client
           .from('documentos')
           .select()
@@ -949,8 +970,10 @@ class SupabaseService {
     String condominioId,
   ) async {
     try {
-      print('🔍 Buscando todas as pastas (públicas + privadas) do condominio: $condominioId');
-      
+      print(
+        '🔍 Buscando todas as pastas (públicas + privadas) do condominio: $condominioId',
+      );
+
       final response = await client
           .from('documentos')
           .select()
@@ -976,7 +999,7 @@ class SupabaseService {
   ) async {
     try {
       print('🔍 Buscando arquivos da pasta: $pastaId');
-      
+
       final response = await client
           .from('documentos')
           .select()
@@ -1075,7 +1098,7 @@ class SupabaseService {
   ) async {
     try {
       late Uint8List bytes;
-      
+
       // Converter para bytes - compatível com File e XFile
       if (arquivo is File) {
         bytes = await arquivo.readAsBytes();
@@ -1083,7 +1106,7 @@ class SupabaseService {
         // Web (XFile) ou outro formato
         bytes = await arquivo.readAsBytes();
       }
-      
+
       final sanitizedName = _sanitizeFileName(nomeArquivo);
       final fileName =
           '${condominioId}/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
@@ -1276,14 +1299,16 @@ class SupabaseService {
   ) async {
     try {
       print('[SupabaseService] Iniciando upload de balancete: $nomeArquivo');
-      
+
       late Uint8List bytes;
-      
+
       // Converter para bytes - compatível com File e XFile
       if (arquivo is File) {
         // Mobile/Desktop
         if (!await arquivo.exists()) {
-          print('[SupabaseService] ERRO: Arquivo não existe em ${arquivo.path}');
+          print(
+            '[SupabaseService] ERRO: Arquivo não existe em ${arquivo.path}',
+          );
           throw Exception('Arquivo não encontrado: ${arquivo.path}');
         }
         bytes = await arquivo.readAsBytes();
@@ -1295,7 +1320,7 @@ class SupabaseService {
           throw Exception('Não foi possível ler o arquivo: $e');
         }
       }
-      
+
       print('[SupabaseService] Arquivo lido: ${bytes.length} bytes');
 
       final sanitizedName = _sanitizeFileName(nomeArquivo);
@@ -1336,7 +1361,9 @@ class SupabaseService {
     String ano,
   ) async {
     try {
-      print('[SupabaseService] Iniciando upload de balancete (bytes): $nomeArquivo');
+      print(
+        '[SupabaseService] Iniciando upload de balancete (bytes): $nomeArquivo',
+      );
       print('[SupabaseService] Tamanho: ${bytes.length} bytes');
 
       final sanitizedName = _sanitizeFileName(nomeArquivo);
@@ -1372,7 +1399,7 @@ class SupabaseService {
   static Future<Uint8List?> downloadArquivo(String url) async {
     try {
       print('[SupabaseService] Iniciando download da URL: $url');
-      
+
       // Extrair o caminho do arquivo da URL
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
@@ -1382,7 +1409,7 @@ class SupabaseService {
       // Procurar por qualquer bucket conhecido (fotos_perfil ou documentos)
       String? bucketName;
       int bucketIndex = -1;
-      
+
       final buckets = ['fotos_perfil', 'documentos'];
       for (final bucket in buckets) {
         bucketIndex = pathSegments.indexOf(bucket);
@@ -1409,7 +1436,9 @@ class SupabaseService {
           .from(bucketName!)
           .download(filePath);
 
-      print('[SupabaseService] Download concluído com sucesso! Tamanho: ${response.length} bytes');
+      print(
+        '[SupabaseService] Download concluído com sucesso! Tamanho: ${response.length} bytes',
+      );
       return response;
     } catch (e) {
       print('[SupabaseService] Erro ao fazer download do arquivo: $e');
@@ -1422,7 +1451,7 @@ class SupabaseService {
   getRepresentantesComCondominiosParaAdmin() async {
     try {
       print('🔍 BUSCAR REPRESENTANTES PARA ADMIN');
-      
+
       // Busca todos os representantes
       final representantes = await client
           .from('representantes')
@@ -1444,8 +1473,9 @@ class SupabaseService {
       final resultados = <Map<String, dynamic>>[];
 
       for (final rep in representantes) {
-        final condominiosIds = rep['condominios_selecionados'] as List<dynamic>? ?? [];
-        
+        final condominiosIds =
+            rep['condominios_selecionados'] as List<dynamic>? ?? [];
+
         // Busca os dados dos condomínios associados
         final condominiosAssociados = <Map<String, dynamic>>[];
         for (final condId in condominiosIds) {
@@ -1548,7 +1578,7 @@ class SupabaseService {
   ) async {
     try {
       print('🗑️ DELETANDO CONDOMÍNIO: $condominioId');
-      
+
       // Primeiro, verificar se existem representantes associados a este condomínio
       final representantesAssociados = await client
           .from('representantes')
@@ -1583,7 +1613,9 @@ class SupabaseService {
         '✅ Condomínio $condominioId deletado e representantes atualizados com sucesso',
       );
     } catch (e) {
-      print('❌ Erro ao deletar condomínio com atualização de representantes: $e');
+      print(
+        '❌ Erro ao deletar condomínio com atualização de representantes: $e',
+      );
       rethrow;
     }
   }
@@ -1594,7 +1626,7 @@ class SupabaseService {
   ) async {
     try {
       print('🗑️ DELETANDO REPRESENTANTE: $representanteId');
-      
+
       // Primeiro, buscar o representante para ver quais condomínios estão associados
       final representante = await client
           .from('representantes')
@@ -1676,10 +1708,12 @@ class SupabaseService {
       // Detectar a extensão do arquivo
       final fileName = imageFile.path.split('/').last;
       final fileExtension = fileName.split('.').last.toLowerCase();
-      
+
       // Validar extensão
       final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+      final extension = validExtensions.contains(fileExtension)
+          ? fileExtension
+          : 'jpg';
 
       // Gerar nome único para o arquivo
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -1687,11 +1721,14 @@ class SupabaseService {
 
       // Fazer upload para o Storage
       final bytes = await imageFile.readAsBytes();
-      await client.storage.from('fotos_perfil').uploadBinary(storagePath, bytes);
+      await client.storage
+          .from('fotos_perfil')
+          .uploadBinary(storagePath, bytes);
 
       // Obter a URL pública
-      final imageUrl =
-          client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+      final imageUrl = client.storage
+          .from('fotos_perfil')
+          .getPublicUrl(storagePath);
 
       // ✅ MULTI-UNIT: Buscar o CPF deste proprietário para sincronizar em todos
       final proprietarioAtual = await client
@@ -1735,10 +1772,12 @@ class SupabaseService {
       // Detectar a extensão do arquivo
       final fileName = imageFile.path.split('/').last;
       final fileExtension = fileName.split('.').last.toLowerCase();
-      
+
       // Validar extensão
       final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      final extension = validExtensions.contains(fileExtension) ? fileExtension : 'jpg';
+      final extension = validExtensions.contains(fileExtension)
+          ? fileExtension
+          : 'jpg';
 
       // Gerar nome único para o arquivo
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -1746,11 +1785,14 @@ class SupabaseService {
 
       // Fazer upload para o Storage
       final bytes = await imageFile.readAsBytes();
-      await client.storage.from('fotos_perfil').uploadBinary(storagePath, bytes);
+      await client.storage
+          .from('fotos_perfil')
+          .uploadBinary(storagePath, bytes);
 
       // Obter a URL pública
-      final imageUrl =
-          client.storage.from('fotos_perfil').getPublicUrl(storagePath);
+      final imageUrl = client.storage
+          .from('fotos_perfil')
+          .getPublicUrl(storagePath);
 
       // Atualizar a URL no banco de dados
       final response = await client
@@ -1778,7 +1820,7 @@ class SupabaseService {
       final signedUrl = await client.storage
           .from(bucket)
           .createSignedUrl(path, expiresIn);
-      
+
       print('✅ Signed URL gerada para: $path (expira em ${expiresIn}s)');
       return signedUrl;
     } catch (e) {
@@ -1794,31 +1836,34 @@ class SupabaseService {
   }) async {
     try {
       print('📋 [SIGNED URL] URL original: $documentoUrl');
-      
+
       // Extrair o caminho do arquivo da URL pública
       // URL formato: https://tukpgefrddfchmvtiujp.supabase.co/storage/v1/object/public/documentos/...
       final uri = Uri.parse(documentoUrl);
       final pathSegments = uri.pathSegments;
-      
+
       print('📋 [SIGNED URL] Path segments: $pathSegments');
       print('📋 [SIGNED URL] Total segments: ${pathSegments.length}');
-      
+
       // Encontrar o índice de 'public' e pegar tudo após ele
       final publicIndex = pathSegments.indexOf('public');
       print('📋 [SIGNED URL] Index de "public": $publicIndex');
-      
+
       if (publicIndex == -1 || publicIndex >= pathSegments.length - 1) {
-        print('❌ [SIGNED URL] Não foi possível encontrar "public" ou está no final');
+        print(
+          '❌ [SIGNED URL] Não foi possível encontrar "public" ou está no final',
+        );
         return null;
       }
-      
+
       // Reconstruir o caminho sem 'public'
       final filePath = pathSegments.skip(publicIndex + 2).join('/');
-      final bucketName = pathSegments[publicIndex + 1]; // 'documentos', 'qr_codes', etc
-      
+      final bucketName =
+          pathSegments[publicIndex + 1]; // 'documentos', 'qr_codes', etc
+
       print('📋 [SIGNED URL] Bucket: $bucketName');
       print('📋 [SIGNED URL] File path: $filePath');
-      
+
       // Verificar se o arquivo existe antes de tentar gerar signed URL
       try {
         await client.storage.from(bucketName).list(path: filePath);
@@ -1827,12 +1872,12 @@ class SupabaseService {
         print('⚠️ [SIGNED URL] Não foi possível verificar arquivo: $e');
         // Continuar mesmo assim, pois o arquivo pode existir
       }
-      
+
       // Gerar signed URL
       final signedUrl = await client.storage
           .from(bucketName)
           .createSignedUrl(filePath, expiresIn);
-      
+
       print('✅ [SIGNED URL] Signed URL gerada com sucesso!');
       print('📋 [SIGNED URL] Expira em: ${expiresIn}s');
       return signedUrl;
@@ -1842,5 +1887,63 @@ class SupabaseService {
       return null;
     }
   }
-}
 
+  /// Faz upload de um documento PDF (generico)
+  /// Aceita File (mobile), Uint8List (web) ou PlatformFile
+  static Future<String?> uploadDocumentoPdf({
+    required dynamic arquivo,
+    required String nomeArquivo,
+    required String bucket,
+    required String pasta,
+  }) async {
+    try {
+      if (arquivo == null) return null;
+
+      late final Uint8List bytes;
+
+      if (arquivo is File) {
+        bytes = Uint8List.fromList(await arquivo.readAsBytes());
+      } else if (arquivo is Uint8List) {
+        bytes = arquivo;
+      } else {
+        // Tenta acessar bytes ou path de objetos genéricos (como PlatformFile)
+        try {
+          if ((arquivo as dynamic).bytes != null) {
+            bytes = (arquivo as dynamic).bytes!;
+          } else if ((arquivo as dynamic).path != null) {
+            bytes = Uint8List.fromList(
+              await File((arquivo as dynamic).path!).readAsBytes(),
+            );
+          } else {
+            throw Exception('Arquivo sem bytes ou path');
+          }
+        } catch (e) {
+          throw Exception('Tipo de arquivo não suportado ou inválido: $e');
+        }
+      }
+
+      // Sanitizar nome do arquivo
+      // Remover caracteres especiais e espaços
+      final nomeSanitizado = nomeArquivo
+          .replaceAll(RegExp(r'[^\w\s\.]'), '')
+          .replaceAll(' ', '_');
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final nomeFinal = '$pasta/${timestamp}_$nomeSanitizado';
+
+      final response = await client.storage
+          .from(bucket)
+          .uploadBinary(nomeFinal, bytes);
+
+      if (response.isNotEmpty) {
+        final publicUrl = client.storage.from(bucket).getPublicUrl(nomeFinal);
+        return publicUrl;
+      }
+
+      return null;
+    } catch (e) {
+      print('Erro ao fazer upload de documento PDF: $e');
+      rethrow;
+    }
+  }
+}

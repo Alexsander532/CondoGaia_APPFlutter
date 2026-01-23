@@ -169,6 +169,7 @@ class UnidadeDetalhesService {
     String? conjuge,
     String? multiproprietarios,
     String? moradores,
+    String? matriculaImovelUrl,
   }) async {
     try {
       // ✅ MULTI-UNIT: Verificar se já existe proprietário com este CPF
@@ -223,6 +224,7 @@ class UnidadeDetalhesService {
             'moradores': moradores,
             'senha_acesso': senhaGerada,
             'foto_perfil': fotoHerdada, // ✅ Herdar foto se existir
+            'matricula_imovel_url': matriculaImovelUrl,
           })
           .select()
           .single();
@@ -282,6 +284,7 @@ class UnidadeDetalhesService {
     String? moradores,
     bool receberBoletoEmail = true,
     bool controleLocacao = true,
+    String? controleLocacaoUrl,
   }) async {
     try {
       // 🔐 Gerar senha automática baseada no nome
@@ -309,6 +312,7 @@ class UnidadeDetalhesService {
             'moradores': moradores,
             'receber_boleto_email': receberBoletoEmail,
             'controle_locacao': controleLocacao,
+            'controle_locacao_url': controleLocacaoUrl,
             'senha_acesso': senhaGerada, // ✅ Adicionar senha gerada
           })
           .select()

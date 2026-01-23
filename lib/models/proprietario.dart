@@ -26,6 +26,7 @@ class Proprietario {
   final String? qrCodeUrl;
   final bool? agruparBoletos;
   final bool? matriculaImovel;
+  final String? matriculaImovelUrl;
 
   const Proprietario({
     required this.id,
@@ -54,6 +55,7 @@ class Proprietario {
     this.qrCodeUrl,
     this.agruparBoletos,
     this.matriculaImovel,
+    this.matriculaImovelUrl,
   });
 
   /// Cria uma instância de Proprietario a partir de um Map (JSON)
@@ -78,13 +80,18 @@ class Proprietario {
       multiproprietarios: json['multiproprietarios'] as String?,
       moradores: json['moradores'] as String?,
       ativo: json['ativo'] as bool?,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
       senhaAcesso: json['senha_acesso'] as String?,
       fotoPerfil: json['foto_perfil'] as String?,
       qrCodeUrl: json['qr_code_url'] as String?,
       agruparBoletos: json['agrupar_boletos'] as bool?,
       matriculaImovel: json['matricula_imovel'] as bool?,
+      matriculaImovelUrl: json['matricula_imovel_url'] as String?,
     );
   }
 
@@ -117,6 +124,7 @@ class Proprietario {
       'qr_code_url': qrCodeUrl,
       'agrupar_boletos': agruparBoletos,
       'matricula_imovel': matriculaImovel,
+      'matricula_imovel_url': matriculaImovelUrl,
     };
   }
 
@@ -146,6 +154,7 @@ class Proprietario {
     String? senhaAcesso,
     String? fotoPerfil,
     String? qrCodeUrl,
+    String? matriculaImovelUrl,
   }) {
     return Proprietario(
       id: id ?? this.id,
@@ -172,6 +181,7 @@ class Proprietario {
       senhaAcesso: senhaAcesso ?? this.senhaAcesso,
       fotoPerfil: fotoPerfil ?? this.fotoPerfil,
       qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
+      matriculaImovelUrl: matriculaImovelUrl ?? this.matriculaImovelUrl,
     );
   }
 
@@ -181,7 +191,7 @@ class Proprietario {
   /// Retorna o CPF/CNPJ formatado
   String get cpfCnpjFormatado {
     final numeros = cpfCnpj.replaceAll(RegExp(r'[^\d]'), '');
-    
+
     if (numeros.length == 11) {
       // CPF: XXX.XXX.XXX-XX
       return '${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9, 11)}';
@@ -189,7 +199,7 @@ class Proprietario {
       // CNPJ: XX.XXX.XXX/XXXX-XX
       return '${numeros.substring(0, 2)}.${numeros.substring(2, 5)}.${numeros.substring(5, 8)}/${numeros.substring(8, 12)}-${numeros.substring(12, 14)}';
     }
-    
+
     return cpfCnpj; // Retorna original se não for CPF nem CNPJ válido
   }
 

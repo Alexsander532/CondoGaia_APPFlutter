@@ -3,6 +3,28 @@ import '../models/instituicao_financeira_model.dart';
 import '../models/plano_assinatura_model.dart';
 import '../models/tipo_pagamento_model.dart';
 
+
+//Estado abstrato para Lavar Louça (Estado padrão para poder comparar com os outros estados) --> Classe base
+abstract class LavarLoucaState extends Equatable{
+  late int x;
+}
+
+class LavarLoucaInitial implements LavarLoucaState{
+  @override
+  late int x;
+
+  LavarLoucaInitial({required this.x});
+
+  @override
+  List<Object?> get props => [x];
+
+  @override
+  bool? get stringify => true;
+}
+
+
+
+
 /// Estado abstrato para Gateway de Pagamento
 abstract class GatewayPagamentoState extends Equatable {
   const GatewayPagamentoState();

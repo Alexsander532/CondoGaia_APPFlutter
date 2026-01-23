@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'dart:io';
 import '../services/unidade_detalhes_service.dart';
@@ -12,6 +13,7 @@ import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/imobiliaria.dart';
 import '../utils/formatters.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/qr_code_display_widget.dart';
 
 class DetalhesUnidadeScreen extends StatefulWidget {
@@ -164,6 +166,86 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
   // Estados para Inquilino - Foto
   Uint8List? _fotoInquilinoBytes;
+
+  // Estados para Upload de PDF
+  PlatformFile? _pdfMatriculaSelecionado;
+  PlatformFile? _pdfContratoSelecionado;
+
+  Future<void> _confirmarAcao({
+    required String titulo,
+    required String conteudo,
+    required VoidCallback onConfirm,
+  }) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(titulo),
+          content: SingleChildScrollView(
+            child: ListBody(children: <Widget>[Text(conteudo)]),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Confirmar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                onConfirm();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _abrirUrl(String? url) async {
+    if (url == null || url.isEmpty) return;
+
+    final uri = Uri.parse(url);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch $url');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível abrir o link: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _selecionarPdf(bool isMatricula) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true, // Importante para Web
+      );
+
+      if (result != null) {
+        setState(() {
+          if (isMatricula) {
+            _pdfMatriculaSelecionado = result.files.first;
+          } else {
+            _pdfContratoSelecionado = result.files.first;
+          }
+        });
+      }
+    } catch (e) {
+      print('Erro ao selecionar PDF: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao selecionar arquivo: $e')));
+    }
+  }
 
   // Estados de loading para os botões de salvar
   bool _isLoadingUnidade = false;
@@ -347,7 +429,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             _receberBoletoEmailSelecionado =
                 (_inquilino?.receberBoletoEmail ?? true) ? 'sim' : 'nao';
             _controleLocacaoSelecionado = (_inquilino?.controleLocacao ?? true)
-                ? 'sim'
+                ? 'fazer_upload'
                 : 'nao';
           }
 
@@ -632,6 +714,25 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       if (_proprietario == null || _proprietario!.id.isEmpty) {
         print('📝 Criando novo proprietário...');
 
+        // Upload de Matricula (novo)
+        String? matriculaUrl;
+        if (_matriculaImovelSelecionado == 'Fazer Upload' &&
+            _pdfMatriculaSelecionado != null) {
+          try {
+            matriculaUrl = await SupabaseService.uploadDocumentoPdf(
+              arquivo: kIsWeb
+                  ? _pdfMatriculaSelecionado!.bytes!
+                  : File(_pdfMatriculaSelecionado!.path!),
+              nomeArquivo: _pdfMatriculaSelecionado!.name,
+              bucket: 'documentos_unidade',
+              pasta: 'matriculas',
+            );
+          } catch (e) {
+            print('Erro upload matricula: $e');
+            // Opcional: mostrar erro mas continuar
+          }
+        }
+
         final novoPropietario = await _service.criarProprietario(
           condominioId: widget.condominioId ?? '',
           unidadeId: _unidade?.id ?? '',
@@ -674,6 +775,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           moradores: _proprietarioMoradoresController.text.trim().isEmpty
               ? null
               : _proprietarioMoradoresController.text.trim(),
+          matriculaImovelUrl: matriculaUrl,
         );
 
         // Atualizar estado com o novo proprietário
@@ -699,6 +801,28 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
 
         // Se tem foto selecionada (em bytes), fazer upload
         String? fotoUrl = _proprietario?.fotoPerfil;
+
+        // Upload de Matricula (atualização)
+        String? matriculaUrl = _proprietario?.matriculaImovelUrl;
+
+        if (_matriculaImovelSelecionado == 'Não') {
+          matriculaUrl = null;
+        } else if (_matriculaImovelSelecionado == 'Fazer Upload' &&
+            _pdfMatriculaSelecionado != null) {
+          try {
+            matriculaUrl = await SupabaseService.uploadDocumentoPdf(
+              arquivo: kIsWeb
+                  ? _pdfMatriculaSelecionado!.bytes!
+                  : File(_pdfMatriculaSelecionado!.path!),
+              nomeArquivo: _pdfMatriculaSelecionado!.name,
+              bucket: 'documentos_unidade',
+              pasta: 'matriculas',
+            );
+          } catch (e) {
+            print('Erro upload matricula update: $e');
+            throw Exception('Erro ao fazer upload do PDF: $e');
+          }
+        }
 
         if (_fotoProprietarioBytes != null) {
           // Fazer upload da foto para o Supabase Storage
@@ -758,6 +882,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               : _proprietarioMoradoresController.text.trim(),
           'agrupar_boletos': _agruparBoletosSelecionado == 'Sim',
           'matricula_imovel': _matriculaImovelSelecionado == 'Fazer Upload',
+          'matricula_imovel_url': matriculaUrl, // ✅ Adicionado URL atualizada
           'foto_perfil': fotoUrl,
         };
 
@@ -851,6 +976,24 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       if (_inquilino == null || _inquilino!.id.isEmpty) {
         print('📝 Criando novo inquilino...');
 
+        // Upload de Contrato (novo)
+        String? contratoUrl;
+        if (_controleLocacaoSelecionado == 'fazer_upload' &&
+            _pdfContratoSelecionado != null) {
+          try {
+            contratoUrl = await SupabaseService.uploadDocumentoPdf(
+              arquivo: kIsWeb
+                  ? _pdfContratoSelecionado!.bytes!
+                  : File(_pdfContratoSelecionado!.path!),
+              nomeArquivo: _pdfContratoSelecionado!.name,
+              bucket: 'documentos_unidade',
+              pasta: 'contratos',
+            );
+          } catch (e) {
+            print('Erro upload contrato: $e');
+          }
+        }
+
         final novoInquilino = await _service.criarInquilino(
           condominioId: widget.condominioId ?? '',
           unidadeId: _unidade?.id ?? '',
@@ -893,6 +1036,7 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
           moradores: _inquilinoMoradoresController.text.trim().isEmpty
               ? null
               : _inquilinoMoradoresController.text.trim(),
+          controleLocacaoUrl: contratoUrl,
         );
 
         // Atualizar estado com o novo inquilino
@@ -915,6 +1059,29 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
       } else {
         // Se já tem inquilino, atualizar dados
         print('♻️ Atualizando inquilino existente...');
+
+        // Upload de Contrato (atualização)
+        String? contratoUrl = _inquilino?.controleLocacaoUrl;
+
+        if (_controleLocacaoSelecionado == 'nao') {
+          // ou 'Não', verificar valor do radio
+          contratoUrl = null;
+        } else if (_controleLocacaoSelecionado == 'fazer_upload' &&
+            _pdfContratoSelecionado != null) {
+          try {
+            contratoUrl = await SupabaseService.uploadDocumentoPdf(
+              arquivo: kIsWeb
+                  ? _pdfContratoSelecionado!.bytes!
+                  : File(_pdfContratoSelecionado!.path!),
+              nomeArquivo: _pdfContratoSelecionado!.name,
+              bucket: 'documentos_unidade',
+              pasta: 'contratos',
+            );
+          } catch (e) {
+            print('Erro upload contrato update: $e');
+            throw Exception('Erro ao fazer upload do PDF: $e');
+          }
+        }
 
         // Se tem foto selecionada (em bytes), fazer upload
         String? fotoUrl = _inquilino?.fotoPerfil;
@@ -976,7 +1143,9 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ? null
               : _inquilinoMoradoresController.text.trim(),
           'receber_boleto_email': _receberBoletoEmailSelecionado == 'sim',
+
           'controle_locacao': _controleLocacaoSelecionado == 'sim',
+          'controle_locacao_url': contratoUrl, // ✅ Adicionado URL atualizada
           'foto_perfil': fotoUrl,
         };
 
@@ -3354,45 +3523,207 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
+            Column(
               children: [
                 Row(
                   children: [
-                    Radio<String>(
-                      value: 'Fazer Upload',
-                      groupValue: _matriculaImovelSelecionado,
-                      onChanged: (String? value) {
-                        setState(() {
-                          _matriculaImovelSelecionado = value!;
-                        });
-                      },
-                      activeColor: const Color(0xFF2196F3),
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'Fazer Upload',
+                          groupValue: _matriculaImovelSelecionado,
+                          onChanged: (String? value) {
+                            setState(() {
+                              _matriculaImovelSelecionado = value!;
+                            });
+                          },
+                          activeColor: const Color(0xFF2196F3),
+                        ),
+                        const Text(
+                          'Fazer Upload',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                      ],
                     ),
-                    const Text(
-                      'Fazer Upload',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    const SizedBox(width: 24),
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'Não',
+                          groupValue: _matriculaImovelSelecionado,
+                          onChanged: (String? value) {
+                            setState(() {
+                              _matriculaImovelSelecionado = value!;
+                            });
+                          },
+                          activeColor: const Color(0xFF2196F3),
+                        ),
+                        const Text(
+                          'Não',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(width: 24),
-                Row(
-                  children: [
-                    Radio<String>(
-                      value: 'Não',
-                      groupValue: _matriculaImovelSelecionado,
-                      onChanged: (String? value) {
-                        setState(() {
-                          _matriculaImovelSelecionado = value!;
-                        });
-                      },
-                      activeColor: const Color(0xFF2196F3),
+                // Se selecionado Fazer Upload, mostrar botão e info
+                if (_matriculaImovelSelecionado == 'Fazer Upload')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // CASO 1: Arquivo NOVO selecionado (ainda não salvo)
+                        if (_pdfMatriculaSelecionado != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.picture_as_pdf,
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _pdfMatriculaSelecionado!.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.red,
+                                  ),
+                                  tooltip: 'Remover seleção',
+                                  onPressed: () {
+                                    setState(() {
+                                      _pdfMatriculaSelecionado = null;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => _selecionarPdf(true),
+                            icon: const Icon(Icons.folder_open),
+                            label: const Text('Escolher Outro'),
+                          ),
+                        ]
+                        // CASO 2: Arquivo JÁ SALVO
+                        else if (_proprietario?.matriculaImovelUrl != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Arquivo salvo no sistema',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            alignment: WrapAlignment.start,
+                            spacing: 8,
+                            children: [
+                              // Botão Ver
+                              TextButton.icon(
+                                onPressed: () => _abrirUrl(
+                                  _proprietario?.matriculaImovelUrl,
+                                ),
+                                icon: const Icon(Icons.visibility, size: 18),
+                                label: const Text('Ver'),
+                              ),
+                              // Botão Trocar
+                              TextButton.icon(
+                                onPressed: () {
+                                  _confirmarAcao(
+                                    titulo: 'Trocar Arquivo',
+                                    conteudo:
+                                        'Deseja substituir o arquivo da matrícula salvo por um novo? O anterior será substituido ao salvar.',
+                                    onConfirm: () => _selecionarPdf(true),
+                                  );
+                                },
+                                icon: const Icon(Icons.sync, size: 18),
+                                label: const Text('Trocar'),
+                              ),
+                              // Botão Excluir
+                              TextButton.icon(
+                                onPressed: () {
+                                  _confirmarAcao(
+                                    titulo: 'Excluir Arquivo',
+                                    conteudo:
+                                        'Tem certeza que deseja remover o arquivo da matrícula? Essa ação será efetivada ao clicar em SALVAR PROPRIETÁRIO.',
+                                    onConfirm: () {
+                                      setState(() {
+                                        _matriculaImovelSelecionado = 'Não';
+                                      });
+                                    },
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                label: const Text(
+                                  'Excluir',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ]
+                        // CASO 3: Nada selecionado e nada salvo
+                        else ...[
+                          ElevatedButton.icon(
+                            onPressed: () => _selecionarPdf(true),
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text('Selecionar PDF da Matrícula'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E3A59),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const Text(
-                      'Não',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
-                    ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ],
@@ -4780,37 +5111,191 @@ class _DetalhesUnidadeScreenState extends State<DetalhesUnidadeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
+          Column(
             children: [
-              Radio<String>(
-                value: 'fazer_upload',
-                groupValue: _controleLocacaoSelecionado,
-                onChanged: (String? value) {
-                  setState(() {
-                    _controleLocacaoSelecionado = value!;
-                  });
-                },
-                activeColor: const Color(0xFF2E3A59),
+              Row(
+                children: [
+                  Radio<String>(
+                    value: 'fazer_upload',
+                    groupValue: _controleLocacaoSelecionado,
+                    onChanged: (String? value) {
+                      setState(() {
+                        _controleLocacaoSelecionado = value!;
+                      });
+                    },
+                    activeColor: const Color(0xFF2E3A59),
+                  ),
+                  const Text(
+                    'Fazer Upload',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                  ),
+                  const SizedBox(width: 24),
+                  Radio<String>(
+                    value: 'nao',
+                    groupValue: _controleLocacaoSelecionado,
+                    onChanged: (String? value) {
+                      setState(() {
+                        _controleLocacaoSelecionado = value!;
+                      });
+                    },
+                    activeColor: const Color(0xFF2E3A59),
+                  ),
+                  const Text(
+                    'Não',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                  ),
+                ],
               ),
-              const Text(
-                'Fazer Upload',
-                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
-              ),
-              const SizedBox(width: 24),
-              Radio<String>(
-                value: 'nao',
-                groupValue: _controleLocacaoSelecionado,
-                onChanged: (String? value) {
-                  setState(() {
-                    _controleLocacaoSelecionado = value!;
-                  });
-                },
-                activeColor: const Color(0xFF2E3A59),
-              ),
-              const Text(
-                'Não',
-                style: TextStyle(fontSize: 14, color: Color(0xFF333333)),
-              ),
+              // UI de Upload para Inquilino
+              if (_controleLocacaoSelecionado == 'fazer_upload')
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // CASO 1: Arquivo NOVO selecionado (ainda não salvo)
+                      if (_pdfContratoSelecionado != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _pdfContratoSelecionado!.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
+                                tooltip: 'Remover seleção',
+                                onPressed: () {
+                                  setState(() {
+                                    _pdfContratoSelecionado = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _selecionarPdf(false), // false = contrato
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Escolher Outro'),
+                        ),
+                      ]
+                      // CASO 2: Arquivo JÁ SALVO
+                      else if (_inquilino?.controleLocacaoUrl != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Contrato salvo no sistema',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            // Botão Ver
+                            TextButton.icon(
+                              onPressed: () =>
+                                  _abrirUrl(_inquilino?.controleLocacaoUrl),
+                              icon: const Icon(Icons.visibility, size: 18),
+                              label: const Text('Ver'),
+                            ),
+                            // Botão Trocar
+                            TextButton.icon(
+                              onPressed: () {
+                                _confirmarAcao(
+                                  titulo: 'Trocar Arquivo',
+                                  conteudo:
+                                      'Deseja substituir o contrato salvo por um novo? O anterior será substituido ao salvar.',
+                                  onConfirm: () => _selecionarPdf(false),
+                                );
+                              },
+                              icon: const Icon(Icons.sync, size: 18),
+                              label: const Text('Trocar'),
+                            ),
+                            // Botão Excluir
+                            TextButton.icon(
+                              onPressed: () {
+                                _confirmarAcao(
+                                  titulo: 'Excluir Arquivo',
+                                  conteudo:
+                                      'Tem certeza que deseja remover o contrato? Essa ação será efetivada ao clicar em SALVAR INQUILINO.',
+                                  onConfirm: () {
+                                    setState(() {
+                                      _controleLocacaoSelecionado = 'nao';
+                                    });
+                                  },
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                              label: const Text(
+                                'Excluir',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ]
+                      // CASO 3: Nada selecionado e nada salvo
+                      else ...[
+                        ElevatedButton.icon(
+                          onPressed: () => _selecionarPdf(false),
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Selecionar Contrato'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E3A59),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 24),
