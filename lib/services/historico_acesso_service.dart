@@ -64,13 +64,14 @@ class HistoricoAcessoService {
       }
 
       // Usar o mesmo tipo_visitante da entrada original
-      final tipoVisitanteOriginal = entradaSemSaida.tipoVisitante ?? 'inquilino';
+      final tipoVisitanteOriginal = entradaSemSaida.tipoVisitante;
 
       final historicoData = {
         'visitante_id': visitanteId,
         'condominio_id': condominioId,
         'tipo_registro': 'saida',
-        'tipo_visitante': tipoVisitanteOriginal, // Usar o tipo da entrada original
+        'tipo_visitante':
+            tipoVisitanteOriginal, // Usar o tipo da entrada original
         'data_hora': DateTime.now().toLocal().toIso8601String(),
         'observacoes': observacoes,
         'registrado_por': registradoPor,
@@ -149,8 +150,10 @@ class HistoricoAcessoService {
       for (var entrada in entradas) {
         final visitanteId = entrada['visitante_id'];
         final tipoVisitante = entrada['tipo_visitante'] ?? 'inquilino';
-        
-        print('Processando entrada: visitante_id=$visitanteId, tipo=$tipoVisitante');
+
+        print(
+          'Processando entrada: visitante_id=$visitanteId, tipo=$tipoVisitante',
+        );
 
         Map<String, dynamic>? visitanteInfo;
         Map<String, dynamic>? unidadeInfo;
@@ -162,7 +165,7 @@ class HistoricoAcessoService {
               .from('autorizados_inquilinos')
               .select('*, unidades(*)')
               .eq('id', visitanteId);
-          
+
           if (inquilinos.isNotEmpty) {
             visitanteInfo = inquilinos.first;
             unidadeInfo = visitanteInfo['unidades'];
@@ -173,7 +176,7 @@ class HistoricoAcessoService {
               .from('autorizados_visitantes_portaria_representante')
               .select('*, unidades(*)')
               .eq('id', visitanteId);
-          
+
           if (visitantes.isNotEmpty) {
             visitanteInfo = visitantes.first;
             unidadeInfo = visitanteInfo['unidades'];
@@ -181,9 +184,19 @@ class HistoricoAcessoService {
         }
 
         // Verificar se o visitante pertence ao condomínio solicitado
-         if (visitanteInfo != null && unidadeInfo != null && 
-             unidadeInfo['condominio_id'] == condominioId) {
-          
+        // Verifica na unidade OU diretamente no visitante (para casos sem unidade)
+        bool pertenceAoCondominio = false;
+
+        if (visitanteInfo != null) {
+          if (unidadeInfo != null &&
+              unidadeInfo['condominio_id'] == condominioId) {
+            pertenceAoCondominio = true;
+          } else if (visitanteInfo['condominio_id'] == condominioId) {
+            pertenceAoCondominio = true;
+          }
+        }
+
+        if (pertenceAoCondominio && visitanteInfo != null) {
           // Verificar se existe saída para este visitante após esta entrada
           final saidas = await _supabase
               .from('historico_acessos')
@@ -203,29 +216,39 @@ class HistoricoAcessoService {
               'cpf': visitanteInfo['cpf'],
               'celular': visitanteInfo['celular'] ?? '',
               'foto_url': visitanteInfo['foto_url'], // Adicionar foto_url
-              'tipo_pessoa': tipoVisitante == 'inquilino' ? 'Inquilino' : 'Visitante',
-              'unidades': {
-                'numero': unidadeInfo['numero'],
-                'bloco': unidadeInfo['bloco'],
-              },
+              'tipo_pessoa': tipoVisitante == 'inquilino'
+                  ? 'Inquilino'
+                  : 'Visitante',
+              'unidades': unidadeInfo != null
+                  ? {
+                      'numero': unidadeInfo['numero'],
+                      'bloco': unidadeInfo['bloco'],
+                    }
+                  : null,
               'hora_entrada_real': entrada['data_hora'],
               'observacoes_entrada': entrada['observacoes'],
             });
-            
+
             print('Visitante adicionado: ${visitanteInfo['nome']}');
           } else {
             print('Visitante já saiu: ${visitanteInfo['nome']}');
           }
         } else {
-          print('Visitante não encontrado ou não pertence ao condomínio: visitante_id=$visitanteId');
+          print(
+            'Visitante não encontrado ou não pertence ao condomínio: visitante_id=$visitanteId',
+          );
         }
       }
 
-      print('Total de visitantes no condomínio: ${visitantesNoCondominio.length}');
+      print(
+        'Total de visitantes no condomínio: ${visitantesNoCondominio.length}',
+      );
 
       // Ordenar por data de entrada (mais recente primeiro)
-      visitantesNoCondominio.sort((a, b) => 
-        DateTime.parse(b['data_hora']).compareTo(DateTime.parse(a['data_hora']))
+      visitantesNoCondominio.sort(
+        (a, b) => DateTime.parse(
+          b['data_hora'],
+        ).compareTo(DateTime.parse(a['data_hora'])),
       );
 
       return visitantesNoCondominio;
@@ -429,7 +452,8 @@ class HistoricoAcessoService {
           'data_visita': visitante['data_visita'],
           'status_visita': visitante['status_visita'] ?? 'agendado',
           'foto_url': visitante['foto_url'], // Adicionando foto do visitante
-          'qr_code_url': visitante['qr_code_url'], // ✅ Adicionando URL do QR Code
+          'qr_code_url':
+              visitante['qr_code_url'], // ✅ Adicionando URL do QR Code
         };
       }).toList();
     } catch (e) {

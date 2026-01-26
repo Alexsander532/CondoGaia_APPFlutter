@@ -307,7 +307,13 @@ class _PortariaRepresentanteScreenState
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
+                  Flexible(
+                    child: Image.asset(
+                      'assets/images/logo_CondoGaia.png',
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
