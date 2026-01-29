@@ -5,6 +5,7 @@ class ReservaEntity {
   final String ambienteId;
   final String? inquilinoId;
   final String? representanteId;
+  final String? proprietarioId;
   final DateTime dataReserva;
   final String horaInicio;
   final String horaFim;
@@ -22,6 +23,7 @@ class ReservaEntity {
     required this.ambienteId,
     this.representanteId,
     this.inquilinoId,
+    this.proprietarioId,
     required this.dataReserva,
     required this.horaInicio,
     required this.horaFim,

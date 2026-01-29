@@ -11,6 +11,7 @@ abstract class ReservaRepository {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -18,4 +19,12 @@ abstract class ReservaRepository {
     required bool termoLocacao,
   });
   Future<void> cancelarReserva(String reservaId);
+  Future<ReservaEntity> atualizarReserva({
+    required String reservaId,
+    required String ambienteId,
+    required String local,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+    required double valorLocacao,
+  });
 }

@@ -14,6 +14,7 @@ abstract class ReservaRemoteDataSource {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -21,6 +22,14 @@ abstract class ReservaRemoteDataSource {
     required bool termoLocacao,
   });
   Future<void> cancelarReserva(String reservaId);
+  Future<ReservaModel> atualizarReserva({
+    required String reservaId,
+    required String ambienteId,
+    required String local,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+    required double valorLocacao,
+  });
 }
 
 /// Implementação concreta que chama Supabase
@@ -29,14 +38,50 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
   // final SupabaseService _supabaseService;
 
   @override
+  Future<ReservaModel> atualizarReserva({
+    required String reservaId,
+    required String ambienteId,
+    required String local,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+    required double valorLocacao,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
+
+      final data = {
+        'ambiente_id': ambienteId,
+        'local': local,
+        'data_reserva': dataInicio.toIso8601String().split('T')[0],
+        'hora_inicio':
+            '${dataInicio.hour.toString().padLeft(2, '0')}:${dataInicio.minute.toString().padLeft(2, '0')}',
+        'hora_fim':
+            '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
+        'valor_locacao': valorLocacao,
+      };
+
+      final response = await client
+          .from('reservas')
+          .update(data)
+          .eq('id', reservaId)
+          .select(
+            '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome)',
+          )
+          .single();
+
+      return ReservaModel.fromJson(response);
+    } catch (e) {
+      print('❌ Erro ao atualizar reserva: $e');
+      throw Exception('Erro ao atualizar reserva: $e');
+    }
+  }
+
+  @override
   Future<List<AmbienteModel>> obterAmbientes() async {
     try {
       final client = Supabase.instance.client;
-      
-      final response = await client
-          .from('ambientes')
-          .select()
-          .order('titulo');
+
+      final response = await client.from('ambientes').select().order('titulo');
 
       return (response as List)
           .map((json) => AmbienteModel.fromJson(json as Map<String, dynamic>))
@@ -51,12 +96,14 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
   Future<List<ReservaModel>> obterReservas(String condominioId) async {
     try {
       final client = Supabase.instance.client;
-      
+
       // Buscar reservas ordenadas por data mais próxima
       // Trazendo também o nome do inquilino ou representante
       final response = await client
           .from('reservas')
-          .select('*, inquilinos(nome), representantes(nome_completo)')
+          .select(
+            '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome)',
+          )
           .order('data_reserva', ascending: true);
 
       final reservas = (response as List)
@@ -75,6 +122,7 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -88,8 +136,10 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
         'ambiente_id': ambienteId,
         'local': local,
         'data_reserva': dataInicio.toIso8601String().split('T')[0],
-        'hora_inicio': '${dataInicio.hour.toString().padLeft(2, '0')}:${dataInicio.minute.toString().padLeft(2, '0')}',
-        'hora_fim': '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
+        'hora_inicio':
+            '${dataInicio.hour.toString().padLeft(2, '0')}:${dataInicio.minute.toString().padLeft(2, '0')}',
+        'hora_fim':
+            '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
         'valor_locacao': valorLocacao,
         'termo_locacao': termoLocacao,
         'para': 'Condomínio', // Default
@@ -101,11 +151,16 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
       if (inquilinoId != null) {
         data['inquilino_id'] = inquilinoId;
       }
+      if (proprietarioId != null) {
+        data['proprietario_id'] = proprietarioId;
+      }
 
       final response = await client
           .from('reservas')
           .insert(data)
-          .select('*, inquilinos(nome), representantes(nome_completo)')
+          .select(
+            '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome)',
+          )
           .single();
 
       return ReservaModel.fromJson(response);

@@ -10,6 +10,7 @@ class ReservaCubit extends Cubit<ReservaState> {
   final CriarReservaUseCase criarReservaUseCase;
   final CancelarReservaUseCase cancelarReservaUseCase;
   final ValidarDisponibilidadeUseCase validarDisponibilidadeUseCase;
+  final AtualizarReservaUseCase atualizarReservaUseCase;
 
   ReservaCubit({
     required this.obterReservasUseCase,
@@ -17,6 +18,7 @@ class ReservaCubit extends Cubit<ReservaState> {
     required this.criarReservaUseCase,
     required this.cancelarReservaUseCase,
     required this.validarDisponibilidadeUseCase,
+    required this.atualizarReservaUseCase,
   }) : super(const ReservaInitial());
 
   @override
@@ -39,7 +41,7 @@ class ReservaCubit extends Cubit<ReservaState> {
   DateTime? _dataFim;
   List<ReservaEntity> _reservas = [];
   List<AmbienteEntity> _ambientes = [];
-  
+
   // Calendário
   late DateTime _today;
   late DateTime _dataSelecionada;
@@ -53,13 +55,13 @@ class ReservaCubit extends Cubit<ReservaState> {
   DateTime? get dataFim => _dataFim;
   List<ReservaEntity> get reservas => _reservas;
   List<AmbienteEntity> get ambientes => _ambientes;
-  
+
   // Getters Calendário
   DateTime get dataSelecionada => _dataSelecionada;
   int get mesAtual => _mesAtual;
   int get anoAtual => _anoAtual;
   DateTime get today => _today;
-  
+
   // Reservas do dia selecionado
   List<ReservaEntity> get reservasDoDia {
     return _reservas.where((r) {
@@ -77,10 +79,7 @@ class ReservaCubit extends Cubit<ReservaState> {
       final ambientes = await obterAmbientesUseCase();
       _ambientes = ambientes;
 
-      emit(ReservaCarregada(
-        reservas: _reservas,
-        ambientes: ambientes,
-      ));
+      emit(ReservaCarregada(reservas: _reservas, ambientes: ambientes));
     } catch (e) {
       print('❌ Erro ao carregar ambientes: $e');
       emit(ReservaErro(mensagem: 'Erro ao carregar ambientes: $e'));
@@ -95,10 +94,7 @@ class ReservaCubit extends Cubit<ReservaState> {
       final reservas = await obterReservasUseCase(condominioId);
       _reservas = reservas;
 
-      emit(ReservaCarregada(
-        reservas: reservas,
-        ambientes: _ambientes,
-      ));
+      emit(ReservaCarregada(reservas: reservas, ambientes: _ambientes));
     } catch (e) {
       emit(ReservaErro(mensagem: 'Erro ao carregar reservas: $e'));
     }
@@ -138,37 +134,46 @@ class ReservaCubit extends Cubit<ReservaState> {
 
   /// Emite o estado do formulário atualizado
   void _emitirFormularioAtualizado() {
-    emit(ReservaFormularioAtualizado(
-      descricao: _descricao,
-      ambienteSelecionado: _ambienteSelecionado,
-      dataInicio: _dataInicio,
-      dataFim: _dataFim,
-      formularioValido: _validarFormulario(),
-    ));
+    emit(
+      ReservaFormularioAtualizado(
+        descricao: _descricao,
+        ambienteSelecionado: _ambienteSelecionado,
+        dataInicio: _dataInicio,
+        dataFim: _dataFim,
+        formularioValido: _validarFormulario(),
+      ),
+    );
   }
-
-
 
   /// Cria uma nova reserva
   Future<void> criarReserva({
     required String condominioId,
     required String usuarioId,
     required bool termoLocacaoAceito,
+    bool isInquilino = true,
+    bool isProprietario = false,
   }) async {
     // Validar Campos Obrigatórios da UI
     if (_ambienteSelecionado == null) {
-       emit(const ReservaErro(mensagem: 'Selecione um ambiente'));
-       return;
+      emit(const ReservaErro(mensagem: 'Selecione um ambiente'));
+      return;
     }
-    
+
     if (!termoLocacaoAceito) {
-      emit(const ReservaErro(mensagem: 'É necessário aceitar os termos de locação'));
+      emit(
+        const ReservaErro(
+          mensagem: 'É necessário aceitar os termos de locação',
+        ),
+      );
       return;
     }
 
     if (!_validarFormulario()) {
-      emit(const ReservaErro(
-          mensagem: 'Por favor, preencha todos os campos obrigatórios'));
+      emit(
+        const ReservaErro(
+          mensagem: 'Por favor, preencha todos os campos obrigatórios',
+        ),
+      );
       return;
     }
 
@@ -182,35 +187,53 @@ class ReservaCubit extends Cubit<ReservaState> {
       );
 
       if (!disponivel) {
-        emit(const ReservaErro(
-            mensagem: 'Este ambiente não está disponível nesta data'));
+        emit(
+          const ReservaErro(
+            mensagem: 'Este ambiente não está disponível nesta data',
+          ),
+        );
         return;
       }
     } catch (e) {
-      // emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e')); 
-      // Se der erro na validação, vamos tentar criar mesmo assim ou abordar diferente? 
+      // Se der erro na validação, vamos tentar criar mesmo assim ou abordar diferente?
       // Vamos manter o fluxo de erro por segurança.
-       emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e'));
-       return;
+      emit(ReservaErro(mensagem: 'Erro ao validar disponibilidade: $e'));
+      return;
     }
 
     // Carregando
     emit(const ReservaLoading());
 
     try {
-      // Assumindo que o usuário logado nessa tela é sempre o inquilino por enquanto.
-      // Futuramente isso pode vir de um parâmetro ou auth state.
-      final inquilinoId = usuarioId;
+      // Definir quem está criando a reserva
+      String? inquilinoId;
+      String? representanteId;
+      String? proprietarioId;
+
+      // Lógica baseada no tipo de usuário (assumindo que o chamador passa o ID correto)
+      // Se isInquilino for true, é inquilino.
+      // Se for false, pode ser Representante ou Proprietário.
+      // Vamos adicionar um parâmetro opcional isProprietario no método
+
+      if (isInquilino) {
+        inquilinoId = usuarioId;
+      } else if (isProprietario) {
+        proprietarioId = usuarioId;
+      } else {
+        representanteId = usuarioId;
+      }
 
       // Define o "local" como a descrição (se houver) ou o nome do ambiente
-      final localDefinido = _descricao.isNotEmpty 
-          ? _descricao 
+      final localDefinido = _descricao.isNotEmpty
+          ? _descricao
           : 'Reserva de ${_ambienteSelecionado!.nome}';
 
       final reserva = await criarReservaUseCase(
         condominioId: condominioId,
         ambienteId: _ambienteSelecionado!.id,
         inquilinoId: inquilinoId,
+        representanteId: representanteId,
+        proprietarioId: proprietarioId,
         local: localDefinido,
         dataInicio: _dataInicio!,
         dataFim: _dataFim!,
@@ -219,13 +242,75 @@ class ReservaCubit extends Cubit<ReservaState> {
       );
 
       _reservas.add(reserva);
-      emit(ReservaCriada(
-        reserva: reserva,
-        mensagem: 'Reserva criada com sucesso!',
-      ));
+      emit(
+        ReservaCriada(
+          reserva: reserva,
+          mensagem: 'Reserva criada com sucesso!',
+        ),
+      );
       _limparFormulario();
     } catch (e) {
       emit(ReservaErro(mensagem: 'Erro ao criar reserva: $e'));
+    }
+  }
+
+  /// Atualiza uma reserva existente
+  Future<void> atualizarReserva({
+    required String reservaId,
+    required String condominioId,
+    required String usuarioId,
+  }) async {
+    // Validar Campos Obrigatórios da UI
+    if (_ambienteSelecionado == null) {
+      emit(const ReservaErro(mensagem: 'Selecione um ambiente'));
+      return;
+    }
+
+    if (!_validarFormulario()) {
+      emit(
+        const ReservaErro(
+          mensagem: 'Por favor, preencha todos os campos obrigatórios',
+        ),
+      );
+      return;
+    }
+
+    // Carregando
+    emit(const ReservaLoading());
+
+    try {
+      final localDefinido = _descricao.isNotEmpty
+          ? _descricao
+          : 'Reserva de ${_ambienteSelecionado!.nome}';
+
+      final reserva = await atualizarReservaUseCase(
+        reservaId: reservaId,
+        ambienteId: _ambienteSelecionado!.id,
+        local: localDefinido,
+        dataInicio: _dataInicio!,
+        dataFim: _dataFim!,
+        valorLocacao: _ambienteSelecionado!.valor,
+      );
+
+      // Atualizar na lista local
+      final index = _reservas.indexWhere((r) => r.id == reservaId);
+      if (index != -1) {
+        _reservas[index] = reserva;
+      } else {
+        // Se por algum motivo não achou, recarrega tudo
+        await carregarReservas(condominioId);
+      }
+
+      emit(
+        ReservaCriada(
+          // Reusando estado de sucesso
+          reserva: reserva,
+          mensagem: 'Reserva atualizada com sucesso!',
+        ),
+      );
+      _limparFormulario();
+    } catch (e) {
+      emit(ReservaErro(mensagem: 'Erro ao atualizar reserva: $e'));
     }
   }
 
@@ -237,10 +322,12 @@ class ReservaCubit extends Cubit<ReservaState> {
       await cancelarReservaUseCase(reservaId);
 
       _reservas.removeWhere((r) => r.id == reservaId);
-      emit(ReservaCancelada(
-        reservaId: reservaId,
-        mensagem: 'Reserva cancelada com sucesso!',
-      ));
+      emit(
+        ReservaCancelada(
+          reservaId: reservaId,
+          mensagem: 'Reserva cancelada com sucesso!',
+        ),
+      );
     } catch (e) {
       emit(ReservaErro(mensagem: 'Erro ao cancelar reserva: $e'));
     }
@@ -268,13 +355,15 @@ class ReservaCubit extends Cubit<ReservaState> {
     } else {
       _mesAtual++;
     }
-    emit(ReservaFormularioAtualizado(
-      descricao: _descricao,
-      ambienteSelecionado: _ambienteSelecionado,
-      dataInicio: _dataInicio,
-      dataFim: _dataFim,
-      formularioValido: _validarFormulario(),
-    ));
+    emit(
+      ReservaFormularioAtualizado(
+        descricao: _descricao,
+        ambienteSelecionado: _ambienteSelecionado,
+        dataInicio: _dataInicio,
+        dataFim: _dataFim,
+        formularioValido: _validarFormulario(),
+      ),
+    );
   }
 
   /// Mês anterior no calendário
@@ -285,24 +374,28 @@ class ReservaCubit extends Cubit<ReservaState> {
     } else {
       _mesAtual--;
     }
-    emit(ReservaFormularioAtualizado(
-      descricao: _descricao,
-      ambienteSelecionado: _ambienteSelecionado,
-      dataInicio: _dataInicio,
-      dataFim: _dataFim,
-      formularioValido: _validarFormulario(),
-    ));
+    emit(
+      ReservaFormularioAtualizado(
+        descricao: _descricao,
+        ambienteSelecionado: _ambienteSelecionado,
+        dataInicio: _dataInicio,
+        dataFim: _dataFim,
+        formularioValido: _validarFormulario(),
+      ),
+    );
   }
 
   /// Seleciona um dia no calendário
   void selecionarDia(int dia) {
     _dataSelecionada = DateTime(_anoAtual, _mesAtual + 1, dia);
-    emit(ReservaFormularioAtualizado(
-      descricao: _descricao,
-      ambienteSelecionado: _ambienteSelecionado,
-      dataInicio: _dataInicio,
-      dataFim: _dataFim,
-      formularioValido: _validarFormulario(),
-    ));
+    emit(
+      ReservaFormularioAtualizado(
+        descricao: _descricao,
+        ambienteSelecionado: _ambienteSelecionado,
+        dataInicio: _dataInicio,
+        dataFim: _dataFim,
+        formularioValido: _validarFormulario(),
+      ),
+    );
   }
 }

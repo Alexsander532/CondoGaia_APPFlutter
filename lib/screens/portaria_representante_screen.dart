@@ -318,6 +318,22 @@ class _PortariaRepresentanteScreenState
                   // Ícones do lado direito
                   Row(
                     children: [
+                      // Botão de Recarregar (Refresh)
+                      GestureDetector(
+                        onTap: () {
+                          _refreshCurrentTab();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.refresh,
+                            color: Color(0xFF1976D2),
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
                       // Ícone de notificação
                       GestureDetector(
                         onTap: () {
@@ -428,6 +444,69 @@ class _PortariaRepresentanteScreenState
         ),
       ),
     );
+  }
+
+  // Método para recarregar a aba atual
+  Future<void> _refreshCurrentTab() async {
+    setState(() {
+      _isLoading = true;
+      _isLoadingAcessos = true;
+      _isLoadingAutorizados = true;
+      _isLoadingHistoricoEncomendas = true;
+    });
+
+    try {
+      final index = _tabController.index;
+
+      if (index == 0) {
+        // Acessos
+        await _carregarVisitantesNoCondominio();
+        await _carregarVisitantesCadastrados();
+      } else if (index == 1) {
+        // Adicionar
+        // Nada a recarregar especificamente, talvez limpar campos
+      } else if (index == 2) {
+        // Autorizados
+        await _carregarAutorizados();
+      } else if (index == 3) {
+        // Mensagem
+        // Recarregar mensagens
+      } else if (index == 4) {
+        // Prop/Inq
+        await _carregarDadosPropInq();
+      } else if (index == 5) {
+        // Encomendas
+        await _carregarHistoricoEncomendas();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dados atualizados com sucesso!'),
+            backgroundColor: Color(0xFF2E7D32),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingAcessos = false;
+          _isLoadingAutorizados = false;
+          _isLoadingHistoricoEncomendas = false;
+        });
+      }
+    }
   }
 
   Widget _buildTabContent(String tabName) {
@@ -628,10 +707,10 @@ class _PortariaRepresentanteScreenState
                         label: 'Email:',
                         controller: _visitanteEmailController,
                         hintText: 'email@endereco.com',
-                        onChanged: _validateEmail,
-                        errorText: _emailError,
+                        // onChanged: _validateEmail, // Removido validação obrigatória
+                        // errorText: _emailError,    // Removido erro obrigatório
                         keyboardType: TextInputType.emailAddress,
-                        isRequired: true,
+                        isRequired: false, // Alterado para opcional
                       ),
 
                       const SizedBox(height: 16),

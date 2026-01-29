@@ -1,11 +1,11 @@
 /// Service Locator para Injeção de Dependência
 /// Usando GetIt para facilitar a gerência de dependências
-/// 
+///
 /// Instale: flutter pub add get_it
 /// Depois importe em main.dart e chame setupReservaDependencies()
 
 // import 'package:get_it/get_it.dart';
-// 
+//
 // // Descomente quando tiver GetIt instalado
 
 import '../../data/datasources/reserva_remote_datasource.dart';
@@ -20,15 +20,23 @@ class ReservaDependencies {
   static ReservaCubit createReservaCubit() {
     // Data Layer
     final remoteDataSource = ReservaRemoteDataSourceImpl();
-    final repository = ReservaRepositoryImpl(remoteDataSource: remoteDataSource);
+    final repository = ReservaRepositoryImpl(
+      remoteDataSource: remoteDataSource,
+    );
 
     // Domain Layer - UseCases
     final obterReservasUseCase = ObterReservasUseCase(repository: repository);
     final obterAmbientesUseCase = ObterAmbientesUseCase(repository: repository);
     final criarReservaUseCase = CriarReservaUseCase(repository: repository);
-    final cancelarReservaUseCase = CancelarReservaUseCase(repository: repository);
-    final validarDisponibilidadeUseCase =
-        ValidarDisponibilidadeUseCase(repository: repository);
+    final cancelarReservaUseCase = CancelarReservaUseCase(
+      repository: repository,
+    );
+    final validarDisponibilidadeUseCase = ValidarDisponibilidadeUseCase(
+      repository: repository,
+    );
+    final atualizarReservaUseCase = AtualizarReservaUseCase(
+      repository: repository,
+    );
 
     // Presentation Layer - Cubit
     return ReservaCubit(
@@ -37,13 +45,14 @@ class ReservaDependencies {
       criarReservaUseCase: criarReservaUseCase,
       cancelarReservaUseCase: cancelarReservaUseCase,
       validarDisponibilidadeUseCase: validarDisponibilidadeUseCase,
+      atualizarReservaUseCase: atualizarReservaUseCase,
     );
   }
 }
 
 /// COM GetIt - Mais elegante e reutilizável
 /// DESCOMENTE APÓS INSTALAR: flutter pub add get_it
-/// 
+///
 // final getIt = GetIt.instance;
 //
 // void setupReservaDependencies() {

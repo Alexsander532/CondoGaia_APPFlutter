@@ -9,6 +9,7 @@ class ReservaModel extends ReservaEntity {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required DateTime dataReserva,
     required String horaInicio,
     required String horaFim,
@@ -21,22 +22,23 @@ class ReservaModel extends ReservaEntity {
     String? listaPresentesId,
     String? blocoUnidadeId,
   }) : super(
-    id: id,
-    ambienteId: ambienteId,
-    representanteId: representanteId,
-    inquilinoId: inquilinoId,
-    dataReserva: dataReserva,
-    horaInicio: horaInicio,
-    horaFim: horaFim,
-    local: local,
-    valorLocacao: valorLocacao,
-    termoLocacao: termoLocacao,
-    para: para,
-    dataCriacao: dataCriacao,
-    dataAtualizacao: dataAtualizacao,
-    listaPresentesId: listaPresentesId,
-    blocoUnidadeId: blocoUnidadeId,
-  );
+         id: id,
+         ambienteId: ambienteId,
+         representanteId: representanteId,
+         inquilinoId: inquilinoId,
+         proprietarioId: proprietarioId,
+         dataReserva: dataReserva,
+         horaInicio: horaInicio,
+         horaFim: horaFim,
+         local: local,
+         valorLocacao: valorLocacao,
+         termoLocacao: termoLocacao,
+         para: para,
+         dataCriacao: dataCriacao,
+         dataAtualizacao: dataAtualizacao,
+         listaPresentesId: listaPresentesId,
+         blocoUnidadeId: blocoUnidadeId,
+       );
 
   /// Converte JSON para Model
   factory ReservaModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,9 @@ class ReservaModel extends ReservaEntity {
       nomeResponsavel = json['inquilinos']['nome'];
     } else if (json['representantes'] != null) {
       nomeResponsavel = json['representantes']['nome_completo'];
+    } else if (json['proprietarios'] != null) {
+      // Adicionado suporte para Proprietário
+      nomeResponsavel = json['proprietarios']['nome'];
     }
 
     return ReservaModel(
@@ -53,7 +58,8 @@ class ReservaModel extends ReservaEntity {
       ambienteId: json['ambiente_id'] as String? ?? '',
       representanteId: json['representante_id'] as String?,
       inquilinoId: json['inquilino_id'] as String?,
-      dataReserva: json['data_reserva'] != null 
+      proprietarioId: json['proprietario_id'] as String?,
+      dataReserva: json['data_reserva'] != null
           ? DateTime.parse(json['data_reserva'] as String)
           : DateTime.now(),
       horaInicio: json['hora_inicio'] as String? ?? '00:00',
@@ -62,10 +68,10 @@ class ReservaModel extends ReservaEntity {
       valorLocacao: (json['valor_locacao'] as num?)?.toDouble() ?? 0.0,
       termoLocacao: json['termo_locacao'] as bool? ?? false,
       para: nomeResponsavel ?? json['para'] as String? ?? 'Condomínio',
-      dataCriacao: json['created_at'] != null 
+      dataCriacao: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
-      dataAtualizacao: json['updated_at'] != null 
+      dataAtualizacao: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
       listaPresentesId: json['lista_presentes'] as String?,
@@ -80,6 +86,7 @@ class ReservaModel extends ReservaEntity {
       'ambiente_id': ambienteId,
       'representante_id': representanteId,
       'inquilino_id': inquilinoId,
+      'proprietario_id': proprietarioId,
       'data_reserva': dataReserva.toIso8601String().split('T')[0],
       'hora_inicio': horaInicio,
       'hora_fim': horaFim,

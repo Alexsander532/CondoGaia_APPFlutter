@@ -598,6 +598,16 @@ Copiado da CondoGaia''';
                           title: 'Reservas',
                           onTap: () {
                             print('🔴 CLICOU EM RESERVAS');
+                            print(
+                              'DEBUG: widget.inquilinoId: ${widget.inquilinoId}',
+                            );
+                            print(
+                              'DEBUG: widget.proprietarioId: ${widget.proprietarioId}',
+                            );
+                            print(
+                              'DEBUG: widget.unidadeId: ${widget.unidadeId}',
+                            );
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -607,6 +617,8 @@ Copiado da CondoGaia''';
                                       widget.inquilinoId ??
                                       widget.proprietarioId ??
                                       '',
+                                  isInquilino: widget.inquilinoId != null,
+                                  isProprietario: widget.proprietarioId != null,
                                 ),
                               ),
                             );

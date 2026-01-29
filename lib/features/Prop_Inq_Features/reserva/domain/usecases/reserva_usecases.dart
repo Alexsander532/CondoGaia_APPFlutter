@@ -39,6 +39,7 @@ class CriarReservaUseCase {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -50,11 +51,37 @@ class CriarReservaUseCase {
       ambienteId: ambienteId,
       representanteId: representanteId,
       inquilinoId: inquilinoId,
+      proprietarioId: proprietarioId,
       local: local,
       dataInicio: dataInicio,
       dataFim: dataFim,
       valorLocacao: valorLocacao,
       termoLocacao: termoLocacao,
+    );
+  }
+}
+
+// Caso de uso: Atualizar Reserva
+class AtualizarReservaUseCase {
+  final ReservaRepository repository;
+
+  AtualizarReservaUseCase({required this.repository});
+
+  Future<ReservaEntity> call({
+    required String reservaId,
+    required String ambienteId,
+    required String local,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+    required double valorLocacao,
+  }) {
+    return repository.atualizarReserva(
+      reservaId: reservaId,
+      ambienteId: ambienteId,
+      local: local,
+      dataInicio: dataInicio,
+      dataFim: dataFim,
+      valorLocacao: valorLocacao,
     );
   }
 }
@@ -83,16 +110,20 @@ class ValidarDisponibilidadeUseCase {
     required DateTime dataFim,
   }) async {
     final reservas = await repository.obterReservas(condominioId);
-    
+
     // Converter DateTime em data para comparação com dataReserva
-    final dataInicioDate = DateTime(dataInicio.year, dataInicio.month, dataInicio.day);
+    final dataInicioDate = DateTime(
+      dataInicio.year,
+      dataInicio.month,
+      dataInicio.day,
+    );
     final dataFimDate = DateTime(dataFim.year, dataFim.month, dataFim.day);
-    
+
     for (final reserva in reservas) {
       if (reserva.ambienteId == ambienteId) {
         // Verificar se há sobreposição de datas
         if (reserva.dataReserva.isBefore(dataFimDate) &&
-            reserva.dataReserva.isAfter(dataInicioDate) ||
+                reserva.dataReserva.isAfter(dataInicioDate) ||
             reserva.dataReserva.isAtSameMomentAs(dataInicioDate) ||
             reserva.dataReserva.isAtSameMomentAs(dataFimDate)) {
           return false;

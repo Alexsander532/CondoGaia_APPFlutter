@@ -38,6 +38,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
+    String? proprietarioId,
     required String local,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -50,6 +51,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
         ambienteId: ambienteId,
         representanteId: representanteId,
         inquilinoId: inquilinoId,
+        proprietarioId: proprietarioId,
         local: local,
         dataInicio: dataInicio,
         dataFim: dataFim,
@@ -68,6 +70,30 @@ class ReservaRepositoryImpl implements ReservaRepository {
       await remoteDataSource.cancelarReserva(reservaId);
     } catch (e) {
       throw Exception('Erro ao cancelar reserva: $e');
+    }
+  }
+
+  @override
+  Future<ReservaEntity> atualizarReserva({
+    required String reservaId,
+    required String ambienteId,
+    required String local,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+    required double valorLocacao,
+  }) async {
+    try {
+      final model = await remoteDataSource.atualizarReserva(
+        reservaId: reservaId,
+        ambienteId: ambienteId,
+        local: local,
+        dataInicio: dataInicio,
+        dataFim: dataFim,
+        valorLocacao: valorLocacao,
+      );
+      return model as ReservaEntity;
+    } catch (e) {
+      throw Exception('Erro ao atualizar reserva: $e');
     }
   }
 }
