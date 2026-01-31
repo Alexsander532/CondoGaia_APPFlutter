@@ -6,6 +6,7 @@ import 'cadastro_representante_screen.dart';
 import 'pesquisa_condominios_screen.dart';
 import '../../features/ADMIN_Features/push_notification_admin/screens/push_notification_admin_screen.dart';
 import '../../features/ADMIN_Features/gateway_pagamento_admin/screens/gateway_pagamento_admin_screen.dart';
+import '../../features/ADMIN_Features/documentos_admin/screens/admin_documentos_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,10 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                
+
                 try {
                   await SupabaseService.client.auth.signOut();
-                  
+
                   if (mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
@@ -100,10 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const Spacer(),
                   // Logo CondoGaia
-                  Image.asset(
-                    'assets/images/logo_CondoGaia.png',
-                    height: 32,
-                  ),
+                  Image.asset('assets/images/logo_CondoGaia.png', height: 32),
                   const Spacer(),
                   // Ícones do lado direito
                   Row(
@@ -137,10 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             // Linha de separação
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
+            Container(height: 1, color: Colors.grey[300]),
             // Seção com título HOME
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -170,12 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 20),
                     // Cadastrar Condomínio
                     _buildMenuItem(
-                      iconPath: 'assets/images/ADMIN/home_ADMIN/Cadastra_Condominio_Home.png',
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Cadastrar_Condomínio_Texto.png',
+                      iconPath:
+                          'assets/images/ADMIN/home_ADMIN/Cadastra_Condominio_Home.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Cadastrar_Condomínio_Texto.png',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const CadastroCondominioScreen(),
+                            builder: (context) =>
+                                const CadastroCondominioScreen(),
                           ),
                         );
                       },
@@ -183,11 +181,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // Cadastrar Representante
                     _buildMenuItemTextImageOnly(
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Cadastrar_Representante_Texto.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Cadastrar_Representante_Texto.png',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const CadastroRepresentanteScreen(),
+                            builder: (context) =>
+                                const CadastroRepresentanteScreen(),
                           ),
                         );
                       },
@@ -195,12 +195,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // Pesquisar
                     _buildMenuItem(
-                      iconPath: 'assets/images/ADMIN/home_ADMIN/Simbolo_Pesquisar.png',
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Pesquisar_Texto.png',
+                      iconPath:
+                          'assets/images/ADMIN/home_ADMIN/Simbolo_Pesquisar.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Pesquisar_Texto.png',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const PesquisaCondominiosScreen(),
+                            builder: (context) =>
+                                const PesquisaCondominiosScreen(),
                           ),
                         );
                       },
@@ -208,12 +211,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // Push
                     _buildMenuItem(
-                      iconPath: 'assets/images/ADMIN/home_ADMIN/Push_Imagem.png',
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Push_Texto.png',
+                      iconPath:
+                          'assets/images/ADMIN/home_ADMIN/Push_Imagem.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Push_Texto.png',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const PushNotificationAdminScreen(),
+                            builder: (context) =>
+                                const PushNotificationAdminScreen(),
                           ),
                         );
                       },
@@ -221,12 +227,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // Gateway de Pagamento
                     _buildMenuItem(
-                      iconPath: 'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento.png',
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento_Texto.png',
+                      iconPath:
+                          'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Gateway_de_Pagamento_Texto.png',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const GatewayPagamentoAdminScreen(),
+                            builder: (context) =>
+                                const GatewayPagamentoAdminScreen(),
                           ),
                         );
                       },
@@ -234,21 +243,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // Documentos
                     _buildMenuItemTextImageOnly(
-                      textImagePath: 'assets/images/ADMIN/home_ADMIN/Documentos_Texto.png',
+                      textImagePath:
+                          'assets/images/ADMIN/home_ADMIN/Documentos_Texto.png',
                       onTap: () {
-                        // TODO: Navegar para documentos
-                        _showFeatureInDevelopment('Documentos');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const AdminDocumentosScreen(),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 40),
-                    
+
                     // Botão de logout (oculto, acessível por gesture)
                     GestureDetector(
                       onLongPress: _handleLogout,
-                      child: Container(
-                        height: 20,
-                        color: Colors.transparent,
-                      ),
+                      child: Container(height: 20, color: Colors.transparent),
                     ),
                   ],
                 ),
@@ -270,17 +280,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           // Ícone
-          Image.asset(
-            iconPath,
-            width: 32,
-            height: 32,
-          ),
+          Image.asset(iconPath, width: 32, height: 32),
           const SizedBox(width: 16),
           // Texto como imagem
-          Image.asset(
-            textImagePath,
-            height: 20,
-          ),
+          Image.asset(textImagePath, height: 20),
         ],
       ),
     );
@@ -295,20 +298,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           const SizedBox(width: 48), // Espaço para alinhar com outros itens
-          Image.asset(
-            textImagePath,
-            height: 20,
-          ),
+          Image.asset(textImagePath, height: 20),
         ],
-      ),
-    );
-  }
-
-  void _showFeatureInDevelopment(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature em desenvolvimento'),
-        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -321,16 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Header do drawer
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xFF1976D2),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF1976D2)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/logo_CondoGaia.png',
-                  height: 40,
-                ),
+                Image.asset('assets/images/logo_CondoGaia.png', height: 40),
                 const SizedBox(height: 16),
                 const Text(
                   'Menu',
@@ -391,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                
+
                 try {
                   // Implementar lógica de exclusão de conta aqui
                   ScaffoldMessenger.of(context).showSnackBar(
