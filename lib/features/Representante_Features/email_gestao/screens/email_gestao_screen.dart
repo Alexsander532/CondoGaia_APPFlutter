@@ -100,7 +100,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
             }
           },
           builder: (context, state) {
-            if (state is EmailGestaoLoading && state is! EmailGestaoLoaded) {
+            if ((state is EmailGestaoLoading || state is EmailGestaoInitial) &&
+                state is! EmailGestaoLoaded) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -343,6 +344,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
+
+                  // Search Bar
                   TextField(
                     controller: _searchController,
                     onChanged: (val) => cubit.updateFilterText(val),
@@ -350,73 +353,103 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       hintText: 'Pesquisar unidade/bloco ou nome',
                       filled: true,
                       fillColor: Colors.white,
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ), // Visible border
+                          color: Colors.blue.shade900,
+                          width: 1.5,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade900,
+                          width: 1.5,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 0,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade900,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade400),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: state.recipientFilterType,
-                        isExpanded: true,
-                        items: ['TODOS', 'PROPRIETARIOS', 'INQUILINOS'].map((
-                          String value,
-                        ) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) cubit.updateRecipientFilterType(val);
-                        },
+                  // Filter Dropdowns Row
+                  Row(
+                    children: [
+                      // Type Filter
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Colors.grey.shade400),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: state.recipientFilterType,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down),
+                              items: ['TODOS', 'PROPRIETARIOS', 'INQUILINOS']
+                                  .map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(
+                                        value,
+                                        style: const TextStyle(fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  })
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null)
+                                  cubit.updateRecipientFilterType(val);
+                              },
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
                   // Generate Button
                   Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Action for "Gerar"? Maybe preview list?
-                        // For now just refresh filters which is already done.
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade600,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      width: 150,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Logic to apply filter or refresh if needed.
+                          // For now, it reinforces the current state.
+                          cubit.updateFilterText(_searchController.text);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade600,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 12,
+                        child: const Text(
+                          'Gerar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Gerar',
-                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -432,6 +465,20 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                     onSelectionChanged: (id, val) =>
                         cubit.toggleRecipientSelection(id, val),
                   ),
+
+                  if (!state.hasReachedMax)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Center(
+                        child: TextButton(
+                          onPressed: () {
+                            cubit.loadMoreRecipients();
+                          },
+                          child: const Text('Carregar mais'),
+                        ),
+                      ),
+                    ),
+
                   const SizedBox(height: 24),
 
                   // Bottom Buttons
@@ -449,6 +496,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // "Visualizar" button removed or kept? The image doesn't explicitly show it but the code had it.
+                      // Keeping it to be safe, but minimal change.
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(

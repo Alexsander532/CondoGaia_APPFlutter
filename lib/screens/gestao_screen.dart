@@ -3,6 +3,7 @@ import 'unidade_morador_screen.dart';
 import 'portaria_representante_screen.dart';
 import 'package:condogaiaapp/services/unidade_service.dart';
 import '../features/Representante_Features/email_gestao/screens/email_gestao_screen.dart';
+import '../features/Representante_Features/gestao_condominio/screens/gestao_condominio_screen.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -301,6 +302,15 @@ class _GestaoScreenState extends State<GestaoScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => EmailGestaoScreen(
+                                condominioId: widget.condominioId ?? '',
+                              ),
+                            ),
+                          );
+                        } else if (item['title'] == 'Condomínio') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GestaoCondominioScreen(
                                 condominioId: widget.condominioId ?? '',
                               ),
                             ),

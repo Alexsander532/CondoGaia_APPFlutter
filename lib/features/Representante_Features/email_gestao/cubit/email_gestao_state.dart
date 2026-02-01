@@ -21,6 +21,8 @@ class EmailGestaoLoaded extends EmailGestaoState {
   final String recipientFilterType; // 'TODOS', 'PROPRIETARIOS', 'INQUILINOS'
   final File? attachedFile;
   final bool isSending;
+  final int page;
+  final bool hasReachedMax;
 
   const EmailGestaoLoaded({
     required this.allRecipients,
@@ -30,6 +32,8 @@ class EmailGestaoLoaded extends EmailGestaoState {
     this.recipientFilterType = 'TODOS',
     this.attachedFile,
     this.isSending = false,
+    this.page = 1,
+    this.hasReachedMax = false,
   });
 
   EmailGestaoLoaded copyWith({
@@ -40,6 +44,8 @@ class EmailGestaoLoaded extends EmailGestaoState {
     String? recipientFilterType,
     File? attachedFile,
     bool? isSending,
+    int? page,
+    bool? hasReachedMax,
   }) {
     return EmailGestaoLoaded(
       allRecipients: allRecipients ?? this.allRecipients,
@@ -49,6 +55,8 @@ class EmailGestaoLoaded extends EmailGestaoState {
       recipientFilterType: recipientFilterType ?? this.recipientFilterType,
       attachedFile: attachedFile ?? this.attachedFile,
       isSending: isSending ?? this.isSending,
+      page: page ?? this.page,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
     );
   }
 
@@ -61,6 +69,8 @@ class EmailGestaoLoaded extends EmailGestaoState {
     recipientFilterType,
     attachedFile,
     isSending,
+    page,
+    hasReachedMax,
   ];
 }
 

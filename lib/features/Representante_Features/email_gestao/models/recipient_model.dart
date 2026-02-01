@@ -7,6 +7,9 @@ class RecipientModel {
   final String email;
   final bool isSelected;
 
+  final String? block;
+  final String? unit;
+
   const RecipientModel({
     required this.id,
     required this.name,
@@ -14,6 +17,8 @@ class RecipientModel {
     required this.unitBlock,
     required this.email,
     this.isSelected = false,
+    this.block,
+    this.unit,
   });
 
   RecipientModel copyWith({
@@ -23,6 +28,8 @@ class RecipientModel {
     String? unitBlock,
     String? email,
     bool? isSelected,
+    String? block,
+    String? unit,
   }) {
     return RecipientModel(
       id: id ?? this.id,
@@ -31,6 +38,8 @@ class RecipientModel {
       unitBlock: unitBlock ?? this.unitBlock,
       email: email ?? this.email,
       isSelected: isSelected ?? this.isSelected,
+      block: block ?? this.block,
+      unit: unit ?? this.unit,
     );
   }
 }

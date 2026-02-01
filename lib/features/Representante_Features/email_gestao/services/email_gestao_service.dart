@@ -8,38 +8,38 @@ import '../../../../models/unidade.dart';
 class EmailGestaoService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<List<RecipientModel>> fetchRecipients(String condominioId) async {
+  Future<List<RecipientModel>> fetchRecipients({
+    required String condominioId,
+  }) async {
     try {
-      // 1. Fetch Units (to map ID to Block/Number)
+      // 1. Fetch Units
       final unidadesResponse = await _supabase
           .from('unidades')
           .select()
           .eq('condominio_id', condominioId)
           .eq('ativo', true);
 
-      final unidades = (unidadesResponse as List)
+      final units = (unidadesResponse as List)
           .map((e) => Unidade.fromJson(e))
           .toList();
 
-      final Map<String, Unidade> unidadeMap = {for (var u in unidades) u.id: u};
+      final Map<String, Unidade> unidadeMap = {for (var u in units) u.id: u};
 
-      // 2. Fetch Owners (Proprietarios)
+      // 2. Fetch Owners
       final ownersResponse = await _supabase
           .from('proprietarios')
           .select()
           .eq('condominio_id', condominioId);
-      //.eq('ativo', true); // Uncomment if 'ativo' column exists and is needed
 
       final owners = (ownersResponse as List)
           .map((e) => Proprietario.fromJson(e))
           .toList();
 
-      // 3. Fetch Tenants (Inquilinos)
+      // 3. Fetch Tenants
       final tenantsResponse = await _supabase
           .from('inquilinos')
           .select()
           .eq('condominio_id', condominioId);
-      //.eq('ativo', true); // Uncomment if needed
 
       final tenants = (tenantsResponse as List)
           .map((e) => Inquilino.fromJson(e))
@@ -50,15 +50,18 @@ class EmailGestaoService {
       // Map Owners
       for (var owner in owners) {
         String unitInfo = '';
+        String? blockName;
+        String? unitNum;
+
         if (owner.unidadeId != null) {
           final unit = unidadeMap[owner.unidadeId];
           if (unit != null) {
             unitInfo = '${unit.numero} / ${unit.bloco ?? ''}';
+            blockName = unit.bloco;
+            unitNum = unit.numero;
           }
         }
 
-        // Skip if no email? The UI implies email is needed. Or keep it empty.
-        // The mock had default emails. We use real ones here.
         recipients.add(
           RecipientModel(
             id: owner.id,
@@ -66,6 +69,8 @@ class EmailGestaoService {
             email: owner.email ?? '',
             type: 'P',
             unitBlock: unitInfo,
+            block: blockName,
+            unit: unitNum,
           ),
         );
       }
@@ -73,10 +78,15 @@ class EmailGestaoService {
       // Map Tenants
       for (var tenant in tenants) {
         String unitInfo = '';
+        String? blockName;
+        String? unitNum;
+
         if (tenant.unidadeId.isNotEmpty) {
           final unit = unidadeMap[tenant.unidadeId];
           if (unit != null) {
             unitInfo = '${unit.numero} / ${unit.bloco ?? ''}';
+            blockName = unit.bloco;
+            unitNum = unit.numero;
           }
         }
 
@@ -87,6 +97,8 @@ class EmailGestaoService {
             email: tenant.email ?? '',
             type: 'I',
             unitBlock: unitInfo,
+            block: blockName,
+            unit: unitNum,
           ),
         );
       }
@@ -96,7 +108,6 @@ class EmailGestaoService {
 
       return recipients;
     } catch (e) {
-      print('Error fetching recipients: $e');
       throw Exception('Erro ao buscar destinatários: $e');
     }
   }
@@ -104,16 +115,11 @@ class EmailGestaoService {
   Future<void> sendEmail({
     required String subject,
     required String body,
-    required String topic, // Added implementation for topic
+    required String topic,
     required List<RecipientModel> recipients,
     File? attachment,
   }) async {
-    // Simulate API delay
     await Future.delayed(const Duration(seconds: 2));
-
-    // In a real implementation:
-    // await _supabase.functions.invoke('send-email', body: { ... });
-
     print('Sending email to: ${recipients.length} recipients');
     print('Subject: $subject');
     print('Topic: $topic');

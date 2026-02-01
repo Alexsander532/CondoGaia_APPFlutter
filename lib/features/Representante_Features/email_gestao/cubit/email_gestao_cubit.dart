@@ -7,6 +7,7 @@ import 'email_gestao_state.dart';
 class EmailGestaoCubit extends Cubit<EmailGestaoState> {
   final EmailGestaoService _service;
   final String condominioId;
+  static const int _limit = 10;
 
   EmailGestaoCubit({
     required EmailGestaoService service,
@@ -14,18 +15,38 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
   }) : _service = service,
        super(EmailGestaoInitial());
 
-  Future<void> loadRecipients() async {
+  Future<void> loadRecipients({bool refresh = false}) async {
     try {
-      emit(EmailGestaoLoading());
-      final recipients = await _service.fetchRecipients(condominioId);
+      if (refresh || state is EmailGestaoInitial) {
+        emit(EmailGestaoLoading());
+      }
+
+      // Fetch ALL recipients at once
+      final recipients = await _service.fetchRecipients(
+        condominioId: condominioId,
+      );
+
       emit(
         EmailGestaoLoaded(
           allRecipients: recipients,
-          filteredRecipients: recipients,
+          filteredRecipients: [], // Will be populated by _applyFilters
+          page: 1,
         ),
       );
+
+      _applyFilters();
     } catch (e) {
       emit(EmailGestaoError('Erro ao carregar destinatários: $e'));
+    }
+  }
+
+  void loadMoreRecipients() {
+    if (state is EmailGestaoLoaded) {
+      final currentState = state as EmailGestaoLoaded;
+      if (currentState.hasReachedMax) return;
+
+      emit(currentState.copyWith(page: currentState.page + 1));
+      _applyFilters();
     }
   }
 
@@ -46,29 +67,16 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
   void removeAttachment() {
     if (state is EmailGestaoLoaded) {
       final currentState = state as EmailGestaoLoaded;
-      // We pass null properly, but copyWith needs to handle nullable value if not distinct from 'undefined'
-      // Since my simple copyWith uses ??, I can't pass null to clear it if the field is nullable.
-      // I will recreate the state to be safe or update copyWith logic.
-      // Actually, standard copyWith usually ignores null.
-      // Let's implement a specific copyWith logic or just re-emit.
-      emit(
-        EmailGestaoLoaded(
-          allRecipients: currentState.allRecipients,
-          filteredRecipients: currentState.filteredRecipients,
-          selectedTopic: currentState.selectedTopic,
-          filterText: currentState.filterText,
-          recipientFilterType: currentState.recipientFilterType,
-          attachedFile: null, // Explicitly null
-          isSending: currentState.isSending,
-        ),
-      );
+      emit(currentState.copyWith(attachedFile: null));
     }
   }
 
   void updateFilterText(String text) {
     if (state is EmailGestaoLoaded) {
       final currentState = state as EmailGestaoLoaded;
-      emit(currentState.copyWith(filterText: text));
+      emit(
+        currentState.copyWith(filterText: text, page: 1),
+      ); // Reset page on filter change
       _applyFilters();
     }
   }
@@ -76,7 +84,9 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
   void updateRecipientFilterType(String type) {
     if (state is EmailGestaoLoaded) {
       final currentState = state as EmailGestaoLoaded;
-      emit(currentState.copyWith(recipientFilterType: type));
+      emit(
+        currentState.copyWith(recipientFilterType: type, page: 1),
+      ); // Reset page on filter change
       _applyFilters();
     }
   }
@@ -85,6 +95,7 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
     if (state is EmailGestaoLoaded) {
       final currentState = state as EmailGestaoLoaded;
 
+      // Update in the master list
       final updatedAllRecipients = currentState.allRecipients.map((r) {
         if (r.id == id) {
           return r.copyWith(isSelected: isSelected);
@@ -92,7 +103,6 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
         return r;
       }).toList();
 
-      // We modify allRecipients, then apply filters again to update filtered list state
       emit(currentState.copyWith(allRecipients: updatedAllRecipients));
       _applyFilters();
     }
@@ -102,13 +112,7 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
     if (state is EmailGestaoLoaded) {
       final currentState = state as EmailGestaoLoaded;
 
-      // Select/Deselect ONLY visible filtered items OR all items?
-      // Usually "Select All" affects the visible list.
-      // If I select all, I expect visible items to be checked.
-
-      // Let's update ALL recipients based on filter matches?
-      // Or just update the displayed ones in the 'allRecipients' list.
-
+      // We only select the CURRENTLY VISIBLE recipients
       final visibleIds = currentState.filteredRecipients
           .map((e) => e.id)
           .toSet();
@@ -131,16 +135,16 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
 
       List<RecipientModel> filtered = currentState.allRecipients;
 
-      // Filter by Type
+      // 1. Filter by Type
       if (currentState.recipientFilterType == 'PROPRIETARIOS') {
         filtered = filtered.where((r) => r.type == 'P').toList();
       } else if (currentState.recipientFilterType == 'INQUILINOS') {
         filtered = filtered
             .where((r) => r.type == 'I' || r.type == 'T')
-            .toList(); // Assuming T=Tenant, I=Inquilino? Image shows T/P/I.
+            .toList();
       }
 
-      // Filter by Text (Name or Unit)
+      // 2. Filter by Search Text (Name or Unit)
       if (currentState.filterText != null &&
           currentState.filterText!.isNotEmpty) {
         final query = currentState.filterText!.toLowerCase();
@@ -150,7 +154,19 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
         }).toList();
       }
 
-      emit(currentState.copyWith(filteredRecipients: filtered));
+      // 3. Apply Pagination (Slicing)
+      final totalMatches = filtered.length;
+      final limit = currentState.page * _limit;
+      final hasReachedMax = limit >= totalMatches;
+
+      final displayedRecipients = filtered.take(limit).toList();
+
+      emit(
+        currentState.copyWith(
+          filteredRecipients: displayedRecipients,
+          hasReachedMax: hasReachedMax,
+        ),
+      );
     }
   }
 
@@ -166,10 +182,6 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
           .toList();
 
       if (selectedRecipients.isEmpty) {
-        // Warning: no recipient selected
-        // We can emit a side-effect or just ignore.
-        // Ideally we shouldn't fail silently effectively.
-        // For now, I'll allow treating this as error state transiently or handling in UI
         return;
       }
 
@@ -185,14 +197,10 @@ class EmailGestaoCubit extends Cubit<EmailGestaoState> {
         );
         emit(const EmailGestaoSuccess('E-mail enviado com sucesso!'));
 
-        // Return to Loaded state after success?
-        // Usually we'd pop or reset.
-        // Let's reload to reset selection
-        loadRecipients();
+        // Reset
+        loadRecipients(refresh: true);
       } catch (e) {
         emit(EmailGestaoError('Falha ao enviar e-mail: $e'));
-        // Restore loaded state?
-        // emit(currentState.copyWith(isSending: false));
       }
     }
   }

@@ -3,6 +3,7 @@ import '../models/bloco.dart';
 import '../models/unidade.dart';
 import '../models/bloco_com_unidades.dart';
 import '../models/condominio.dart';
+
 import 'qr_code_generation_service.dart';
 
 class UnidadeService {
@@ -21,12 +22,15 @@ class UnidadeService {
     bool usarLetras = true,
   }) async {
     try {
-      final response = await _supabase.rpc('setup_condominio_completo', params: {
-        'p_condominio_id': condominioId,
-        'p_total_blocos': totalBlocos,
-        'p_unidades_por_bloco': unidadesPorBloco,
-        'p_usar_letras': usarLetras,
-      });
+      final response = await _supabase.rpc(
+        'setup_condominio_completo',
+        params: {
+          'p_condominio_id': condominioId,
+          'p_total_blocos': totalBlocos,
+          'p_unidades_por_bloco': unidadesPorBloco,
+          'p_usar_letras': usarLetras,
+        },
+      );
 
       if (response == null) {
         throw Exception('Resposta nula do servidor');
@@ -44,23 +48,27 @@ class UnidadeService {
 
   /// Lista todas as unidades de um condomínio organizadas por bloco
   /// Busca manual e agrupa localmente para robustez contra dados inconsistentes
-  Future<List<BlocoComUnidades>> listarUnidadesCondominio(String condominioId) async {
+  Future<List<BlocoComUnidades>> listarUnidadesCondominio(
+    String condominioId,
+  ) async {
     try {
       print('🔍 [UnidadeService] Iniciando listarUnidadesCondominio (Manual)');
       print('🔍 [UnidadeService] condominioId: $condominioId');
-      
+
       // 1. Buscar todas as unidades (ignora RPC para evitar problemas de JOIN)
       final responseUnidades = await _supabase
           .from('unidades')
           .select()
           .eq('condominio_id', condominioId)
           .eq('ativo', true);
-          
-      final unidades = (responseUnidades as List).map((e) => Unidade.fromJson(e)).toList();
+
+      final unidades = (responseUnidades as List)
+          .map((e) => Unidade.fromJson(e))
+          .toList();
       print('✅ [UnidadeService] Unidades recuperadas: ${unidades.length}');
-      
+
       if (unidades.isEmpty) return [];
-      
+
       // 2. Buscar todos os blocos
       final responseBlocos = await _supabase
           .from('blocos')
@@ -68,70 +76,85 @@ class UnidadeService {
           .eq('condominio_id', condominioId)
           .eq('ativo', true)
           .order('ordem');
-          
-      final blocosDb = (responseBlocos as List).map((e) => Bloco.fromJson(e)).toList();
-      print('✅ [UnidadeService] Blocos recuperados do banco: ${blocosDb.length}');
-      
+
+      final blocosDb = (responseBlocos as List)
+          .map((e) => Bloco.fromJson(e))
+          .toList();
+      print(
+        '✅ [UnidadeService] Blocos recuperados do banco: ${blocosDb.length}',
+      );
+
       // 3. Agrupar unidades por nome de bloco
       final Map<String, List<Unidade>> mapaUnidadesPorBloco = {};
-      
+
       for (var u in unidades) {
         // Tenta garantir que nomeBloco não seja nulo
         final nomeBloco = u.bloco != null && u.bloco!.trim().isNotEmpty
             ? u.bloco!.trim()
             : 'Sem Bloco';
-            
+
         if (!mapaUnidadesPorBloco.containsKey(nomeBloco)) {
           mapaUnidadesPorBloco[nomeBloco] = [];
         }
         mapaUnidadesPorBloco[nomeBloco]!.add(u);
       }
-      
+
       final resultado = <BlocoComUnidades>[];
-      
+
       // 4. Associar com blocos existentes no banco
       for (var b in blocosDb) {
         final unidadesDoBloco = mapaUnidadesPorBloco[b.nome] ?? [];
         // Remove do mapa para saber quais sobraram (blocos "órfãos" não cadastrados)
         mapaUnidadesPorBloco.remove(b.nome);
-        
-        resultado.add(BlocoComUnidades(
-          bloco: b,
-          unidades: unidadesDoBloco..sort((a,b) => _compareUnidades(a.numero, b.numero)),
-        ));
+
+        resultado.add(
+          BlocoComUnidades(
+            bloco: b,
+            unidades: unidadesDoBloco
+              ..sort((a, b) => _compareUnidades(a.numero, b.numero)),
+          ),
+        );
       }
-      
+
       // 5. Tratar blocos que não estão no banco (órfãos)
       if (mapaUnidadesPorBloco.isNotEmpty) {
-        print('⚠️ [UnidadeService] Encontrados ${mapaUnidadesPorBloco.length} blocos virtuais (não cadastrados)');
-        
+        print(
+          '⚠️ [UnidadeService] Encontrados ${mapaUnidadesPorBloco.length} blocos virtuais (não cadastrados)',
+        );
+
         mapaUnidadesPorBloco.forEach((nomeBloco, listaUnidades) {
-          print('   Bloco virtual: "$nomeBloco" com ${listaUnidades.length} unidades');
-          resultado.add(BlocoComUnidades(
-            bloco: Bloco(
-              id: 'virtual_${DateTime.now().microsecondsSinceEpoch}',
-              nome: nomeBloco,
-              condominioId: condominioId,
-              codigo: nomeBloco,
-              ordem: 999, // Ficam no final
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
+          print(
+            '   Bloco virtual: "$nomeBloco" com ${listaUnidades.length} unidades',
+          );
+          resultado.add(
+            BlocoComUnidades(
+              bloco: Bloco(
+                id: 'virtual_${DateTime.now().microsecondsSinceEpoch}',
+                nome: nomeBloco,
+                condominioId: condominioId,
+                codigo: nomeBloco,
+                ordem: 999, // Ficam no final
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+              unidades: listaUnidades
+                ..sort((a, b) => _compareUnidades(a.numero, b.numero)),
             ),
-            unidades: listaUnidades..sort((a,b) => _compareUnidades(a.numero, b.numero)),
-          ));
+          );
         });
       }
-      
+
       // Ordenar resultado final: blocos reais por ordem, depois virtuais
-      resultado.sort((a,b) {
+      resultado.sort((a, b) {
         final ordemA = a.bloco.ordem;
         final ordemB = b.bloco.ordem;
         return ordemA.compareTo(ordemB);
       });
-      
-      print('✅ [UnidadeService] Total de blocos processados (Reais + Virtuais): ${resultado.length}');
+
+      print(
+        '✅ [UnidadeService] Total de blocos processados (Reais + Virtuais): ${resultado.length}',
+      );
       return resultado;
-      
     } catch (e, stackTrace) {
       print('❌ [UnidadeService] ERRO ao listar manualmente: $e');
       print('📋 [UnidadeService] Stack trace: $stackTrace');
@@ -141,30 +164,33 @@ class UnidadeService {
 
   /// Helper para ordenação natural de números (ex: 1, 2, 10 vem depois de 2, não de 1)
   int _compareUnidades(String a, String b) {
-     // Tentar extrair números para comparação
-     final intA = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), ''));
-     final intB = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), ''));
-     
-     // Se ambos têm números, compara os números
-     if (intA != null && intB != null) {
-       // Se os números são iguais, compara a string completa para desempate (ex: 10A vs 10B)
-       if (intA == intB) {
-         return a.compareTo(b);
-       }
-       return intA.compareTo(intB);
-     }
-     
-     // Fallback para comparação de string simples
-     return a.compareTo(b);
+    // Tentar extrair números para comparação
+    final intA = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), ''));
+    final intB = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), ''));
+
+    // Se ambos têm números, compara os números
+    if (intA != null && intB != null) {
+      // Se os números são iguais, compara a string completa para desempate (ex: 10A vs 10B)
+      if (intA == intB) {
+        return a.compareTo(b);
+      }
+      return intA.compareTo(intB);
+    }
+
+    // Fallback para comparação de string simples
+    return a.compareTo(b);
   }
 
   /// Busca dados completos de uma unidade específica
   /// Usa a função buscar_dados_completos_unidade do banco
-  Future<Map<String, dynamic>> buscarDadosCompletosUnidade(String unidadeId) async {
+  Future<Map<String, dynamic>> buscarDadosCompletosUnidade(
+    String unidadeId,
+  ) async {
     try {
-      final response = await _supabase.rpc('buscar_dados_completos_unidade', params: {
-        'p_unidade_id': unidadeId,
-      });
+      final response = await _supabase.rpc(
+        'buscar_dados_completos_unidade',
+        params: {'p_unidade_id': unidadeId},
+      );
 
       if (response == null) {
         throw Exception('Unidade não encontrada');
@@ -178,11 +204,14 @@ class UnidadeService {
 
   /// Obtém estatísticas do condomínio
   /// Usa a função estatisticas_condominio do banco
-  Future<Map<String, dynamic>?> obterEstatisticasCondominio(String condominioId) async {
+  Future<Map<String, dynamic>?> obterEstatisticasCondominio(
+    String condominioId,
+  ) async {
     try {
-      final response = await _supabase.rpc('estatisticas_condominio', params: {
-        'p_condominio_id': condominioId,
-      });
+      final response = await _supabase.rpc(
+        'estatisticas_condominio',
+        params: {'p_condominio_id': condominioId},
+      );
 
       if (response == null) {
         return null;
@@ -245,10 +274,10 @@ class UnidadeService {
           .single();
 
       final unidadeCriada = Unidade.fromJson(response);
-      
+
       // ✅ Aguardar geração do QR code antes de retornar
       await _gerarQRCodeUnidadeAsync(unidadeCriada);
-      
+
       return unidadeCriada;
     } catch (e) {
       throw Exception('Erro ao criar unidade: $e');
@@ -260,23 +289,26 @@ class UnidadeService {
   Future<void> _gerarQRCodeUnidadeAsync(Unidade unidade) async {
     // Aguardar um pouco para garantir que os dados foram salvos no banco
     await Future.delayed(const Duration(milliseconds: 300));
-    
-    try {
-      print('🔄 [Unidade] Iniciando geração de QR Code para unidade: ${unidade.numero}');
 
-      final qrCodeUrl = await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
-        tipo: 'unidade',
-        id: unidade.id,
-        nome: unidade.numero,
-        tabelaNome: 'unidades',
-        dados: {
-          'id': unidade.id,
-          'numero': unidade.numero,
-          'bloco': unidade.bloco ?? '',
-          'condominio_id': unidade.condominioId,
-          'data_criacao': DateTime.now().toIso8601String(),
-        },
+    try {
+      print(
+        '🔄 [Unidade] Iniciando geração de QR Code para unidade: ${unidade.numero}',
       );
+
+      final qrCodeUrl =
+          await QrCodeGenerationService.gerarESalvarQRCodeGenerico(
+            tipo: 'unidade',
+            id: unidade.id,
+            nome: unidade.numero,
+            tabelaNome: 'unidades',
+            dados: {
+              'id': unidade.id,
+              'numero': unidade.numero,
+              'bloco': unidade.bloco ?? '',
+              'condominio_id': unidade.condominioId,
+              'data_criacao': DateTime.now().toIso8601String(),
+            },
+          );
 
       if (qrCodeUrl != null) {
         print('✅ [Unidade] QR Code gerado e salvo: $qrCodeUrl');
@@ -325,7 +357,10 @@ class UnidadeService {
     try {
       await _supabase
           .from('blocos')
-          .update({'ativo': false, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'ativo': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', blocoId);
     } catch (e) {
       throw Exception('Erro ao remover bloco: $e');
@@ -337,7 +372,10 @@ class UnidadeService {
     try {
       await _supabase
           .from('unidades')
-          .update({'ativo': false, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'ativo': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', unidadeId);
     } catch (e) {
       throw Exception('Erro ao remover unidade: $e');
@@ -356,7 +394,7 @@ class UnidadeService {
     try {
       // Primeiro, obtém todas as unidades
       final todasUnidades = await listarUnidadesCondominio(condominioId);
-      
+
       if (termo.isEmpty) {
         return todasUnidades;
       }
@@ -367,8 +405,9 @@ class UnidadeService {
 
       for (final blocoComUnidades in todasUnidades) {
         // Verifica se o termo corresponde ao nome do bloco
-        final blocoCorresponde = blocoComUnidades.bloco.nome.toLowerCase().contains(termoLower) ||
-                                blocoComUnidades.bloco.codigo.toLowerCase().contains(termoLower);
+        final blocoCorresponde =
+            blocoComUnidades.bloco.nome.toLowerCase().contains(termoLower) ||
+            blocoComUnidades.bloco.codigo.toLowerCase().contains(termoLower);
 
         // Filtra unidades que correspondem ao termo
         final unidadesFiltradas = blocoComUnidades.unidades.where((unidade) {
@@ -378,13 +417,15 @@ class UnidadeService {
         // Se o bloco corresponde, inclui todas as unidades
         if (blocoCorresponde) {
           resultados.add(blocoComUnidades);
-        } 
+        }
         // Se apenas algumas unidades correspondem, cria um novo BlocoComUnidades com essas unidades
         else if (unidadesFiltradas.isNotEmpty) {
-          resultados.add(BlocoComUnidades(
-            bloco: blocoComUnidades.bloco,
-            unidades: unidadesFiltradas,
-          ));
+          resultados.add(
+            BlocoComUnidades(
+              bloco: blocoComUnidades.bloco,
+              unidades: unidadesFiltradas,
+            ),
+          );
         }
       }
 
@@ -450,7 +491,7 @@ class UnidadeService {
           .select('nome, condominio_id')
           .eq('id', blocoId)
           .single();
-          
+
       final nomeBloco = blockData['nome'] as String;
       final condominioId = blockData['condominio_id'] as String;
 
@@ -462,10 +503,7 @@ class UnidadeService {
           .eq('bloco', nomeBloco);
 
       // 3. Excluir o bloco
-      await _supabase
-          .from('blocos')
-          .delete()
-          .eq('id', blocoId);
+      await _supabase.from('blocos').delete().eq('id', blocoId);
 
       return true;
     } catch (e) {
@@ -477,10 +515,7 @@ class UnidadeService {
   /// Exclui uma unidade específica
   Future<bool> deletarUnidade(String unidadeId) async {
     try {
-      await _supabase
-          .from('unidades')
-          .delete()
-          .eq('id', unidadeId);
+      await _supabase.from('unidades').delete().eq('id', unidadeId);
 
       return true;
     } catch (e) {
@@ -529,10 +564,10 @@ class UnidadeService {
           .single();
 
       final unidadeCriada = Unidade.fromJson(response);
-      
+
       // ✅ NOVO: Gerar QR code em background
       _gerarQRCodeUnidadeAsync(unidadeCriada);
-      
+
       return unidadeCriada;
     } catch (e) {
       throw Exception('Erro ao criar unidade rápida: $e');

@@ -9,6 +9,7 @@ import 'gestao_screen.dart';
 import 'login_screen.dart';
 import '../services/unidade_detalhes_service.dart';
 import 'representante_dashboard_screen.dart';
+import '../features/Representante_Features/leitura/screens/leitura_screen.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -559,10 +560,20 @@ Copiado da CondoGaia''';
                               'assets/images/Representante/HOME/Imagem_FolhaFunc.png',
                           title: 'Folha Func.',
                         ),
-                        _buildMenuCardComingSoon(
+                        _buildMenuCard(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Leitura.png',
                           title: 'Leitura',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LeituraScreen(
+                                  condominioId: widget.condominioId,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
