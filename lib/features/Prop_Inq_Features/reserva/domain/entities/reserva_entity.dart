@@ -13,7 +13,7 @@ class ReservaEntity {
   final double valorLocacao;
   final bool termoLocacao;
   final String para; // 'Condomínio' ou 'Bloco/Unid'
-  final String? listaPresentesId; // ID do documento com lista de presentes
+  final String? listaPresentes; // JSON String com a lista de presentes
   final String? blocoUnidadeId; // UUID da unidade se for Bloco/Unid
   final DateTime dataCriacao;
   final DateTime dataAtualizacao;
@@ -33,7 +33,7 @@ class ReservaEntity {
     required this.para,
     required this.dataCriacao,
     required this.dataAtualizacao,
-    this.listaPresentesId,
+    this.listaPresentes,
     this.blocoUnidadeId,
   });
 }

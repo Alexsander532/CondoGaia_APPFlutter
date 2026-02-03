@@ -19,7 +19,7 @@ class ReservaModel extends ReservaEntity {
     required String para,
     required DateTime dataCriacao,
     required DateTime dataAtualizacao,
-    String? listaPresentesId,
+    String? listaPresentes,
     String? blocoUnidadeId,
   }) : super(
          id: id,
@@ -36,7 +36,7 @@ class ReservaModel extends ReservaEntity {
          para: para,
          dataCriacao: dataCriacao,
          dataAtualizacao: dataAtualizacao,
-         listaPresentesId: listaPresentesId,
+         listaPresentes: listaPresentes,
          blocoUnidadeId: blocoUnidadeId,
        );
 
@@ -74,7 +74,7 @@ class ReservaModel extends ReservaEntity {
       dataAtualizacao: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
-      listaPresentesId: json['lista_presentes'] as String?,
+      listaPresentes: json['lista_presentes'] as String?,
       blocoUnidadeId: json['bloco_unidade_id'] as String?,
     );
   }
@@ -94,7 +94,7 @@ class ReservaModel extends ReservaEntity {
       'valor_locacao': valorLocacao,
       'termo_locacao': termoLocacao,
       'para': para,
-      'lista_presentes': listaPresentesId,
+      'lista_presentes': listaPresentes,
       'bloco_unidade_id': blocoUnidadeId,
     };
   }

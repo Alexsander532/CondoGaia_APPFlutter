@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
 import '../di/reserva_dependencies.dart';
 import '../cubit/reserva_cubit.dart';
 import '../cubit/reserva_state.dart';
 import '../../domain/entities/reserva_entity.dart';
+import '../../../../../services/excel_service.dart';
 
 class ReservaScreen extends StatefulWidget {
   final String condominioId;
@@ -27,10 +31,16 @@ class _ReservaScreenState extends State<ReservaScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _horaInicioController = TextEditingController();
   final TextEditingController _horaFimController = TextEditingController();
+  final TextEditingController _listaPresentesController =
+      TextEditingController();
   bool _termoLocacaoAceito = false;
   late ReservaCubit _cubit;
   late TabController _tabController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Arquivo de lista de presentes
+  String? _uploadedFileName;
+  List<String> _listaPresentesArray = [];
 
   @override
   void initState() {
@@ -54,9 +64,22 @@ class _ReservaScreenState extends State<ReservaScreen>
   void dispose() {
     _horaInicioController.dispose();
     _horaFimController.dispose();
+    _listaPresentesController.dispose();
     _tabController.dispose();
     _cubit.close();
     super.dispose();
+  }
+
+  // Formata a lista de presença para exibição no MODAL (numerado)
+  String _formatarListaPresencaModal(List<String> nomes) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < nomes.length; i++) {
+      buffer.write('${i + 1} - ${nomes[i]};');
+      if (i < nomes.length - 1) {
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
   }
 
   void _onTimeChanged(String value, TextEditingController controller) {
@@ -79,6 +102,46 @@ class _ReservaScreenState extends State<ReservaScreen>
         text: text,
         selection: TextSelection.collapsed(offset: text.length),
       );
+    }
+  }
+
+  // Função para abrir o termo de locação em PDF
+  Future<void> _abrirTermoLocacao(String? locacaoUrl) async {
+    if (locacaoUrl == null || locacaoUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhum termo de locação disponível'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final Uri url = Uri.parse(locacaoUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o termo de locação'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir documento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -354,6 +417,212 @@ class _ReservaScreenState extends State<ReservaScreen>
             ),
             const SizedBox(height: 16),
 
+            // Termo de Locação Link
+            if (cubit.ambienteSelecionado?.locacaoUrl != null &&
+                cubit.ambienteSelecionado!.locacaoUrl!.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8.0),
+                  color: Colors.grey[50],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.description,
+                      color: Color(0xFF1E3A8A),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Termo de locação',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => _abrirTermoLocacao(
+                              cubit.ambienteSelecionado!.locacaoUrl,
+                            ),
+                            child: const Text(
+                              'Clique para abrir o documento',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Lista de Presentes
+            const SizedBox(height: 16),
+            const Text(
+              'Lista de Presentes',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8.0),
+            TextField(
+              controller: _listaPresentesController,
+              onChanged: (_) {
+                // Quando usuário edita manualmente, limpar array
+                _listaPresentesArray = [];
+              },
+              maxLines: 4,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
+                hintText: 'Ex: Lista de convidados para a reserva',
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            GestureDetector(
+              onTap: () async {
+                try {
+                  FilePickerResult? result = await FilePicker.platform
+                      .pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['xlsx', 'xls'],
+                      );
+
+                  if (result != null) {
+                    // Mostrar indicador de carregamento
+                    setModalState(() {
+                      _uploadedFileName =
+                          '${result.files.single.name} (lendo...)';
+                    });
+
+                    try {
+                      // Ler os nomes do arquivo Excel
+                      final nomes = await ExcelService.lerColuna(
+                        result.files.single,
+                      );
+
+                      if (nomes.isNotEmpty) {
+                        final listaNumerada = _formatarListaPresencaModal(
+                          nomes,
+                        );
+
+                        setModalState(() {
+                          _listaPresentesController.text = listaNumerada;
+                          _listaPresentesArray = nomes;
+                          _uploadedFileName =
+                              '${result.files.single.name} \u2713 (${nomes.length} nomes)';
+                        });
+
+                        // Mostrar sucesso
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '\u2713 ${nomes.length} nome(s) importado(s) com sucesso!',
+                              ),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } else {
+                        setModalState(() {
+                          _uploadedFileName = null;
+                        });
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                '\u274C Nenhum nome encontrado na coluna A',
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      print('Erro ao ler Excel: $e');
+                      setModalState(() {
+                        _uploadedFileName = null;
+                      });
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('\u274C Erro ao ler arquivo: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                } catch (e) {
+                  print('Erro ao selecionar arquivo: $e');
+                }
+              },
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.cloud_upload_outlined,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _uploadedFileName ?? 'Fazer Upload da Lista',
+                      style: TextStyle(
+                        color:
+                            _uploadedFileName != null &&
+                                _uploadedFileName!.contains('\u2713')
+                            ? Colors.green
+                            : Colors.black87,
+                        fontSize: 14,
+                        fontWeight:
+                            _uploadedFileName != null &&
+                                _uploadedFileName!.contains('\u2713')
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_uploadedFileName != null)
+                    GestureDetector(
+                      onTap: () {
+                        setModalState(() {
+                          _uploadedFileName = null;
+                          _listaPresentesController.clear();
+                          _listaPresentesArray = [];
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.close, size: 18, color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
             // Checkbox Aceitar Termo
             Row(
               children: [
@@ -457,6 +726,19 @@ class _ReservaScreenState extends State<ReservaScreen>
                             return;
                           }
 
+                          // Preparar Lista de Presentes
+                          String? listaPresentesFinal;
+                          if (_listaPresentesArray.isNotEmpty) {
+                            listaPresentesFinal = jsonEncode(
+                              _listaPresentesArray,
+                            );
+                          } else if (_listaPresentesController
+                              .text
+                              .isNotEmpty) {
+                            listaPresentesFinal =
+                                _listaPresentesController.text;
+                          }
+
                           // Atualizar estado do Cubit
                           cubit.atualizarDataInicio(dataInicio);
                           cubit.atualizarDataFim(dataFim);
@@ -467,6 +749,7 @@ class _ReservaScreenState extends State<ReservaScreen>
                               reservaId: reservaEdicao.id,
                               condominioId: widget.condominioId,
                               usuarioId: widget.usuarioId,
+                              listaPresentes: listaPresentesFinal,
                             );
                           } else {
                             // Criar
@@ -474,6 +757,7 @@ class _ReservaScreenState extends State<ReservaScreen>
                               condominioId: widget.condominioId,
                               usuarioId: widget.usuarioId,
                               termoLocacaoAceito: _termoLocacaoAceito,
+                              listaPresentes: listaPresentesFinal,
                               isInquilino: widget.isInquilino,
                               isProprietario: widget.isProprietario,
                             );

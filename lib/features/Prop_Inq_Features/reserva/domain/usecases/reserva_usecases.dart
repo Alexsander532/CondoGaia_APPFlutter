@@ -45,6 +45,7 @@ class CriarReservaUseCase {
     required DateTime dataFim,
     required double valorLocacao,
     required bool termoLocacao,
+    String? listaPresentes,
   }) {
     return repository.criarReserva(
       condominioId: condominioId,
@@ -57,6 +58,7 @@ class CriarReservaUseCase {
       dataFim: dataFim,
       valorLocacao: valorLocacao,
       termoLocacao: termoLocacao,
+      listaPresentes: listaPresentes,
     );
   }
 }
@@ -74,6 +76,7 @@ class AtualizarReservaUseCase {
     required DateTime dataInicio,
     required DateTime dataFim,
     required double valorLocacao,
+    String? listaPresentes,
   }) {
     return repository.atualizarReserva(
       reservaId: reservaId,
@@ -82,6 +85,7 @@ class AtualizarReservaUseCase {
       dataInicio: dataInicio,
       dataFim: dataFim,
       valorLocacao: valorLocacao,
+      listaPresentes: listaPresentes,
     );
   }
 }

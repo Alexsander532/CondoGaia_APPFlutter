@@ -4,6 +4,14 @@ import '../../../../models/condominio.dart';
 import '../../../../models/representante.dart';
 import '../services/gestao_condominio_service.dart';
 import '../widgets/dados_condominio_widget.dart';
+import '../widgets/financeiro_condominio_widget.dart';
+import '../widgets/layout_boleto_widget.dart';
+import '../widgets/conta_bancaria_widget.dart';
+import '../widgets/textos_condominio_widget.dart';
+import '../widgets/perfil_usuario_condominio_widget.dart';
+import '../widgets/protesto_baixa_condominio_widget.dart';
+import '../widgets/garantidora_condominio_widget.dart';
+import 'categoria_subcategoria_screen.dart';
 
 class GestaoCondominioScreen extends StatefulWidget {
   final String condominioId;
@@ -193,6 +201,37 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
               ),
               itemBuilder: (context, index) {
                 final item = _itemDefs[index];
+
+                // Special case: Navigate to a separate screen
+                if (item['title'] == 'Categoria/subcategoria') {
+                  return ListTile(
+                    leading: Icon(item['icon'], color: Colors.black, size: 28),
+                    title: Text(
+                      item['title'],
+                      style: const TextStyle(
+                        color: Color(0xFF0D3B66),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.grey,
+                      size: 16,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoriaSubcategoriaScreen(
+                            condominioId: widget.condominioId,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+
                 return Theme(
                   data: Theme.of(
                     context,
@@ -213,12 +252,7 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         alignment: Alignment.centerLeft,
-                        child: item['title'] == 'Dados'
-                            ? DadosCondominioWidget(
-                                condominio: _condominio,
-                                representante: _representante,
-                              )
-                            : Text(item['content'] ?? ''),
+                        child: _buildItemContent(item),
                       ),
                     ],
                   ),
@@ -226,6 +260,32 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
               },
             ),
     );
+  }
+
+  Widget _buildItemContent(Map<String, dynamic> item) {
+    switch (item['title']) {
+      case 'Dados':
+        return DadosCondominioWidget(
+          condominio: _condominio,
+          representante: _representante,
+        );
+      case 'Financeiro':
+        return FinanceiroCondominioWidget(condominio: _condominio);
+      case 'Layout Boleto':
+        return const LayoutBoletoWidget();
+      case 'Conta Bancária':
+        return ContaBancariaWidget(condominio: _condominio);
+      case 'Textos':
+        return TextosCondominioWidget(condominio: _condominio);
+      case 'Perfil de Usuário':
+        return PerfilUsuarioCondominioWidget(condominio: _condominio);
+      case 'Protestar/Baixa Boleto':
+        return ProtestoBaixaCondominioWidget(condominio: _condominio);
+      case 'Garantidora':
+        return GarantidoraCondominioWidget(condominio: _condominio);
+      default:
+        return Text(item['content'] ?? '');
+    }
   }
 
   Widget _buildDrawer() {

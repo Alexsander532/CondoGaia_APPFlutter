@@ -17,6 +17,7 @@ abstract class ReservaRepository {
     required DateTime dataFim,
     required double valorLocacao,
     required bool termoLocacao,
+    String? listaPresentes,
   });
   Future<void> cancelarReserva(String reservaId);
   Future<ReservaEntity> atualizarReserva({
@@ -26,5 +27,6 @@ abstract class ReservaRepository {
     required DateTime dataInicio,
     required DateTime dataFim,
     required double valorLocacao,
+    String? listaPresentes,
   });
 }

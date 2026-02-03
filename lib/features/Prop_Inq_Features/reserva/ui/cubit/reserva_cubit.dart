@@ -150,6 +150,7 @@ class ReservaCubit extends Cubit<ReservaState> {
     required String condominioId,
     required String usuarioId,
     required bool termoLocacaoAceito,
+    String? listaPresentes,
     bool isInquilino = true,
     bool isProprietario = false,
   }) async {
@@ -239,6 +240,7 @@ class ReservaCubit extends Cubit<ReservaState> {
         dataFim: _dataFim!,
         valorLocacao: _ambienteSelecionado!.valor,
         termoLocacao: termoLocacaoAceito,
+        listaPresentes: listaPresentes,
       );
 
       _reservas.add(reserva);
@@ -259,6 +261,7 @@ class ReservaCubit extends Cubit<ReservaState> {
     required String reservaId,
     required String condominioId,
     required String usuarioId,
+    String? listaPresentes,
   }) async {
     // Validar Campos Obrigatórios da UI
     if (_ambienteSelecionado == null) {
@@ -290,6 +293,7 @@ class ReservaCubit extends Cubit<ReservaState> {
         dataInicio: _dataInicio!,
         dataFim: _dataFim!,
         valorLocacao: _ambienteSelecionado!.valor,
+        listaPresentes: listaPresentes,
       );
 
       // Atualizar na lista local

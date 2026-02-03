@@ -44,6 +44,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
     required DateTime dataFim,
     required double valorLocacao,
     required bool termoLocacao,
+    String? listaPresentes,
   }) async {
     try {
       final model = await remoteDataSource.criarReserva(
@@ -57,6 +58,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
         dataFim: dataFim,
         valorLocacao: valorLocacao,
         termoLocacao: termoLocacao,
+        listaPresentes: listaPresentes,
       );
       return model as ReservaEntity;
     } catch (e) {
@@ -81,6 +83,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
     required DateTime dataInicio,
     required DateTime dataFim,
     required double valorLocacao,
+    String? listaPresentes,
   }) async {
     try {
       final model = await remoteDataSource.atualizarReserva(
@@ -90,6 +93,7 @@ class ReservaRepositoryImpl implements ReservaRepository {
         dataInicio: dataInicio,
         dataFim: dataFim,
         valorLocacao: valorLocacao,
+        listaPresentes: listaPresentes,
       );
       return model as ReservaEntity;
     } catch (e) {

@@ -20,6 +20,7 @@ abstract class ReservaRemoteDataSource {
     required DateTime dataFim,
     required double valorLocacao,
     required bool termoLocacao,
+    String? listaPresentes,
   });
   Future<void> cancelarReserva(String reservaId);
   Future<ReservaModel> atualizarReserva({
@@ -29,6 +30,7 @@ abstract class ReservaRemoteDataSource {
     required DateTime dataInicio,
     required DateTime dataFim,
     required double valorLocacao,
+    String? listaPresentes,
   });
 }
 
@@ -45,6 +47,7 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     required DateTime dataInicio,
     required DateTime dataFim,
     required double valorLocacao,
+    String? listaPresentes,
   }) async {
     try {
       final client = Supabase.instance.client;
@@ -59,6 +62,10 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
             '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
         'valor_locacao': valorLocacao,
       };
+
+      if (listaPresentes != null) {
+        data['lista_presentes'] = listaPresentes;
+      }
 
       final response = await client
           .from('reservas')
@@ -104,6 +111,7 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
           .select(
             '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome)',
           )
+          .eq('condominio_id', condominioId)
           .order('data_reserva', ascending: true);
 
       final reservas = (response as List)
@@ -128,6 +136,7 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     required DateTime dataFim,
     required double valorLocacao,
     required bool termoLocacao,
+    String? listaPresentes,
   }) async {
     try {
       final client = Supabase.instance.client;
@@ -143,7 +152,12 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
         'valor_locacao': valorLocacao,
         'termo_locacao': termoLocacao,
         'para': 'Condomínio', // Default
+        'condominio_id': condominioId,
       };
+
+      if (listaPresentes != null) {
+        data['lista_presentes'] = listaPresentes;
+      }
 
       if (representanteId != null) {
         data['representante_id'] = representanteId;
@@ -172,7 +186,12 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
 
   @override
   Future<void> cancelarReserva(String reservaId) async {
-    // TODO: Chamar Supabase para cancelar
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final client = Supabase.instance.client;
+      await client.from('reservas').delete().eq('id', reservaId);
+    } catch (e) {
+      print('❌ Erro ao cancelar reserva: $e');
+      throw Exception('Erro ao cancelar reserva: $e');
+    }
   }
 }
