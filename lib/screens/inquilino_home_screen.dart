@@ -46,8 +46,6 @@ class InquilinoHomeScreen extends StatefulWidget {
 }
 
 class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   // Serviço de conversas para contador de mensagens não lidas
   final ConversasService _conversasService = ConversasService();
   int _mensagensNaoLidas = 0;
@@ -93,7 +91,7 @@ class _InquilinoHomeScreenState extends State<InquilinoHomeScreen> {
             }
           });
     } catch (e) {
-      print('❌ Erro ao inicializar contador de mensagens: $e');
+      debugPrint('❌ Erro ao inicializar contador de mensagens: $e');
     }
   }
 
@@ -141,19 +139,18 @@ Copiado da CondoGaia''';
             child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: texto)).then((_) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Dados copiados para a área de transferência!',
-                    ),
-                    duration: Duration(seconds: 2),
-                    backgroundColor: Color(0xFF1976D2),
-                  ),
-                );
-              });
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: texto));
+              if (!context.mounted) return;
+
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Dados copiados para a área de transferência!'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Color(0xFF1976D2),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1976D2),
@@ -225,18 +222,18 @@ Copiado da CondoGaia''';
   Future<void> _handleLogout() async {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Sair'),
           content: const Text('Deseja realmente sair da sua conta?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancelar'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
                 await _authService.logout();
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
@@ -259,7 +256,7 @@ Copiado da CondoGaia''';
   Future<void> _handleDeleteAccount() async {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Excluir Conta'),
           content: const Text(
@@ -267,12 +264,12 @@ Copiado da CondoGaia''';
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancelar'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
 
                 try {
                   final service = UnidadeDetalhesService();
@@ -280,32 +277,34 @@ Copiado da CondoGaia''';
                   // Deletar o inquilino ou proprietário
                   if (widget.inquilinoId != null &&
                       widget.inquilinoId!.isNotEmpty) {
-                    print('🗑️ Deletando inquilino: ${widget.inquilinoId}');
+                    debugPrint(
+                      '🗑️ Deletando inquilino: ${widget.inquilinoId}',
+                    );
                     await service.deletarInquilino(
                       inquilinoId: widget.inquilinoId!,
                     );
-                    print('✅ Inquilino deletado com sucesso!');
+                    debugPrint('✅ Inquilino deletado com sucesso!');
                   } else if (widget.proprietarioId != null &&
                       widget.proprietarioId!.isNotEmpty) {
-                    print(
+                    debugPrint(
                       '🗑️ Deletando proprietário: ${widget.proprietarioId}',
                     );
                     await service.deletarProprietario(
                       proprietarioId: widget.proprietarioId!,
                     );
-                    print('✅ Proprietário deletado com sucesso!');
+                    debugPrint('✅ Proprietário deletado com sucesso!');
                   } else {
                     throw Exception('Nenhum ID fornecido para deletar');
                   }
 
                   // Fazer logout
-                  print('🚪 Realizando logout...');
+                  debugPrint('🚪 Realizando logout...');
                   await _authService.logout();
-                  print('✅ Logout realizado!');
+                  debugPrint('✅ Logout realizado!');
 
                   // Navegar para login (SEM usar ScaffoldMessenger pois a tela foi destruída)
                   if (mounted) {
-                    print('🔄 Navegando para login...');
+                    debugPrint('🔄 Navegando para login...');
                     // Determinar o tipo de usuário para a mensagem
                     String nomeUsuario = 'Usuário';
                     if (widget.inquilinoId != null &&
@@ -325,7 +324,7 @@ Copiado da CondoGaia''';
                     );
                   }
                 } catch (e) {
-                  print('❌ ERRO ao excluir conta: $e');
+                  debugPrint('❌ ERRO ao excluir conta: $e');
                   // NÃO mostrar snackbar aqui pois a tela já foi destruída
                 }
               },
@@ -351,7 +350,7 @@ Copiado da CondoGaia''';
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -421,7 +420,7 @@ Copiado da CondoGaia''';
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -597,14 +596,14 @@ Copiado da CondoGaia''';
                               'assets/images/Representante/HOME/Imagem_Reservas.png',
                           title: 'Reservas',
                           onTap: () {
-                            print('🔴 CLICOU EM RESERVAS');
-                            print(
+                            debugPrint('🔴 CLICOU EM RESERVAS');
+                            debugPrint(
                               'DEBUG: widget.inquilinoId: ${widget.inquilinoId}',
                             );
-                            print(
+                            debugPrint(
                               'DEBUG: widget.proprietarioId: ${widget.proprietarioId}',
                             );
-                            print(
+                            debugPrint(
                               'DEBUG: widget.unidadeId: ${widget.unidadeId}',
                             );
 
@@ -617,8 +616,6 @@ Copiado da CondoGaia''';
                                       widget.inquilinoId ??
                                       widget.proprietarioId ??
                                       '',
-                                  isInquilino: widget.inquilinoId != null,
-                                  isProprietario: widget.proprietarioId != null,
                                 ),
                               ),
                             );
@@ -667,7 +664,7 @@ Copiado da CondoGaia''';
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -2),
                       ),
@@ -706,14 +703,14 @@ Copiado da CondoGaia''';
                                     );
                                   }
                                 } else {
-                                  print('❌ Inquilino não encontrado');
-                                  Navigator.pop(context);
+                                  debugPrint('❌ Inquilino não encontrado');
+                                  if (mounted) Navigator.pop(context);
                                 }
                               } catch (e) {
-                                print(
+                                debugPrint(
                                   '❌ Erro ao buscar dados do inquilino: $e',
                                 );
-                                Navigator.pop(context);
+                                if (mounted) Navigator.pop(context);
                               }
                             }
                             // Se for proprietário e tem dados, voltar ao dashboard
@@ -729,19 +726,21 @@ Copiado da CondoGaia''';
                                       : widget.proprietarioData.toJson()
                                             as Map<String, dynamic>,
                                 );
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        ProprietarioDashboardScreen(
-                                          proprietario: proprietario,
-                                        ),
-                                  ),
-                                );
+                                if (mounted) {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ProprietarioDashboardScreen(
+                                            proprietario: proprietario,
+                                          ),
+                                    ),
+                                  );
+                                }
                               } catch (e) {
-                                print(
+                                debugPrint(
                                   '❌ Erro ao navegar para dashboard do proprietário: $e',
                                 );
-                                Navigator.pop(context);
+                                if (mounted) Navigator.pop(context);
                               }
                             } else {
                               // Caso contrário, fazer pop normal
@@ -808,7 +807,7 @@ class _ComingSoonBannerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.red.withOpacity(0.85)
+      ..color = Colors.red.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
 
     final textPainter = TextPainter(

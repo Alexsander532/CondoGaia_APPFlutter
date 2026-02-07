@@ -1,16 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../../models/condominio.dart';
+import '../cubit/textos_condominio_cubit.dart';
+import '../cubit/textos_condominio_state.dart';
+import '../models/textos_condominio_model.dart';
+import '../services/gestao_condominio_service.dart';
 
-class TextosCondominioWidget extends StatefulWidget {
+class TextosCondominioWidget extends StatelessWidget {
   final Condominio? condominio;
 
-  const TextosCondominioWidget({super.key, this.condominio});
+  const TextosCondominioWidget({super.key, required this.condominio});
 
   @override
-  State<TextosCondominioWidget> createState() => _TextosCondominioWidgetState();
+  Widget build(BuildContext context) {
+    if (condominio == null) return const SizedBox.shrink();
+
+    return BlocProvider(
+      create: (context) =>
+          TextosCondominioCubit(service: GestaoCondominioService())
+            ..carregarTextos(condominio!.id),
+      child: _TextosCondominioView(condominioId: condominio!.id),
+    );
+  }
 }
 
-class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
+class _TextosCondominioView extends StatefulWidget {
+  final String condominioId;
+  const _TextosCondominioView({required this.condominioId});
+
+  @override
+  State<_TextosCondominioView> createState() => _TextosCondominioViewState();
+}
+
+class _TextosCondominioViewState extends State<_TextosCondominioView> {
   // Controllers
   final _comunicadoCotaController = TextEditingController();
   final _comunicadoAcordoController = TextEditingController();
@@ -22,25 +46,14 @@ class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
   final _conselhoController = TextEditingController();
   final _funcoesController = TextEditingController();
 
-  // State
+  // Masks
+  final _cpfMask = MaskTextInputFormatter(
+    mask: '###.###.###-##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   int _opcaoData = 0; // 0 = Com data, 1 = Sem data
-
-  @override
-  void initState() {
-    super.initState();
-    _populateFields();
-  }
-
-  void _populateFields() {
-    // Mock default texts based on image
-    const String defaultText =
-        'IMPORTANTE: Inadimplência valores a partir 01/04/2016.\nOBS: APÓS 15 DIAS DO VENCIMENTO DO BOLETO PODERÁ SER PROTESTADO E INCLUSO NO SERASA E SPC.';
-
-    _comunicadoCotaController.text = defaultText;
-    _comunicadoAcordoController.text = defaultText;
-    _textoBoletoTaxaController.text = defaultText;
-    _textoBoletoAcordoController.text = defaultText;
-  }
+  String? _currentId; // Para update
 
   @override
   void dispose() {
@@ -55,15 +68,280 @@ class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
     super.dispose();
   }
 
+  void _atualizarCampos(TextosCondominio textos) {
+    _currentId = textos.id;
+    _comunicadoCotaController.text = textos.comunicadoBoletoCota;
+    _comunicadoAcordoController.text = textos.comunicadoBoletoAcordo;
+    _textoBoletoTaxaController.text = textos.textoBoletoTaxa;
+    _textoBoletoAcordoController.text = textos.textoBoletoAcordo;
+
+    _responsavelTecnicoController.text = textos.responsavelTecnicoNome;
+
+    // Aplica a mascara ao setar o valor
+    var cpf = textos.responsavelTecnicoCpf;
+    if (cpf.isNotEmpty) {
+      _cpfMask.formatEditUpdate(
+        TextEditingValue.empty,
+        TextEditingValue(text: cpf),
+      );
+      _cpfResponsavelController.text = _cpfMask.getMaskedText();
+    } else {
+      _cpfResponsavelController.text = '';
+    }
+
+    _conselhoController.text = textos.responsavelTecnicoConselho;
+    _funcoesController.text = textos.responsavelTecnicoFuncoes;
+    _opcaoData = textos.exibirDataDemonstrativo ? 0 : 1;
+  }
+
+  void _salvar() {
+    final cubit = context.read<TextosCondominioCubit>();
+    final textos = TextosCondominio(
+      id: _currentId,
+      condominioId: widget.condominioId,
+      comunicadoBoletoCota: _comunicadoCotaController.text,
+      comunicadoBoletoAcordo: _comunicadoAcordoController.text,
+      textoBoletoTaxa: _textoBoletoTaxaController.text,
+      textoBoletoAcordo: _textoBoletoAcordoController.text,
+      responsavelTecnicoNome: _responsavelTecnicoController.text,
+      responsavelTecnicoCpf: _cpfMask.getUnmaskedText(), // Salva sem formatação
+      responsavelTecnicoConselho: _conselhoController.text,
+      responsavelTecnicoFuncoes: _funcoesController.text,
+      exibirDataDemonstrativo: _opcaoData == 0,
+    );
+    cubit.salvarTextos(textos);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<TextosCondominioCubit, TextosCondominioState>(
+      listener: (context, state) {
+        if (state.status == TextosStatus.success) {
+          _atualizarCampos(state.textos!);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Textos salvos com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (state.status == TextosStatus.error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage ?? 'Erro ao salvar'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state.status == TextosStatus.loading && state.textos == null) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        // Listener handles success update, but for initial load where logic might differ slightly or if hot reload messes up
+        if (state.status == TextosStatus.success &&
+            _comunicadoCotaController.text.isEmpty &&
+            state.textos?.comunicadoBoletoCota.isNotEmpty == true) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (state.textos != null && _currentId != state.textos!.id) {
+              _atualizarCampos(state.textos!);
+            }
+          });
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildGroupCard(
+                title: 'Comunicados de Boleto',
+                icon: Icons.receipt_long,
+                children: [
+                  _buildSectionLabel('Boleto Cota Condominial'),
+                  _buildTextArea(_comunicadoCotaController),
+
+                  _buildSectionLabel('Boleto de Acordo'),
+                  _buildTextArea(_comunicadoAcordoController),
+
+                  _buildSectionLabel('Boleto Taxa Extra'),
+                  _buildTextArea(_textoBoletoTaxaController),
+
+                  _buildSectionLabel('Boleto Acordo (Texto Extra)'),
+                  _buildTextArea(_textoBoletoAcordoController),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildGroupCard(
+                title: 'Capa do Demonstrativo',
+                icon: Icons.assignment_ind,
+                children: [
+                  const Text(
+                    'Dados do Responsável Técnico',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLabeledInput(
+                    label: 'Nome Completo',
+                    controller: _responsavelTecnicoController,
+                    icon: Icons.person_outline,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: _buildLabeledInput(
+                          label: 'CPF',
+                          controller: _cpfResponsavelController,
+                          inputFormatters: [_cpfMask],
+                          icon: Icons.badge_outlined,
+                          inputType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 4,
+                        child: _buildLabeledInput(
+                          label: 'Conselho (CRC/OAB)',
+                          controller: _conselhoController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLabeledInput(
+                    label: 'Funções (separar por ;)',
+                    controller: _funcoesController,
+                    hintText: 'Ex: Síndico; Administrador',
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const Text(
+                    'Opções de Exibição',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Radio<int>(
+                        value: 0,
+                        groupValue: _opcaoData,
+                        activeColor: const Color(0xFF0D3B66),
+                        onChanged: (val) => setState(() => _opcaoData = val!),
+                      ),
+                      const Text('Exibir Data', style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 16),
+                      Radio<int>(
+                        value: 1,
+                        groupValue: _opcaoData,
+                        activeColor: const Color(0xFF0D3B66),
+                        onChanged: (val) => setState(() => _opcaoData = val!),
+                      ),
+                      const Text(
+                        'Ocultar Data',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: state.status == TextosStatus.loading
+                      ? null
+                      : _salvar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D3B66),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                  icon: state.status == TextosStatus.loading
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.save),
+                  label: state.status == TextosStatus.loading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Salvar Alterações',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: const Color(0xFF0D3B66)),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D3B66),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0, top: 12.0),
+      padding: const EdgeInsets.only(bottom: 6.0, top: 8.0),
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF0D3B66),
-          fontSize: 14,
-          decoration: TextDecoration.underline,
+          color: Colors.black87,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -72,17 +350,18 @@ class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
   Widget _buildTextArea(TextEditingController controller) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: TextField(
         controller: controller,
-        maxLines: 4,
-        style: const TextStyle(fontSize: 12),
+        maxLines: 3,
+        style: const TextStyle(fontSize: 13),
         decoration: const InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.all(12),
+          isDense: true,
         ),
       ),
     );
@@ -93,6 +372,9 @@ class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
     required TextEditingController controller,
     String? hintText,
     double? width,
+    IconData? icon,
+    List<TextInputFormatter>? inputFormatters,
+    TextInputType? inputType,
   }) {
     return SizedBox(
       width: width,
@@ -100,151 +382,49 @@ class _TextosCondominioWidgetState extends State<TextosCondominioWidget> {
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 48,
+            height: 52,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade400),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.only(left: 12, right: 12, top: 4),
             alignment: Alignment.centerLeft,
             child: TextField(
               controller: controller,
+              inputFormatters: inputFormatters,
+              keyboardType: inputType,
+              style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
                 hintText: hintText,
-                hintStyle: const TextStyle(color: Colors.black54, fontSize: 13),
+                hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
+                prefixIcon: icon != null
+                    ? Icon(icon, size: 18, color: Colors.grey)
+                    : null,
+                prefixIconConstraints: const BoxConstraints(minWidth: 30),
               ),
             ),
           ),
           Positioned(
-            left: 12,
-            top: -8, // Move label up to overlap border slightly or sit on top
+            left: 10,
+            top: -9,
             child: Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.black,
+                  color: Color(0xFF0D3B66),
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildSectionLabel('Texto Comunicado no Boleto da Cota Condominial'),
-        _buildTextArea(_comunicadoCotaController),
-
-        _buildSectionLabel('Texto Comunicado no Boleto do Acordo'),
-        _buildTextArea(_comunicadoAcordoController),
-
-        _buildSectionLabel('Texto do Boleto da Taxa de Condomínio'),
-        _buildTextArea(_textoBoletoTaxaController),
-
-        _buildSectionLabel('Texto do Boleto do Acordo'),
-        _buildTextArea(_textoBoletoAcordoController),
-
-        const SizedBox(height: 24),
-
-        // Capa Demonstrativo Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Texto CAPA Demonstrativo',
-              style: TextStyle(color: Color(0xFF0D3B66), fontSize: 16),
-            ),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D3B66),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 0,
-                ),
-                minimumSize: const Size(0, 30),
-              ),
-              child: const Text('Ver', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Inputs Responsavel
-        Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: _buildLabeledInput(
-            label: 'Nome Responsável Técnico',
-            controller: _responsavelTecnicoController,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: _buildLabeledInput(
-                label: 'CPF:',
-                controller: _cpfResponsavelController,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 5,
-              child: _buildLabeledInput(
-                label: 'Conselho',
-                controller: _conselhoController,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        _buildLabeledInput(
-          label: 'Funções',
-          controller: _funcoesController,
-          hintText: 'Separar as Funções com ;',
-        ),
-        const SizedBox(height: 12),
-
-        // Radio buttons
-        Row(
-          children: [
-            Radio<int>(
-              value: 0,
-              groupValue: _opcaoData,
-              activeColor: const Color(0xFF0D3B66),
-              onChanged: (val) => setState(() => _opcaoData = val!),
-            ),
-            const Text('Com data'),
-            const SizedBox(width: 20),
-            Radio<int>(
-              value: 1,
-              groupValue: _opcaoData,
-              activeColor: const Color(0xFF0D3B66),
-              onChanged: (val) => setState(() => _opcaoData = val!),
-            ),
-            const Text('Sem data'),
-          ],
-        ),
-        const SizedBox(height: 16),
-      ],
     );
   }
 }

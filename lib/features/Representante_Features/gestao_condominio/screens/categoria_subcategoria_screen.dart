@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../cubit/categoria_subcategoria_cubit.dart';
+import '../cubit/categoria_subcategoria_state.dart';
+import '../models/categoria_financeira_model.dart';
+import '../services/gestao_condominio_service.dart';
 
 class CategoriaSubcategoriaScreen extends StatefulWidget {
   final String condominioId;
@@ -16,73 +21,13 @@ class _CategoriaSubcategoriaScreenState
   late TabController _tabController;
   final _searchController = TextEditingController();
 
-  // Mock Data
-  final List<String> _categorias = [
-    'Despesa Colaboradores',
-    'Despesa bancarias/financeira',
-    'Aquisições / Imobilizados',
-    'Reformas / benfeitorias',
-    'Serviços terceirizados',
-    'Impostos',
-    'Honorários profissionais / Pró-Labore',
-    'Despesas com consumo/ concessionárias',
-    'Serviços de manutenção e conservação',
-    'Materiais p/ manutenção e conservação',
-    'Despesas administrativas/eventuais',
-  ];
-
-  final List<Map<String, String>> _subcategorias = [
-    {'nome': '13º salário', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Acordos trabalhistas', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Adiantamento férias', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Adiantamento salarial', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Auxílio Custo-Alimentação', 'categoria': 'Despesa Colaboradores'},
-    {
-      'nome': 'Auxílio Custo-Transporte/Combustível',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {'nome': 'Contribuições Sindicais', 'categoria': 'Despesa Colaboradores'},
-    {
-      'nome': 'Convênios para Funcionários',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {
-      'nome': 'Empréstimos para Funcionários',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {
-      'nome': 'Equipamentos de proteção individual (EPI)',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {'nome': 'Férias', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Gratificações', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Horas extras', 'categoria': 'Despesa Colaboradores'},
-    {
-      'nome': 'Medicina ocupacional PCMSO',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {'nome': 'Provisões 13º / Férias', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Rescisões', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Salários', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'Seguros de funcionários', 'categoria': 'Despesa Colaboradores'},
-    {
-      'nome': 'Substituições de funcionários',
-      'categoria': 'Despesa Colaboradores',
-    },
-    {'nome': 'Uniformes', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'FGTS-Folha de Pagamento', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'INSS- Folha de pagamento', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'IRRF - Folha de pagamento', 'categoria': 'Despesa Colaboradores'},
-    {'nome': 'PIS- Folha de pagamento', 'categoria': 'Despesa Colaboradores'},
-  ];
-
-  String? _selectedCategoriaForSubcategoria;
+  // State local apenas para seleção na UI
+  String? _selectedCategoriaForSubcategoriaId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _selectedCategoriaForSubcategoria = _categorias.first;
   }
 
   @override
@@ -92,178 +37,235 @@ class _CategoriaSubcategoriaScreenState
     super.dispose();
   }
 
-  void _showAddDialog({bool isSubcategoria = false}) {
+  void _showAddDialog(BuildContext context, {bool isSubcategoria = false}) {
     final controller = TextEditingController();
-    String? selectedCategoria = _categorias.first;
+
+    // Precisamos acessar o cubit e o estado atual para o dropdown
+    final cubit = context.read<CategoriaSubcategoriaCubit>();
+    final state = cubit.state;
+
+    // Default selection logic
+    String? selectedCategoriaId = _selectedCategoriaForSubcategoriaId;
+    if (state.categorias.isNotEmpty && selectedCategoriaId == null) {
+      selectedCategoriaId = state.categorias.first.id;
+    }
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isSubcategoria ? 'Nova Subcategoria' : 'Nova Categoria'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSubcategoria)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: DropdownButtonFormField<String>(
-                  value: selectedCategoria,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoria Pai',
-                    border: OutlineInputBorder(),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text(
+              isSubcategoria ? 'Nova Subcategoria' : 'Nova Categoria',
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSubcategoria)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedCategoriaId,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria Pai',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: state.categorias.map((cat) {
+                        return DropdownMenuItem(
+                          value: cat.id,
+                          child: Text(
+                            cat.nome,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setStateDialog(() {
+                          selectedCategoriaId = val;
+                        });
+                      },
+                    ),
                   ),
-                  items: _categorias.map((cat) {
-                    return DropdownMenuItem(
-                      value: cat,
-                      child: Text(cat, overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (val) => selectedCategoria = val,
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: isSubcategoria
+                        ? 'Nome da Subcategoria'
+                        : 'Nome da Categoria',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text.isNotEmpty) {
+                    if (isSubcategoria) {
+                      if (selectedCategoriaId != null) {
+                        cubit.adicionarSubcategoria(
+                          widget.condominioId,
+                          selectedCategoriaId!,
+                          controller.text,
+                        );
+                      }
+                    } else {
+                      cubit.adicionarCategoria(
+                        widget.condominioId,
+                        controller.text,
+                      );
+                    }
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D3B66),
+                ),
+                child: const Text(
+                  'Adicionar',
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: isSubcategoria
-                    ? 'Nome da Subcategoria'
-                    : 'Nome da Categoria',
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  if (isSubcategoria) {
-                    _subcategorias.add({
-                      'nome': controller.text,
-                      'categoria': selectedCategoria!,
-                    });
-                  } else {
-                    _categorias.add(controller.text);
-                  }
-                });
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0D3B66),
-            ),
-            child: const Text(
-              'Adicionar',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return BlocProvider(
+      create: (context) =>
+          CategoriaSubcategoriaCubit(service: GestaoCondominioService())
+            ..carregarCategorias(widget.condominioId),
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          children: [
-            Image.asset('assets/images/logo_CondoGaia.png', height: 30),
-          ],
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40.0),
-          child: Column(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Home/Gestão/Categoria-sub',
-                  style: const TextStyle(color: Colors.black54, fontSize: 14),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(color: Colors.grey.shade300, height: 1.0),
+              Image.asset('assets/images/logo_CondoGaia.png', height: 30),
             ],
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Pesquisar',
-                suffixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade400),
+          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(40.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Home/Gestão/Categoria-sub',
+                    style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ),
-
-          // Tab Bar
-          Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: const Color(0xFF0D3B66),
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: const Color(0xFF0D3B66),
-              tabs: const [
-                Tab(text: 'Categoria'),
-                Tab(text: 'Subcategoria'),
+                const SizedBox(height: 8),
+                Container(color: Colors.grey.shade300, height: 1.0),
               ],
             ),
           ),
+        ),
+        body: BlocConsumer<CategoriaSubcategoriaCubit, CategoriaSubcategoriaState>(
+          listener: (context, state) {
+            if (state.status == CategoriaSubcategoriaStatus.error) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.errorMessage ?? 'Erro inesperado'),
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state.status == CategoriaSubcategoriaStatus.loading &&
+                state.categorias.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          // Tab Views
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildCategoriaTab(), _buildSubcategoriaTab()],
-            ),
-          ),
-        ],
+            return Column(
+              children: [
+                // Search Bar (Visual Only for now, filtering requires logic update)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Pesquisar',
+                      suffixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Tab Bar
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFF0D3B66),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: const Color(0xFF0D3B66),
+                    tabs: const [
+                      Tab(text: 'Categoria'),
+                      Tab(text: 'Subcategoria'),
+                    ],
+                  ),
+                ),
+
+                // Tab Views
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildCategoriaTab(context, state),
+                      _buildSubcategoriaTab(context, state),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildCategoriaTab() {
+  Widget _buildCategoriaTab(
+    BuildContext context,
+    CategoriaSubcategoriaState state,
+  ) {
     return Column(
       children: [
         // Add Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: InkWell(
-            onTap: () => _showAddDialog(isSubcategoria: false),
+            onTap: () => _showAddDialog(context, isSubcategoria: false),
             child: Row(
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D3B66),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D3B66),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.add, color: Colors.white, size: 24),
@@ -284,29 +286,69 @@ class _CategoriaSubcategoriaScreenState
 
         // List
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _categorias.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              return _buildListItem(
-                _categorias[index],
-                onEdit: () {},
-                onDelete: () {
-                  setState(() => _categorias.removeAt(index));
-                },
-              );
-            },
-          ),
+          child: state.categorias.isEmpty
+              ? const Center(child: Text('Nenhuma categoria cadastrada.'))
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: state.categorias.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final categoria = state.categorias[index];
+                    return _buildListItem(
+                      categoria.nome,
+                      onEdit: () {
+                        // TODO: Implementar edição
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Edição em breve')),
+                        );
+                      },
+                      onDelete: () {
+                        context
+                            .read<CategoriaSubcategoriaCubit>()
+                            .excluirCategoria(
+                              widget.condominioId,
+                              categoria.id!,
+                            );
+                      },
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildSubcategoriaTab() {
-    final filtered = _subcategorias
-        .where((s) => s['categoria'] == _selectedCategoriaForSubcategoria)
-        .toList();
+  Widget _buildSubcategoriaTab(
+    BuildContext context,
+    CategoriaSubcategoriaState state,
+  ) {
+    // Determine selected category logic
+    if (_selectedCategoriaForSubcategoriaId == null &&
+        state.categorias.isNotEmpty) {
+      _selectedCategoriaForSubcategoriaId = state.categorias.first.id;
+    }
+
+    // Safety check if selected ID still exists in list, if not reset
+    if (_selectedCategoriaForSubcategoriaId != null) {
+      final exists = state.categorias.any(
+        (c) => c.id == _selectedCategoriaForSubcategoriaId,
+      );
+      if (!exists && state.categorias.isNotEmpty) {
+        _selectedCategoriaForSubcategoriaId = state.categorias.first.id;
+      } else if (!exists) {
+        _selectedCategoriaForSubcategoriaId = null;
+      }
+    }
+
+    List<SubcategoriaFinanceira> subcategoriasFiltered = [];
+    if (_selectedCategoriaForSubcategoriaId != null) {
+      final selectedCat = state.categorias.firstWhere(
+        (c) => c.id == _selectedCategoriaForSubcategoriaId,
+        orElse: () => CategoriaFinanceira(condominioId: '', nome: ''), // dummy
+      );
+      subcategoriasFiltered = selectedCat.subcategorias;
+    }
 
     return Column(
       children: [
@@ -330,21 +372,31 @@ class _CategoriaSubcategoriaScreenState
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _selectedCategoriaForSubcategoria,
+                    value: _selectedCategoriaForSubcategoriaId,
                     isExpanded: true,
+                    hint: const Text('Selecione...'),
                     icon: const Icon(Icons.keyboard_arrow_down),
-                    items: _categorias.map((cat) {
+                    items: state.categorias.map((cat) {
                       return DropdownMenuItem(
-                        value: cat,
+                        value: cat.id,
                         child: Text(
-                          cat,
+                          cat.nome,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 14),
                         ),
                       );
                     }).toList(),
-                    onChanged: (val) =>
-                        setState(() => _selectedCategoriaForSubcategoria = val),
+                    onChanged: (val) {
+                      // precisely setState of the widget to update selection
+                      // Since we are inside BlocBuilder, rebuilding is fine, but we need to trigger rebuild
+                      // Actually this widget is Stateless part of the build, but logic is in state
+                      // We can just rely on BlocBuilder rebuilding if we emit??
+                      // No, selection is local state. We need to call setState of the StatefulWidget.
+                      // But this method _buildSubcategoriaTab is outside build scope? No it's a method of State.
+                      setState(() {
+                        _selectedCategoriaForSubcategoriaId = val;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -356,12 +408,24 @@ class _CategoriaSubcategoriaScreenState
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: InkWell(
-            onTap: () => _showAddDialog(isSubcategoria: true),
+            onTap: () {
+              if (state.categorias.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Crie uma categoria antes de adicionar subcategorias.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              _showAddDialog(context, isSubcategoria: true);
+            },
             child: Row(
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D3B66),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D3B66),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.add, color: Colors.white, size: 24),
@@ -382,24 +446,37 @@ class _CategoriaSubcategoriaScreenState
 
         // List
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: filtered.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              return _buildListItem(
-                filtered[index]['nome']!,
-                onEdit: () {},
-                onDelete: () {
-                  setState(() {
-                    _subcategorias.removeWhere(
-                      (s) => s['nome'] == filtered[index]['nome'],
+          child: subcategoriasFiltered.isEmpty
+              ? Center(
+                  child: Text(
+                    _selectedCategoriaForSubcategoriaId == null
+                        ? 'Selecione uma categoria'
+                        : 'Nenhuma subcategoria.',
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: subcategoriasFiltered.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final sub = subcategoriasFiltered[index];
+                    return _buildListItem(
+                      sub.nome,
+                      onEdit: () {
+                        // TODO
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Edição em breve')),
+                        );
+                      },
+                      onDelete: () {
+                        context
+                            .read<CategoriaSubcategoriaCubit>()
+                            .excluirSubcategoria(widget.condominioId, sub.id!);
+                      },
                     );
-                  });
-                },
-              );
-            },
-          ),
+                  },
+                ),
         ),
       ],
     );
