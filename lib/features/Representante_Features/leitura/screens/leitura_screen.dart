@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../cubit/leitura_cubit.dart';
@@ -20,15 +22,23 @@ class LeituraScreen extends StatefulWidget {
 
 class _LeituraScreenState extends State<LeituraScreen> {
   final _searchController = TextEditingController();
-  final _m3Controller =
-      TextEditingController(); // For "Leitura Atual" or Volume
-  int _selectedTabIndex = 0; // 0 = Cadastrar, 1 = Configurar
+  final _m3Controller = TextEditingController();
+  int _selectedTabIndex = 0;
+  File? _selectedImage;
 
   @override
   void dispose() {
     _searchController.dispose();
     _m3Controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final x = await picker.pickImage(source: ImageSource.gallery);
+    if (x != null) {
+      setState(() => _selectedImage = File(x.path));
+    }
   }
 
   @override
@@ -177,7 +187,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
 
                               // Data Auto
                               _buildReadOnlyField(
-                                'Data da Leitura: ${DateFormat('dd/MM/yyyy').format(DateTime.now())} (Automatica)',
+                                'Data da Leitura: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)} (Automatica)',
                               ),
                               const SizedBox(height: 12),
 
@@ -206,29 +216,36 @@ class _LeituraScreenState extends State<LeituraScreen> {
 
                               // Valor Auto
                               _buildReadOnlyField(
-                                'Valor por Unidade (R\$): Já vai puxar do banco de dados',
+                                'Valor base/config: R\$ ${(state.configuracao?.valorBase ?? 0).toStringAsFixed(2)} (faixas na Configurar)',
                               ),
 
                               const SizedBox(height: 16),
 
                               // Anexar Foto
-                              Center(
-                                child: Column(
-                                  children: [
-                                    const Icon(
-                                      Icons.image_outlined,
-                                      size: 40,
-                                      color: Color(0xFF0D3B66),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    const Text(
-                                      'Anexar foto',
-                                      style: TextStyle(
-                                        color: Color(0xFF0D3B66),
-                                        decoration: TextDecoration.underline,
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        _selectedImage != null
+                                            ? Icons.check_circle
+                                            : Icons.image_outlined,
+                                        size: 40,
+                                        color: const Color(0xFF0D3B66),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _selectedImage != null
+                                            ? 'Foto anexada'
+                                            : 'Anexar foto',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0D3B66),
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
 
@@ -239,48 +256,46 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                 height: 50,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    if (_searchController.text.isNotEmpty &&
-                                        filteredLeituras.length == 1) {
-                                      // If specific unit targeted by search, save it
-                                      double? leitura = double.tryParse(
-                                        _m3Controller.text,
-                                      );
-                                      if (leitura != null) {
-                                        cubit.gravarLeitura(
-                                          unidadeId:
-                                              filteredLeituras.first.unidadeId,
-                                          leituraAtual: leitura,
-                                        );
-                                        _m3Controller.clear();
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Leitura gravada!'),
-                                          ),
-                                        );
-                                      }
-                                    } else if (state.selectedUnidadeId !=
-                                        null) {
-                                      // If selection implemented, but image implies form entry + table context
-                                      // Basic logic: User filters to 1 unit, enters value, clicks gravar
-                                      // Or user checks box? Image shows generic form.
-                                      // Let's assume user must type search to find unit or simple selection not visualized in form top part really well
-                                      // For MVP: If list has 1 item visible, Gravar applies to it.
-                                      double? leitura = double.tryParse(
-                                        _m3Controller.text,
-                                      );
-                                      if (leitura != null &&
-                                          filteredLeituras.isNotEmpty) {
-                                        // Just applying to FIRST visible for MVP as per "Pesquisar Unid" workflow
-                                        cubit.gravarLeitura(
-                                          unidadeId:
-                                              filteredLeituras.first.unidadeId,
-                                          leituraAtual: leitura,
-                                        );
-                                        _m3Controller.clear();
-                                      }
+                                    String? id;
+                                    if (state.selectedUnidadeId != null) {
+                                      final l = filteredLeituras
+                                          .where((l) =>
+                                              l.unidadeId ==
+                                              state.selectedUnidadeId)
+                                          .toList();
+                                      if (l.isNotEmpty) id = l.first.unidadeId;
                                     }
+                                    if (id == null &&
+                                        filteredLeituras.length == 1) {
+                                      id = filteredLeituras.first.unidadeId;
+                                    }
+                                    if (id == null) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                        content: Text(
+                                            'Selecione uma unidade (toque na linha) ou filtre para uma única'),
+                                      ));
+                                      return;
+                                    }
+                                    final leitura =
+                                        double.tryParse(_m3Controller.text);
+                                    if (leitura == null) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                        content: Text('Informe o valor em M³'),
+                                      ));
+                                      return;
+                                    }
+                                    cubit.gravarLeitura(
+                                      unidadeId: id,
+                                      leituraAtual: leitura,
+                                      imagem: _selectedImage,
+                                    );
+                                    _m3Controller.clear();
+                                    setState(() => _selectedImage = null);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Leitura gravada!')));
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF0D3B66),
@@ -306,6 +321,13 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                 leituras: filteredLeituras,
                                 onSelectionChanged: (id, val) =>
                                     cubit.toggleSelection(id, val),
+                                onRowTap: (leitura) {
+                                  cubit.selectUnidade(leitura.unidadeId);
+                                  _m3Controller.text =
+                                      leitura.leituraAtual > 0
+                                          ? leitura.leituraAtual.toString()
+                                          : '';
+                                },
                               ),
 
                               const SizedBox(height: 20),
@@ -320,9 +342,27 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                   const SizedBox(width: 8),
                                   _buildFooterButton(
                                     'Editar',
-                                    () {},
+                                    () {
+                                      final sel = filteredLeituras
+                                          .where((l) =>
+                                              l.isSelected &&
+                                              l.id.isNotEmpty)
+                                          .toList();
+                                      if (sel.isEmpty) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
+                                          content: Text(
+                                              'Selecione uma leitura para editar'),
+                                        ));
+                                        return;
+                                      }
+                                      final l = sel.first;
+                                      cubit.selectUnidade(l.unidadeId);
+                                      _m3Controller.text =
+                                          l.leituraAtual.toString();
+                                    },
                                     isDark: true,
-                                  ), // Darker Logic?
+                                  ),
                                   const Spacer(),
                                   Text(
                                     'Qtnd.: $totalQtd',
@@ -347,6 +387,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
                         )
                       : LeituraConfiguracaoScreen(
                           condominioId: widget.condominioId,
+                          tipoInicial: state.selectedTipo,
                         ),
                 ),
               ],

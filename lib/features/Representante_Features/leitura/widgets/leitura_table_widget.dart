@@ -5,11 +5,13 @@ import 'package:intl/intl.dart';
 class LeituraTableWidget extends StatelessWidget {
   final List<LeituraModel> leituras;
   final Function(String, bool?) onSelectionChanged;
+  final void Function(LeituraModel)? onRowTap;
 
   const LeituraTableWidget({
     super.key,
     required this.leituras,
     required this.onSelectionChanged,
+    this.onRowTap,
   });
 
   @override
@@ -54,12 +56,14 @@ class LeituraTableWidget extends StatelessWidget {
 
           ...leituras.map((leitura) {
             final isEven = leituras.indexOf(leitura) % 2 == 0;
-            return Container(
-              color: isEven
-                  ? Colors.blue.shade50
-                  : Colors.white, // Zebra striping
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-              child: Row(
+            return InkWell(
+              onTap: onRowTap != null ? () => onRowTap!(leitura) : null,
+              child: Container(
+                color: isEven
+                    ? Colors.blue.shade50
+                    : Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Row(
                 children: [
                   Checkbox(
                     value: leitura.isSelected,
@@ -135,20 +139,18 @@ class LeituraTableWidget extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child:
-                        leitura.imagemUrl != null ||
-                            leitura
-                                .id
-                                .isNotEmpty // Show icon if saved or has image
-                        ? const Icon(
-                            Icons.image_outlined,
-                            color: Color(0xFF0D3B66),
-                            size: 20,
-                          )
-                        : const SizedBox(),
+                        leitura.imagemUrl != null || leitura.id.isNotEmpty
+                            ? const Icon(
+                                Icons.image_outlined,
+                                color: Color(0xFF0D3B66),
+                                size: 20,
+                              )
+                            : const SizedBox(),
                   ),
                 ],
               ),
-            );
+            ),
+          );
           }),
         ],
       ),

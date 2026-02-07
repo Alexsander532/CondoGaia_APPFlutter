@@ -9,17 +9,15 @@ class LeituraCubit extends Cubit<LeituraState> {
   final String condominioId;
 
   LeituraCubit({required LeituraService service, required this.condominioId})
-    : _service = service,
-      super(LeituraState(selectedDate: DateTime.now()));
+      : _service = service,
+        super(LeituraState(selectedDate: DateTime.now()));
 
   Future<void> loadLeituras() async {
     try {
       emit(state.copyWith(status: LeituraStatus.loading));
 
-      // 1. Fetch Units
       final units = await _service.fetchUnidades(condominioId);
 
-      // 2. Fetch Existing Readings for Month/Tipo
       final readings = await _service.fetchLeituras(
         condominioId: condominioId,
         tipo: state.selectedTipo,
@@ -27,37 +25,39 @@ class LeituraCubit extends Cubit<LeituraState> {
         year: state.selectedDate.year,
       );
 
-      // 3. Fetch Taxa
-      final taxa = await _service.fetchTaxaPorUnidade(
-        condominioId,
-        state.selectedTipo,
+      final config = await _service.fetchConfiguracao(
+        condominioId: condominioId,
+        tipo: state.selectedTipo,
       );
 
-      // 4. Merge
-      // Create a map of existing readings by unidade_id
+      final leiturasAnteriores = await _service.fetchLeiturasAnteriores(
+        condominioId: condominioId,
+        tipo: state.selectedTipo,
+        month: state.selectedDate.month,
+        year: state.selectedDate.year,
+      );
+
       final readingMap = {for (var r in readings) r.unidadeId: r};
 
       final List<LeituraModel> mergedList = units.map((unit) {
         if (readingMap.containsKey(unit.id)) {
-          return readingMap[unit.id]!;
-        } else {
-          // Empty template
-          return LeituraModel(
-            id: '', // Empty ID means not saved yet
-            unidadeId: unit.id,
-            unidadeNome: unit.numero,
-            bloco: unit.bloco,
-            leituraAnterior:
-                0.0, // Could fetch previous month here realistically
-            leituraAtual: 0.0,
-            valor: 0.0,
-            dataLeitura: state.selectedDate,
-            tipo: state.selectedTipo,
-          );
+          final r = readingMap[unit.id]!;
+          return r.copyWith(unidadeNome: unit.numero, bloco: unit.bloco);
         }
+        final leituraAnterior = leiturasAnteriores[unit.id] ?? 0.0;
+        return LeituraModel(
+          id: '',
+          unidadeId: unit.id,
+          unidadeNome: unit.numero,
+          bloco: unit.bloco,
+          leituraAnterior: leituraAnterior,
+          leituraAtual: 0.0,
+          valor: 0.0,
+          dataLeitura: state.selectedDate,
+          tipo: state.selectedTipo,
+        );
       }).toList();
 
-      // Sort by Unidade/Bloco
       mergedList.sort((a, b) {
         int cmpBloco = (a.bloco ?? '').compareTo(b.bloco ?? '');
         if (cmpBloco != 0) return cmpBloco;
@@ -68,7 +68,7 @@ class LeituraCubit extends Cubit<LeituraState> {
         state.copyWith(
           status: LeituraStatus.success,
           leituras: mergedList,
-          taxaPorUnidade: taxa,
+          configuracao: config,
         ),
       );
     } catch (e) {
@@ -83,7 +83,7 @@ class LeituraCubit extends Cubit<LeituraState> {
 
   void updateTipo(String tipo) {
     emit(state.copyWith(selectedTipo: tipo));
-    loadLeituras(); // Reload for new type
+    loadLeituras();
   }
 
   void updateData(DateTime date) {
@@ -93,53 +93,54 @@ class LeituraCubit extends Cubit<LeituraState> {
 
   void updateSearch(String query) {
     emit(state.copyWith(unidadePesquisa: query));
-    // Filtering is usually done in UI or we filter the list here?
-    // For now just storing state, UI can filter display list.
   }
 
   void selectUnidade(String unidadeId) {
     emit(state.copyWith(selectedUnidadeId: unidadeId));
   }
 
-  // Called when Form saves
   Future<void> gravarLeitura({
     required String unidadeId,
     required double leituraAtual,
     File? imagem,
   }) async {
     try {
-      // Find current item to get previous/taxa
       final index = state.leituras.indexWhere((l) => l.unidadeId == unidadeId);
       if (index == -1) return;
 
       final currentItem = state.leituras[index];
 
-      // Calculate value based on logic (simplified)
-      // Value = (Atual - Anterior) * Taxa? Or Fixed Taxa?
-      // User prompt: "Valor por Unidade (R$): Já vai puxar do banco"
-      // Suggests fixed rate or pre-calc. Using fixed rate for now.
-      double valorCalculado = state.taxaPorUnidade;
+      if (leituraAtual < currentItem.leituraAnterior) {
+        emit(state.copyWith(
+            errorMessage: 'Leitura atual não pode ser menor que a anterior'));
+        return;
+      }
 
-      // Update Model
+      final consumo = leituraAtual - currentItem.leituraAnterior;
+      double valorCalculado = 0;
+      if (state.configuracao != null) {
+        valorCalculado = state.configuracao!.calcularValor(consumo);
+      } else {
+        valorCalculado = consumo * 0; // Sem config, valor zero
+      }
+
       final updatedModel = currentItem.copyWith(
         leituraAtual: leituraAtual,
         valor: valorCalculado,
-        dataLeitura: DateTime.now(),
-        // imagemUrl: process upload if real
+        dataLeitura: DateTime(
+          state.selectedDate.year,
+          state.selectedDate.month,
+          state.selectedDate.day,
+        ),
       );
 
-      // Optimistic Update
       final deepList = List<LeituraModel>.from(state.leituras);
       deepList[index] = updatedModel;
       emit(state.copyWith(leituras: deepList));
 
-      // Save to DB
-      await _service.saveLeitura(updatedModel, condominioId);
+      await _service.saveLeitura(updatedModel, condominioId, imagem: imagem);
 
-      emit(
-        state.copyWith(status: LeituraStatus.success),
-      ); // Just to trigger listener?
-      // Ideally reload proper ID from DB response, but for now ok.
+      emit(state.copyWith(status: LeituraStatus.success));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao gravar: $e'));
     }
@@ -156,7 +157,6 @@ class LeituraCubit extends Cubit<LeituraState> {
   }
 
   Future<void> deleteSelected() async {
-    // Filter selected and delete
     final selected = state.leituras
         .where((l) => l.isSelected && l.id.isNotEmpty)
         .toList();
@@ -166,11 +166,9 @@ class LeituraCubit extends Cubit<LeituraState> {
       for (var item in selected) {
         await _service.deleteLeitura(item.id);
       }
-      loadLeituras(); // Refresh
+      loadLeituras();
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao excluir: $e'));
     }
   }
 }
-
-// Removed import at end

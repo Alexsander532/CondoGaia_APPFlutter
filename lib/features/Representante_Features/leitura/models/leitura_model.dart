@@ -76,12 +76,10 @@ class LeituraModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'unidade_id': unidadeId,
-      'bloco': bloco,
-      'unidade_nome': unidadeNome,
       'leitura_anterior': leituraAnterior,
       'leitura_atual': leituraAtual,
       'valor': valor,
-      'data_leitura': dataLeitura.toIso8601String(),
+      'data_leitura': dataLeitura.toIso8601String().split('T').first,
       'tipo': tipo,
       'imagem_url': imagemUrl,
     };

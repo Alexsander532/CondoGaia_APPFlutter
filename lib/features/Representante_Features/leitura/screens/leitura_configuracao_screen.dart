@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import '../models/leitura_configuracao_model.dart';
+import '../services/leitura_service.dart';
 
 class LeituraConfiguracaoScreen extends StatefulWidget {
   final String condominioId;
+  final String? tipoInicial;
 
-  const LeituraConfiguracaoScreen({super.key, required this.condominioId});
+  const LeituraConfiguracaoScreen({
+    super.key,
+    required this.condominioId,
+    this.tipoInicial,
+  });
 
   @override
   State<LeituraConfiguracaoScreen> createState() =>
@@ -11,15 +18,16 @@ class LeituraConfiguracaoScreen extends StatefulWidget {
 }
 
 class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
-  String selectedTipo = 'Água';
+  final LeituraService _service = LeituraService();
+
+  String selectedTipo = 'Agua';
   String unidadeMedida = 'M³';
 
-  List<String> _tipos = ['Água', 'Gás'];
+  List<String> _tipos = ['Agua', 'Gas'];
   List<String> _unidadesMedida = ['M³', 'KG', 'L'];
 
   final _valorController = TextEditingController();
 
-  // Taxas
   final _faixa1FimController = TextEditingController();
   final _faixa1ValorController = TextEditingController();
   final _faixa2InicioController = TextEditingController();
@@ -29,41 +37,193 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
   final _faixa3FimController = TextEditingController();
   final _faixa3ValorController = TextEditingController();
 
-  int cobrancaTipo = 1; // 1 = Junto com taxa, 2 = Avulso
+  int cobrancaTipo = 1;
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.tipoInicial != null) {
+      selectedTipo = _uiTipoToDb(widget.tipoInicial!);
+    }
+    _loadConfig();
+  }
+
+  String _dbTipoToUi(String db) =>
+      db == 'Agua' ? 'Água' : db == 'Gas' ? 'Gás' : db;
+
+  String _uiTipoToDb(String ui) =>
+      ui == 'Água' ? 'Agua' : ui == 'Gás' ? 'Gas' : ui;
+
+  Future<void> _loadConfig() async {
+    setState(() => _loading = true);
+    try {
+      final config = await _service.fetchConfiguracao(
+        condominioId: widget.condominioId,
+        tipo: selectedTipo,
+      );
+      final tipos = await _service.fetchTodasConfiguracoes(widget.condominioId);
+      if (tipos.isNotEmpty) {
+        _tipos = tipos.map((c) => c.tipo).toSet().toList();
+        if (!_tipos.contains(selectedTipo)) _tipos.add(selectedTipo);
+      }
+
+      if (config != null) {
+        _valorController.text = config.valorBase.toString();
+        unidadeMedida = config.unidadeMedida;
+        cobrancaTipo = config.cobrancaTipo;
+
+        _faixa1FimController.clear();
+        _faixa1ValorController.clear();
+        _faixa2InicioController.clear();
+        _faixa2FimController.clear();
+        _faixa2ValorController.clear();
+        _faixa3InicioController.clear();
+        _faixa3FimController.clear();
+        _faixa3ValorController.clear();
+
+        if (config.faixas.isNotEmpty) {
+          _faixa1FimController.text =
+              config.faixas[0].fim.toString().replaceAll('.0', '');
+          _faixa1ValorController.text =
+              config.faixas[0].valor.toString().replaceAll('.0', '');
+        }
+        if (config.faixas.length > 1) {
+          _faixa2InicioController.text =
+              config.faixas[1].inicio.toString().replaceAll('.0', '');
+          _faixa2FimController.text =
+              config.faixas[1].fim.toString().replaceAll('.0', '');
+          _faixa2ValorController.text =
+              config.faixas[1].valor.toString().replaceAll('.0', '');
+        }
+        if (config.faixas.length > 2) {
+          _faixa3InicioController.text =
+              config.faixas[2].inicio.toString().replaceAll('.0', '');
+          _faixa3FimController.text =
+              config.faixas[2].fim.toString().replaceAll('.0', '');
+          _faixa3ValorController.text =
+              config.faixas[2].valor.toString().replaceAll('.0', '');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _gravar() async {
+    final valorBase = double.tryParse(_valorController.text) ?? 0;
+
+    final faixas = <FaixaLeitura>[];
+    final f1f = double.tryParse(_faixa1FimController.text) ?? 0;
+    final f1v = double.tryParse(_faixa1ValorController.text) ?? 0;
+    if (f1f > 0 || f1v > 0) {
+      faixas.add(FaixaLeitura(inicio: 0, fim: f1f, valor: f1v));
+    }
+    final f2i = double.tryParse(_faixa2InicioController.text) ?? 0;
+    final f2f = double.tryParse(_faixa2FimController.text) ?? 0;
+    final f2v = double.tryParse(_faixa2ValorController.text) ?? 0;
+    if (f2f > f2i) {
+      faixas.add(FaixaLeitura(inicio: f2i, fim: f2f, valor: f2v));
+    }
+    final f3i = double.tryParse(_faixa3InicioController.text) ?? 0;
+    final f3f = double.tryParse(_faixa3FimController.text) ?? 0;
+    final f3v = double.tryParse(_faixa3ValorController.text) ?? 0;
+    if (f3f > f3i) {
+      faixas.add(FaixaLeitura(inicio: f3i, fim: f3f, valor: f3v));
+    }
+
+    final config = LeituraConfiguracaoModel(
+      condominioId: widget.condominioId,
+      tipo: selectedTipo,
+      unidadeMedida: unidadeMedida,
+      valorBase: valorBase,
+      faixas: faixas,
+      cobrancaTipo: cobrancaTipo,
+    );
+
+    setState(() => _saving = true);
+    try {
+      await _service.saveConfiguracao(config);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Configuração gravada!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao gravar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    _faixa1FimController.dispose();
+    _faixa1ValorController.dispose();
+    _faixa2InicioController.dispose();
+    _faixa2FimController.dispose();
+    _faixa2ValorController.dispose();
+    _faixa3InicioController.dispose();
+    _faixa3FimController.dispose();
+    _faixa3ValorController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Tipo
           _buildDropdownField(
             label: 'Tipo:',
             value: selectedTipo,
             items: _tipos,
-            onChanged: (val) => setState(() => selectedTipo = val!),
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => selectedTipo = val);
+                _loadConfig();
+              }
+            },
             onEdit: () => _showEditModal(
               label: 'Inserir Tipo:',
               onSave: (newVal) {
-                if (newVal.isNotEmpty && !_tipos.contains(newVal)) {
-                  setState(() {
-                    _tipos.add(newVal);
-                    selectedTipo = newVal;
-                  });
+                if (newVal.isNotEmpty) {
+                  final db = _uiTipoToDb(newVal);
+                  if (!_tipos.contains(db)) {
+                    setState(() {
+                      _tipos.add(db);
+                      selectedTipo = db;
+                    });
+                  }
                 }
               },
             ),
           ),
           const SizedBox(height: 12),
 
-          // Unidade de Medida
           _buildDropdownField(
             label: 'Unidade de Medida:',
             value: unidadeMedida,
             items: _unidadesMedida,
-            onChanged: (val) => setState(() => unidadeMedida = val!),
+            onChanged: (val) => setState(() => unidadeMedida = val ?? 'M³'),
             onEdit: () => _showEditModal(
               label: 'Inserir Medida:',
               onSave: (newVal) {
@@ -78,7 +238,6 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Valor por 1 M3
           Container(
             height: 50,
             decoration: _inputDecoration(),
@@ -111,7 +270,6 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Faixas
           _buildFaixaRow('0', _faixa1FimController, _faixa1ValorController),
           const SizedBox(height: 12),
           _buildFaixaRowWithStart(
@@ -137,7 +295,6 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Radio Buttons
           Row(
             children: [
               Radio(
@@ -150,9 +307,7 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
                 'Junto com a\nTaxa de Cond.',
                 style: TextStyle(fontSize: 12),
               ),
-
               const Spacer(),
-
               Radio(
                 value: 2,
                 groupValue: cobrancaTipo,
@@ -160,7 +315,7 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
                 activeColor: const Color(0xFF0D3B66),
               ),
               const Text(
-                'Avulso Venc: __/__/__',
+                'Avulso',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(width: 8),
@@ -169,30 +324,33 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
 
           const SizedBox(height: 32),
 
-          // Gravar Button
           SizedBox(
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                // Save Logic Mock
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Configuração gravada!')),
-                );
-              },
+              onPressed: _saving ? null : _gravar,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0D3B66),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text(
-                'Gravar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _saving
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Gravar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -289,10 +447,13 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
           Expanded(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: value,
+                value: items.contains(value) ? value : items.first,
                 isExpanded: true,
                 items: items
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .map((t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t == 'Agua' ? 'Água' : t == 'Gas' ? 'Gás' : t),
+                        ))
                     .toList(),
                 onChanged: onChanged,
               ),
