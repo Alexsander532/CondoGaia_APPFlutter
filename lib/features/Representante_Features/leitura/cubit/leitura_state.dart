@@ -15,6 +15,13 @@ class LeituraState extends Equatable {
   final String? selectedUnidadeId;
   final String unidadePesquisa;
 
+  // Campos para paginação
+  final bool isLoadingMore;
+  final bool hasReachedMax;
+  final int currentPage;
+
+  final List<String> tiposDisponiveis;
+
   double get totalValor => leituras.fold(0, (sum, item) => sum + item.valor);
   int get totalQuantity =>
       leituras.where((l) => l.leituraAtual > 0 || l.id.isNotEmpty).length;
@@ -28,6 +35,10 @@ class LeituraState extends Equatable {
     this.errorMessage,
     this.selectedUnidadeId,
     this.unidadePesquisa = '',
+    this.isLoadingMore = false,
+    this.hasReachedMax = false,
+    this.currentPage = 1,
+    this.tiposDisponiveis = const ['Agua', 'Gas'],
   });
 
   LeituraState copyWith({
@@ -39,6 +50,10 @@ class LeituraState extends Equatable {
     String? errorMessage,
     String? selectedUnidadeId,
     String? unidadePesquisa,
+    bool? isLoadingMore,
+    bool? hasReachedMax,
+    int? currentPage,
+    List<String>? tiposDisponiveis,
   }) {
     return LeituraState(
       status: status ?? this.status,
@@ -49,18 +64,26 @@ class LeituraState extends Equatable {
       errorMessage: errorMessage,
       selectedUnidadeId: selectedUnidadeId ?? this.selectedUnidadeId,
       unidadePesquisa: unidadePesquisa ?? this.unidadePesquisa,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      currentPage: currentPage ?? this.currentPage,
+      tiposDisponiveis: tiposDisponiveis ?? this.tiposDisponiveis,
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        leituras,
-        selectedTipo,
-        selectedDate,
-        configuracao,
-        errorMessage,
-        selectedUnidadeId,
-        unidadePesquisa,
-      ];
+    status,
+    leituras,
+    selectedTipo,
+    selectedDate,
+    configuracao,
+    errorMessage,
+    selectedUnidadeId,
+    unidadePesquisa,
+    isLoadingMore,
+    hasReachedMax,
+    currentPage,
+    tiposDisponiveis,
+  ];
 }

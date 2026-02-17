@@ -59,98 +59,95 @@ class LeituraTableWidget extends StatelessWidget {
             return InkWell(
               onTap: onRowTap != null ? () => onRowTap!(leitura) : null,
               child: Container(
-                color: isEven
-                    ? Colors.blue.shade50
-                    : Colors.white,
+                color: isEven ? Colors.blue.shade50 : Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 child: Row(
-                children: [
-                  Checkbox(
-                    value: leitura.isSelected,
-                    onChanged: (val) =>
-                        onSelectionChanged(leitura.unidadeId, val),
-                    side: const BorderSide(color: Color(0xFF0D3B66)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '${leitura.unidadeNome} / ${leitura.bloco ?? ''}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Color(0xFF0D3B66),
+                  children: [
+                    Checkbox(
+                      value: leitura.isSelected,
+                      onChanged: (val) =>
+                          onSelectionChanged(leitura.unidadeId, val),
+                      side: const BorderSide(color: Color(0xFF0D3B66)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      leitura.leituraAnterior.toStringAsFixed(3),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF0D3B66),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${leitura.unidadeNome} / ${leitura.bloco ?? ''}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Color(0xFF0D3B66),
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      leitura.id.isEmpty
-                          ? '-'
-                          : leitura.leituraAtual.toStringAsFixed(
-                              3,
-                            ), // Only show if saved
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF0D3B66),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        leitura.leituraAnterior.toStringAsFixed(3),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0D3B66),
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      leitura.id.isEmpty
-                          ? '-'
-                          : 'R\$ ${leitura.valor.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF0D3B66),
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        leitura.id.isEmpty
+                            ? '-'
+                            : leitura.leituraAtual.toStringAsFixed(
+                                3,
+                              ), // Only show if saved
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0D3B66),
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      leitura.id.isEmpty
-                          ? '-'
-                          : DateFormat(
-                              'dd/MM/yyyy',
-                            ).format(leitura.dataLeitura),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF0D3B66),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        leitura.id.isEmpty
+                            ? '-'
+                            : 'R\$ ${leitura.valor.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0D3B66),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child:
-                        leitura.imagemUrl != null || leitura.id.isNotEmpty
-                            ? const Icon(
-                                Icons.image_outlined,
-                                color: Color(0xFF0D3B66),
-                                size: 20,
-                              )
-                            : const SizedBox(),
-                  ),
-                ],
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        leitura.id.isEmpty
+                            ? '-'
+                            : DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(leitura.dataLeitura),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0D3B66),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: leitura.imagemUrl != null || leitura.id.isNotEmpty
+                          ? const Icon(
+                              Icons.image_outlined,
+                              color: Color(0xFF0D3B66),
+                              size: 20,
+                            )
+                          : const SizedBox(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
+            );
           }),
         ],
       ),

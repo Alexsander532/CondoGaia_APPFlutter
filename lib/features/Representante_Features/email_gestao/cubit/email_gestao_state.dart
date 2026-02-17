@@ -27,7 +27,7 @@ class EmailGestaoLoaded extends EmailGestaoState {
   const EmailGestaoLoaded({
     required this.allRecipients,
     required this.filteredRecipients,
-    this.selectedTopic = 'NOVO',
+    this.selectedTopic = 'Cobrança',
     this.filterText,
     this.recipientFilterType = 'TODOS',
     this.attachedFile,

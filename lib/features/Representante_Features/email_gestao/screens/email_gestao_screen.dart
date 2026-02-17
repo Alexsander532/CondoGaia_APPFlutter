@@ -22,6 +22,16 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
   final _bodyController = TextEditingController();
   final _searchController = TextEditingController();
 
+  final List<String> _topicos = [
+    'Cobrança',
+    'Comunicado',
+    'Assembleia',
+    'Advertência(gravado no relatorio unid)',
+    'Multa(gravado no relatorio unid)',
+    'Convite Perfil',
+    'Termo C. D. (acordo)',
+  ];
+
   @override
   void dispose() {
     _subjectController.dispose();
@@ -43,41 +53,72 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.menu, color: Colors.black, size: 28),
+            onPressed: () {
+              // Menu action if needed
+            },
           ),
           title: Column(
             children: [
-              const Text(
-                'CondoGaia',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const Text(
-                'Condomínios',
-                style: TextStyle(color: Colors.black, fontSize: 10),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Home/Gestão/Email',
-                style: TextStyle(color: Colors.black54, fontSize: 12),
-              ),
+              Image.asset('assets/images/logo_CondoGaia.png', height: 30),
             ],
           ),
           centerTitle: true,
           actions: [
             IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black),
+              icon: Image.asset(
+                'assets/images/Sino_Notificacao.png',
+                width: 24,
+                height: 24,
+              ),
               onPressed: () {},
             ),
             IconButton(
-              icon: const Icon(Icons.headset_mic_outlined, color: Colors.black),
+              icon: Image.asset(
+                'assets/images/Fone_Ouvido_Cabecalho.png',
+                width: 24,
+                height: 24,
+              ),
               onPressed: () {},
             ),
+            const SizedBox(width: 8),
           ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(40.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Home/Gestão/Email',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.black54, fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(width: 20), // Balance spacing
+                    ],
+                  ),
+                ),
+                Container(color: Colors.grey.shade300, height: 1.0),
+              ],
+            ),
+          ),
         ),
         body: BlocConsumer<EmailGestaoCubit, EmailGestaoState>(
           listener: (context, state) {
@@ -142,38 +183,21 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value:
-                                        [
-                                          'NOVO',
-                                          'Cobrança',
-                                          'Comunicado',
-                                          'Assembleia',
-                                        ].contains(state.selectedTopic)
+                                        _topicos.contains(state.selectedTopic)
                                         ? state.selectedTopic
-                                        : 'NOVO', // Safe fallback or update state init logic if needed
+                                        : _topicos.first,
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down),
-                                    items:
-                                        [
-                                          'NOVO',
-                                          'Cobrança',
-                                          'Comunicado',
-                                          'Assembleia',
-                                          'Advertência(gravado no relatorio unid)',
-                                          'Multa(gravado no relatorio unid)',
-                                          'Convite Perfil',
-                                          'Termo C. D. (acordo)',
-                                        ].map((String value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(
-                                              value,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
+                                    items: _topicos.map((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(
+                                          value,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    }).toList(),
                                     onChanged: (val) {
                                       if (val != null) cubit.updateTopic(val);
                                     },
@@ -232,20 +256,16 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   // Body Input
                   Container(
                     height: 150,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: Colors.grey.shade400),
                     ),
-                    child: TextField(
-                      controller: _bodyController,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(16),
-                        // For multiline, we put the label as prefix text?
-                        // "prefix" widget aligns well with baseline usually.
-                        prefix: Text(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
                           'Texto: ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -253,30 +273,34 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                             color: Colors.black,
                           ),
                         ),
-                      ),
-                      style: const TextStyle(fontSize: 14),
+                        Expanded(
+                          child: TextField(
+                            controller: _bodyController,
+                            maxLines: null,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
 
                   // Tags info
-                  const Wrap(
+                  // Tags info
+                  Wrap(
                     spacing: 8,
                     children: [
-                      Text(
-                        '#unid #condominio #proprietario #data',
-                        style: TextStyle(
-                          color: Color(0xFF0D3B66),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                       Chip(
                         label: Text(
                           'VER',
                           style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
-                        backgroundColor: Color(0xFF0D3B66),
+                        backgroundColor: const Color(0xFF0D3B66),
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       ),

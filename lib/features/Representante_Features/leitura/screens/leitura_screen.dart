@@ -80,12 +80,23 @@ class _LeituraScreenState extends State<LeituraScreen> {
           ),
           centerTitle: true,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black),
-              onPressed: () {},
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF0D3B66)),
+                tooltip: 'Recarregar dados',
+                onPressed: () {
+                  context.read<LeituraCubit>().loadLeituras();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Recarregando dados...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
             ),
             IconButton(
-              icon: const Icon(Icons.headset_mic_outlined, color: Colors.black),
+              icon: const Icon(Icons.notifications_none, color: Colors.black),
               onPressed: () {},
             ),
           ],
@@ -145,8 +156,15 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                 decoration: _inputDecoration(),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
-                                    value: state.selectedTipo,
-                                    items: ['Agua', 'Gas']
+                                    value:
+                                        state.tiposDisponiveis.contains(
+                                          state.selectedTipo,
+                                        )
+                                        ? state.selectedTipo
+                                        : (state.tiposDisponiveis.isNotEmpty
+                                              ? state.tiposDisponiveis.first
+                                              : null),
+                                    items: state.tiposDisponiveis
                                         .map(
                                           (t) => DropdownMenuItem(
                                             value: t,
@@ -259,9 +277,11 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                     String? id;
                                     if (state.selectedUnidadeId != null) {
                                       final l = filteredLeituras
-                                          .where((l) =>
-                                              l.unidadeId ==
-                                              state.selectedUnidadeId)
+                                          .where(
+                                            (l) =>
+                                                l.unidadeId ==
+                                                state.selectedUnidadeId,
+                                          )
                                           .toList();
                                       if (l.isNotEmpty) id = l.first.unidadeId;
                                     }
@@ -270,20 +290,30 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                       id = filteredLeituras.first.unidadeId;
                                     }
                                     if (id == null) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                        content: Text(
-                                            'Selecione uma unidade (toque na linha) ou filtre para uma única'),
-                                      ));
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Selecione uma unidade (toque na linha) ou filtre para uma única',
+                                          ),
+                                        ),
+                                      );
                                       return;
                                     }
-                                    final leitura =
-                                        double.tryParse(_m3Controller.text);
+                                    final leitura = double.tryParse(
+                                      _m3Controller.text,
+                                    );
                                     if (leitura == null) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                        content: Text('Informe o valor em M³'),
-                                      ));
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Informe o valor em M³',
+                                          ),
+                                        ),
+                                      );
                                       return;
                                     }
                                     cubit.gravarLeitura(
@@ -294,8 +324,10 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                     _m3Controller.clear();
                                     setState(() => _selectedImage = null);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text('Leitura gravada!')));
+                                      const SnackBar(
+                                        content: Text('Leitura gravada!'),
+                                      ),
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF0D3B66),
@@ -323,10 +355,9 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                     cubit.toggleSelection(id, val),
                                 onRowTap: (leitura) {
                                   cubit.selectUnidade(leitura.unidadeId);
-                                  _m3Controller.text =
-                                      leitura.leituraAtual > 0
-                                          ? leitura.leituraAtual.toString()
-                                          : '';
+                                  _m3Controller.text = leitura.leituraAtual > 0
+                                      ? leitura.leituraAtual.toString()
+                                      : '';
                                 },
                               ),
 
@@ -340,29 +371,30 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                     () => cubit.deleteSelected(),
                                   ),
                                   const SizedBox(width: 8),
-                                  _buildFooterButton(
-                                    'Editar',
-                                    () {
-                                      final sel = filteredLeituras
-                                          .where((l) =>
-                                              l.isSelected &&
-                                              l.id.isNotEmpty)
-                                          .toList();
-                                      if (sel.isEmpty) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
+                                  _buildFooterButton('Editar', () {
+                                    final sel = filteredLeituras
+                                        .where(
+                                          (l) =>
+                                              l.isSelected && l.id.isNotEmpty,
+                                        )
+                                        .toList();
+                                    if (sel.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
                                           content: Text(
-                                              'Selecione uma leitura para editar'),
-                                        ));
-                                        return;
-                                      }
-                                      final l = sel.first;
-                                      cubit.selectUnidade(l.unidadeId);
-                                      _m3Controller.text =
-                                          l.leituraAtual.toString();
-                                    },
-                                    isDark: true,
-                                  ),
+                                            'Selecione uma leitura para editar',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    final l = sel.first;
+                                    cubit.selectUnidade(l.unidadeId);
+                                    _m3Controller.text = l.leituraAtual
+                                        .toString();
+                                  }, isDark: true),
                                   const Spacer(),
                                   Text(
                                     'Qtnd.: $totalQtd',
@@ -388,6 +420,10 @@ class _LeituraScreenState extends State<LeituraScreen> {
                       : LeituraConfiguracaoScreen(
                           condominioId: widget.condominioId,
                           tipoInicial: state.selectedTipo,
+                          onConfigSaved: () {
+                            // Recarregar dados após salvar configuração
+                            cubit.loadLeituras();
+                          },
                         ),
                 ),
               ],

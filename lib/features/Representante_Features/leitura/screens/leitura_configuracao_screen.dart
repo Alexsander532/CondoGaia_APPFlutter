@@ -5,11 +5,13 @@ import '../services/leitura_service.dart';
 class LeituraConfiguracaoScreen extends StatefulWidget {
   final String condominioId;
   final String? tipoInicial;
+  final VoidCallback? onConfigSaved;
 
   const LeituraConfiguracaoScreen({
     super.key,
     required this.condominioId,
     this.tipoInicial,
+    this.onConfigSaved,
   });
 
   @override
@@ -50,11 +52,17 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
     _loadConfig();
   }
 
-  String _dbTipoToUi(String db) =>
-      db == 'Agua' ? 'Água' : db == 'Gas' ? 'Gás' : db;
+  String _dbTipoToUi(String db) => db == 'Agua'
+      ? 'Água'
+      : db == 'Gas'
+      ? 'Gás'
+      : db;
 
-  String _uiTipoToDb(String ui) =>
-      ui == 'Água' ? 'Agua' : ui == 'Gás' ? 'Gas' : ui;
+  String _uiTipoToDb(String ui) => ui == 'Água'
+      ? 'Agua'
+      : ui == 'Gás'
+      ? 'Gas'
+      : ui;
 
   Future<void> _loadConfig() async {
     setState(() => _loading = true);
@@ -84,33 +92,41 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
         _faixa3ValorController.clear();
 
         if (config.faixas.isNotEmpty) {
-          _faixa1FimController.text =
-              config.faixas[0].fim.toString().replaceAll('.0', '');
-          _faixa1ValorController.text =
-              config.faixas[0].valor.toString().replaceAll('.0', '');
+          _faixa1FimController.text = config.faixas[0].fim
+              .toString()
+              .replaceAll('.0', '');
+          _faixa1ValorController.text = config.faixas[0].valor
+              .toString()
+              .replaceAll('.0', '');
         }
         if (config.faixas.length > 1) {
-          _faixa2InicioController.text =
-              config.faixas[1].inicio.toString().replaceAll('.0', '');
-          _faixa2FimController.text =
-              config.faixas[1].fim.toString().replaceAll('.0', '');
-          _faixa2ValorController.text =
-              config.faixas[1].valor.toString().replaceAll('.0', '');
+          _faixa2InicioController.text = config.faixas[1].inicio
+              .toString()
+              .replaceAll('.0', '');
+          _faixa2FimController.text = config.faixas[1].fim
+              .toString()
+              .replaceAll('.0', '');
+          _faixa2ValorController.text = config.faixas[1].valor
+              .toString()
+              .replaceAll('.0', '');
         }
         if (config.faixas.length > 2) {
-          _faixa3InicioController.text =
-              config.faixas[2].inicio.toString().replaceAll('.0', '');
-          _faixa3FimController.text =
-              config.faixas[2].fim.toString().replaceAll('.0', '');
-          _faixa3ValorController.text =
-              config.faixas[2].valor.toString().replaceAll('.0', '');
+          _faixa3InicioController.text = config.faixas[2].inicio
+              .toString()
+              .replaceAll('.0', '');
+          _faixa3FimController.text = config.faixas[2].fim
+              .toString()
+              .replaceAll('.0', '');
+          _faixa3ValorController.text = config.faixas[2].valor
+              .toString()
+              .replaceAll('.0', '');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao carregar: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -152,15 +168,17 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
     try {
       await _service.saveConfiguracao(config);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Configuração gravada!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Configuração gravada!')));
+        // Notificar a tela pai para recarregar os dados
+        widget.onConfigSaved?.call();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao gravar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao gravar: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -192,6 +210,29 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Botão de Refresh
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  _loadConfig();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Recarregando configuração...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.refresh, color: Color(0xFF0D3B66)),
+                label: const Text(
+                  'Recarregar',
+                  style: TextStyle(color: Color(0xFF0D3B66)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           _buildDropdownField(
             label: 'Tipo:',
             value: selectedTipo,
@@ -314,10 +355,7 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
                 onChanged: (val) => setState(() => cobrancaTipo = val!),
                 activeColor: const Color(0xFF0D3B66),
               ),
-              const Text(
-                'Avulso',
-                style: TextStyle(fontSize: 12),
-              ),
+              const Text('Avulso', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 8),
             ],
           ),
@@ -450,10 +488,18 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
                 value: items.contains(value) ? value : items.first,
                 isExpanded: true,
                 items: items
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(t == 'Agua' ? 'Água' : t == 'Gas' ? 'Gás' : t),
-                        ))
+                    .map(
+                      (t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(
+                          t == 'Agua'
+                              ? 'Água'
+                              : t == 'Gas'
+                              ? 'Gás'
+                              : t,
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: onChanged,
               ),
