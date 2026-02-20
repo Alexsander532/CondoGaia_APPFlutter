@@ -240,6 +240,68 @@ class GestaoCondominioService {
     }
   }
 
+  // --- Verificação e Reatribuição de Despesas ---
+
+  Future<int> contarDespesasPorCategoria(String categoriaId) async {
+    try {
+      final response = await _supabase
+          .from('despesas')
+          .select('id')
+          .eq('categoria_id', categoriaId);
+      return (response as List).length;
+    } catch (e) {
+      print(
+        '⚠️ [GestaoCondominioService] Erro ao contar despesas por categoria: $e',
+      );
+      return 0;
+    }
+  }
+
+  Future<int> contarDespesasPorSubcategoria(String subcategoriaId) async {
+    try {
+      final response = await _supabase
+          .from('despesas')
+          .select('id')
+          .eq('subcategoria_id', subcategoriaId);
+      return (response as List).length;
+    } catch (e) {
+      print(
+        '⚠️ [GestaoCondominioService] Erro ao contar despesas por subcategoria: $e',
+      );
+      return 0;
+    }
+  }
+
+  Future<void> reatribuirCategoriaDespesas(
+    String categoriaAntigaId,
+    String categoriaNovaId,
+  ) async {
+    try {
+      await _supabase
+          .from('despesas')
+          .update({'categoria_id': categoriaNovaId, 'subcategoria_id': null})
+          .eq('categoria_id', categoriaAntigaId);
+    } catch (e) {
+      print('⚠️ [GestaoCondominioService] Erro ao reatribuir categoria: $e');
+      throw Exception('Erro ao reatribuir despesas.');
+    }
+  }
+
+  Future<void> reatribuirSubcategoriaDespesas(
+    String subcategoriaAntigaId,
+    String subcategoriaNovaId,
+  ) async {
+    try {
+      await _supabase
+          .from('despesas')
+          .update({'subcategoria_id': subcategoriaNovaId})
+          .eq('subcategoria_id', subcategoriaAntigaId);
+    } catch (e) {
+      print('⚠️ [GestaoCondominioService] Erro ao reatribuir subcategoria: $e');
+      throw Exception('Erro ao reatribuir despesas.');
+    }
+  }
+
   Future<void> excluirCategoria(String id) async {
     try {
       await _supabase.from('categorias_financeiras').delete().eq('id', id);
