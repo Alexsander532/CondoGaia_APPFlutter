@@ -6,6 +6,7 @@ import '../services/despesa_receita_service.dart';
 import '../widgets/despesas_tab_widget.dart';
 import '../widgets/receitas_tab_widget.dart';
 import '../widgets/transferencia_tab_widget.dart';
+import '../widgets/resumo_financeiro_widget.dart';
 
 class DespesaReceitaScreen extends StatelessWidget {
   final String condominioId;
@@ -151,6 +152,7 @@ class _DespesaReceitaViewState extends State<_DespesaReceitaView>
                 backgroundColor: Colors.red,
               ),
             );
+            context.read<DespesaReceitaCubit>().limparErro();
           }
         },
         builder: (context, state) {
@@ -158,12 +160,24 @@ class _DespesaReceitaViewState extends State<_DespesaReceitaView>
             return const Center(child: CircularProgressIndicator());
           }
 
-          return TabBarView(
-            controller: _tabController,
-            children: const [
-              DespesasTabWidget(),
-              ReceitasTabWidget(),
-              TransferenciaTabWidget(),
+          return Column(
+            children: [
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: const [
+                    DespesasTabWidget(),
+                    ReceitasTabWidget(),
+                    TransferenciaTabWidget(),
+                  ],
+                ),
+              ),
+              ResumoFinanceiroWidget(
+                saldoAnterior: state.saldoAnterior,
+                totalCredito: state.totalReceitas,
+                totalDebito: state.totalDespesas,
+                saldoAtual: state.saldoAtual,
+              ),
             ],
           );
         },

@@ -137,10 +137,58 @@ class LeituraTableWidget extends StatelessWidget {
                     Expanded(
                       flex: 1,
                       child: leitura.imagemUrl != null || leitura.id.isNotEmpty
-                          ? const Icon(
-                              Icons.image_outlined,
-                              color: Color(0xFF0D3B66),
-                              size: 20,
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.image_outlined,
+                                color: Color(0xFF0D3B66),
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                if (leitura.imagemUrl != null &&
+                                    leitura.imagemUrl!.isNotEmpty) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => Dialog(
+                                      child: Stack(
+                                        alignment: Alignment.topRight,
+                                        children: [
+                                          Image.network(
+                                            leitura.imagemUrl!,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) => const Padding(
+                                                  padding: EdgeInsets.all(20.0),
+                                                  child: Text(
+                                                    'Erro ao carregar imagem',
+                                                  ),
+                                                ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.close,
+                                              color: Colors.black54,
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Nenhuma imagem disponível.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                             )
                           : const SizedBox(),
                     ),

@@ -1,4 +1,6 @@
-class Receita {
+import 'package:equatable/equatable.dart';
+
+class Receita extends Equatable {
   final String? id;
   final String condominioId;
   final String? contaId;
@@ -14,7 +16,7 @@ class Receita {
   // Campos auxiliares (join data)
   final String? contaNome;
 
-  Receita({
+  const Receita({
     this.id,
     required this.condominioId,
     this.contaId,
@@ -97,4 +99,20 @@ class Receita {
       contaNome: contaNome ?? this.contaNome,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    id,
+    condominioId,
+    contaId,
+    contaContabil,
+    descricao,
+    valor,
+    dataCredito,
+    recorrente,
+    qtdMeses,
+    tipo,
+    createdAt,
+    contaNome,
+  ];
 }

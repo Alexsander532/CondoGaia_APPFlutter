@@ -4,9 +4,13 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 import '../../gestao_condominio/models/conta_bancaria_model.dart';
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import 'i_despesa_receita_service.dart';
 
-class DespesaReceitaService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+class DespesaReceitaService implements IDespesaReceitaService {
+  final SupabaseClient _supabase;
+
+  DespesaReceitaService({SupabaseClient? supabase})
+    : _supabase = supabase ?? Supabase.instance.client;
 
   // ============================================================
   // CONTAS E CATEGORIAS (para dropdowns)
@@ -23,8 +27,7 @@ class DespesaReceitaService {
 
       return (response as List).map((e) => ContaBancaria.fromJson(e)).toList();
     } catch (e) {
-      print('⚠️ [DespesaReceitaService] Erro ao listar contas: $e');
-      return [];
+      throw Exception('Erro ao listar contas: $e');
     }
   }
 
@@ -42,8 +45,7 @@ class DespesaReceitaService {
           .map((e) => CategoriaFinanceira.fromJson(e))
           .toList();
     } catch (e) {
-      print('⚠️ [DespesaReceitaService] Erro ao listar categorias: $e');
-      return [];
+      throw Exception('Erro ao listar categorias: $e');
     }
   }
 
@@ -218,6 +220,8 @@ class DespesaReceitaService {
     String condominioId, {
     int? mes,
     int? ano,
+    String? contaDebitoId,
+    String? contaCreditoId,
   }) async {
     try {
       var query = _supabase
@@ -226,6 +230,13 @@ class DespesaReceitaService {
             '*, conta_debito:contas_bancarias!conta_debito_id(banco), conta_credito:contas_bancarias!conta_credito_id(banco)',
           )
           .eq('condominio_id', condominioId);
+
+      if (contaDebitoId != null && contaDebitoId.isNotEmpty) {
+        query = query.eq('conta_debito_id', contaDebitoId);
+      }
+      if (contaCreditoId != null && contaCreditoId.isNotEmpty) {
+        query = query.eq('conta_credito_id', contaCreditoId);
+      }
 
       if (mes != null && ano != null) {
         final inicio = DateTime(ano, mes, 1);
@@ -283,6 +294,65 @@ class DespesaReceitaService {
     } catch (e) {
       print('⚠️ [DespesaReceitaService] Erro ao excluir transferências: $e');
       throw Exception('Erro ao excluir transferências.');
+    }
+  }
+
+  // ============================================================
+  // RESUMO FINANCEIRO — SALDO ANTERIOR
+  // ============================================================
+
+  /// Calcula o saldo do mês anterior (total receitas − total despesas do mês
+  /// imediatamente anterior ao [mes]/[ano] fornecidos).
+  @override
+  Future<double> calcularSaldoAnterior(
+    String condominioId, {
+    required int mes,
+    required int ano,
+  }) async {
+    try {
+      // Mês anterior
+      int mesAnterior = mes - 1;
+      int anoAnterior = ano;
+      if (mesAnterior < 1) {
+        mesAnterior = 12;
+        anoAnterior--;
+      }
+
+      final inicio = DateTime(anoAnterior, mesAnterior, 1);
+      final fim = DateTime(anoAnterior, mesAnterior + 1, 0);
+      final inicioStr = inicio.toIso8601String().split('T').first;
+      final fimStr = fim.toIso8601String().split('T').first;
+
+      // Buscar receitas do mês anterior
+      final receitasResp = await _supabase
+          .from('receitas')
+          .select('valor')
+          .eq('condominio_id', condominioId)
+          .gte('data_credito', inicioStr)
+          .lte('data_credito', fimStr);
+
+      final totalReceitas = (receitasResp as List).fold<double>(
+        0,
+        (sum, r) => sum + ((r['valor'] ?? 0) as num).toDouble(),
+      );
+
+      // Buscar despesas do mês anterior
+      final despesasResp = await _supabase
+          .from('despesas')
+          .select('valor')
+          .eq('condominio_id', condominioId)
+          .gte('data_vencimento', inicioStr)
+          .lte('data_vencimento', fimStr);
+
+      final totalDespesas = (despesasResp as List).fold<double>(
+        0,
+        (sum, d) => sum + ((d['valor'] ?? 0) as num).toDouble(),
+      );
+
+      return totalReceitas - totalDespesas;
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao calcular saldo anterior: $e');
+      return 0;
     }
   }
 }

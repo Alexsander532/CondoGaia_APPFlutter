@@ -14,6 +14,7 @@ import '../services/unidade_detalhes_service.dart';
 import '../services/supabase_service.dart';
 import '../services/conversas_service.dart';
 import '../features/Prop_Inq_Features/reserva/ui/screens/reserva_screen.dart';
+import '../features/Prop_Inq_Features/boleto/ui/screens/boleto_prop_screen.dart';
 
 class InquilinoHomeScreen extends StatefulWidget {
   final String condominioId;
@@ -621,10 +622,20 @@ Copiado da CondoGaia''';
                             );
                           },
                         ),
-                        _buildMenuCardComingSoon(
+                        _buildMenuCard(
                           imagePath:
                               'assets/images/HOME_Inquilino/Boleto_icone_Inquilino.png',
                           title: 'Boletos',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BoletoPropScreen(
+                                  condominioId: widget.condominioId,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         _buildMenuCard(
                           imagePath:

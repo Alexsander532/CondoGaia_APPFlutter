@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
 import '../models/receita_model.dart';
-import 'resumo_financeiro_widget.dart';
+import 'shared_widgets.dart';
+import 'base_tab_widget.dart';
 
 class ReceitasTabWidget extends StatefulWidget {
   const ReceitasTabWidget({super.key});
@@ -15,7 +16,6 @@ class ReceitasTabWidget extends StatefulWidget {
 class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   final _descricaoController = TextEditingController();
   final _valorController = TextEditingController();
-  final _dataCreditoController = TextEditingController();
   final _qtdMesesController = TextEditingController();
 
   bool _filtrosExpandidos = true;
@@ -30,31 +30,17 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   // Cadastro
   String? _contaIdCadastro;
   String? _contaContabilCadastro;
+  DateTime? _dataCredito;
 
-  static const List<String> _meses = [
-    'Janeiro',
-    'Fevereiro',
-    'Março',
-    'Abril',
-    'Maio',
-    'Junho',
-    'Julho',
-    'Agosto',
-    'Setembro',
-    'Outubro',
-    'Novembro',
-    'Dezembro',
-  ];
+  // Edição
+  String? _editandoId;
 
   static const List<String> _tiposReceita = ['Todos', 'Manual', 'Automático'];
-  static const _primaryColor = Color(0xFF0D3B66);
-  static const _accentColor = Color(0xFF1A73E8);
 
   @override
   void dispose() {
     _descricaoController.dispose();
     _valorController.dispose();
-    _dataCreditoController.dispose();
     _qtdMesesController.dispose();
     super.dispose();
   }
@@ -65,194 +51,51 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
       builder: (context, state) {
         final cubit = context.read<DespesaReceitaCubit>();
 
-        return Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Seletor Mês/Ano ──
-                  _buildMesAnoSelector(state, cubit),
-                  const SizedBox(height: 16),
+        // Preencher form ao entrar em modo edição
+        if (state.receitaEditando != null &&
+            _editandoId != state.receitaEditando!.id) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _preencherFormParaEdicao(state.receitaEditando!);
+          });
+        }
 
-                  // ── Card: Filtros ──
-                  _buildSectionCard(
-                    icon: Icons.filter_list,
-                    title: 'Filtros',
-                    isExpanded: _filtrosExpandidos,
-                    onToggle: () => setState(
-                      () => _filtrosExpandidos = !_filtrosExpandidos,
-                    ),
-                    child: _buildFiltrosContent(state, cubit),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Card: Cadastrar Nova Receita ──
-                  _buildSectionCard(
-                    icon: Icons.add_circle_outline,
-                    title: 'Cadastrar Nova Receita',
-                    isExpanded: _cadastroExpandido,
-                    onToggle: () => setState(
-                      () => _cadastroExpandido = !_cadastroExpandido,
-                    ),
-                    accentColor: Colors.green.shade700,
-                    child: _buildCadastroForm(state, cubit),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Registros (Tabela) ──
-                  _buildRegistrosSection(state, cubit),
-
-                  const SizedBox(height: 16),
-
-                  // ── Resumo ──
-                  ResumoFinanceiroWidget(
-                    totalCredito: state.totalReceitas,
-                    totalDebito: state.totalDespesas,
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-
-            // FAB para cadastrar
-            if (!_cadastroExpandido)
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton(
-                  heroTag: 'fab_receita',
-                  backgroundColor: _primaryColor,
-                  onPressed: () => setState(() => _cadastroExpandido = true),
-                  child: const Icon(Icons.add, color: Colors.white, size: 28),
-                ),
-              ),
-          ],
+        return BaseTabWidget<Receita>(
+          fabHeroTag: 'fab_receita',
+          fabIcon: Icons.add,
+          isEditing: _editandoId != null,
+          titleAdd: 'Cadastrar Nova Receita',
+          titleEdit: 'Editar Receita',
+          filtrosExpandidos: _filtrosExpandidos,
+          onToggleFiltros: () =>
+              setState(() => _filtrosExpandidos = !_filtrosExpandidos),
+          filtrosContent: _buildFiltrosContent(state, cubit),
+          cadastroExpandido: _cadastroExpandido,
+          onToggleCadastro: () =>
+              setState(() => _cadastroExpandido = !_cadastroExpandido),
+          cadastroContent: _buildCadastroForm(state, cubit),
+          tableName: 'Receitas Registradas',
+          items: state.receitas,
+          isLoading: state.status == DespesaReceitaStatus.loading,
+          emptyStateIcon: Icon(
+            Icons.receipt_long,
+            size: 48,
+            color: Colors.grey.shade300,
+          ),
+          emptyStateText: 'Nenhuma receita encontrada',
+          emptyStateSubtext: 'Use o botão + para cadastrar uma nova receita',
+          tableHeader: _buildHeaderRow(state, cubit),
+          itemBuilder: (context, state, cubit, item, index) =>
+              _buildReceitaRow(item, index, state, cubit),
+          tableFooterBuilder: (context, state, cubit) =>
+              _buildRodape(state, cubit),
+          onFabPressed: () {
+            setState(() {
+              _cadastroExpandido = true;
+              if (_editandoId != null) _limparFormulario(cubit);
+            });
+          },
         );
       },
-    );
-  }
-
-  // ══════════════════════════════════════════════════════
-  // SELETOR MÊS / ANO
-  // ══════════════════════════════════════════════════════
-
-  Widget _buildMesAnoSelector(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    final mesNome = _meses[state.mesSelecionado - 1];
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: _primaryColor.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _primaryColor.withOpacity(0.15)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: _primaryColor),
-            onPressed: cubit.mesAnterior,
-          ),
-          const Icon(Icons.calendar_month, size: 20, color: _primaryColor),
-          const SizedBox(width: 8),
-          Text(
-            '$mesNome/${state.anoSelecionado}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: _primaryColor,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: _primaryColor),
-            onPressed: cubit.proximoMes,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════
-  // CARD GENÉRICO COM HEADER
-  // ══════════════════════════════════════════════════════
-
-  Widget _buildSectionCard({
-    required IconData icon,
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    required Widget child,
-    Color? accentColor,
-  }) {
-    final color = accentColor ?? _primaryColor;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: onToggle,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
-                borderRadius: isExpanded
-                    ? const BorderRadius.vertical(top: Radius.circular(12))
-                    : BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: color,
-                    size: 22,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isExpanded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(12),
-                ),
-              ),
-              child: child,
-            ),
-        ],
-      ),
     );
   }
 
@@ -267,7 +110,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta',
           icon: Icons.account_balance,
           value: _filtroContaId,
@@ -282,7 +125,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           onChanged: (v) => setState(() => _filtroContaId = v),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta Contábil',
           icon: Icons.book,
           value: _filtroContaContabil,
@@ -292,7 +135,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           onChanged: (v) => setState(() => _filtroContaContabil = v),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Tipo',
           icon: Icons.tune,
           value: _filtroTipo,
@@ -322,7 +165,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
+              backgroundColor: kAccentColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -335,7 +178,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   }
 
   // ══════════════════════════════════════════════════════
-  // FORMULÁRIO DE CADASTRO
+  // FORMULÁRIO DE CADASTRO / EDIÇÃO
   // ══════════════════════════════════════════════════════
 
   Widget _buildCadastroForm(
@@ -345,7 +188,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta',
           icon: Icons.account_balance,
           value: _contaIdCadastro,
@@ -360,7 +203,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           onChanged: (v) => setState(() => _contaIdCadastro = v),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta Contábil',
           icon: Icons.book,
           value: _contaContabilCadastro,
@@ -390,13 +233,14 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         ),
         const SizedBox(height: 10),
 
-        // Valor e Data Crédito em row
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _valorController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Valor (R\$)',
                   prefixIcon: const Icon(Icons.attach_money, size: 20),
@@ -414,126 +258,87 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: TextField(
-                controller: _dataCreditoController,
-                keyboardType: TextInputType.datetime,
-                decoration: InputDecoration(
-                  labelText: 'Dia do Crédito',
-                  prefixIcon: const Icon(Icons.calendar_today, size: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                ),
-                style: const TextStyle(fontSize: 14),
+              child: buildDateField(
+                context: context,
+                label: 'Data do Crédito',
+                value: _dataCredito,
+                onChanged: (d) => setState(() => _dataCredito = d),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
 
-        // Recorrente
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.repeat, size: 18, color: _primaryColor),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Recorrente',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  const Spacer(),
-                  Switch(
-                    value: _recorrente,
-                    onChanged: (v) => setState(() => _recorrente = v),
-                    activeColor: _primaryColor,
-                  ),
-                ],
-              ),
-              if (_recorrente) ...[
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _qtdMesesController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Qtd. Meses',
-                    hintText: '∞ se vazio',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.all(10),
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ],
-            ],
-          ),
+        buildRecorrenciaSection(
+          recorrente: _recorrente,
+          onRecorrenteChanged: (v) => setState(() => _recorrente = v),
+          qtdMesesController: _qtdMesesController,
         ),
         const SizedBox(height: 16),
 
-        // Botão Salvar
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: state.isSaving
-                ? null
-                : () {
-                    final receita = Receita(
-                      condominioId: cubit.condominioId,
-                      contaId: _contaIdCadastro,
-                      contaContabil: _contaContabilCadastro,
-                      descricao: _descricaoController.text,
-                      valor:
-                          double.tryParse(
-                            _valorController.text.replaceAll(',', '.'),
-                          ) ??
-                          0,
-                      dataCredito: _parseDate(_dataCreditoController.text),
-                      recorrente: _recorrente,
-                      qtdMeses: int.tryParse(_qtdMesesController.text),
-                    );
-                    cubit.salvarReceita(receita);
-                    _limparFormulario();
-                  },
-            icon: state.isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+        if (_editandoId != null)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _limparFormulario(cubit),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text('Cancelar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                : const Icon(Icons.save, size: 20),
-            label: Text(
-              state.isSaving ? 'Salvando...' : 'Salvar Receita',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: _buildSalvarButton(state, cubit)),
+            ],
+          )
+        else
+          _buildSalvarButton(state, cubit),
+      ],
+    );
+  }
+
+  Widget _buildSalvarButton(
+    DespesaReceitaState state,
+    DespesaReceitaCubit cubit,
+  ) {
+    final isEditing = _editandoId != null;
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: state.isSaving ? null : () => _salvar(cubit),
+        icon: state.isSaving
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(isEditing ? Icons.save_as : Icons.save, size: 20),
+        label: Text(
+          state.isSaving
+              ? 'Salvando...'
+              : (isEditing ? 'Salvar Alterações' : 'Salvar Receita'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEditing
+              ? Colors.orange.shade700
+              : Colors.green.shade700,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -541,151 +346,42 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   // REGISTROS (TABELA)
   // ══════════════════════════════════════════════════════
 
-  Widget _buildRegistrosSection(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.list_alt, size: 20, color: _primaryColor),
-            const SizedBox(width: 8),
-            const Text(
-              'Receitas Registradas',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _primaryColor,
-              ),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                '${state.receitas.length} registro${state.receitas.length != 1 ? 's' : ''}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _primaryColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        if (state.status == DespesaReceitaStatus.loading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else if (state.receitas.isEmpty)
-          _buildEmptyState()
-        else
-          _buildReceitasList(state, cubit),
-
-        if (state.receitas.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _buildRodape(state, cubit),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
+  Widget _buildHeaderRow(DespesaReceitaState state, DespesaReceitaCubit cubit) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: kPrimaryColor,
+      child: Row(
         children: [
-          Icon(Icons.trending_up, size: 48, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            'Nenhuma receita encontrada',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Use o botão + para cadastrar uma nova receita',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReceitasList(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              color: _primaryColor,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 24,
-                    child: GestureDetector(
-                      onTap: () {
-                        cubit.selecionarTodos(
-                          state.receitas
-                              .where((r) => r.id != null)
-                              .map((r) => r.id!)
-                              .toList(),
-                        );
-                      },
-                      child: Icon(
-                        state.receitas.isNotEmpty &&
-                                state.receitas.every(
-                                  (r) => state.itensSelecionados.contains(r.id),
-                                )
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _headerCell('Descrição', flex: 3),
-                  _headerCell('Conta', flex: 2),
-                  _headerCell('Crédito', flex: 2),
-                  _headerCell('Valor', flex: 2),
-                  _headerCell('Tipo', flex: 1),
-                ],
+          SizedBox(
+            width: 24,
+            child: GestureDetector(
+              onTap: () {
+                cubit.selecionarTodasReceitas(
+                  state.receitas
+                      .where((r) => r.id != null)
+                      .map((r) => r.id!)
+                      .toList(),
+                );
+              },
+              child: Icon(
+                state.receitas.isNotEmpty &&
+                        state.receitas.every(
+                          (r) => state.receitasSelecionadas.contains(r.id),
+                        )
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
+                color: Colors.white,
+                size: 18,
               ),
             ),
-            ...state.receitas.asMap().entries.map((entry) {
-              return _buildReceitaRow(entry.value, entry.key, state, cubit);
-            }),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          _headerCell('Descrição', flex: 3),
+          _headerCell('Conta', flex: 2),
+          _headerCell('Crédito', flex: 2),
+          _headerCell('Valor', flex: 2),
+          _headerCell('Tipo', flex: 1),
+        ],
       ),
     );
   }
@@ -711,7 +407,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     DespesaReceitaState state,
     DespesaReceitaCubit cubit,
   ) {
-    final isSelected = state.itensSelecionados.contains(r.id);
+    final isSelected = state.receitasSelecionadas.contains(r.id);
     final dataStr = r.dataCredito != null
         ? '${r.dataCredito!.day.toString().padLeft(2, '0')}/${r.dataCredito!.month.toString().padLeft(2, '0')}/${r.dataCredito!.year}'
         : '--';
@@ -719,18 +415,18 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
 
     return GestureDetector(
       onTap: () {
-        if (r.id != null) cubit.toggleItemSelecionado(r.id!);
+        if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? _accentColor.withOpacity(0.06)
+              ? kAccentColor.withOpacity(0.06)
               : (index.isEven ? Colors.white : Colors.grey.shade50),
           border: Border(
             bottom: BorderSide(color: Colors.grey.shade200),
             left: isSelected
-                ? BorderSide(color: _accentColor, width: 3)
+                ? const BorderSide(color: kAccentColor, width: 3)
                 : BorderSide.none,
           ),
         ),
@@ -741,7 +437,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
               child: Icon(
                 isSelected ? Icons.check_box : Icons.check_box_outline_blank,
                 size: 18,
-                color: isSelected ? _accentColor : Colors.grey.shade400,
+                color: isSelected ? kAccentColor : Colors.grey.shade400,
               ),
             ),
             const SizedBox(width: 8),
@@ -808,7 +504,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: r.recorrente ? Colors.orange.shade700 : _accentColor,
+                    color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -825,9 +521,9 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   // ══════════════════════════════════════════════════════
 
   Widget _buildRodape(DespesaReceitaState state, DespesaReceitaCubit cubit) {
-    final qtd = state.itensSelecionados.length;
+    final qtd = state.receitasSelecionadas.length;
     final total = state.receitas
-        .where((r) => state.itensSelecionados.contains(r.id))
+        .where((r) => state.receitasSelecionadas.contains(r.id))
         .fold(0.0, (sum, r) => sum + r.valor);
 
     return Container(
@@ -843,11 +539,19 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
             SizedBox(
               height: 32,
               child: ElevatedButton.icon(
-                onPressed: qtd == 1 ? () {} : null,
+                onPressed: qtd == 1
+                    ? () {
+                        final receita = state.receitas.firstWhere(
+                          (r) => state.receitasSelecionadas.contains(r.id),
+                        );
+                        cubit.iniciarEdicaoReceita(receita);
+                        setState(() => _cadastroExpandido = true);
+                      }
+                    : null,
                 icon: const Icon(Icons.edit, size: 14),
                 label: const Text('Editar', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
+                  backgroundColor: kPrimaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
@@ -860,7 +564,13 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
             SizedBox(
               height: 32,
               child: OutlinedButton.icon(
-                onPressed: () => cubit.excluirReceitasSelecionadas(),
+                onPressed: () async {
+                  final confirm = await showConfirmDeleteDialog(
+                    context,
+                    quantidade: qtd,
+                  );
+                  if (confirm) cubit.excluirReceitasSelecionadas();
+                },
                 icon: const Icon(Icons.delete_outline, size: 14),
                 label: const Text('Excluir', style: TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
@@ -885,7 +595,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: _primaryColor,
+              color: kPrimaryColor,
             ),
           ),
         ],
@@ -897,68 +607,72 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   // HELPERS
   // ══════════════════════════════════════════════════════
 
-  Widget _buildDropdownField({
-    required String label,
-    required IconData icon,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final validValue = items.any((item) => item.value == value) ? value : null;
-    return DropdownButtonFormField<String>(
-      value: validValue,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
+  void _preencherFormParaEdicao(Receita r) {
+    setState(() {
+      _editandoId = r.id;
+      _contaIdCadastro = r.contaId;
+      _contaContabilCadastro = r.contaContabil;
+      _descricaoController.text = r.descricao ?? '';
+      _valorController.text = r.valor.toStringAsFixed(2);
+      _dataCredito = r.dataCredito;
+      _recorrente = r.recorrente;
+      _qtdMesesController.text = r.qtdMeses != null
+          ? r.qtdMeses.toString()
+          : '';
+      _cadastroExpandido = true;
+    });
+  }
+
+  void _salvar(DespesaReceitaCubit cubit) {
+    final valorStr = _valorController.text.replaceAll(',', '.');
+    final valor = double.tryParse(valorStr) ?? 0;
+
+    if (valor <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Informe um valor maior que zero.'),
+          backgroundColor: Colors.red,
         ),
-      ),
-      isExpanded: true,
-      icon: const Icon(Icons.keyboard_arrow_down),
-      items: items,
-      onChanged: onChanged,
+      );
+      return;
+    }
+    if (_dataCredito == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione a data do crédito.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final receita = Receita(
+      id: _editandoId,
+      condominioId: cubit.condominioId,
+      contaId: _contaIdCadastro,
+      contaContabil: _contaContabilCadastro,
+      descricao: _descricaoController.text,
+      valor: valor,
+      dataCredito: _dataCredito,
+      recorrente: _recorrente,
+      qtdMeses: int.tryParse(_qtdMesesController.text),
     );
+    cubit.salvarReceita(receita);
+    _limparFormulario(cubit);
   }
 
-  DateTime? _parseDate(String text) {
-    if (text.isEmpty) return null;
-    try {
-      if (text.contains('/')) {
-        final parts = text.split('/');
-        if (parts.length == 3) {
-          return DateTime(
-            int.parse(parts[2]),
-            int.parse(parts[1]),
-            int.parse(parts[0]),
-          );
-        }
-      }
-      final day = int.tryParse(text);
-      if (day != null) {
-        final cubit = context.read<DespesaReceitaCubit>();
-        return DateTime(
-          cubit.state.anoSelecionado,
-          cubit.state.mesSelecionado,
-          day,
-        );
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  void _limparFormulario() {
+  void _limparFormulario(DespesaReceitaCubit cubit) {
+    cubit.cancelarEdicaoReceita();
     _descricaoController.clear();
     _valorController.clear();
-    _dataCreditoController.clear();
     _qtdMesesController.clear();
     setState(() {
+      _editandoId = null;
+      _dataCredito = null;
       _recorrente = false;
       _contaIdCadastro = null;
       _contaContabilCadastro = null;
+      _cadastroExpandido = false;
     });
   }
 }

@@ -42,6 +42,13 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         ano: state.anoSelecionado,
       );
 
+      // Buscar saldo anterior (mês passado)
+      final saldoAnterior = await _service.calcularSaldoAnterior(
+        condominioId,
+        mes: state.mesSelecionado,
+        ano: state.anoSelecionado,
+      );
+
       emit(
         state.copyWith(
           status: DespesaReceitaStatus.success,
@@ -50,7 +57,10 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
           despesas: despesas,
           receitas: receitas,
           transferencias: transferencias,
-          itensSelecionados: {},
+          saldoAnterior: saldoAnterior,
+          despesasSelecionadas: {},
+          receitasSelecionadas: {},
+          transferenciasSelecionadas: {},
         ),
       );
     } catch (e) {
@@ -101,6 +111,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     String? contaContabil,
     String? tipoReceita,
     String? contaCreditoId,
+    String? contaDebitoId,
   }) {
     emit(
       state.copyWith(
@@ -110,6 +121,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         filtroPalavraChave: palavraChave ?? '',
         filtroContaContabil: contaContabil ?? '',
         filtroContaCreditoId: contaCreditoId ?? state.filtroContaCreditoId,
+        filtroContaDebitoId: contaDebitoId ?? state.filtroContaDebitoId,
         filtroTipoReceita: tipoReceita ?? state.filtroTipoReceita,
       ),
     );
@@ -131,7 +143,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         state.copyWith(
           status: DespesaReceitaStatus.success,
           despesas: despesas,
-          itensSelecionados: {},
+          despesasSelecionadas: {},
         ),
       );
     } catch (e) {
@@ -159,7 +171,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         state.copyWith(
           status: DespesaReceitaStatus.success,
           receitas: receitas,
-          itensSelecionados: {},
+          receitasSelecionadas: {},
         ),
       );
     } catch (e) {
@@ -179,12 +191,14 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         condominioId,
         mes: state.mesSelecionado,
         ano: state.anoSelecionado,
+        contaDebitoId: state.filtroContaDebitoId,
+        contaCreditoId: state.filtroContaCreditoId,
       );
       emit(
         state.copyWith(
           status: DespesaReceitaStatus.success,
           transferencias: transferencias,
-          itensSelecionados: {},
+          transferenciasSelecionadas: {},
         ),
       );
     } catch (e) {
@@ -205,7 +219,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(isSaving: true));
     try {
       await _service.salvarDespesa(despesa);
-      emit(state.copyWith(isSaving: false));
+      emit(state.copyWith(isSaving: false, clearDespesaEditando: true));
       await pesquisarDespesas();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -213,10 +227,12 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   }
 
   Future<void> excluirDespesasSelecionadas() async {
-    if (state.itensSelecionados.isEmpty) return;
+    if (state.despesasSelecionadas.isEmpty) return;
     emit(state.copyWith(status: DespesaReceitaStatus.loading));
     try {
-      await _service.excluirDespesasMultiplas(state.itensSelecionados.toList());
+      await _service.excluirDespesasMultiplas(
+        state.despesasSelecionadas.toList(),
+      );
       await pesquisarDespesas();
     } catch (e) {
       emit(
@@ -236,7 +252,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(isSaving: true));
     try {
       await _service.salvarReceita(receita);
-      emit(state.copyWith(isSaving: false));
+      emit(state.copyWith(isSaving: false, clearReceitaEditando: true));
       await pesquisarReceitas();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -244,10 +260,12 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   }
 
   Future<void> excluirReceitasSelecionadas() async {
-    if (state.itensSelecionados.isEmpty) return;
+    if (state.receitasSelecionadas.isEmpty) return;
     emit(state.copyWith(status: DespesaReceitaStatus.loading));
     try {
-      await _service.excluirReceitasMultiplas(state.itensSelecionados.toList());
+      await _service.excluirReceitasMultiplas(
+        state.receitasSelecionadas.toList(),
+      );
       await pesquisarReceitas();
     } catch (e) {
       emit(
@@ -267,7 +285,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(isSaving: true));
     try {
       await _service.salvarTransferencia(transferencia);
-      emit(state.copyWith(isSaving: false));
+      emit(state.copyWith(isSaving: false, clearTransferenciaEditando: true));
       await pesquisarTransferencias();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -275,11 +293,11 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   }
 
   Future<void> excluirTransferenciasSelecionadas() async {
-    if (state.itensSelecionados.isEmpty) return;
+    if (state.transferenciasSelecionadas.isEmpty) return;
     emit(state.copyWith(status: DespesaReceitaStatus.loading));
     try {
       await _service.excluirTransferenciasMultiplas(
-        state.itensSelecionados.toList(),
+        state.transferenciasSelecionadas.toList(),
       );
       await pesquisarTransferencias();
     } catch (e) {
@@ -293,30 +311,98 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   }
 
   // ============================================================
-  // SELEÇÃO
+  // SELEÇÃO POR ABA
   // ============================================================
 
-  void toggleItemSelecionado(String id) {
-    final current = Set<String>.from(state.itensSelecionados);
+  void toggleDespesaSelecionada(String id) {
+    final current = Set<String>.from(state.despesasSelecionadas);
     if (current.contains(id)) {
       current.remove(id);
     } else {
       current.add(id);
     }
-    emit(state.copyWith(itensSelecionados: current));
+    emit(state.copyWith(despesasSelecionadas: current));
   }
 
-  void selecionarTodos(List<String> ids) {
-    final allSelected = ids.every((id) => state.itensSelecionados.contains(id));
+  void selecionarTodasDespesas(List<String> ids) {
+    final allSelected = ids.every(
+      (id) => state.despesasSelecionadas.contains(id),
+    );
     if (allSelected) {
-      emit(state.copyWith(itensSelecionados: {}));
+      emit(state.copyWith(despesasSelecionadas: {}));
     } else {
-      emit(state.copyWith(itensSelecionados: ids.toSet()));
+      emit(state.copyWith(despesasSelecionadas: ids.toSet()));
     }
   }
 
-  void limparSelecao() {
-    emit(state.copyWith(itensSelecionados: {}));
+  void toggleReceitaSelecionada(String id) {
+    final current = Set<String>.from(state.receitasSelecionadas);
+    if (current.contains(id)) {
+      current.remove(id);
+    } else {
+      current.add(id);
+    }
+    emit(state.copyWith(receitasSelecionadas: current));
+  }
+
+  void selecionarTodasReceitas(List<String> ids) {
+    final allSelected = ids.every(
+      (id) => state.receitasSelecionadas.contains(id),
+    );
+    if (allSelected) {
+      emit(state.copyWith(receitasSelecionadas: {}));
+    } else {
+      emit(state.copyWith(receitasSelecionadas: ids.toSet()));
+    }
+  }
+
+  void toggleTransferenciaSelecionada(String id) {
+    final current = Set<String>.from(state.transferenciasSelecionadas);
+    if (current.contains(id)) {
+      current.remove(id);
+    } else {
+      current.add(id);
+    }
+    emit(state.copyWith(transferenciasSelecionadas: current));
+  }
+
+  void selecionarTodasTransferencias(List<String> ids) {
+    final allSelected = ids.every(
+      (id) => state.transferenciasSelecionadas.contains(id),
+    );
+    if (allSelected) {
+      emit(state.copyWith(transferenciasSelecionadas: {}));
+    } else {
+      emit(state.copyWith(transferenciasSelecionadas: ids.toSet()));
+    }
+  }
+
+  // ============================================================
+  // MODO EDIÇÃO
+  // ============================================================
+
+  void iniciarEdicaoDespesa(Despesa despesa) {
+    emit(state.copyWith(despesaEditando: despesa));
+  }
+
+  void cancelarEdicaoDespesa() {
+    emit(state.copyWith(clearDespesaEditando: true));
+  }
+
+  void iniciarEdicaoReceita(Receita receita) {
+    emit(state.copyWith(receitaEditando: receita));
+  }
+
+  void cancelarEdicaoReceita() {
+    emit(state.copyWith(clearReceitaEditando: true));
+  }
+
+  void iniciarEdicaoTransferencia(Transferencia transferencia) {
+    emit(state.copyWith(transferenciaEditando: transferencia));
+  }
+
+  void cancelarEdicaoTransferencia() {
+    emit(state.copyWith(clearTransferenciaEditando: true));
   }
 
   // ============================================================
@@ -325,5 +411,9 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
 
   void toggleCadastro() {
     emit(state.copyWith(cadastroExpandido: !state.cadastroExpandido));
+  }
+
+  void limparErro() {
+    emit(state.copyWith(clearErrorMessage: true));
   }
 }

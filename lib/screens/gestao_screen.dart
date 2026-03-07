@@ -7,6 +7,7 @@ import '../features/Representante_Features/gestao_condominio/screens/gestao_cond
 import '../features/Representante_Features/despesa_receita/screens/despesa_receita_screen.dart';
 import '../features/Representante_Features/gestao_condominio/screens/acordo_screen.dart';
 import '../features/Representante_Features/relatorios/screens/relatorios_screen.dart';
+import '../features/Representante_Features/boleto/screens/boleto_screen.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -199,7 +200,16 @@ class _GestaoScreenState extends State<GestaoScreen> {
                       title: item['title'],
                       imagePath: item['imagePath'],
                       onTap: () {
-                        if (item['title'] == 'Morador/Unidade') {
+                        if (item['title'] == 'Boleto') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BoletoScreen(
+                                condominioId: widget.condominioId ?? '',
+                              ),
+                            ),
+                          );
+                        } else if (item['title'] == 'Morador/Unidade') {
                           print(
                             '🚀 [GestaoScreen] Navegando para UnidadeMoradorScreen',
                           );

@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
 import '../models/despesa_model.dart';
-import 'resumo_financeiro_widget.dart';
+import 'shared_widgets.dart';
+import 'base_tab_widget.dart';
 
 class DespesasTabWidget extends StatefulWidget {
   const DespesasTabWidget({super.key});
@@ -16,7 +17,6 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // Cadastro controllers
   final _descricaoController = TextEditingController();
   final _valorController = TextEditingController();
-  final _vencimentoController = TextEditingController();
   final _linkController = TextEditingController();
   final _qtdMesesController = TextEditingController();
 
@@ -31,40 +31,25 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   String? _contaIdCadastro;
   String? _categoriaIdCadastro;
   String? _subcategoriaIdCadastro;
+  DateTime? _dataVencimento;
 
   // Filtros
   String? _filtroContaId;
   String? _filtroCategoriaId;
   String? _filtroSubcategoriaId;
 
+  // Edição
+  String? _editandoId;
+
   @override
   void dispose() {
     _descricaoController.dispose();
     _valorController.dispose();
-    _vencimentoController.dispose();
     _linkController.dispose();
     _qtdMesesController.dispose();
     _palavraChaveController.dispose();
     super.dispose();
   }
-
-  static const List<String> _meses = [
-    'Janeiro',
-    'Fevereiro',
-    'Março',
-    'Abril',
-    'Maio',
-    'Junho',
-    'Julho',
-    'Agosto',
-    'Setembro',
-    'Outubro',
-    'Novembro',
-    'Dezembro',
-  ];
-
-  static const _primaryColor = Color(0xFF0D3B66);
-  static const _accentColor = Color(0xFF1A73E8);
 
   @override
   Widget build(BuildContext context) {
@@ -72,199 +57,51 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
       builder: (context, state) {
         final cubit = context.read<DespesaReceitaCubit>();
 
-        return Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Seletor Mês/Ano ──
-                  _buildMesAnoSelector(state, cubit),
-                  const SizedBox(height: 16),
+        // Quando o cubit emitir um despesaEditando, preencher o form
+        if (state.despesaEditando != null &&
+            _editandoId != state.despesaEditando!.id) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _preencherFormParaEdicao(state.despesaEditando!);
+          });
+        }
 
-                  // ── Card: Filtros ──
-                  _buildSectionCard(
-                    icon: Icons.filter_list,
-                    title: 'Filtros',
-                    isExpanded: _filtrosExpandidos,
-                    onToggle: () => setState(
-                      () => _filtrosExpandidos = !_filtrosExpandidos,
-                    ),
-                    child: _buildFiltrosContent(state, cubit),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Card: Cadastrar Nova Despesa ──
-                  _buildSectionCard(
-                    icon: Icons.add_circle_outline,
-                    title: 'Cadastrar Nova Despesa',
-                    isExpanded: _cadastroExpandido,
-                    onToggle: () => setState(
-                      () => _cadastroExpandido = !_cadastroExpandido,
-                    ),
-                    accentColor: Colors.green.shade700,
-                    child: _buildCadastroForm(state, cubit),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Registros (Tabela) ──
-                  _buildRegistrosSection(state, cubit),
-
-                  const SizedBox(height: 16),
-
-                  // ── Resumo Financeiro ──
-                  ResumoFinanceiroWidget(
-                    totalDebito: state.totalDespesas,
-                    totalCredito: state.totalReceitas,
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-
-            // FAB para cadastrar
-            if (!_cadastroExpandido)
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton(
-                  heroTag: 'fab_despesa',
-                  backgroundColor: _primaryColor,
-                  onPressed: () {
-                    setState(() => _cadastroExpandido = true);
-                    // Scroll to cadastro section would be ideal
-                  },
-                  child: const Icon(Icons.add, color: Colors.white, size: 28),
-                ),
-              ),
-          ],
+        return BaseTabWidget<Despesa>(
+          fabHeroTag: 'fab_despesa',
+          fabIcon: Icons.add,
+          isEditing: _editandoId != null,
+          titleAdd: 'Cadastrar Nova Despesa',
+          titleEdit: 'Editar Despesa',
+          filtrosExpandidos: _filtrosExpandidos,
+          onToggleFiltros: () =>
+              setState(() => _filtrosExpandidos = !_filtrosExpandidos),
+          filtrosContent: _buildFiltrosContent(state, cubit),
+          cadastroExpandido: _cadastroExpandido,
+          onToggleCadastro: () =>
+              setState(() => _cadastroExpandido = !_cadastroExpandido),
+          cadastroContent: _buildCadastroForm(state, cubit),
+          tableName: 'Despesas Registradas',
+          items: state.despesas,
+          isLoading: state.status == DespesaReceitaStatus.loading,
+          emptyStateIcon: Icon(
+            Icons.receipt_long,
+            size: 48,
+            color: Colors.grey.shade300,
+          ),
+          emptyStateText: 'Nenhuma despesa encontrada',
+          emptyStateSubtext: 'Use o botão + para cadastrar uma nova despesa',
+          tableHeader: _buildHeaderRow(state, cubit),
+          itemBuilder: (context, state, cubit, item, index) =>
+              _buildDespesaRow(item, index, state, cubit),
+          tableFooterBuilder: (context, state, cubit) =>
+              _buildRodape(state, cubit),
+          onFabPressed: () {
+            setState(() {
+              _cadastroExpandido = true;
+              if (_editandoId != null) _limparFormulario(cubit);
+            });
+          },
         );
       },
-    );
-  }
-
-  // ══════════════════════════════════════════════════════
-  // SELETOR MÊS / ANO
-  // ══════════════════════════════════════════════════════
-
-  Widget _buildMesAnoSelector(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    final mesNome = _meses[state.mesSelecionado - 1];
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: _primaryColor.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _primaryColor.withOpacity(0.15)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: _primaryColor),
-            onPressed: cubit.mesAnterior,
-          ),
-          const Icon(Icons.calendar_month, size: 20, color: _primaryColor),
-          const SizedBox(width: 8),
-          Text(
-            '$mesNome/${state.anoSelecionado}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: _primaryColor,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: _primaryColor),
-            onPressed: cubit.proximoMes,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════
-  // CARD GENÉRICO COM HEADER
-  // ══════════════════════════════════════════════════════
-
-  Widget _buildSectionCard({
-    required IconData icon,
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    required Widget child,
-    Color? accentColor,
-  }) {
-    final color = accentColor ?? _primaryColor;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header
-          GestureDetector(
-            onTap: onToggle,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
-                borderRadius: isExpanded
-                    ? const BorderRadius.vertical(top: Radius.circular(12))
-                    : BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: color,
-                    size: 22,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Body
-          if (isExpanded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(12),
-                ),
-              ),
-              child: child,
-            ),
-        ],
-      ),
     );
   }
 
@@ -279,7 +116,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta',
           icon: Icons.account_balance,
           value: _filtroContaId,
@@ -294,7 +131,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           onChanged: (v) => setState(() => _filtroContaId = v),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Categoria',
           icon: Icons.category,
           value: _filtroCategoriaId,
@@ -312,25 +149,21 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           }),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Subcategoria',
           icon: Icons.subdirectory_arrow_right,
           value: _filtroSubcategoriaId,
           items: _getSubcategorias(state, _filtroCategoriaId)
               .map<DropdownMenuItem<String>>(
                 (s) => DropdownMenuItem<String>(
-                  value: s.id as String,
-                  child: Text(
-                    s.nome as String,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  value: s.id,
+                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
                 ),
               )
               .toList(),
           onChanged: (v) => setState(() => _filtroSubcategoriaId = v),
         ),
         const SizedBox(height: 10),
-        // Palavra Chave
         TextField(
           controller: _palavraChaveController,
           decoration: InputDecoration(
@@ -346,7 +179,6 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 14),
-        // Botão Pesquisar
         SizedBox(
           width: double.infinity,
           height: 44,
@@ -368,7 +200,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
+              backgroundColor: kAccentColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -381,7 +213,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   }
 
   // ══════════════════════════════════════════════════════
-  // FORMULÁRIO DE CADASTRO
+  // FORMULÁRIO DE CADASTRO / EDIÇÃO
   // ══════════════════════════════════════════════════════
 
   Widget _buildCadastroForm(
@@ -391,8 +223,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Conta e Categoria para cadastro
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Conta',
           icon: Icons.account_balance,
           value: _contaIdCadastro,
@@ -407,7 +238,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           onChanged: (v) => setState(() => _contaIdCadastro = v),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Categoria',
           icon: Icons.category,
           value: _categoriaIdCadastro,
@@ -425,18 +256,15 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           }),
         ),
         const SizedBox(height: 10),
-        _buildDropdownField(
+        buildDropdownField(
           label: 'Subcategoria',
           icon: Icons.subdirectory_arrow_right,
           value: _subcategoriaIdCadastro,
           items: _getSubcategorias(state, _categoriaIdCadastro)
               .map<DropdownMenuItem<String>>(
                 (s) => DropdownMenuItem<String>(
-                  value: s.id as String,
-                  child: Text(
-                    s.nome as String,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  value: s.id,
+                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
                 ),
               )
               .toList(),
@@ -469,7 +297,9 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
             Expanded(
               child: TextField(
                 controller: _valorController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Valor (R\$)',
                   prefixIcon: const Icon(Icons.attach_money, size: 20),
@@ -487,22 +317,11 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: TextField(
-                controller: _vencimentoController,
-                keyboardType: TextInputType.datetime,
-                decoration: InputDecoration(
-                  labelText: 'Dia Vencimento',
-                  prefixIcon: const Icon(Icons.calendar_today, size: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                ),
-                style: const TextStyle(fontSize: 14),
+              child: buildDateField(
+                context: context,
+                label: 'Data Vencimento',
+                value: _dataVencimento,
+                onChanged: (d) => setState(() => _dataVencimento = d),
               ),
             ),
           ],
@@ -510,82 +329,13 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
         const SizedBox(height: 12),
 
         // Recorrente
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.repeat, size: 18, color: _primaryColor),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Recorrente',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  const Spacer(),
-                  Switch(
-                    value: _recorrente,
-                    onChanged: (v) => setState(() => _recorrente = v),
-                    activeColor: _primaryColor,
-                  ),
-                ],
-              ),
-              if (_recorrente) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _qtdMesesController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Qtd. Meses',
-                          hintText: '∞ se vazio',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.all(10),
-                        ),
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Checkbox(
-                          value: _meAvisar,
-                          onChanged: (v) =>
-                              setState(() => _meAvisar = v ?? false),
-                          activeColor: _primaryColor,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        const Text('Me Avisar', style: TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Se não informar a qtd. de meses, será infinito (gera todo mês).',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+        buildRecorrenciaSection(
+          recorrente: _recorrente,
+          onRecorrenteChanged: (v) => setState(() => _recorrente = v),
+          qtdMesesController: _qtdMesesController,
+          showMeAvisar: true,
+          meAvisar: _meAvisar,
+          onMeAvisarChanged: (v) => setState(() => _meAvisar = v),
         ),
         const SizedBox(height: 10),
 
@@ -604,80 +354,72 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           ),
           style: const TextStyle(fontSize: 14),
         ),
-        const SizedBox(height: 10),
-
-        // Anexar foto
-        OutlinedButton.icon(
-          onPressed: () {
-            // TODO: Implementar seleção de foto
-          },
-          icon: const Icon(Icons.camera_alt_outlined, size: 20),
-          label: const Text('Anexar Foto'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _primaryColor,
-            side: BorderSide(color: _primaryColor.withOpacity(0.5)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-        ),
         const SizedBox(height: 16),
 
-        // Botão Salvar
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: state.isSaving
-                ? null
-                : () {
-                    final despesa = Despesa(
-                      condominioId: cubit.condominioId,
-                      contaId: _contaIdCadastro,
-                      categoriaId: _categoriaIdCadastro,
-                      subcategoriaId: _subcategoriaIdCadastro,
-                      descricao: _descricaoController.text,
-                      valor:
-                          double.tryParse(
-                            _valorController.text.replaceAll(',', '.'),
-                          ) ??
-                          0,
-                      dataVencimento: _parseDate(_vencimentoController.text),
-                      recorrente: _recorrente,
-                      qtdMeses: int.tryParse(_qtdMesesController.text),
-                      meAvisar: _meAvisar,
-                      link: _linkController.text.isEmpty
-                          ? null
-                          : _linkController.text,
-                    );
-                    cubit.salvarDespesa(despesa);
-                    _limparFormulario();
-                  },
-            icon: state.isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+        // Botões de ação
+        if (_editandoId != null)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _limparFormulario(cubit),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text('Cancelar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                : const Icon(Icons.save, size: 20),
-            label: Text(
-              state.isSaving ? 'Salvando...' : 'Salvar Despesa',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: _buildSalvarButton(state, cubit)),
+            ],
+          )
+        else
+          _buildSalvarButton(state, cubit),
+      ],
+    );
+  }
+
+  Widget _buildSalvarButton(
+    DespesaReceitaState state,
+    DespesaReceitaCubit cubit,
+  ) {
+    final isEditing = _editandoId != null;
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: state.isSaving ? null : () => _salvar(cubit),
+        icon: state.isSaving
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(isEditing ? Icons.save_as : Icons.save, size: 20),
+        label: Text(
+          state.isSaving
+              ? 'Salvando...'
+              : (isEditing ? 'Salvar Alterações' : 'Salvar Despesa'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEditing
+              ? Colors.orange.shade700
+              : Colors.green.shade700,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -685,156 +427,42 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // REGISTROS (TABELA)
   // ══════════════════════════════════════════════════════
 
-  Widget _buildRegistrosSection(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Row(
-          children: [
-            const Icon(Icons.list_alt, size: 20, color: _primaryColor),
-            const SizedBox(width: 8),
-            Text(
-              'Despesas Registradas',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _primaryColor,
-              ),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                '${state.despesas.length} registro${state.despesas.length != 1 ? 's' : ''}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _primaryColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        if (state.status == DespesaReceitaStatus.loading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else if (state.despesas.isEmpty)
-          _buildEmptyState()
-        else
-          _buildDespesasList(state, cubit),
-
-        if (state.despesas.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _buildRodape(state, cubit),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
+  Widget _buildHeaderRow(DespesaReceitaState state, DespesaReceitaCubit cubit) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: kPrimaryColor,
+      child: Row(
         children: [
-          Icon(Icons.receipt_long, size: 48, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            'Nenhuma despesa encontrada',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Use o botão + para cadastrar uma nova despesa',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDespesasList(
-    DespesaReceitaState state,
-    DespesaReceitaCubit cubit,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            // Table header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              color: _primaryColor,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 24,
-                    child: GestureDetector(
-                      onTap: () {
-                        cubit.selecionarTodos(
-                          state.despesas
-                              .where((d) => d.id != null)
-                              .map((d) => d.id!)
-                              .toList(),
-                        );
-                      },
-                      child: Icon(
-                        state.despesas.isNotEmpty &&
-                                state.despesas.every(
-                                  (d) => state.itensSelecionados.contains(d.id),
-                                )
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _headerCell('Descrição', flex: 3),
-                  _headerCell('Categoria', flex: 2),
-                  _headerCell('Vencimento', flex: 2),
-                  _headerCell('Valor', flex: 2),
-                  _headerCell('Tipo', flex: 1),
-                ],
+          SizedBox(
+            width: 24,
+            child: GestureDetector(
+              onTap: () {
+                cubit.selecionarTodasDespesas(
+                  state.despesas
+                      .where((d) => d.id != null)
+                      .map((d) => d.id!)
+                      .toList(),
+                );
+              },
+              child: Icon(
+                state.despesas.isNotEmpty &&
+                        state.despesas.every(
+                          (d) => state.despesasSelecionadas.contains(d.id),
+                        )
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
+                color: Colors.white,
+                size: 18,
               ),
             ),
-            // Rows
-            ...state.despesas.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final d = entry.value;
-              return _buildDespesaRow(d, idx, state, cubit);
-            }),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          _headerCell('Descrição', flex: 3),
+          _headerCell('Categoria', flex: 2),
+          _headerCell('Vencimento', flex: 2),
+          _headerCell('Valor', flex: 2),
+          _headerCell('Tipo', flex: 1),
+        ],
       ),
     );
   }
@@ -860,7 +488,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     DespesaReceitaState state,
     DespesaReceitaCubit cubit,
   ) {
-    final isSelected = state.itensSelecionados.contains(d.id);
+    final isSelected = state.despesasSelecionadas.contains(d.id);
     final dataStr = d.dataVencimento != null
         ? '${d.dataVencimento!.day.toString().padLeft(2, '0')}/${d.dataVencimento!.month.toString().padLeft(2, '0')}/${d.dataVencimento!.year}'
         : '--';
@@ -868,18 +496,18 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
 
     return GestureDetector(
       onTap: () {
-        if (d.id != null) cubit.toggleItemSelecionado(d.id!);
+        if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? _accentColor.withOpacity(0.06)
+              ? kAccentColor.withOpacity(0.06)
               : (index.isEven ? Colors.white : Colors.grey.shade50),
           border: Border(
             bottom: BorderSide(color: Colors.grey.shade200),
             left: isSelected
-                ? BorderSide(color: _accentColor, width: 3)
+                ? const BorderSide(color: kAccentColor, width: 3)
                 : BorderSide.none,
           ),
         ),
@@ -890,7 +518,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
               child: Icon(
                 isSelected ? Icons.check_box : Icons.check_box_outline_blank,
                 size: 18,
-                color: isSelected ? _accentColor : Colors.grey.shade400,
+                color: isSelected ? kAccentColor : Colors.grey.shade400,
               ),
             ),
             const SizedBox(width: 8),
@@ -957,7 +585,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: d.recorrente ? Colors.orange.shade700 : _accentColor,
+                    color: d.recorrente ? Colors.orange.shade700 : kAccentColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -974,9 +602,9 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // ══════════════════════════════════════════════════════
 
   Widget _buildRodape(DespesaReceitaState state, DespesaReceitaCubit cubit) {
-    final qtd = state.itensSelecionados.length;
+    final qtd = state.despesasSelecionadas.length;
     final total = state.despesas
-        .where((d) => state.itensSelecionados.contains(d.id))
+        .where((d) => state.despesasSelecionadas.contains(d.id))
         .fold(0.0, (sum, d) => sum + d.valor);
 
     return Container(
@@ -988,16 +616,23 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
       ),
       child: Row(
         children: [
-          // Ações
           if (qtd > 0) ...[
             SizedBox(
               height: 32,
               child: ElevatedButton.icon(
-                onPressed: qtd == 1 ? () {} : null,
+                onPressed: qtd == 1
+                    ? () {
+                        final despesa = state.despesas.firstWhere(
+                          (d) => state.despesasSelecionadas.contains(d.id),
+                        );
+                        cubit.iniciarEdicaoDespesa(despesa);
+                        setState(() => _cadastroExpandido = true);
+                      }
+                    : null,
                 icon: const Icon(Icons.edit, size: 14),
                 label: const Text('Editar', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
+                  backgroundColor: kPrimaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
@@ -1010,7 +645,13 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
             SizedBox(
               height: 32,
               child: OutlinedButton.icon(
-                onPressed: () => cubit.excluirDespesasSelecionadas(),
+                onPressed: () async {
+                  final confirm = await showConfirmDeleteDialog(
+                    context,
+                    quantidade: qtd,
+                  );
+                  if (confirm) cubit.excluirDespesasSelecionadas();
+                },
                 icon: const Icon(Icons.delete_outline, size: 14),
                 label: const Text('Excluir', style: TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
@@ -1035,7 +676,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: _primaryColor,
+              color: kPrimaryColor,
             ),
           ),
         ],
@@ -1047,33 +688,6 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // HELPERS
   // ══════════════════════════════════════════════════════
 
-  Widget _buildDropdownField({
-    required String label,
-    required IconData icon,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final validValue = items.any((item) => item.value == value) ? value : null;
-    return DropdownButtonFormField<String>(
-      value: validValue,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
-      ),
-      isExpanded: true,
-      icon: const Icon(Icons.keyboard_arrow_down),
-      items: items,
-      onChanged: onChanged,
-    );
-  }
-
   List<dynamic> _getSubcategorias(DespesaReceitaState state, String? catId) {
     if (catId == null) return [];
     final cats = state.categoriasDespesa.where((c) => c.id == catId).toList();
@@ -1081,44 +695,82 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     return cats.first.subcategorias;
   }
 
-  DateTime? _parseDate(String text) {
-    if (text.isEmpty) return null;
-    try {
-      if (text.contains('/')) {
-        final parts = text.split('/');
-        if (parts.length == 3) {
-          return DateTime(
-            int.parse(parts[2]),
-            int.parse(parts[1]),
-            int.parse(parts[0]),
-          );
-        }
-      }
-      final day = int.tryParse(text);
-      if (day != null) {
-        final cubit = context.read<DespesaReceitaCubit>();
-        return DateTime(
-          cubit.state.anoSelecionado,
-          cubit.state.mesSelecionado,
-          day,
-        );
-      }
-    } catch (_) {}
-    return null;
+  void _preencherFormParaEdicao(Despesa d) {
+    setState(() {
+      _editandoId = d.id;
+      _contaIdCadastro = d.contaId;
+      _categoriaIdCadastro = d.categoriaId;
+      _subcategoriaIdCadastro = d.subcategoriaId;
+      _descricaoController.text = d.descricao ?? '';
+      _valorController.text = d.valor.toStringAsFixed(2);
+      _dataVencimento = d.dataVencimento;
+      _recorrente = d.recorrente;
+      _qtdMesesController.text = d.qtdMeses != null
+          ? d.qtdMeses.toString()
+          : '';
+      _meAvisar = d.meAvisar;
+      _linkController.text = d.link ?? '';
+      _cadastroExpandido = true;
+    });
   }
 
-  void _limparFormulario() {
+  void _salvar(DespesaReceitaCubit cubit) {
+    // Validação
+    final valorStr = _valorController.text.replaceAll(',', '.');
+    final valor = double.tryParse(valorStr) ?? 0;
+
+    if (valor <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Informe um valor maior que zero.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_dataVencimento == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione a data de vencimento.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final despesa = Despesa(
+      id: _editandoId,
+      condominioId: cubit.condominioId,
+      contaId: _contaIdCadastro,
+      categoriaId: _categoriaIdCadastro,
+      subcategoriaId: _subcategoriaIdCadastro,
+      descricao: _descricaoController.text,
+      valor: valor,
+      dataVencimento: _dataVencimento,
+      recorrente: _recorrente,
+      qtdMeses: int.tryParse(_qtdMesesController.text),
+      meAvisar: _meAvisar,
+      link: _linkController.text.isEmpty ? null : _linkController.text,
+    );
+    cubit.salvarDespesa(despesa);
+    _limparFormulario(cubit);
+  }
+
+  void _limparFormulario(DespesaReceitaCubit cubit) {
+    cubit.cancelarEdicaoDespesa();
     _descricaoController.clear();
     _valorController.clear();
-    _vencimentoController.clear();
     _linkController.clear();
     _qtdMesesController.clear();
     setState(() {
+      _editandoId = null;
+      _dataVencimento = null;
       _recorrente = false;
       _meAvisar = false;
       _contaIdCadastro = null;
       _categoriaIdCadastro = null;
       _subcategoriaIdCadastro = null;
+      _cadastroExpandido = false;
     });
   }
 }

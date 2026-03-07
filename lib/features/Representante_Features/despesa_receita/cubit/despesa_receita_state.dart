@@ -24,8 +24,21 @@ class DespesaReceitaState extends Equatable {
   final String? filtroPalavraChave;
   final String? filtroContaContabil;
   final String? filtroContaCreditoId;
+  final String? filtroContaDebitoId;
   final String filtroTipoReceita; // Todos, Manual, Automático
-  final Set<String> itensSelecionados;
+
+  // Seleção separada por aba
+  final Set<String> despesasSelecionadas;
+  final Set<String> receitasSelecionadas;
+  final Set<String> transferenciasSelecionadas;
+
+  // Modo edição
+  final Despesa? despesaEditando;
+  final Receita? receitaEditando;
+  final Transferencia? transferenciaEditando;
+
+  // Resumo financeiro
+  final double saldoAnterior;
 
   // UI state
   final bool cadastroExpandido;
@@ -47,8 +60,15 @@ class DespesaReceitaState extends Equatable {
     this.filtroPalavraChave,
     this.filtroContaContabil,
     this.filtroContaCreditoId,
+    this.filtroContaDebitoId,
     this.filtroTipoReceita = 'Todos',
-    this.itensSelecionados = const {},
+    this.despesasSelecionadas = const {},
+    this.receitasSelecionadas = const {},
+    this.transferenciasSelecionadas = const {},
+    this.despesaEditando,
+    this.receitaEditando,
+    this.transferenciaEditando,
+    this.saldoAnterior = 0,
     this.cadastroExpandido = false,
     this.isSaving = false,
     this.errorMessage,
@@ -69,11 +89,22 @@ class DespesaReceitaState extends Equatable {
     String? filtroPalavraChave,
     String? filtroContaContabil,
     String? filtroContaCreditoId,
+    String? filtroContaDebitoId,
     String? filtroTipoReceita,
-    Set<String>? itensSelecionados,
+    Set<String>? despesasSelecionadas,
+    Set<String>? receitasSelecionadas,
+    Set<String>? transferenciasSelecionadas,
+    Despesa? despesaEditando,
+    bool clearDespesaEditando = false,
+    Receita? receitaEditando,
+    bool clearReceitaEditando = false,
+    Transferencia? transferenciaEditando,
+    bool clearTransferenciaEditando = false,
+    double? saldoAnterior,
     bool? cadastroExpandido,
     bool? isSaving,
     String? errorMessage,
+    bool clearErrorMessage = false,
   }) {
     return DespesaReceitaState(
       status: status ?? this.status,
@@ -90,11 +121,27 @@ class DespesaReceitaState extends Equatable {
       filtroPalavraChave: filtroPalavraChave ?? this.filtroPalavraChave,
       filtroContaContabil: filtroContaContabil ?? this.filtroContaContabil,
       filtroContaCreditoId: filtroContaCreditoId ?? this.filtroContaCreditoId,
+      filtroContaDebitoId: filtroContaDebitoId ?? this.filtroContaDebitoId,
       filtroTipoReceita: filtroTipoReceita ?? this.filtroTipoReceita,
-      itensSelecionados: itensSelecionados ?? this.itensSelecionados,
+      despesasSelecionadas: despesasSelecionadas ?? this.despesasSelecionadas,
+      receitasSelecionadas: receitasSelecionadas ?? this.receitasSelecionadas,
+      transferenciasSelecionadas:
+          transferenciasSelecionadas ?? this.transferenciasSelecionadas,
+      despesaEditando: clearDespesaEditando
+          ? null
+          : (despesaEditando ?? this.despesaEditando),
+      receitaEditando: clearReceitaEditando
+          ? null
+          : (receitaEditando ?? this.receitaEditando),
+      transferenciaEditando: clearTransferenciaEditando
+          ? null
+          : (transferenciaEditando ?? this.transferenciaEditando),
+      saldoAnterior: saldoAnterior ?? this.saldoAnterior,
       cadastroExpandido: cadastroExpandido ?? this.cadastroExpandido,
       isSaving: isSaving ?? this.isSaving,
-      errorMessage: errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 
@@ -120,6 +167,9 @@ class DespesaReceitaState extends Equatable {
   /// Total das receitas
   double get totalReceitas => receitas.fold(0, (sum, r) => sum + r.valor);
 
+  /// Saldo atual calculado
+  double get saldoAtual => saldoAnterior + totalReceitas - totalDespesas;
+
   @override
   List<Object?> get props => [
     status,
@@ -136,8 +186,15 @@ class DespesaReceitaState extends Equatable {
     filtroPalavraChave,
     filtroContaContabil,
     filtroContaCreditoId,
+    filtroContaDebitoId,
     filtroTipoReceita,
-    itensSelecionados,
+    despesasSelecionadas,
+    receitasSelecionadas,
+    transferenciasSelecionadas,
+    despesaEditando,
+    receitaEditando,
+    transferenciaEditando,
+    saldoAnterior,
     cadastroExpandido,
     isSaving,
     errorMessage,

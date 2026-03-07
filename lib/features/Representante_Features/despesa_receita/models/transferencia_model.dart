@@ -1,4 +1,6 @@
-class Transferencia {
+import 'package:equatable/equatable.dart';
+
+class Transferencia extends Equatable {
   final String? id;
   final String condominioId;
   final String? contaDebitoId;
@@ -15,7 +17,7 @@ class Transferencia {
   final String? contaDebitoNome;
   final String? contaCreditoNome;
 
-  Transferencia({
+  const Transferencia({
     this.id,
     required this.condominioId,
     this.contaDebitoId,
@@ -105,4 +107,21 @@ class Transferencia {
       contaCreditoNome: contaCreditoNome ?? this.contaCreditoNome,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    id,
+    condominioId,
+    contaDebitoId,
+    contaCreditoId,
+    descricao,
+    valor,
+    dataTransferencia,
+    recorrente,
+    qtdMeses,
+    tipo,
+    createdAt,
+    contaDebitoNome,
+    contaCreditoNome,
+  ];
 }

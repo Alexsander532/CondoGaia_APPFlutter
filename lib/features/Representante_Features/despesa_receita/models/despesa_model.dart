@@ -1,4 +1,6 @@
-class Despesa {
+import 'package:equatable/equatable.dart';
+
+class Despesa extends Equatable {
   final String? id;
   final String condominioId;
   final String? contaId;
@@ -20,7 +22,7 @@ class Despesa {
   final String? categoriaNome;
   final String? subcategoriaNome;
 
-  Despesa({
+  const Despesa({
     this.id,
     required this.condominioId,
     this.contaId,
@@ -132,4 +134,26 @@ class Despesa {
       subcategoriaNome: subcategoriaNome ?? this.subcategoriaNome,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    id,
+    condominioId,
+    contaId,
+    categoriaId,
+    subcategoriaId,
+    descricao,
+    valor,
+    dataVencimento,
+    recorrente,
+    qtdMeses,
+    meAvisar,
+    link,
+    fotoUrl,
+    tipo,
+    createdAt,
+    contaNome,
+    categoriaNome,
+    subcategoriaNome,
+  ];
 }
