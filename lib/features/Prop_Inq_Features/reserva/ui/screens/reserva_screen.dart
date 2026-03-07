@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../di/reserva_dependencies.dart';
 import '../cubit/reserva_cubit.dart';
 import '../cubit/reserva_state.dart';
@@ -22,6 +23,10 @@ class _ReservaScreenState extends State<ReservaScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _horaInicioController = TextEditingController();
   final TextEditingController _horaFimController = TextEditingController();
+  final _timeFormatter = MaskTextInputFormatter(
+    mask: '##:##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
   bool _termoLocacaoAceito = false;
   late ReservaCubit _cubit;
   late TabController _tabController;
@@ -91,7 +96,11 @@ class _ReservaScreenState extends State<ReservaScreen>
                 // Conteúdo do formulário
                 Expanded(
                   child: SingleChildScrollView(
-                    child: _buildReservationForm(selectedDate, setModalState, cubit),
+                    child: _buildReservationForm(
+                      selectedDate,
+                      setModalState,
+                      cubit,
+                    ),
                   ),
                 ),
               ],
@@ -103,8 +112,11 @@ class _ReservaScreenState extends State<ReservaScreen>
   }
 
   /// Constrói o formulário de reserva
-  Widget _buildReservationForm(DateTime selectedDate, StateSetter setModalState, ReservaCubit cubit) {
-
+  Widget _buildReservationForm(
+    DateTime selectedDate,
+    StateSetter setModalState,
+    ReservaCubit cubit,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -144,18 +156,23 @@ class _ReservaScreenState extends State<ReservaScreen>
             value: cubit.ambienteSelecionado?.id,
             onChanged: (value) {
               if (value != null) {
-                final ambiente =
-                    cubit.ambientes.firstWhere((a) => a.id == value);
+                final ambiente = cubit.ambientes.firstWhere(
+                  (a) => a.id == value,
+                );
                 setModalState(() {
                   cubit.atualizarAmbienteSelecionado(ambiente);
                 });
               }
             },
             items: cubit.ambientes
-                .map((ambiente) => DropdownMenuItem(
-                      value: ambiente.id,
-                      child: Text('${ambiente.nome} - R\$ ${ambiente.valor.toStringAsFixed(2)}'),
-                    ))
+                .map(
+                  (ambiente) => DropdownMenuItem(
+                    value: ambiente.id,
+                    child: Text(
+                      '${ambiente.nome} - R\$ ${ambiente.valor.toStringAsFixed(2)}',
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -220,12 +237,17 @@ class _ReservaScreenState extends State<ReservaScreen>
                   TextField(
                     controller: _horaInicioController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [_timeFormatter],
+                    onChanged: (value) =>
+                        _atualizarDataInicio(value, selectedDate, cubit),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       hintText: 'HH:MM',
                     ),
                   ),
@@ -245,12 +267,17 @@ class _ReservaScreenState extends State<ReservaScreen>
                   TextField(
                     controller: _horaFimController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [_timeFormatter],
+                    onChanged: (value) =>
+                        _atualizarDataFim(value, selectedDate, cubit),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       hintText: 'HH:MM',
                     ),
                   ),
@@ -291,7 +318,12 @@ class _ReservaScreenState extends State<ReservaScreen>
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Implementar salvamento da reserva
+              cubit.criarReserva(
+                condominioId: widget.condominioId,
+                usuarioId: widget.usuarioId,
+                termoLocacaoAceito: _termoLocacaoAceito,
+                isInquilino: false, // Default context fallback
+              );
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -315,6 +347,44 @@ class _ReservaScreenState extends State<ReservaScreen>
     );
   }
 
+  void _atualizarDataInicio(
+    String horaStr,
+    DateTime dataBase,
+    ReservaCubit cubit,
+  ) {
+    if (horaStr.length == 5 && horaStr.contains(':')) {
+      final partes = horaStr.split(':');
+      final hora = int.tryParse(partes[0]);
+      final minuto = int.tryParse(partes[1]);
+      if (hora != null && minuto != null) {
+        cubit.atualizarDataInicio(
+          DateTime(dataBase.year, dataBase.month, dataBase.day, hora, minuto),
+        );
+      }
+    } else {
+      cubit.atualizarDataInicio(null);
+    }
+  }
+
+  void _atualizarDataFim(
+    String horaStr,
+    DateTime dataBase,
+    ReservaCubit cubit,
+  ) {
+    if (horaStr.length == 5 && horaStr.contains(':')) {
+      final partes = horaStr.split(':');
+      final hora = int.tryParse(partes[0]);
+      final minuto = int.tryParse(partes[1]);
+      if (hora != null && minuto != null) {
+        cubit.atualizarDataFim(
+          DateTime(dataBase.year, dataBase.month, dataBase.day, hora, minuto),
+        );
+      }
+    } else {
+      cubit.atualizarDataFim(null);
+    }
+  }
+
   /// Constrói o drawer (menu lateral)
   Widget _buildDrawer() {
     return Drawer(
@@ -323,16 +393,11 @@ class _ReservaScreenState extends State<ReservaScreen>
         children: [
           // Header do drawer
           DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue[900],
-            ),
+            decoration: BoxDecoration(color: Colors.blue[900]),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/logo_CondoGaia.png',
-                  height: 40,
-                ),
+                Image.asset('assets/images/logo_CondoGaia.png', height: 40),
                 const SizedBox(height: 16),
                 const Text(
                   'Menu',
@@ -358,10 +423,7 @@ class _ReservaScreenState extends State<ReservaScreen>
           // Botão Sair
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Sair',
-              style: TextStyle(color: Colors.red),
-            ),
+            title: const Text('Sair', style: TextStyle(color: Colors.red)),
             onTap: () {
               // TODO: Implementar logout
             },
@@ -402,7 +464,10 @@ class _ReservaScreenState extends State<ReservaScreen>
               children: [
                 // Cabeçalho superior com menu hamburger
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       // Botão de menu (hamburger)
@@ -455,14 +520,14 @@ class _ReservaScreenState extends State<ReservaScreen>
                   ),
                 ),
                 // Linha de separação
-                Container(
-                  height: 1,
-                  color: Colors.grey[300],
-                ),
+                Container(height: 1, color: Colors.grey[300]),
 
                 // Caminho de navegação com seta
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Row(
                     children: [
                       // Seta de voltar
@@ -485,15 +550,24 @@ class _ReservaScreenState extends State<ReservaScreen>
                             children: [
                               const Text(
                                 'Home',
-                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
                               ),
                               const Text(
                                 ' / ',
-                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
                               ),
                               const Text(
                                 'Reservas',
-                                style: TextStyle(color: Colors.grey, fontSize: 14),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
@@ -504,10 +578,7 @@ class _ReservaScreenState extends State<ReservaScreen>
                 ),
 
                 // Linha de separação
-                Container(
-                  height: 1,
-                  color: Colors.grey[300],
-                ),
+                Container(height: 1, color: Colors.grey[300]),
 
                 // TabBar com abas brancas
                 Container(
@@ -529,10 +600,7 @@ class _ReservaScreenState extends State<ReservaScreen>
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [
-                      _buildCalendarTab(),
-                      _buildMinhasReservasTab(),
-                    ],
+                    children: [_buildCalendarTab(), _buildMinhasReservasTab()],
                   ),
                 ),
               ],
@@ -547,13 +615,11 @@ class _ReservaScreenState extends State<ReservaScreen>
     return BlocBuilder<ReservaCubit, ReservaState>(
       builder: (context, state) {
         print('📊 ReservaState: ${state.runtimeType}');
-        
+
         final cubit = context.read<ReservaCubit>();
 
         if (state is ReservaLoading && cubit.reservas.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         return SingleChildScrollView(
@@ -687,11 +753,15 @@ class _ReservaScreenState extends State<ReservaScreen>
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  context.read<ReservaCubit>().cancelarReserva(reserva.id);
+                                  context.read<ReservaCubit>().cancelarReserva(
+                                    reserva.id,
+                                  );
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.red[300],
                                     borderRadius: BorderRadius.circular(4),
@@ -741,7 +811,7 @@ class _ReservaScreenState extends State<ReservaScreen>
       children: [
         IconButton(
           onPressed: () {
-            cubit.mesPosterior();
+            cubit.mesAnterior();
             setState(() {});
           },
           icon: const Icon(Icons.chevron_left, size: 28),
@@ -788,10 +858,11 @@ class _ReservaScreenState extends State<ReservaScreen>
   }
 
   Widget _buildCalendarGrid(ReservaCubit cubit) {
-    final daysInMonth =
-        _getDaysInMonth(cubit.mesAtual + 1, cubit.anoAtual);
-    final firstDayOfWeek =
-        _getFirstDayOfWeek(cubit.mesAtual + 1, cubit.anoAtual);
+    final daysInMonth = _getDaysInMonth(cubit.mesAtual + 1, cubit.anoAtual);
+    final firstDayOfWeek = _getFirstDayOfWeek(
+      cubit.mesAtual + 1,
+      cubit.anoAtual,
+    );
 
     List<Widget> days = [];
 
@@ -803,27 +874,33 @@ class _ReservaScreenState extends State<ReservaScreen>
     // Dias do mês
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(cubit.anoAtual, cubit.mesAtual + 1, day);
-      final isSelected = date.day == cubit.dataSelecionada.day &&
+      final isSelected =
+          date.day == cubit.dataSelecionada.day &&
           date.month == cubit.dataSelecionada.month &&
           date.year == cubit.dataSelecionada.year;
-      final isToday = date.day == cubit.today.day &&
+      final isToday =
+          date.day == cubit.today.day &&
           date.month == cubit.today.month &&
           date.year == cubit.today.year;
-      final hasReservation = cubit.reservas.any((r) =>
-          r.dataReserva.day == day &&
-          r.dataReserva.month == cubit.mesAtual + 1 &&
-          r.dataReserva.year == cubit.anoAtual);
+      final hasReservation = cubit.reservas.any(
+        (r) =>
+            r.dataReserva.day == day &&
+            r.dataReserva.month == cubit.mesAtual + 1 &&
+            r.dataReserva.year == cubit.anoAtual,
+      );
 
-      days.add(_buildCalendarDay(
-        day: day,
-        isSelected: isSelected,
-        isToday: isToday,
-        hasReservation: hasReservation,
-        onTap: () {
-          cubit.selecionarDia(day);
-          setState(() {});
-        },
-      ));
+      days.add(
+        _buildCalendarDay(
+          day: day,
+          isSelected: isSelected,
+          isToday: isToday,
+          hasReservation: hasReservation,
+          onTap: () {
+            cubit.selecionarDia(day);
+            setState(() {});
+          },
+        ),
+      );
     }
 
     return GridView.count(
@@ -850,8 +927,8 @@ class _ReservaScreenState extends State<ReservaScreen>
           color: isSelected
               ? Colors.blue[900]
               : isToday
-                  ? Colors.blue[100]
-                  : Colors.grey[100],
+              ? Colors.blue[100]
+              : Colors.grey[100],
           borderRadius: BorderRadius.circular(8),
           border: isToday ? Border.all(color: Colors.blue, width: 2) : null,
         ),
@@ -864,8 +941,8 @@ class _ReservaScreenState extends State<ReservaScreen>
                   color: isSelected
                       ? Colors.white
                       : isToday
-                          ? Colors.blue[900]
-                          : Colors.black87,
+                      ? Colors.blue[900]
+                      : Colors.black87,
                   fontWeight: isSelected || isToday
                       ? FontWeight.bold
                       : FontWeight.normal,
@@ -891,17 +968,13 @@ class _ReservaScreenState extends State<ReservaScreen>
     );
   }
 
-
-
   Widget _buildMinhasReservasTab() {
     return BlocBuilder<ReservaCubit, ReservaState>(
       builder: (context, state) {
         final cubit = context.read<ReservaCubit>();
 
         if (state is ReservaLoading && cubit.reservas.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (cubit.reservas.isEmpty) {
@@ -949,19 +1022,13 @@ class _ReservaScreenState extends State<ReservaScreen>
                   // Data
                   Text(
                     'Data: ${reserva.dataReserva.day}/${reserva.dataReserva.month}/${reserva.dataReserva.year}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
 
                   // Horários
                   Text(
                     'Horário: ${reserva.horaInicio} - ${reserva.horaFim}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
 
                   // Valor da Locação
@@ -986,7 +1053,9 @@ class _ReservaScreenState extends State<ReservaScreen>
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red[300],
                             borderRadius: BorderRadius.circular(4),

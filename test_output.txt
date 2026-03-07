@@ -1,0 +1,87 @@
+00:00 +0: loading /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/ambiente_model_test.dart
+00:00 +0 -1: loading /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/ambiente_model_test.dart [E]
+  Failed to load "/home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/ambiente_model_test.dart":
+  Compilation failed for testPath=/home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/ambiente_model_test.dart: test/features/reserva/data/ambiente_model_test.dart:36:9: Error: No named parameter with the name 'condominioId'.
+          condominioId: 'c1',
+          ^^^^^^^^^^^^
+  lib/features/Prop_Inq_Features/reserva/data/models/ambiente_model.dart:4:3: Context: Found this candidate, but the arguments don't match.
+    AmbienteModel({
+    ^^^^^^^^^^^^^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 939:11    DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 733:19                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 726:19                      _CustomZone.run
+  dart:async/zone.dart 625:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 666:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 194:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -1: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_model_test.dart: ReservaModel Deve converter JSON para ReservaModel com Inquilino
+00:00 +1 -1: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_model_test.dart: ReservaModel Deve converter JSON para ReservaModel com Representante
+00:00 +2 -1: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_model_test.dart: ReservaModel Deve converter JSON para ReservaModel com Proprietario
+00:00 +3 -1: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_model_test.dart: ReservaModel Deve converter ReservaModel para JSON
+00:00 +4 -2: loading /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_repository_impl_test.dart [E]
+  Failed to load "/home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_repository_impl_test.dart":
+  Compilation failed for testPath=/home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/reserva_repository_impl_test.dart: test/features/reserva/data/reserva_repository_impl_test.dart:79:9: Error: No named parameter with the name 'condominioId'.
+          condominioId: 'c1',
+          ^^^^^^^^^^^^
+  lib/features/Prop_Inq_Features/reserva/data/models/ambiente_model.dart:4:3: Context: Found this candidate, but the arguments don't match.
+    AmbienteModel({
+    ^^^^^^^^^^^^^
+  .
+00:00 +4 -2: loading /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/data/ambiente_model_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 939:11    DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 733:19                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 726:19                      _CustomZone.run
+  dart:async/zone.dart 625:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 666:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 194:5      _RawReceivePort._handleMessage
+  
+00:03 +4 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/ambiente_entity_test.dart: AmbienteEntity Deve ser possivel instanciar AmbienteEntity com todos os campos
+00:03 +5 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_entity_test.dart: ReservaEntity Deve ser possivel instanciar ReservaEntity com todos os campos obrigatorios e opcionais nulos
+00:03 +6 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_entity_test.dart: ReservaEntity Deve ser possivel instanciar ReservaEntity com campos opcionais preenchidos
+00:04 +7 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: ObterReservasUseCase Deve retornar a lista de reservas
+00:04 +8 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: ObterAmbientesUseCase Deve retornar a lista de ambientes
+00:04 +9 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: CriarReservaUseCase Deve criar reserva com sucesso
+00:04 +10 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: AtualizarReservaUseCase Deve atualizar e retornar a reserva
+00:04 +11 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: CancelarReservaUseCase Deve remover a reserva
+00:04 +12 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: ValidarDisponibilidadeUseCase Retorna true se o dia esta livre
+00:04 +13 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/domain/reserva_usecases_test.dart: ValidarDisponibilidadeUseCase Retorna false se sobrepoe no mesmo moment (mesmo dia)
+00:04 +14 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaInitial supports value comparisons
+00:04 +15 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaLoading supports value comparisons
+00:04 +16 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaCarregada supports value comparisons
+00:04 +17 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaCriada supports value comparisons
+00:04 +18 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaCancelada supports value comparisons
+00:04 +19 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaErro supports value comparisons
+00:04 +20 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_state_test.dart: ReservaState ReservaFormularioAtualizado supports value comparisons
+00:05 +21 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit O estado inicial deve ser ReservaInitial
+00:05 +22 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaLoading, ReservaCarregada] ao carregar ambientes com sucesso
+00:05 +23 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaLoading, ReservaCarregada] ao carregar reservas com sucesso
+00:05 +24 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaErro] ao tentar criar reserva sem ambiente
+00:05 +25 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaFormularioAtualizado] ao interagir com form
+00:05 +26 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaCriada] ao criar reserva com sucesso
+00:05 +27 -2: /home/alexsander/Área de trabalho/Aplicativos/APPflutter/condogaiaapp/test/features/reserva/cubit/reserva_cubit_test.dart: ReservaCubit Emitir [ReservaCancelada] ao cancelar reserva
+00:05 +28 -2: Some tests failed.

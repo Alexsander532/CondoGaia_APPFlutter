@@ -371,7 +371,7 @@ class ReservaCubit extends Cubit<ReservaState> {
   }
 
   /// Mês anterior no calendário
-  void mesPosterior() {
+  void mesAnterior() {
     if (_mesAtual == 0) {
       _mesAtual = 11;
       _anoAtual--;

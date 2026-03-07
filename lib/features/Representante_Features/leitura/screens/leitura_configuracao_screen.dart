@@ -6,12 +6,14 @@ class LeituraConfiguracaoScreen extends StatefulWidget {
   final String condominioId;
   final String? tipoInicial;
   final VoidCallback? onConfigSaved;
+  final LeituraService? service;
 
   const LeituraConfiguracaoScreen({
     super.key,
     required this.condominioId,
     this.tipoInicial,
     this.onConfigSaved,
+    this.service,
   });
 
   @override
@@ -20,7 +22,7 @@ class LeituraConfiguracaoScreen extends StatefulWidget {
 }
 
 class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
-  final LeituraService _service = LeituraService();
+  late final LeituraService _service;
 
   String selectedTipo = 'Agua';
   String unidadeMedida = 'M³';
@@ -46,6 +48,7 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? LeituraService();
     if (widget.tipoInicial != null) {
       selectedTipo = _uiTipoToDb(widget.tipoInicial!);
     }

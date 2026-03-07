@@ -6,10 +6,12 @@ import '../../../../models/unidade.dart';
 import 'cache_service.dart';
 
 class LeituraService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final CacheService _cache = CacheService();
+  final SupabaseClient _supabase;
+  final CacheService _cache;
 
-  LeituraService() {
+  LeituraService({SupabaseClient? supabase, CacheService? cache})
+    : _supabase = supabase ?? Supabase.instance.client,
+      _cache = cache ?? CacheService() {
     _cache.init();
   }
 

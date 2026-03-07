@@ -126,8 +126,8 @@ class ValidarDisponibilidadeUseCase {
     for (final reserva in reservas) {
       if (reserva.ambienteId == ambienteId) {
         // Verificar se há sobreposição de datas
-        if (reserva.dataReserva.isBefore(dataFimDate) &&
-                reserva.dataReserva.isAfter(dataInicioDate) ||
+        if ((reserva.dataReserva.isBefore(dataFimDate) &&
+                reserva.dataReserva.isAfter(dataInicioDate)) ||
             reserva.dataReserva.isAtSameMomentAs(dataInicioDate) ||
             reserva.dataReserva.isAtSameMomentAs(dataFimDate)) {
           return false;

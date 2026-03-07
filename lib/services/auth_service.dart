@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,6 +20,7 @@ class AuthService {
   static const String _userEmailKey = 'user_email';
   static const String _autoLoginKey = 'auto_login';
   static const String _userTypeKey = 'user_type';
+  static const String _laravelTokenKey = 'laravel_token';
 
   // Verificar se o usuário está logado
   Future<bool> isLoggedIn() async {
@@ -50,8 +52,59 @@ class AuthService {
     return digest.toString();
   }
 
-  // Fazer login (detecta automaticamente se é admin ou representante)
+  // Wrapper de login que chama o Laravel após validar no Flutter
   Future<LoginResult> login(
+    String email,
+    String password,
+    bool autoLogin,
+  ) async {
+    // 1. Faz o login interno do aplicativo
+    final result = await _internalLogin(email, password, autoLogin);
+
+    // 2. Se deu certo, busca o token Sanctum no Laravel
+    if (result.success) {
+      await _fetchAndStoreLaravelToken(email, password);
+    }
+
+    return result;
+  }
+
+  // Busca e salva o token do Laravel para proteger a API
+  Future<void> _fetchAndStoreLaravelToken(String email, String password) async {
+    try {
+      // Usando 10.0.2.2 para emuladores Android, localhost para Web/iOS.
+      // Substitua pelo IP local se testar em aparelho físico.
+      final url = Uri.parse('http://10.0.2.2:8000/api/auth/token');
+
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email, 'senha_acesso': password}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final token = data['data']['token'];
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_laravelTokenKey, token);
+          print('DEBUG AUTH: Token da API Laravel obtido com sucesso!');
+        }
+      } else {
+        print('DEBUG AUTH: Falha token Laravel. HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('DEBUG AUTH: Erro na rede para API Laravel: $e');
+    }
+  }
+
+  // Fazer login interno (detecta automaticamente se é admin, representante, etc)
+  Future<LoginResult> _internalLogin(
     String email,
     String password,
     bool autoLogin,
@@ -340,6 +393,12 @@ class AuthService {
     return null;
   }
 
+  // Obter o Token do Laravel para chamadas de API
+  Future<String?> getLaravelToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_laravelTokenKey);
+  }
+
   /// Obtém o representante atual logado
   static Future<Representante?> getCurrentRepresentante() async {
     try {
@@ -397,6 +456,7 @@ class AuthService {
     await prefs.remove(_userEmailKey);
     await prefs.remove(_autoLoginKey);
     await prefs.remove(_userTypeKey);
+    await prefs.remove(_laravelTokenKey);
   }
 
   // Tentar login automático

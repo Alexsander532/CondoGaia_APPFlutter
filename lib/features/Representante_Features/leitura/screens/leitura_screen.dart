@@ -13,8 +13,9 @@ import 'leitura_configuracao_screen.dart';
 
 class LeituraScreen extends StatefulWidget {
   final String condominioId;
+  final LeituraService? service;
 
-  const LeituraScreen({super.key, required this.condominioId});
+  const LeituraScreen({super.key, required this.condominioId, this.service});
 
   @override
   State<LeituraScreen> createState() => _LeituraScreenState();
@@ -45,7 +46,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => LeituraCubit(
-        service: LeituraService(),
+        service: widget.service ?? LeituraService(),
         condominioId: widget.condominioId,
       )..loadLeituras(),
       child: Scaffold(
@@ -420,6 +421,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
                       : LeituraConfiguracaoScreen(
                           condominioId: widget.condominioId,
                           tipoInicial: state.selectedTipo,
+                          service: widget.service,
                           onConfigSaved: () {
                             // Recarregar dados após salvar configuração
                             cubit.loadLeituras();
