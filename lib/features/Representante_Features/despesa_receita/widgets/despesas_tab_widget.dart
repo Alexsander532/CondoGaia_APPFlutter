@@ -183,34 +183,69 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed: state.status == DespesaReceitaStatus.loading
-                ? null
-                : () {
-                    cubit.atualizarFiltros(
-                      contaId: _filtroContaId,
-                      categoriaId: _filtroCategoriaId,
-                      subcategoriaId: _filtroSubcategoriaId,
-                      palavraChave: _palavraChaveController.text,
-                    );
-                    cubit.pesquisarDespesas();
-                  },
-            icon: const Icon(Icons.search, size: 18),
-            label: const Text(
-              'Pesquisar',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kAccentColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: state.status == DespesaReceitaStatus.loading
+                      ? null
+                      : () {
+                          cubit.atualizarFiltros(
+                            contaId: _filtroContaId,
+                            categoriaId: _filtroCategoriaId,
+                            subcategoriaId: _filtroSubcategoriaId,
+                            palavraChave: _palavraChaveController.text,
+                          );
+                          cubit.pesquisarDespesas();
+                        },
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text(
+                    'Pesquisar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kAccentColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _filtroContaId = null;
+                    _filtroCategoriaId = null;
+                    _filtroSubcategoriaId = null;
+                    _palavraChaveController.clear();
+                  });
+                  cubit.atualizarFiltros(
+                    contaId: '',
+                    categoriaId: '',
+                    subcategoriaId: '',
+                    palavraChave: '',
+                  );
+                  cubit.pesquisarDespesas();
+                },
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text('Limpar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  side: BorderSide(color: Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

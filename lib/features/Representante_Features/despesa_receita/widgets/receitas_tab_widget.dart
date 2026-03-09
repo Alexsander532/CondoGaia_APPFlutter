@@ -283,19 +283,6 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
               ),
             ),
           ],
-        ),            icon: const Icon(Icons.search, size: 18),
-            label: const Text(
-              'Pesquisar',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kAccentColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
         ),
       ],
     );

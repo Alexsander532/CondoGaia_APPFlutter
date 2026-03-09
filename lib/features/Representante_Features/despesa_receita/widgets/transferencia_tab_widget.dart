@@ -19,6 +19,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
   final _valorController = TextEditingController();
   final _qtdMesesController = TextEditingController();
   final _dataTransferenciaController = TextEditingController();
+  final _palavraChaveController = TextEditingController();
 
   bool _filtrosExpandidos = true;
   bool _cadastroExpandido = false;
@@ -42,6 +43,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
     _valorController.dispose();
     _qtdMesesController.dispose();
     _dataTransferenciaController.dispose();
+    _palavraChaveController.dispose();
     super.dispose();
   }
 
@@ -149,33 +151,82 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed: state.status == DespesaReceitaStatus.loading
-                ? null
-                : () {
-                    cubit.atualizarFiltros(
-                      contaDebitoId: _filtroContaDebitoId,
-                      contaCreditoId: _filtroContaCreditoId,
-                    );
-                    cubit.pesquisarTransferencias();
-                  },
-            icon: const Icon(Icons.search, size: 18),
-            label: const Text(
-              'Pesquisar',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kAccentColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _palavraChaveController,
+          decoration: InputDecoration(
+            labelText: 'Palavra Chave',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
             ),
           ),
+          style: const TextStyle(fontSize: 14),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: state.status == DespesaReceitaStatus.loading
+                      ? null
+                      : () {
+                          cubit.atualizarFiltros(
+                            contaDebitoId: _filtroContaDebitoId,
+                            contaCreditoId: _filtroContaCreditoId,
+                            palavraChave: _palavraChaveController.text,
+                          );
+                          cubit.pesquisarTransferencias();
+                        },
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text(
+                    'Pesquisar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kAccentColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _filtroContaDebitoId = null;
+                    _filtroContaCreditoId = null;
+                    _palavraChaveController.clear();
+                  });
+                  cubit.atualizarFiltros(
+                    contaDebitoId: '',
+                    contaCreditoId: '',
+                    palavraChave: '',
+                  );
+                  cubit.pesquisarTransferencias();
+                },
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text('Limpar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  side: BorderSide(color: Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
