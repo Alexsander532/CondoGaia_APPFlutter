@@ -143,23 +143,37 @@ class DespesaReceitaService implements IDespesaReceitaService {
     int? mes,
     int? ano,
     String? contaId,
+    String? categoriaId,
+    String? subcategoriaId,
     String? contaContabil,
     String? tipo,
+    String? palavraChave,
   }) async {
     try {
       var query = _supabase
           .from('receitas')
-          .select('*, contas_bancarias(banco)')
+          .select(
+            '*, contas_bancarias(banco), categorias_financeiras(nome), subcategorias_financeiras(nome)',
+          )
           .eq('condominio_id', condominioId);
 
       if (contaId != null && contaId.isNotEmpty) {
         query = query.eq('conta_id', contaId);
+      }
+      if (categoriaId != null && categoriaId.isNotEmpty) {
+        query = query.eq('categoria_id', categoriaId);
+      }
+      if (subcategoriaId != null && subcategoriaId.isNotEmpty) {
+        query = query.eq('subcategoria_id', subcategoriaId);
       }
       if (contaContabil != null && contaContabil.isNotEmpty) {
         query = query.eq('conta_contabil', contaContabil);
       }
       if (tipo != null && tipo.isNotEmpty && tipo != 'Todos') {
         query = query.eq('tipo', tipo.toUpperCase());
+      }
+      if (palavraChave != null && palavraChave.isNotEmpty) {
+        query = query.ilike('descricao', '%$palavraChave%');
       }
 
       if (mes != null && ano != null) {
@@ -222,6 +236,7 @@ class DespesaReceitaService implements IDespesaReceitaService {
     int? ano,
     String? contaDebitoId,
     String? contaCreditoId,
+    String? palavraChave,
   }) async {
     try {
       var query = _supabase
@@ -236,6 +251,9 @@ class DespesaReceitaService implements IDespesaReceitaService {
       }
       if (contaCreditoId != null && contaCreditoId.isNotEmpty) {
         query = query.eq('conta_credito_id', contaCreditoId);
+      }
+      if (palavraChave != null && palavraChave.isNotEmpty) {
+        query = query.ilike('descricao', '%$palavraChave%');
       }
 
       if (mes != null && ano != null) {

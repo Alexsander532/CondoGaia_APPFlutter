@@ -152,7 +152,21 @@ class BoletoAcoesWidget extends StatelessWidget {
                 const SizedBox(width: 8),
                 _actionButton(context, 'Visualizar', Icons.visibility),
                 const SizedBox(width: 8),
-                _actionButton(context, 'E-mail', Icons.email),
+                _actionButton(
+                  context,
+                  'E-mail',
+                  Icons.email,
+                  onPressed: () {
+                    if (state.itensSelecionados.isNotEmpty) {
+                      cubit.enviarBoletosPorEmail();
+                    } else {
+                      _showSnack(
+                        context,
+                        'Selecione boletos para enviar por e-mail',
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(width: 8),
                 Container(
                   decoration: BoxDecoration(
@@ -223,9 +237,14 @@ class BoletoAcoesWidget extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(BuildContext context, String label, IconData icon) {
+  Widget _actionButton(
+    BuildContext context,
+    String label,
+    IconData icon, {
+    VoidCallback? onPressed,
+  }) {
     return ElevatedButton.icon(
-      onPressed: () => _showSnack(context, '$label — Em breve'),
+      onPressed: onPressed ?? () => _showSnack(context, '$label — Em breve'),
       icon: Icon(icon, size: 16),
       label: Text(label, style: const TextStyle(fontSize: 13)),
       style: ElevatedButton.styleFrom(

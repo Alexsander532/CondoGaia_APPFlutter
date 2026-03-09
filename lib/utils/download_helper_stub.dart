@@ -1,40 +1,45 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DownloadHelper {
   static Future<void> downloadFile(
     Uint8List bytes,
     BuildContext context,
   ) async {
-    // Mostra aviso para usuários no Android/iOS
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'O download do template só está disponível na versão web. Acesse o site para baixar o template.',
-          ),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
+    // Mantendo legado se necessário
   }
 
-  // Método para download de PDF da web (versão stub para mobile)
   static Future<void> downloadPdfFromUrl(
     String pdfUrl,
     String fileName,
     BuildContext context,
   ) async {
-    // Em mobile, os downloads são feitos via DocumentoService
-    // Este método é apenas um placeholder para manter compatibilidade
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Download em progresso...'),
-          backgroundColor: Colors.blue,
-        ),
-      );
+    // Mantendo legado se necessário
+  }
+
+  static Future<void> downloadBytes(
+    Uint8List bytes,
+    String fileName,
+    BuildContext context,
+  ) async {
+    try {
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      await Share.shareXFiles([
+        XFile(filePath),
+      ], subject: 'Download do Layout - $fileName');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao baixar arquivo no mobile: $e')),
+        );
+      }
     }
   }
 }

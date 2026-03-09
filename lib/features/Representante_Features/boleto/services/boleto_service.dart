@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/boleto_model.dart';
+import 'boleto_email_service.dart';
 
 class BoletoService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -164,7 +165,7 @@ class BoletoService {
       // Busca as unidades do condomínio (ou as selecionadas)
       var query = _supabase
           .from('unidades')
-          .select('id, bloco, unidade, morador_nome')
+          .select('id, bloco, unidade, morador_nome, nome_pagador_boleto')
           .eq('condominio_id', condominioId);
 
       if (unidadeIds != null && unidadeIds.isNotEmpty) {
@@ -212,10 +213,156 @@ class BoletoService {
 
       if (boletos.isNotEmpty) {
         await _supabase.from('boletos').insert(boletos);
+
+        if (enviarPorEmail) {
+          // Busca e-mails dos moradores
+          final proprietariosRes = await _supabase
+              .from('proprietarios')
+              .select('unidade_id, email')
+              .eq('condominio_id', condominioId);
+
+          final inquilinosRes = await _supabase
+              .from('inquilinos')
+              .select('unidade_id, email')
+              .eq('condominio_id', condominioId);
+
+          Map<String, String> emailsIquilinos = {};
+          for (var i in (inquilinosRes as List)) {
+            if (i['unidade_id'] != null && i['email'] != null) {
+              emailsIquilinos[i['unidade_id']] = i['email'];
+            }
+          }
+
+          Map<String, String> emailsProprietarios = {};
+          for (var p in (proprietariosRes as List)) {
+            if (p['unidade_id'] != null && p['email'] != null) {
+              emailsProprietarios[p['unidade_id']] = p['email'];
+            }
+          }
+
+          List<Map<String, dynamic>> boletosParaEmail = [];
+
+          for (var unidade in (unidades as List)) {
+            String? email;
+            String pagador = unidade['nome_pagador_boleto'] ?? 'proprietario';
+            String unidId = unidade['id'];
+
+            if (pagador == 'inquilino') {
+              email = emailsIquilinos[unidId] ?? emailsProprietarios[unidId];
+            } else {
+              email = emailsProprietarios[unidId] ?? emailsIquilinos[unidId];
+            }
+
+            if (email != null && email.isNotEmpty) {
+              boletosParaEmail.add({
+                'email': email,
+                'nome': unidade['morador_nome'] ?? 'Condômino',
+                'valor': valor,
+                'dataVencimento': dataVencimento,
+              });
+            }
+          }
+
+          await enviarBoletosPorEmail(
+            condominioId: condominioId,
+            boletosData: boletosParaEmail,
+          );
+        }
       }
     } catch (e) {
       print('⚠️ [BoletoService] Erro ao gerar cobrança mensal: $e');
       throw Exception('Erro ao gerar cobrança mensal.');
+    }
+  }
+
+  // ============================================================
+  // ENVIAR POR E-MAIL
+  // ============================================================
+
+  Future<void> enviarBoletosPorEmail({
+    required String condominioId,
+    List<Map<String, dynamic>>? boletosData,
+    List<String>? boletoIds,
+  }) async {
+    try {
+      if (boletosData == null && boletoIds == null) return;
+
+      List<Map<String, dynamic>> finalBoletosParaEmail = [];
+
+      if (boletosData != null) {
+        finalBoletosParaEmail = boletosData;
+      } else if (boletoIds != null && boletoIds.isNotEmpty) {
+        // Needs to fetch boleto details from Supabase using their IDs
+        var boletos = await _supabase
+            .from('boletos')
+            .select('id, unidade_id, sacado, valor, data_vencimento')
+            .inFilter('id', boletoIds);
+
+        // Fetch unidades
+        var unidades = await _supabase
+            .from('unidades')
+            .select('id, nome_pagador_boleto')
+            .eq('condominio_id', condominioId);
+
+        Map<String, String> pagadorMap = {
+          for (var u in (unidades as List))
+            u['id']: u['nome_pagador_boleto'] ?? 'proprietario',
+        };
+
+        // Fetch emails dos moradores
+        final proprietariosRes = await _supabase
+            .from('proprietarios')
+            .select('unidade_id, email')
+            .eq('condominio_id', condominioId);
+
+        final inquilinosRes = await _supabase
+            .from('inquilinos')
+            .select('unidade_id, email')
+            .eq('condominio_id', condominioId);
+
+        Map<String, String> emailsIquilinos = {};
+        for (var i in (inquilinosRes as List)) {
+          if (i['unidade_id'] != null && i['email'] != null) {
+            emailsIquilinos[i['unidade_id']] = i['email'];
+          }
+        }
+
+        Map<String, String> emailsProprietarios = {};
+        for (var p in (proprietariosRes as List)) {
+          if (p['unidade_id'] != null && p['email'] != null) {
+            emailsProprietarios[p['unidade_id']] = p['email'];
+          }
+        }
+
+        for (var b in (boletos as List)) {
+          String unidId = b['unidade_id'];
+          String? email;
+          String pagador = pagadorMap[unidId] ?? 'proprietario';
+
+          if (pagador == 'inquilino') {
+            email = emailsIquilinos[unidId] ?? emailsProprietarios[unidId];
+          } else {
+            email = emailsProprietarios[unidId] ?? emailsIquilinos[unidId];
+          }
+
+          if (email != null && email.isNotEmpty) {
+            finalBoletosParaEmail.add({
+              'email': email,
+              'nome': b['sacado'] ?? 'Condômino',
+              'valor': (b['valor'] ?? 0).toDouble(),
+              'dataVencimento': b['data_vencimento'],
+            });
+          }
+        }
+      }
+
+      if (finalBoletosParaEmail.isNotEmpty) {
+        final BoletoEmailService emailService = BoletoEmailService();
+        await emailService.enviarLote(finalBoletosParaEmail);
+      }
+    } catch (e) {
+      print('⚠️ [BoletoService] Erro ao enviar boletos por email: $e');
+      throw Exception('Erro ao enviar boletos por email.');
     }
   }
 

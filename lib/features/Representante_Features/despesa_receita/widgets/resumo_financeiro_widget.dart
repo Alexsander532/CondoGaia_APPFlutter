@@ -27,8 +27,7 @@ class ResumoFinanceiroWidget extends StatefulWidget {
 }
 
 class _ResumoFinanceiroWidgetState extends State<ResumoFinanceiroWidget> {
-  bool _expanded =
-      true; // Start expanded as requested/implied by "Resumo ^" usually
+  bool _expanded = false; // Start closed as requested
 
   static const _primaryColor = Color(0xFF0D3B66);
 
@@ -83,32 +82,41 @@ class _ResumoFinanceiroWidgetState extends State<ResumoFinanceiroWidget> {
         const SizedBox(height: 16),
 
         if (_expanded)
-          Column(
-            children: [
-              _buildSummarySection(
-                title: 'SALDO ANTERIOR (DO MES PASSADO)',
-                totalValue: widget.saldoAnterior,
-                accounts: widget.saldoAnteriorPorConta,
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight:
+                  MediaQuery.of(context).size.height *
+                  0.4, // Max 40% of available height
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildSummarySection(
+                    title: 'SALDO ANTERIOR (DO MES PASSADO)',
+                    totalValue: widget.saldoAnterior,
+                    accounts: widget.saldoAnteriorPorConta,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSummarySection(
+                    title: 'TOTAL RECEITA',
+                    totalValue: widget.totalCredito,
+                    accounts: widget.totalCreditoPorConta,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSummarySection(
+                    title: 'TOTAL DESPESA',
+                    totalValue: widget.totalDebito,
+                    accounts: widget.totalDebitoPorConta,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSummarySection(
+                    title: 'SALDO ATUAL',
+                    totalValue: saldoFinal,
+                    accounts: widget.saldoAtualPorConta,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildSummarySection(
-                title: 'TOTAL RECEITA',
-                totalValue: widget.totalCredito,
-                accounts: widget.totalCreditoPorConta,
-              ),
-              const SizedBox(height: 12),
-              _buildSummarySection(
-                title: 'TOTAL DESPESA',
-                totalValue: widget.totalDebito,
-                accounts: widget.totalDebitoPorConta,
-              ),
-              const SizedBox(height: 12),
-              _buildSummarySection(
-                title: 'SALDO ATUAL',
-                totalValue: saldoFinal,
-                accounts: widget.saldoAtualPorConta,
-              ),
-            ],
+            ),
           ),
       ],
     );

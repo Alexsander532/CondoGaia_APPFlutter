@@ -323,6 +323,30 @@ class BoletoCubit extends Cubit<BoletoState> {
   }
 
   // ============================================================
+  // ENVIAR POR E-MAIL
+  // ============================================================
+
+  Future<void> enviarBoletosPorEmail() async {
+    if (state.itensSelecionados.isEmpty) return;
+    emit(state.copyWith(isSaving: true));
+    try {
+      await _service.enviarBoletosPorEmail(
+        condominioId: condominioId,
+        boletoIds: state.itensSelecionados.toList(),
+      );
+      emit(
+        state.copyWith(
+          isSaving: false,
+          successMessage: 'Boletos enviados por e-mail com sucesso!',
+        ),
+      );
+      await carregarDados(); // Optional: remove selection
+    } catch (e) {
+      emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
+    }
+  }
+
+  // ============================================================
   // CARREGAR UNIDADES (para dialog)
   // ============================================================
 

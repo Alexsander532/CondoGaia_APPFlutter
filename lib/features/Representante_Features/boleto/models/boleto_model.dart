@@ -32,6 +32,7 @@ class Boleto {
 
   // Campos auxiliares (join)
   final String? sacadoNome;
+  final String? sacadoEmail;
   final String? contaBancariaNome;
 
   Boleto({
@@ -66,6 +67,7 @@ class Boleto {
     this.desconto = 0,
     this.createdAt,
     this.sacadoNome,
+    this.sacadoEmail,
     this.contaBancariaNome,
   });
 
@@ -109,6 +111,7 @@ class Boleto {
           : null,
       // Join fields
       sacadoNome: json['moradores']?['nome'],
+      sacadoEmail: json['moradores']?['email'],
       contaBancariaNome: json['contas_bancarias']?['banco'],
     );
   }
@@ -182,6 +185,7 @@ class Boleto {
     double? desconto,
     DateTime? createdAt,
     String? sacadoNome,
+    String? sacadoEmail,
     String? contaBancariaNome,
   }) {
     return Boleto(
@@ -216,6 +220,7 @@ class Boleto {
       desconto: desconto ?? this.desconto,
       createdAt: createdAt ?? this.createdAt,
       sacadoNome: sacadoNome ?? this.sacadoNome,
+      sacadoEmail: sacadoEmail ?? this.sacadoEmail,
       contaBancariaNome: contaBancariaNome ?? this.contaBancariaNome,
     );
   }

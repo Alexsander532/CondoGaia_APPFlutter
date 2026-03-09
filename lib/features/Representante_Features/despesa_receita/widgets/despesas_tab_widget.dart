@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
 import '../models/despesa_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
+import '../../../../../utils/input_formatters.dart';
 
 class DespesasTabWidget extends StatefulWidget {
   const DespesasTabWidget({super.key});
@@ -19,6 +21,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   final _valorController = TextEditingController();
   final _linkController = TextEditingController();
   final _qtdMesesController = TextEditingController();
+  final _dataVencimentoController = TextEditingController();
 
   // Filtro controllers
   final _palavraChaveController = TextEditingController();
@@ -48,6 +51,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     _linkController.dispose();
     _qtdMesesController.dispose();
     _palavraChaveController.dispose();
+    _dataVencimentoController.dispose();
     super.dispose();
   }
 
@@ -300,6 +304,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: [BrazilianCurrencyFormatter()],
                 decoration: InputDecoration(
                   labelText: 'Valor (R\$)',
                   prefixIcon: const Icon(Icons.attach_money, size: 20),
@@ -320,7 +325,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
               child: buildDateField(
                 context: context,
                 label: 'Data Vencimento',
-                value: _dataVencimento,
+                controller: _dataVencimentoController,
                 onChanged: (d) => setState(() => _dataVencimento = d),
               ),
             ),
@@ -702,8 +707,19 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
       _categoriaIdCadastro = d.categoriaId;
       _subcategoriaIdCadastro = d.subcategoriaId;
       _descricaoController.text = d.descricao ?? '';
-      _valorController.text = d.valor.toStringAsFixed(2);
+      _valorController.text = d.valor.toStringAsFixed(2).replaceAll('.', ',');
+      // Force format with thousands separators
+      _valorController.value = BrazilianCurrencyFormatter().formatEditUpdate(
+        TextEditingValue.empty,
+        _valorController.value,
+      );
       _dataVencimento = d.dataVencimento;
+      if (_dataVencimento != null) {
+        _dataVencimentoController.text =
+            '${_dataVencimento!.day.toString().padLeft(2, '0')}/${_dataVencimento!.month.toString().padLeft(2, '0')}/${_dataVencimento!.year}';
+      } else {
+        _dataVencimentoController.clear();
+      }
       _recorrente = d.recorrente;
       _qtdMesesController.text = d.qtdMeses != null
           ? d.qtdMeses.toString()
@@ -716,7 +732,9 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
 
   void _salvar(DespesaReceitaCubit cubit) {
     // Validação
-    final valorStr = _valorController.text.replaceAll(',', '.');
+    final valorStr = _valorController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     final valor = double.tryParse(valorStr) ?? 0;
 
     if (valor <= 0) {
@@ -762,6 +780,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     _valorController.clear();
     _linkController.clear();
     _qtdMesesController.clear();
+    _dataVencimentoController.clear();
     setState(() {
       _editandoId = null;
       _dataVencimento = null;

@@ -5,6 +5,7 @@ import '../cubit/despesa_receita_state.dart';
 import '../models/transferencia_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
+import '../../../../utils/input_formatters.dart';
 
 class TransferenciaTabWidget extends StatefulWidget {
   const TransferenciaTabWidget({super.key});
@@ -17,6 +18,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
   final _descricaoController = TextEditingController();
   final _valorController = TextEditingController();
   final _qtdMesesController = TextEditingController();
+  final _dataTransferenciaController = TextEditingController();
 
   bool _filtrosExpandidos = true;
   bool _cadastroExpandido = false;
@@ -39,6 +41,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
     _descricaoController.dispose();
     _valorController.dispose();
     _qtdMesesController.dispose();
+    _dataTransferenciaController.dispose();
     super.dispose();
   }
 
@@ -265,9 +268,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
             Expanded(
               child: TextField(
                 controller: _valorController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                inputFormatters: [BrazilianCurrencyFormatter()],
                 decoration: InputDecoration(
                   labelText: 'Valor (R\$)',
                   prefixIcon: const Icon(Icons.attach_money, size: 20),
@@ -288,7 +289,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
               child: buildDateField(
                 context: context,
                 label: 'Data Transferência',
-                value: _dataTransferencia,
+                controller: _dataTransferenciaController,
                 onChanged: (d) => setState(() => _dataTransferencia = d),
               ),
             ),
@@ -616,8 +617,18 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
       _contaDebitoId = t.contaDebitoId;
       _contaCreditoId = t.contaCreditoId;
       _descricaoController.text = t.descricao ?? '';
-      _valorController.text = t.valor.toStringAsFixed(2);
+      _valorController.text = t.valor.toStringAsFixed(2).replaceAll('.', ',');
+      _valorController.value = BrazilianCurrencyFormatter().formatEditUpdate(
+        TextEditingValue.empty,
+        TextEditingValue(text: _valorController.text),
+      );
       _dataTransferencia = t.dataTransferencia;
+      if (_dataTransferencia != null) {
+        _dataTransferenciaController.text =
+            '${_dataTransferencia!.day.toString().padLeft(2, '0')}/${_dataTransferencia!.month.toString().padLeft(2, '0')}/${_dataTransferencia!.year}';
+      } else {
+        _dataTransferenciaController.clear();
+      }
       _recorrente = t.recorrente;
       _qtdMesesController.text = t.qtdMeses != null
           ? t.qtdMeses.toString()
@@ -627,7 +638,9 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
   }
 
   void _salvar(DespesaReceitaCubit cubit) {
-    final valorStr = _valorController.text.replaceAll(',', '.');
+    final valorStr = _valorController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     final valor = double.tryParse(valorStr) ?? 0;
 
     if (valor <= 0) {
@@ -690,6 +703,7 @@ class _TransferenciaTabWidgetState extends State<TransferenciaTabWidget> {
     setState(() {
       _editandoId = null;
       _dataTransferencia = null;
+      _dataTransferenciaController.clear();
       _recorrente = false;
       _contaDebitoId = null;
       _contaCreditoId = null;

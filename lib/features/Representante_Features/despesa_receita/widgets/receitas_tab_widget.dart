@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
 import '../models/receita_model.dart';
+import '../../gestao_condominio/models/categoria_financeira_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
+import '../../../../../utils/input_formatters.dart';
 
 class ReceitasTabWidget extends StatefulWidget {
   const ReceitasTabWidget({super.key});
@@ -17,6 +20,8 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   final _descricaoController = TextEditingController();
   final _valorController = TextEditingController();
   final _qtdMesesController = TextEditingController();
+  final _dataCreditoController = TextEditingController();
+  final _palavraChaveController = TextEditingController();
 
   bool _filtrosExpandidos = true;
   bool _cadastroExpandido = false;
@@ -24,13 +29,27 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
 
   // Filtros
   String? _filtroContaId;
+  String? _filtroCategoriaId;
+  String? _filtroSubcategoriaId;
   String? _filtroContaContabil;
   String _filtroTipo = 'Todos';
 
   // Cadastro
   String? _contaIdCadastro;
+  String? _categoriaIdCadastro;
+  String? _subcategoriaIdCadastro;
   String? _contaContabilCadastro;
   DateTime? _dataCredito;
+
+  List<SubcategoriaFinanceira> _getSubcategorias(
+    DespesaReceitaState state,
+    String? catId,
+  ) {
+    if (catId == null) return [];
+    final cat = state.categoriasReceita.where((c) => c.id == catId).toList();
+    if (cat.isEmpty) return [];
+    return cat.first.subcategorias;
+  }
 
   // Edição
   String? _editandoId;
@@ -42,6 +61,8 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     _descricaoController.dispose();
     _valorController.dispose();
     _qtdMesesController.dispose();
+    _dataCreditoController.dispose();
+    _palavraChaveController.dispose();
     super.dispose();
   }
 
@@ -126,6 +147,39 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         ),
         const SizedBox(height: 10),
         buildDropdownField(
+          label: 'Categoria',
+          icon: Icons.category,
+          value: _filtroCategoriaId,
+          items: state.categoriasReceita
+              .map(
+                (c) => DropdownMenuItem<String>(
+                  value: c.id,
+                  child: Text(c.nome, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() {
+            _filtroCategoriaId = v;
+            _filtroSubcategoriaId = null;
+          }),
+        ),
+        const SizedBox(height: 10),
+        buildDropdownField(
+          label: 'Subcategoria',
+          icon: Icons.subdirectory_arrow_right,
+          value: _filtroSubcategoriaId,
+          items: _getSubcategorias(state, _filtroCategoriaId)
+              .map<DropdownMenuItem<String>>(
+                (s) => DropdownMenuItem<String>(
+                  value: s.id,
+                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _filtroSubcategoriaId = v),
+        ),
+        const SizedBox(height: 10),
+        buildDropdownField(
           label: 'Conta Contábil',
           icon: Icons.book,
           value: _filtroContaContabil,
@@ -144,22 +198,92 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
               .toList(),
           onChanged: (v) => setState(() => _filtroTipo = v ?? 'Todos'),
         ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _palavraChaveController,
+          decoration: InputDecoration(
+            labelText: 'Palavra Chave',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+          style: const TextStyle(fontSize: 14),
+        ),
         const SizedBox(height: 14),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed: state.status == DespesaReceitaStatus.loading
-                ? null
-                : () {
-                    cubit.atualizarFiltros(
-                      contaId: _filtroContaId,
-                      contaContabil: _filtroContaContabil,
-                      tipoReceita: _filtroTipo,
-                    );
-                    cubit.pesquisarReceitas();
-                  },
-            icon: const Icon(Icons.search, size: 18),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: state.status == DespesaReceitaStatus.loading
+                      ? null
+                      : () {
+                          cubit.atualizarFiltros(
+                            contaId: _filtroContaId,
+                            categoriaId: _filtroCategoriaId,
+                            subcategoriaId: _filtroSubcategoriaId,
+                            contaContabil: _filtroContaContabil,
+                            tipoReceita: _filtroTipo,
+                            palavraChave: _palavraChaveController.text,
+                          );
+                          cubit.pesquisarReceitas();
+                        },
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text(
+                    'Pesquisar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kAccentColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _filtroContaId = null;
+                    _filtroCategoriaId = null;
+                    _filtroSubcategoriaId = null;
+                    _filtroContaContabil = null;
+                    _filtroTipo = 'Todos';
+                    _palavraChaveController.clear();
+                  });
+                  cubit.atualizarFiltros(
+                    contaId: '',
+                    categoriaId: '',
+                    subcategoriaId: '',
+                    contaContabil: '',
+                    tipoReceita: 'Todos',
+                    palavraChave: '',
+                  );
+                  cubit.pesquisarReceitas();
+                },
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text('Limpar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                  side: BorderSide(color: Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),            icon: const Icon(Icons.search, size: 18),
             label: const Text(
               'Pesquisar',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -204,6 +328,39 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         ),
         const SizedBox(height: 10),
         buildDropdownField(
+          label: 'Categoria',
+          icon: Icons.category,
+          value: _categoriaIdCadastro,
+          items: state.categoriasReceita
+              .map(
+                (c) => DropdownMenuItem<String>(
+                  value: c.id,
+                  child: Text(c.nome, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() {
+            _categoriaIdCadastro = v;
+            _subcategoriaIdCadastro = null;
+          }),
+        ),
+        const SizedBox(height: 10),
+        buildDropdownField(
+          label: 'Subcategoria',
+          icon: Icons.subdirectory_arrow_right,
+          value: _subcategoriaIdCadastro,
+          items: _getSubcategorias(state, _categoriaIdCadastro)
+              .map<DropdownMenuItem<String>>(
+                (s) => DropdownMenuItem<String>(
+                  value: s.id,
+                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _subcategoriaIdCadastro = v),
+        ),
+        const SizedBox(height: 10),
+        buildDropdownField(
           label: 'Conta Contábil',
           icon: Icons.book,
           value: _contaContabilCadastro,
@@ -241,6 +398,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: [BrazilianCurrencyFormatter()],
                 decoration: InputDecoration(
                   labelText: 'Valor (R\$)',
                   prefixIcon: const Icon(Icons.attach_money, size: 20),
@@ -261,7 +419,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
               child: buildDateField(
                 context: context,
                 label: 'Data do Crédito',
-                value: _dataCredito,
+                controller: _dataCreditoController,
                 onChanged: (d) => setState(() => _dataCredito = d),
               ),
             ),
@@ -377,7 +535,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           ),
           const SizedBox(width: 8),
           _headerCell('Descrição', flex: 3),
-          _headerCell('Conta', flex: 2),
+          _headerCell('Categoria', flex: 2),
           _headerCell('Crédito', flex: 2),
           _headerCell('Valor', flex: 2),
           _headerCell('Tipo', flex: 1),
@@ -468,10 +626,24 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
             ),
             Expanded(
               flex: 2,
-              child: Text(
-                r.contaNome ?? '--',
-                style: const TextStyle(fontSize: 11),
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    r.categoriaNome ?? '--',
+                    style: const TextStyle(fontSize: 11),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (r.subcategoriaNome != null)
+                    Text(
+                      r.subcategoriaNome!,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey.shade500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
               ),
             ),
             Expanded(
@@ -611,10 +783,23 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     setState(() {
       _editandoId = r.id;
       _contaIdCadastro = r.contaId;
+      _categoriaIdCadastro = r.categoriaId;
+      _subcategoriaIdCadastro = r.subcategoriaId;
       _contaContabilCadastro = r.contaContabil;
       _descricaoController.text = r.descricao ?? '';
-      _valorController.text = r.valor.toStringAsFixed(2);
+      _valorController.text = r.valor.toStringAsFixed(2).replaceAll('.', ',');
+      // Force format with thousands separators
+      _valorController.value = BrazilianCurrencyFormatter().formatEditUpdate(
+        TextEditingValue.empty,
+        _valorController.value,
+      );
       _dataCredito = r.dataCredito;
+      if (_dataCredito != null) {
+        _dataCreditoController.text =
+            '${_dataCredito!.day.toString().padLeft(2, '0')}/${_dataCredito!.month.toString().padLeft(2, '0')}/${_dataCredito!.year}';
+      } else {
+        _dataCreditoController.clear();
+      }
       _recorrente = r.recorrente;
       _qtdMesesController.text = r.qtdMeses != null
           ? r.qtdMeses.toString()
@@ -624,7 +809,10 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   }
 
   void _salvar(DespesaReceitaCubit cubit) {
-    final valorStr = _valorController.text.replaceAll(',', '.');
+    // Validação
+    final valorStr = _valorController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     final valor = double.tryParse(valorStr) ?? 0;
 
     if (valor <= 0) {
@@ -650,6 +838,8 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
       id: _editandoId,
       condominioId: cubit.condominioId,
       contaId: _contaIdCadastro,
+      categoriaId: _categoriaIdCadastro,
+      subcategoriaId: _subcategoriaIdCadastro,
       contaContabil: _contaContabilCadastro,
       descricao: _descricaoController.text,
       valor: valor,
@@ -666,11 +856,14 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     _descricaoController.clear();
     _valorController.clear();
     _qtdMesesController.clear();
+    _dataCreditoController.clear();
     setState(() {
       _editandoId = null;
       _dataCredito = null;
       _recorrente = false;
       _contaIdCadastro = null;
+      _categoriaIdCadastro = null;
+      _subcategoriaIdCadastro = null;
       _contaContabilCadastro = null;
       _cadastroExpandido = false;
     });

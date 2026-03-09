@@ -27,8 +27,11 @@ abstract class IDespesaReceitaService {
     int? mes,
     int? ano,
     String? contaId,
+    String? categoriaId,
+    String? subcategoriaId,
     String? contaContabil,
     String? tipo,
+    String? palavraChave,
   });
 
   Future<void> salvarReceita(Receita receita);
@@ -41,6 +44,7 @@ abstract class IDespesaReceitaService {
     int? ano,
     String? contaDebitoId,
     String? contaCreditoId,
+    String? palavraChave,
   });
 
   Future<void> salvarTransferencia(Transferencia transferencia);

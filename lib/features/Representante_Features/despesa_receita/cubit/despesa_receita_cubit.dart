@@ -164,8 +164,11 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         mes: state.mesSelecionado,
         ano: state.anoSelecionado,
         contaId: state.filtroContaId,
+        categoriaId: state.filtroCategoriaId,
+        subcategoriaId: state.filtroSubcategoriaId,
         contaContabil: state.filtroContaContabil,
         tipo: state.filtroTipoReceita,
+        palavraChave: state.filtroPalavraChave,
       );
       emit(
         state.copyWith(
@@ -193,6 +196,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         ano: state.anoSelecionado,
         contaDebitoId: state.filtroContaDebitoId,
         contaCreditoId: state.filtroContaCreditoId,
+        palavraChave: state.filtroPalavraChave,
       );
       emit(
         state.copyWith(

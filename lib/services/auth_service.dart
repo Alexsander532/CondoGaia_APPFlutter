@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/administrator.dart';
 import '../models/representante.dart';
 import '../models/proprietario.dart';
@@ -72,9 +73,10 @@ class AuthService {
   // Busca e salva o token do Laravel para proteger a API
   Future<void> _fetchAndStoreLaravelToken(String email, String password) async {
     try {
-      // Usando 10.0.2.2 para emuladores Android, localhost para Web/iOS.
-      // Substitua pelo IP local se testar em aparelho físico.
-      final url = Uri.parse('http://10.0.2.2:8000/api/auth/token');
+      // Usando URL configurada no .env com fallback
+      final baseUrl =
+          dotenv.env['LARAVEL_API_URL'] ?? 'http://10.0.2.2:8000/api';
+      final url = Uri.parse('$baseUrl/auth/token');
 
       final response = await http
           .post(

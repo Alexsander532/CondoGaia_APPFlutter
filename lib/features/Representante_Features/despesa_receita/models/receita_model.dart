@@ -4,6 +4,8 @@ class Receita extends Equatable {
   final String? id;
   final String condominioId;
   final String? contaId;
+  final String? categoriaId;
+  final String? subcategoriaId;
   final String? contaContabil;
   final String? descricao;
   final double valor;
@@ -15,11 +17,15 @@ class Receita extends Equatable {
 
   // Campos auxiliares (join data)
   final String? contaNome;
+  final String? categoriaNome;
+  final String? subcategoriaNome;
 
   const Receita({
     this.id,
     required this.condominioId,
     this.contaId,
+    this.categoriaId,
+    this.subcategoriaId,
     this.contaContabil,
     this.descricao,
     this.valor = 0,
@@ -29,6 +35,8 @@ class Receita extends Equatable {
     this.tipo = 'MANUAL',
     this.createdAt,
     this.contaNome,
+    this.categoriaNome,
+    this.subcategoriaNome,
   });
 
   factory Receita.fromJson(Map<String, dynamic> json) {
@@ -36,6 +44,8 @@ class Receita extends Equatable {
       id: json['id'],
       condominioId: json['condominio_id'] ?? '',
       contaId: json['conta_id'],
+      categoriaId: json['categoria_id'],
+      subcategoriaId: json['subcategoria_id'],
       contaContabil: json['conta_contabil'],
       descricao: json['descricao'],
       valor: (json['valor'] ?? 0).toDouble(),
@@ -49,6 +59,8 @@ class Receita extends Equatable {
           ? DateTime.tryParse(json['created_at'])
           : null,
       contaNome: json['contas_bancarias']?['banco'],
+      categoriaNome: json['categorias_financeiras']?['nome'],
+      subcategoriaNome: json['subcategorias_financeiras']?['nome'],
     );
   }
 
@@ -56,6 +68,8 @@ class Receita extends Equatable {
     final Map<String, dynamic> data = {
       'condominio_id': condominioId,
       'conta_id': contaId,
+      'categoria_id': categoriaId,
+      'subcategoria_id': subcategoriaId,
       'conta_contabil': contaContabil,
       'descricao': descricao,
       'valor': valor,
@@ -74,6 +88,8 @@ class Receita extends Equatable {
     String? id,
     String? condominioId,
     String? contaId,
+    String? categoriaId,
+    String? subcategoriaId,
     String? contaContabil,
     String? descricao,
     double? valor,
@@ -83,11 +99,15 @@ class Receita extends Equatable {
     String? tipo,
     DateTime? createdAt,
     String? contaNome,
+    String? categoriaNome,
+    String? subcategoriaNome,
   }) {
     return Receita(
       id: id ?? this.id,
       condominioId: condominioId ?? this.condominioId,
       contaId: contaId ?? this.contaId,
+      categoriaId: categoriaId ?? this.categoriaId,
+      subcategoriaId: subcategoriaId ?? this.subcategoriaId,
       contaContabil: contaContabil ?? this.contaContabil,
       descricao: descricao ?? this.descricao,
       valor: valor ?? this.valor,
@@ -97,6 +117,8 @@ class Receita extends Equatable {
       tipo: tipo ?? this.tipo,
       createdAt: createdAt ?? this.createdAt,
       contaNome: contaNome ?? this.contaNome,
+      categoriaNome: categoriaNome ?? this.categoriaNome,
+      subcategoriaNome: subcategoriaNome ?? this.subcategoriaNome,
     );
   }
 
@@ -105,6 +127,8 @@ class Receita extends Equatable {
     id,
     condominioId,
     contaId,
+    categoriaId,
+    subcategoriaId,
     contaContabil,
     descricao,
     valor,
@@ -114,5 +138,7 @@ class Receita extends Equatable {
     tipo,
     createdAt,
     contaNome,
+    categoriaNome,
+    subcategoriaNome,
   ];
 }

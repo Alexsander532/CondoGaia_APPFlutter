@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
+import '../../../../../utils/input_formatters.dart';
 
 // ============================================================
 // CORES CONSTANTES
@@ -181,50 +183,74 @@ Widget buildDropdownField({
 Widget buildDateField({
   required BuildContext context,
   required String label,
-  required DateTime? value,
+  required TextEditingController controller,
   required ValueChanged<DateTime?> onChanged,
   DateTime? firstDate,
   DateTime? lastDate,
 }) {
-  final dateStr = value != null
-      ? '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}'
-      : '';
+  return TextField(
+    controller: controller,
+    keyboardType: TextInputType.number,
+    inputFormatters: [DateInputFormatter()],
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: const Icon(Icons.calendar_today, size: 20),
+      suffixIcon: IconButton(
+        icon: const Icon(Icons.event, size: 20),
+        onPressed: () async {
+          // Parse current text to DateTime for initialDate
+          DateTime initialDate = DateTime.now();
+          if (controller.text.length == 10) {
+            try {
+              final parts = controller.text.split('/');
+              initialDate = DateTime(
+                int.parse(parts[2]),
+                int.parse(parts[1]),
+                int.parse(parts[0]),
+              );
+            } catch (_) {}
+          }
 
-  return GestureDetector(
-    onTap: () async {
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: value ?? DateTime.now(),
-        firstDate: firstDate ?? DateTime(2000),
-        lastDate: lastDate ?? DateTime(2100),
-        locale: const Locale('pt', 'BR'),
-      );
-      if (picked != null) {
-        onChanged(picked);
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: initialDate,
+            firstDate: firstDate ?? DateTime(2000),
+            lastDate: lastDate ?? DateTime(2100),
+            locale: const Locale('pt', 'BR'),
+          );
+          if (picked != null) {
+            controller.text =
+                '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+            onChanged(picked);
+          }
+        },
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      isDense: true,
+      hintText: 'DD/MM/AAAA',
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    ),
+    style: const TextStyle(fontSize: 14),
+    onChanged: (text) {
+      if (text.length == 10) {
+        try {
+          final parts = text.split('/');
+          final day = int.parse(parts[0]);
+          final month = int.parse(parts[1]);
+          final year = int.parse(parts[2]);
+
+          // Basic validation
+          if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            final date = DateTime(year, month, day);
+            onChanged(date);
+          }
+        } catch (_) {
+          onChanged(null);
+        }
+      } else if (text.isEmpty) {
+        onChanged(null);
       }
     },
-    child: InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.calendar_today, size: 18),
-        suffixIcon: value != null
-            ? GestureDetector(
-                onTap: () => onChanged(null),
-                child: const Icon(Icons.clear, size: 18),
-              )
-            : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
-      ),
-      child: Text(
-        dateStr.isEmpty ? ' ' : dateStr, // prevent collapsing when empty
-        style: const TextStyle(fontSize: 14),
-      ),
-    ),
   );
 }
 
