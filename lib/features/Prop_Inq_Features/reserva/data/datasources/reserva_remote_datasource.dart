@@ -7,10 +7,13 @@ import '../models/reserva_model.dart';
 import '../models/ambiente_model.dart';
 
 abstract class ReservaRemoteDataSource {
+  /// Busca reservas do condomínio via JOIN com ambientes.condominio_id
   Future<List<ReservaModel>> obterReservas(String condominioId);
-  Future<List<AmbienteModel>> obterAmbientes();
+
+  /// Busca ambientes do condomínio específico
+  Future<List<AmbienteModel>> obterAmbientes(String condominioId);
+
   Future<ReservaModel> criarReserva({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -21,6 +24,8 @@ abstract class ReservaRemoteDataSource {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   });
   Future<void> cancelarReserva(String reservaId);
   Future<ReservaModel> atualizarReserva({
@@ -31,14 +36,13 @@ abstract class ReservaRemoteDataSource {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   });
 }
 
 /// Implementação concreta que chama Supabase
 class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
-  // TODO: Injetar SupabaseService aqui
-  // final SupabaseService _supabaseService;
-
   @override
   Future<ReservaModel> atualizarReserva({
     required String reservaId,
@@ -48,11 +52,13 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     try {
       final client = Supabase.instance.client;
 
-      final data = {
+      final data = <String, dynamic>{
         'ambiente_id': ambienteId,
         'local': local,
         'data_reserva': dataInicio.toIso8601String().split('T')[0],
@@ -65,6 +71,12 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
 
       if (listaPresentes != null) {
         data['lista_presentes'] = listaPresentes;
+      }
+      if (para != null) {
+        data['para'] = para;
+      }
+      if (blocoUnidadeId != null) {
+        data['bloco_unidade_id'] = blocoUnidadeId;
       }
 
       final response = await client
@@ -78,23 +90,26 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
 
       return ReservaModel.fromJson(response);
     } catch (e) {
-      print('❌ Erro ao atualizar reserva: $e');
       throw Exception('Erro ao atualizar reserva: $e');
     }
   }
 
   @override
-  Future<List<AmbienteModel>> obterAmbientes() async {
+  Future<List<AmbienteModel>> obterAmbientes(String condominioId) async {
     try {
       final client = Supabase.instance.client;
 
-      final response = await client.from('ambientes').select().order('titulo');
+      // Filtra ambientes pelo condomínio (coluna criada via migration)
+      final response = await client
+          .from('ambientes')
+          .select()
+          .eq('condominio_id', condominioId)
+          .order('titulo');
 
       return (response as List)
           .map((json) => AmbienteModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('❌ Erro ao buscar ambientes: $e');
       return [];
     }
   }
@@ -104,14 +119,14 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     try {
       final client = Supabase.instance.client;
 
-      // Buscar reservas ordenadas por data mais próxima
-      // Trazendo também o nome do inquilino ou representante
+      // Busca reservas via JOIN com ambientes para filtrar por condomínio
+      // ambientes.condominio_id = condominioId
       final response = await client
           .from('reservas')
           .select(
-            '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome)',
+            '*, inquilinos(nome), representantes(nome_completo), proprietarios(nome), ambientes!inner(condominio_id)',
           )
-          .eq('condominio_id', condominioId)
+          .eq('ambientes.condominio_id', condominioId)
           .order('data_reserva', ascending: true);
 
       final reservas = (response as List)
@@ -119,14 +134,12 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
           .toList();
       return reservas;
     } catch (e) {
-      print('❌ Erro ao buscar reservas: $e');
       return [];
     }
   }
 
   @override
   Future<ReservaModel> criarReserva({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -137,11 +150,13 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     try {
       final client = Supabase.instance.client;
 
-      final data = {
+      final data = <String, dynamic>{
         'ambiente_id': ambienteId,
         'local': local,
         'data_reserva': dataInicio.toIso8601String().split('T')[0],
@@ -151,14 +166,12 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
             '${dataFim.hour.toString().padLeft(2, '0')}:${dataFim.minute.toString().padLeft(2, '0')}',
         'valor_locacao': valorLocacao,
         'termo_locacao': termoLocacao,
-        'para': 'Condomínio', // Default
-        'condominio_id': condominioId,
+        'para': para ?? 'Condomínio',
       };
 
-      if (listaPresentes != null) {
+      if (listaPresentes != null && listaPresentes.isNotEmpty) {
         data['lista_presentes'] = listaPresentes;
       }
-
       if (representanteId != null) {
         data['representante_id'] = representanteId;
       }
@@ -167,6 +180,9 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
       }
       if (proprietarioId != null) {
         data['proprietario_id'] = proprietarioId;
+      }
+      if (blocoUnidadeId != null) {
+        data['bloco_unidade_id'] = blocoUnidadeId;
       }
 
       final response = await client
@@ -179,7 +195,6 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
 
       return ReservaModel.fromJson(response);
     } catch (e) {
-      print('❌ Erro ao criar reserva: $e');
       throw Exception('Erro ao criar reserva: $e');
     }
   }
@@ -190,7 +205,6 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
       final client = Supabase.instance.client;
       await client.from('reservas').delete().eq('id', reservaId);
     } catch (e) {
-      print('❌ Erro ao cancelar reserva: $e');
       throw Exception('Erro ao cancelar reserva: $e');
     }
   }

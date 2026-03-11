@@ -117,16 +117,12 @@ class _CategoriaSubcategoriaScreenState
                     if (isSubcategoria) {
                       if (selectedCategoriaId != null) {
                         cubit.adicionarSubcategoria(
-                          widget.condominioId,
                           selectedCategoriaId!,
                           controller.text,
                         );
                       }
                     } else {
-                      cubit.adicionarCategoria(
-                        widget.condominioId,
-                        controller.text,
-                      );
+                      cubit.adicionarCategoria(controller.text);
                     }
                     Navigator.pop(context);
                   }
@@ -184,14 +180,9 @@ class _CategoriaSubcategoriaScreenState
               final novoNome = controller.text.trim();
               if (novoNome.isNotEmpty && novoNome != nomeAtual) {
                 if (isSubcategoria && categoriaId != null) {
-                  cubit.editarSubcategoria(
-                    widget.condominioId,
-                    id,
-                    categoriaId,
-                    novoNome,
-                  );
+                  cubit.editarSubcategoria(id, categoriaId, novoNome);
                 } else {
-                  cubit.editarCategoria(widget.condominioId, id, novoNome);
+                  cubit.editarCategoria(id, novoNome);
                 }
               }
               Navigator.pop(dialogContext);
@@ -223,7 +214,7 @@ class _CategoriaSubcategoriaScreenState
         context,
         nome: categoria.nome,
         onConfirm: () {
-          cubit.excluirCategoria(widget.condominioId, categoria.id!);
+          cubit.excluirCategoria(categoria.id!);
         },
       );
     } else {
@@ -237,11 +228,7 @@ class _CategoriaSubcategoriaScreenState
             .where((c) => c.id != categoria.id)
             .toList(),
         onReassignAndDelete: (novaId) {
-          cubit.reatribuirEExcluirCategoria(
-            widget.condominioId,
-            categoria.id!,
-            novaId,
-          );
+          cubit.reatribuirEExcluirCategoria(categoria.id!, novaId);
         },
       );
     }
@@ -261,14 +248,14 @@ class _CategoriaSubcategoriaScreenState
         context,
         nome: sub.nome,
         onConfirm: () {
-          cubit.excluirSubcategoria(widget.condominioId, sub.id!);
+          cubit.excluirSubcategoria(sub.id!);
         },
       );
     } else {
       // Encontrar subcategorias da mesma categoria, excluindo a atual
       final categoriaPai = cubit.state.categorias.firstWhere(
         (c) => c.id == sub.categoriaId,
-        orElse: () => CategoriaFinanceira(condominioId: '', nome: ''),
+        orElse: () => CategoriaFinanceira(nome: ''),
       );
       final subcategoriasDisponiveis = categoriaPai.subcategorias
           .where((s) => s.id != sub.id)
@@ -281,11 +268,7 @@ class _CategoriaSubcategoriaScreenState
         tipo: 'subcategoria',
         opcoes: subcategoriasDisponiveis,
         onReassignAndDelete: (novaId) {
-          cubit.reatribuirEExcluirSubcategoria(
-            widget.condominioId,
-            sub.id!,
-            novaId,
-          );
+          cubit.reatribuirEExcluirSubcategoria(sub.id!, novaId);
         },
       );
     }
@@ -448,7 +431,7 @@ class _CategoriaSubcategoriaScreenState
     return BlocProvider(
       create: (context) =>
           CategoriaSubcategoriaCubit(service: GestaoCondominioService())
-            ..carregarCategorias(widget.condominioId),
+            ..carregarCategorias(),
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -679,7 +662,7 @@ class _CategoriaSubcategoriaScreenState
     if (_selectedCategoriaForSubcategoriaId != null) {
       final selectedCat = state.categorias.firstWhere(
         (c) => c.id == _selectedCategoriaForSubcategoriaId,
-        orElse: () => CategoriaFinanceira(condominioId: '', nome: ''),
+        orElse: () => CategoriaFinanceira(nome: ''),
       );
       subcategorias = selectedCat.subcategorias;
     }

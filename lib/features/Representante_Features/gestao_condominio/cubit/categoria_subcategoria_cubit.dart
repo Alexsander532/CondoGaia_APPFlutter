@@ -9,10 +9,10 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
   CategoriaSubcategoriaCubit({required this.service})
     : super(const CategoriaSubcategoriaState());
 
-  Future<void> carregarCategorias(String condominioId) async {
+  Future<void> carregarCategorias() async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
-      final categorias = await service.listarCategorias(condominioId);
+      final categorias = await service.listarCategorias();
       emit(
         state.copyWith(
           status: CategoriaSubcategoriaStatus.success,
@@ -29,15 +29,12 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
     }
   }
 
-  Future<void> adicionarCategoria(String condominioId, String nome) async {
+  Future<void> adicionarCategoria(String nome) async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
-      final novaCategoria = CategoriaFinanceira(
-        condominioId: condominioId,
-        nome: nome,
-      );
+      final novaCategoria = CategoriaFinanceira(nome: nome);
       await service.salvarCategoria(novaCategoria);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -48,11 +45,11 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
     }
   }
 
-  Future<void> excluirCategoria(String condominioId, String id) async {
+  Future<void> excluirCategoria(String id) async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
       await service.excluirCategoria(id);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -63,11 +60,7 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
     }
   }
 
-  Future<void> adicionarSubcategoria(
-    String condominioId,
-    String categoriaId,
-    String nome,
-  ) async {
+  Future<void> adicionarSubcategoria(String categoriaId, String nome) async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
       final novaSub = SubcategoriaFinanceira(
@@ -75,7 +68,7 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
         nome: nome,
       );
       await service.salvarSubcategoria(novaSub);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -86,11 +79,11 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
     }
   }
 
-  Future<void> excluirSubcategoria(String condominioId, String id) async {
+  Future<void> excluirSubcategoria(String id) async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
       await service.excluirSubcategoria(id);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -103,20 +96,15 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
 
   // --- Edição ---
 
-  Future<void> editarCategoria(
-    String condominioId,
-    String categoriaId,
-    String novoNome,
-  ) async {
+  Future<void> editarCategoria(String categoriaId, String novoNome) async {
     emit(state.copyWith(status: CategoriaSubcategoriaStatus.loading));
     try {
       final categoriaAtualizada = CategoriaFinanceira(
         id: categoriaId,
-        condominioId: condominioId,
         nome: novoNome,
       );
       await service.salvarCategoria(categoriaAtualizada);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -128,7 +116,6 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
   }
 
   Future<void> editarSubcategoria(
-    String condominioId,
     String subcategoriaId,
     String categoriaId,
     String novoNome,
@@ -141,7 +128,7 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
         nome: novoNome,
       );
       await service.salvarSubcategoria(subAtualizada);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -163,7 +150,6 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
   }
 
   Future<void> reatribuirEExcluirCategoria(
-    String condominioId,
     String categoriaAntigaId,
     String categoriaNovaId,
   ) async {
@@ -174,7 +160,7 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
         categoriaNovaId,
       );
       await service.excluirCategoria(categoriaAntigaId);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(
@@ -186,7 +172,6 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
   }
 
   Future<void> reatribuirEExcluirSubcategoria(
-    String condominioId,
     String subcategoriaAntigaId,
     String subcategoriaNovaId,
   ) async {
@@ -197,7 +182,7 @@ class CategoriaSubcategoriaCubit extends Cubit<CategoriaSubcategoriaState> {
         subcategoriaNovaId,
       );
       await service.excluirSubcategoria(subcategoriaAntigaId);
-      await carregarCategorias(condominioId);
+      await carregarCategorias();
     } catch (e) {
       emit(
         state.copyWith(

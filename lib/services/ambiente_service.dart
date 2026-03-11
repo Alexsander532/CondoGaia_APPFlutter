@@ -8,14 +8,17 @@ import 'supabase_service.dart';
 
 class AmbienteService {
   /// Buscar todos os ambientes ativos
-  /// Nota: Como a tabela não tem condominio_id nem ativo, buscaremos todos os ambientes
-  static Future<List<Ambiente>> getAmbientes() async {
+  /// Se um condominioId for fornecido, filtrará os ambientes correspondentes
+  static Future<List<Ambiente>> getAmbientes({String? condominioId}) async {
     try {
-      final response = await SupabaseService.client
-          .from('ambientes')
-          .select()
-          .order('titulo');
-      
+      var query = SupabaseService.client.from('ambientes').select();
+
+      if (condominioId != null) {
+        query = query.eq('condominio_id', condominioId);
+      }
+
+      final response = await query.order('titulo');
+
       return response.map((json) => Ambiente.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar ambientes: $e');
@@ -30,7 +33,7 @@ class AmbienteService {
           .select()
           .eq('id', ambienteId)
           .single();
-      
+
       return Ambiente.fromJson(response);
     } catch (e) {
       return null;
@@ -49,6 +52,7 @@ class AmbienteService {
     String? createdBy,
     String? fotoUrl,
     String? locacaoUrl,
+    required String condominioId,
   }) async {
     try {
       final ambiente = Ambiente(
@@ -62,6 +66,7 @@ class AmbienteService {
         createdBy: createdBy,
         fotoUrl: fotoUrl,
         locacaoUrl: locacaoUrl,
+        condominioId: condominioId,
       );
 
       final response = await SupabaseService.client
@@ -69,7 +74,7 @@ class AmbienteService {
           .insert(ambiente.toJson())
           .select()
           .single();
-      
+
       return Ambiente.fromJson(response);
     } catch (e) {
       throw Exception('Erro ao criar ambiente: $e');
@@ -95,17 +100,19 @@ class AmbienteService {
       final dados = <String, dynamic>{
         'updated_at': DateTime.now().toIso8601String(),
       };
-      
+
       if (titulo != null) dados['titulo'] = titulo;
       if (descricao != null) dados['descricao'] = descricao;
       if (valor != null) dados['valor'] = valor;
       if (limiteHorario != null) dados['limite_horario'] = limiteHorario;
-      if (limiteTempoDuracao != null) dados['limite_tempo_duracao'] = limiteTempoDuracao;
+      if (limiteTempoDuracao != null)
+        dados['limite_tempo_duracao'] = limiteTempoDuracao;
       if (diasBloqueados != null) dados['dias_bloqueados'] = diasBloqueados;
-      if (inadimplentePodemReservar != null) dados['inadiplente_podem_assinar'] = inadimplentePodemReservar;
+      if (inadimplentePodemReservar != null)
+        dados['inadiplente_podem_assinar'] = inadimplentePodemReservar;
       if (updatedBy != null) dados['updated_by'] = updatedBy;
       if (fotoUrl != null) dados['foto_url'] = fotoUrl;
-      
+
       // Se removerLocacao é true, define como null explicitamente
       // Caso contrário, só atualiza se locacaoUrl não for null
       if (removerLocacao == true) {
@@ -120,7 +127,7 @@ class AmbienteService {
           .eq('id', ambienteId)
           .select()
           .single();
-      
+
       return Ambiente.fromJson(response);
     } catch (e) {
       throw Exception('Erro ao atualizar ambiente: $e');
@@ -135,7 +142,7 @@ class AmbienteService {
           .from('ambientes')
           .delete()
           .eq('id', ambienteId);
-      
+
       return true;
     } catch (e) {
       throw Exception('Erro ao deletar ambiente: $e');
@@ -143,21 +150,27 @@ class AmbienteService {
   }
 
   /// Método mantido para compatibilidade (agora faz delete real)
-  static Future<bool> desativarAmbiente(String ambienteId, {String? atualizadoPor}) async {
+  static Future<bool> desativarAmbiente(
+    String ambienteId, {
+    String? atualizadoPor,
+  }) async {
     return await deletarAmbiente(ambienteId);
   }
 
   /// Verificar se um ambiente pode ser reservado
-  static Future<bool> podeReservar(String ambienteId, {bool? inadimplente}) async {
+  static Future<bool> podeReservar(
+    String ambienteId, {
+    bool? inadimplente,
+  }) async {
     try {
       final ambiente = await getAmbiente(ambienteId);
       if (ambiente == null) return false;
-      
+
       // Se o usuário é inadimplente, verificar se inadimplentes podem reservar
       if (inadimplente == true && !ambiente.inadimplentePodemReservar) {
         return false;
       }
-      
+
       return true; // Ambiente existe, pode reservar
     } catch (e) {
       return false;
@@ -169,7 +182,7 @@ class AmbienteService {
     try {
       final ambiente = await getAmbiente(ambienteId);
       if (ambiente == null) return true;
-      
+
       return ambiente.diasBloqueados?.contains(dia) ?? true;
     } catch (e) {
       return true;
@@ -177,15 +190,19 @@ class AmbienteService {
   }
 
   /// Buscar ambientes disponíveis para reserva
-  static Future<List<Ambiente>> getAmbientesDisponiveis({bool? inadimplente}) async {
+  static Future<List<Ambiente>> getAmbientesDisponiveis({
+    bool? inadimplente,
+  }) async {
     try {
       final ambientes = await getAmbientes();
-      
+
       if (inadimplente == true) {
         // Filtrar apenas ambientes que permitem inadimplentes
-        return ambientes.where((ambiente) => ambiente.inadimplentePodemReservar).toList();
+        return ambientes
+            .where((ambiente) => ambiente.inadimplentePodemReservar)
+            .toList();
       }
-      
+
       return ambientes;
     } catch (e) {
       throw Exception('Erro ao buscar ambientes disponíveis: $e');
@@ -200,7 +217,7 @@ class AmbienteService {
           .select()
           .ilike('titulo', '%$termo%')
           .order('titulo');
-      
+
       return response.map((json) => Ambiente.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar ambientes por título: $e');
@@ -214,17 +231,17 @@ class AmbienteService {
   }) async {
     try {
       var query = SupabaseService.client.from('ambientes').select();
-      
+
       if (valorMinimo != null) {
         query = query.gte('valor', valorMinimo);
       }
-      
+
       if (valorMaximo != null) {
         query = query.lte('valor', valorMaximo);
       }
-      
+
       final response = await query.order('valor');
-      
+
       return response.map((json) => Ambiente.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erro ao buscar ambientes por valor: $e');
@@ -298,7 +315,10 @@ class AmbienteService {
 
   /// Upload de PDF do termo de locação para ambiente
   /// Aceita File (mobile), XFile (image_picker) ou PlatformFile (file_picker)
-  static Future<String?> uploadLocacaoPdfAmbiente(dynamic arquivo, {required String nomeArquivo}) async {
+  static Future<String?> uploadLocacaoPdfAmbiente(
+    dynamic arquivo, {
+    required String nomeArquivo,
+  }) async {
     try {
       if (arquivo == null) return null;
 
@@ -320,7 +340,9 @@ class AmbienteService {
           throw Exception('PlatformFile sem bytes ou path');
         }
       } else {
-        throw Exception('Tipo de arquivo não suportado: ${arquivo.runtimeType}');
+        throw Exception(
+          'Tipo de arquivo não suportado: ${arquivo.runtimeType}',
+        );
       }
 
       // Sanitizar nome do arquivo para remover caracteres especiais

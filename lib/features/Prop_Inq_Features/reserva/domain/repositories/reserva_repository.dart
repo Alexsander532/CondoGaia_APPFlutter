@@ -5,9 +5,8 @@ import '../../domain/entities/ambiente_entity.dart';
 
 abstract class ReservaRepository {
   Future<List<ReservaEntity>> obterReservas(String condominioId);
-  Future<List<AmbienteEntity>> obterAmbientes();
+  Future<List<AmbienteEntity>> obterAmbientes(String condominioId);
   Future<ReservaEntity> criarReserva({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -18,6 +17,8 @@ abstract class ReservaRepository {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   });
   Future<void> cancelarReserva(String reservaId);
   Future<ReservaEntity> atualizarReserva({
@@ -28,5 +29,7 @@ abstract class ReservaRepository {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   });
 }

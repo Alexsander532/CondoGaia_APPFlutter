@@ -25,7 +25,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(status: DespesaReceitaStatus.loading));
     try {
       final contas = await _service.listarContas(condominioId);
-      final categorias = await _service.listarCategorias(condominioId);
+      final categorias = await _service.listarCategorias();
       final despesas = await _service.listarDespesas(
         condominioId,
         mes: state.mesSelecionado,

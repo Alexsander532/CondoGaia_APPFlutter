@@ -8,7 +8,9 @@ import '../services/ambiente_service.dart';
 import '../services/photo_picker_service.dart';
 
 class ConfigurarAmbientesScreen extends StatefulWidget {
-  const ConfigurarAmbientesScreen({super.key});
+  final String condominioId;
+
+  const ConfigurarAmbientesScreen({super.key, required this.condominioId});
 
   @override
   State<ConfigurarAmbientesScreen> createState() =>
@@ -20,8 +22,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
   bool isLoading = true;
   String? errorMessage;
 
-  // TODO: Obter condominioId do usuário logado
-  final String condominioId = '1'; // Temporário para teste
+  // A propriedade widget.condominioId será utilizada
 
   @override
   void initState() {
@@ -36,7 +37,9 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
         errorMessage = null;
       });
 
-      final ambientesCarregados = await AmbienteService.getAmbientes();
+      final ambientesCarregados = await AmbienteService.getAmbientes(
+        condominioId: widget.condominioId,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -1259,6 +1262,7 @@ class _ConfigurarAmbientesScreenState extends State<ConfigurarAmbientesScreen> {
                                 inadimplentesPodemReservar,
                             fotoUrl: fotoUrl,
                             locacaoUrl: locacaoUrl,
+                            condominioId: widget.condominioId,
                             // Removido createdBy temporariamente até implementar autenticação
                           );
 

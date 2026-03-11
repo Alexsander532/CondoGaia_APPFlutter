@@ -24,14 +24,12 @@ class SubcategoriaFinanceira {
 
 class CategoriaFinanceira {
   final String? id;
-  final String condominioId;
   final String nome;
   final String tipo;
   final List<SubcategoriaFinanceira> subcategorias;
 
   CategoriaFinanceira({
     this.id,
-    required this.condominioId,
     required this.nome,
     this.tipo = 'DESPESA',
     this.subcategorias = const [],
@@ -45,7 +43,6 @@ class CategoriaFinanceira {
 
     return CategoriaFinanceira(
       id: json['id'],
-      condominioId: json['condominio_id'],
       nome: json['nome'],
       tipo: json['tipo'] ?? 'DESPESA',
       subcategorias: subList,
@@ -53,6 +50,6 @@ class CategoriaFinanceira {
   }
 
   Map<String, dynamic> toJson() {
-    return {'condominio_id': condominioId, 'nome': nome, 'tipo': tipo};
+    return {'nome': nome, 'tipo': tipo};
   }
 }

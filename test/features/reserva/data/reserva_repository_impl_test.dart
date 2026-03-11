@@ -16,6 +16,8 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     if (throwError) throw Exception('Erro na fonte de dados');
     return ReservaModel(
@@ -27,9 +29,10 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
       horaFim: '12:00',
       valorLocacao: valorLocacao,
       termoLocacao: true,
-      para: 'Condominio',
+      para: para ?? 'Condomínio',
       dataCriacao: DateTime.now(),
       dataAtualizacao: DateTime.now(),
+      listaPresentes: listaPresentes,
     );
   }
 
@@ -40,7 +43,6 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
 
   @override
   Future<ReservaModel> criarReserva({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -51,6 +53,8 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     if (throwError) throw Exception('Erro na fonte de dados');
     return ReservaModel(
@@ -62,21 +66,23 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
       horaFim: '12:00',
       valorLocacao: valorLocacao,
       termoLocacao: termoLocacao,
-      para: 'Condominio',
+      para: para ?? 'Condomínio',
       dataCriacao: DateTime.now(),
       dataAtualizacao: DateTime.now(),
+      listaPresentes: listaPresentes,
     );
   }
 
   @override
-  Future<List<AmbienteModel>> obterAmbientes() async {
+  Future<List<AmbienteModel>> obterAmbientes(String condominioId) async {
     if (throwError) throw Exception('Erro na fonte de dados');
     return [
       AmbienteModel(
         id: '1',
-        nome: 'Amb',
-        valor: 10,
-        descricao: 'D',
+        nome: 'Churrasqueira',
+        valor: 150,
+        condominioId: condominioId,
+        descricao: 'Área de lazer',
         dataCriacao: DateTime.now(),
       ),
     ];
@@ -95,7 +101,7 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
         local: 'L1',
         valorLocacao: 10,
         termoLocacao: true,
-        para: 'P1',
+        para: 'Condomínio',
         dataCriacao: DateTime.now(),
         dataAtualizacao: DateTime.now(),
       ),
@@ -124,23 +130,42 @@ void main() {
       expect(() => repository.obterReservas('c1'), throwsException);
     });
 
-    test('ObterAmbientes - Sucesso', () async {
-      final ambientes = await repository.obterAmbientes();
+    test('ObterAmbientes - Sucesso filtrado por condominioId', () async {
+      final ambientes = await repository.obterAmbientes('cond1');
       expect(ambientes.length, 1);
       expect(ambientes.first.id, '1');
     });
 
-    test('CriarReserva - Sucesso', () async {
+    test('ObterAmbientes - Erro propagado', () async {
+      dataSource.throwError = true;
+      expect(() => repository.obterAmbientes('cond1'), throwsException);
+    });
+
+    test('CriarReserva - Sucesso (sem condominioId)', () async {
       final reserva = await repository.criarReserva(
-        condominioId: 'c1',
         ambienteId: 'a1',
-        local: 'L1',
-        dataInicio: DateTime.now(),
-        dataFim: DateTime.now(),
-        valorLocacao: 10,
+        local: 'Churrasqueira',
+        dataInicio: DateTime(2026, 3, 20, 10),
+        dataFim: DateTime(2026, 3, 20, 12),
+        valorLocacao: 150,
         termoLocacao: true,
+        inquilinoId: 'inq1',
       );
       expect(reserva.id, 'novo_id');
+    });
+
+    test('CriarReserva - Com lista de presentes', () async {
+      const lista = '["João","Maria"]';
+      final reserva = await repository.criarReserva(
+        ambienteId: 'a1',
+        local: 'Salão',
+        dataInicio: DateTime(2026, 3, 20, 14),
+        dataFim: DateTime(2026, 3, 20, 18),
+        valorLocacao: 200,
+        termoLocacao: true,
+        listaPresentes: lista,
+      );
+      expect(reserva.listaPresentes, lista);
     });
 
     test('CancelarReserva - Sucesso', () async {
@@ -151,12 +176,13 @@ void main() {
       final reserva = await repository.atualizarReserva(
         reservaId: '1',
         ambienteId: 'a1',
-        local: 'L1',
-        dataInicio: DateTime.now(),
-        dataFim: DateTime.now(),
-        valorLocacao: 10,
+        local: 'Novo Local',
+        dataInicio: DateTime(2026, 3, 20, 10),
+        dataFim: DateTime(2026, 3, 20, 12),
+        valorLocacao: 200,
       );
       expect(reserva.id, '1');
+      expect(reserva.local, 'Novo Local');
     });
   });
 }

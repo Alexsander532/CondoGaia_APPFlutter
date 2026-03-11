@@ -30,6 +30,7 @@ void main() {
         id: '123',
         nome: 'Salao',
         valor: 100.0,
+        condominioId: 'cond1',
         descricao: 'D',
         dataCriacao: DateTime(2026, 1, 1),
       );

@@ -155,11 +155,11 @@ class DespesaReceitaState extends Equatable {
 
   /// Categorias do tipo DESPESA
   List<CategoriaFinanceira> get categoriasDespesa =>
-      categorias.where((c) => c.tipo == 'DESPESA').toList();
+      categorias.where((c) => c.tipo.toUpperCase() == 'DESPESA').toList();
 
   /// Categorias do tipo RECEITA
   List<CategoriaFinanceira> get categoriasReceita =>
-      categorias.where((c) => c.tipo == 'RECEITA').toList();
+      categorias.where((c) => c.tipo.toUpperCase() == 'RECEITA').toList();
 
   /// Total das despesas
   double get totalDespesas => despesas.fold(0, (sum, d) => sum + d.valor);

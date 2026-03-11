@@ -110,7 +110,7 @@ void main() {
           () => mockService.listarContas(any()),
         ).thenAnswer((_) async => _contas);
         when(
-          () => mockService.listarCategorias(any()),
+          () => mockService.listarCategorias(),
         ).thenAnswer((_) async => _categorias);
         when(
           () => mockService.listarDespesas(
@@ -578,7 +578,7 @@ void main() {
           () => mockService.listarContas(any()),
         ).thenAnswer((_) async => _contas);
         when(
-          () => mockService.listarCategorias(any()),
+          () => mockService.listarCategorias(),
         ).thenAnswer((_) async => _categorias);
         when(
           () => mockService.listarDespesas(

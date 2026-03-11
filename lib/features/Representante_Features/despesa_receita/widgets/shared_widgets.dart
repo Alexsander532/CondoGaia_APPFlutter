@@ -159,20 +159,41 @@ Widget buildDropdownField({
   required List<DropdownMenuItem<String>> items,
   required ValueChanged<String?> onChanged,
 }) {
-  final validValue = items.any((item) => item.value == value) ? value : null;
+  final hasItems = items.isNotEmpty;
+  final effectiveItems = hasItems
+      ? items
+      : [
+          const DropdownMenuItem<String>(
+            value: '',
+            child: Text(
+              'Nenhuma opção...',
+              style: TextStyle(
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+                fontSize: 13,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ];
+
+  final validValue = hasItems
+      ? (items.any((item) => item.value == value) ? value : null)
+      : '';
+
   return DropdownButtonFormField<String>(
     value: validValue,
     decoration: InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, size: 20),
+      prefixIcon: Icon(icon, size: 20, color: hasItems ? null : Colors.grey),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     ),
     isExpanded: true,
-    icon: const Icon(Icons.keyboard_arrow_down),
-    items: items,
-    onChanged: onChanged,
+    icon: Icon(Icons.keyboard_arrow_down, color: hasItems ? null : Colors.grey),
+    items: effectiveItems,
+    onChanged: hasItems ? onChanged : null,
   );
 }
 

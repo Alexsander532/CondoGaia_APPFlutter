@@ -13,7 +13,6 @@ class ReservaRepositoryImpl implements ReservaRepository {
   @override
   Future<List<ReservaEntity>> obterReservas(String condominioId) async {
     try {
-      // Chama DataSource e converte para Entity
       final models = await remoteDataSource.obterReservas(condominioId);
       return models.map((model) => model as ReservaEntity).toList();
     } catch (e) {
@@ -22,10 +21,9 @@ class ReservaRepositoryImpl implements ReservaRepository {
   }
 
   @override
-  Future<List<AmbienteEntity>> obterAmbientes() async {
+  Future<List<AmbienteEntity>> obterAmbientes(String condominioId) async {
     try {
-      // Chama DataSource e converte para Entity
-      final models = await remoteDataSource.obterAmbientes();
+      final models = await remoteDataSource.obterAmbientes(condominioId);
       return models.map((model) => model as AmbienteEntity).toList();
     } catch (e) {
       throw Exception('Erro ao obter ambientes: $e');
@@ -34,7 +32,6 @@ class ReservaRepositoryImpl implements ReservaRepository {
 
   @override
   Future<ReservaEntity> criarReserva({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -45,10 +42,11 @@ class ReservaRepositoryImpl implements ReservaRepository {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     try {
       final model = await remoteDataSource.criarReserva(
-        condominioId: condominioId,
         ambienteId: ambienteId,
         representanteId: representanteId,
         inquilinoId: inquilinoId,
@@ -59,6 +57,8 @@ class ReservaRepositoryImpl implements ReservaRepository {
         valorLocacao: valorLocacao,
         termoLocacao: termoLocacao,
         listaPresentes: listaPresentes,
+        para: para,
+        blocoUnidadeId: blocoUnidadeId,
       );
       return model as ReservaEntity;
     } catch (e) {
@@ -84,6 +84,8 @@ class ReservaRepositoryImpl implements ReservaRepository {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) async {
     try {
       final model = await remoteDataSource.atualizarReserva(
@@ -94,6 +96,8 @@ class ReservaRepositoryImpl implements ReservaRepository {
         dataFim: dataFim,
         valorLocacao: valorLocacao,
         listaPresentes: listaPresentes,
+        para: para,
+        blocoUnidadeId: blocoUnidadeId,
       );
       return model as ReservaEntity;
     } catch (e) {

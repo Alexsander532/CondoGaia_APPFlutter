@@ -1,12 +1,11 @@
 import '../models/despesa_model.dart';
 import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
-import '../../gestao_condominio/models/conta_bancaria_model.dart';
+
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
 
 abstract class IDespesaReceitaService {
-  Future<List<ContaBancaria>> listarContas(String condominioId);
-  Future<List<CategoriaFinanceira>> listarCategorias(String condominioId);
+  Future<List<CategoriaFinanceira>> listarCategorias();
 
   Future<List<Despesa>> listarDespesas(
     String condominioId, {

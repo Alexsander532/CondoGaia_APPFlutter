@@ -204,14 +204,11 @@ class GestaoCondominioService {
   }
   // --- Categorias e Subcategorias ---
 
-  Future<List<CategoriaFinanceira>> listarCategorias(
-    String condominioId,
-  ) async {
+  Future<List<CategoriaFinanceira>> listarCategorias() async {
     try {
       final response = await _supabase
           .from('categorias_financeiras')
           .select('*, subcategorias_financeiras(*)')
-          .eq('condominio_id', condominioId)
           .order('nome');
 
       return (response as List)

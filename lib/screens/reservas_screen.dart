@@ -2414,8 +2414,9 @@ class _ReservasScreenState extends State<ReservasScreen> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const ConfigurarAmbientesScreen(),
+                          builder: (context) => ConfigurarAmbientesScreen(
+                            condominioId: widget.condominioId ?? '',
+                          ),
                         ),
                       );
 

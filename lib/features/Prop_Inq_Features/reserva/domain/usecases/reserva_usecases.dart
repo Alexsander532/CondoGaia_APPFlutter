@@ -6,7 +6,7 @@ import '../../domain/repositories/reserva_repository.dart';
 import '../../domain/entities/reserva_entity.dart';
 import '../../domain/entities/ambiente_entity.dart';
 
-// Caso de uso: Obter Reservas
+// Caso de uso: Obter Reservas do condomínio (via JOIN com ambientes)
 class ObterReservasUseCase {
   final ReservaRepository repository;
 
@@ -17,14 +17,14 @@ class ObterReservasUseCase {
   }
 }
 
-// Caso de uso: Obter Ambientes
+// Caso de uso: Obter Ambientes do condomínio
 class ObterAmbientesUseCase {
   final ReservaRepository repository;
 
   ObterAmbientesUseCase({required this.repository});
 
-  Future<List<AmbienteEntity>> call() {
-    return repository.obterAmbientes();
+  Future<List<AmbienteEntity>> call(String condominioId) {
+    return repository.obterAmbientes(condominioId);
   }
 }
 
@@ -35,7 +35,6 @@ class CriarReservaUseCase {
   CriarReservaUseCase({required this.repository});
 
   Future<ReservaEntity> call({
-    required String condominioId,
     required String ambienteId,
     String? representanteId,
     String? inquilinoId,
@@ -46,9 +45,10 @@ class CriarReservaUseCase {
     required double valorLocacao,
     required bool termoLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) {
     return repository.criarReserva(
-      condominioId: condominioId,
       ambienteId: ambienteId,
       representanteId: representanteId,
       inquilinoId: inquilinoId,
@@ -59,6 +59,8 @@ class CriarReservaUseCase {
       valorLocacao: valorLocacao,
       termoLocacao: termoLocacao,
       listaPresentes: listaPresentes,
+      para: para,
+      blocoUnidadeId: blocoUnidadeId,
     );
   }
 }
@@ -77,6 +79,8 @@ class AtualizarReservaUseCase {
     required DateTime dataFim,
     required double valorLocacao,
     String? listaPresentes,
+    String? para,
+    String? blocoUnidadeId,
   }) {
     return repository.atualizarReserva(
       reservaId: reservaId,
@@ -86,6 +90,8 @@ class AtualizarReservaUseCase {
       dataFim: dataFim,
       valorLocacao: valorLocacao,
       listaPresentes: listaPresentes,
+      para: para,
+      blocoUnidadeId: blocoUnidadeId,
     );
   }
 }
@@ -102,6 +108,8 @@ class CancelarReservaUseCase {
 }
 
 // Caso de uso: Validar Disponibilidade
+// Verifica se o ambiente já possui reserva no mesmo DIA
+// (regra: apenas uma reserva por dia por ambiente)
 class ValidarDisponibilidadeUseCase {
   final ReservaRepository repository;
 
@@ -112,26 +120,34 @@ class ValidarDisponibilidadeUseCase {
     required String ambienteId,
     required DateTime dataInicio,
     required DateTime dataFim,
+    String?
+    reservaIdExcluir, // Para edição: excluir a própria reserva da validação
   }) async {
     final reservas = await repository.obterReservas(condominioId);
 
-    // Converter DateTime em data para comparação com dataReserva
-    final dataInicioDate = DateTime(
+    final diaReserva = DateTime(
       dataInicio.year,
       dataInicio.month,
       dataInicio.day,
     );
-    final dataFimDate = DateTime(dataFim.year, dataFim.month, dataFim.day);
 
     for (final reserva in reservas) {
-      if (reserva.ambienteId == ambienteId) {
-        // Verificar se há sobreposição de datas
-        if ((reserva.dataReserva.isBefore(dataFimDate) &&
-                reserva.dataReserva.isAfter(dataInicioDate)) ||
-            reserva.dataReserva.isAtSameMomentAs(dataInicioDate) ||
-            reserva.dataReserva.isAtSameMomentAs(dataFimDate)) {
-          return false;
-        }
+      // Pular a própria reserva quando editando
+      if (reservaIdExcluir != null && reserva.id == reservaIdExcluir) {
+        continue;
+      }
+
+      if (reserva.ambienteId != ambienteId) continue;
+
+      final diaExistente = DateTime(
+        reserva.dataReserva.year,
+        reserva.dataReserva.month,
+        reserva.dataReserva.day,
+      );
+
+      // Regra: apenas uma reserva por dia por ambiente
+      if (diaExistente == diaReserva) {
+        return false; // Já existe reserva nesse dia
       }
     }
     return true;

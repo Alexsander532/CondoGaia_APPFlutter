@@ -9,9 +9,7 @@
 // // Descomente quando tiver GetIt instalado
 
 import '../../data/datasources/reserva_remote_datasource.dart';
-import '../../data/models/reserva_model.dart';
 import '../../data/repositories/reserva_repository_impl.dart';
-import '../../domain/repositories/reserva_repository.dart';
 import '../../domain/usecases/reserva_usecases.dart';
 import '../cubit/reserva_cubit.dart';
 

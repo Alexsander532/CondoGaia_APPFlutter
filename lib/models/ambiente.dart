@@ -13,6 +13,7 @@ class Ambiente {
   final String? updatedBy; // updated_by - mapeamento correto
   final String? fotoUrl; // Foto do ambiente
   final String? locacaoUrl; // URL do PDF do termo de locação
+  final String? condominioId; // condominio_id - mapeamento correto
 
   const Ambiente({
     this.id,
@@ -29,6 +30,7 @@ class Ambiente {
     this.updatedBy,
     this.fotoUrl,
     this.locacaoUrl,
+    this.condominioId,
   });
 
   // Construtor para criar uma instância a partir de JSON (Supabase)
@@ -42,16 +44,17 @@ class Ambiente {
       limiteTempoDuracao: json['limite_tempo_duracao'],
       diasBloqueados: json['dias_bloqueados'],
       inadimplentePodemReservar: json['inadiplente_podem_assinar'] ?? false,
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
-      updatedAt: json['updated_at'] != null 
+      updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
       createdBy: json['created_by']?.toString(),
       updatedBy: json['updated_by']?.toString(),
       fotoUrl: json['foto_url'],
       locacaoUrl: json['locacao_url'],
+      condominioId: json['condominio_id']?.toString(),
     );
   }
 
@@ -72,6 +75,7 @@ class Ambiente {
       if (updatedBy != null) 'updated_by': updatedBy,
       if (fotoUrl != null) 'foto_url': fotoUrl,
       if (locacaoUrl != null) 'locacao_url': locacaoUrl,
+      if (condominioId != null) 'condominio_id': condominioId,
     };
   }
 
@@ -91,6 +95,7 @@ class Ambiente {
     String? updatedBy,
     String? fotoUrl,
     String? locacaoUrl,
+    String? condominioId,
   }) {
     return Ambiente(
       id: id ?? this.id,
@@ -98,15 +103,18 @@ class Ambiente {
       descricao: descricao ?? this.descricao,
       valor: valor ?? this.valor,
       limiteHorario: limiteHorario ?? this.limiteHorario,
-      limiteTempoDuracao: limiteTempoDuracao?.toString() ?? this.limiteTempoDuracao,
+      limiteTempoDuracao:
+          limiteTempoDuracao?.toString() ?? this.limiteTempoDuracao,
       diasBloqueados: diasBloqueados?.toString() ?? this.diasBloqueados,
-      inadimplentePodemReservar: inadimplentePodemReservar ?? this.inadimplentePodemReservar,
+      inadimplentePodemReservar:
+          inadimplentePodemReservar ?? this.inadimplentePodemReservar,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       fotoUrl: fotoUrl ?? this.fotoUrl,
       locacaoUrl: locacaoUrl ?? this.locacaoUrl,
+      condominioId: condominioId ?? this.condominioId,
     );
   }
 

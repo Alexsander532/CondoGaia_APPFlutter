@@ -5,31 +5,35 @@ class AmbienteModel extends AmbienteEntity {
     required String id,
     required String nome,
     required double valor,
+    required String condominioId,
     String? descricao,
     String? locacaoUrl,
     String? fotoUrl,
     DateTime? dataCriacao,
   }) : super(
-    id: id,
-    nome: nome,
-    valor: valor,
-    descricao: descricao ?? '',
-    locacaoUrl: locacaoUrl,
-    condominioId: '', // Campo obrigatório na Entity, mas não está na tabela
-    tipo: '', // Campo obrigatório na Entity, mas não está na tabela
-    capacidadeMaxima: 0, // Campo obrigatório na Entity, mas não está na tabela
-    dataCriacao: dataCriacao ?? DateTime.now(),
-  );
+         id: id,
+         nome: nome,
+         valor: valor,
+         descricao: descricao ?? '',
+         locacaoUrl: locacaoUrl,
+         condominioId: condominioId,
+         tipo: '',
+         capacidadeMaxima: 0,
+         dataCriacao: dataCriacao ?? DateTime.now(),
+       );
 
   factory AmbienteModel.fromJson(Map<String, dynamic> json) {
     return AmbienteModel(
       id: json['id'] as String? ?? '',
-      nome: json['titulo'] as String? ?? '', // A tabela usa 'titulo', não 'nome'
+      nome:
+          json['titulo'] as String? ??
+          '', // Tabela usa 'titulo', entity usa 'nome'
       valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
+      condominioId: json['condominio_id'] as String? ?? '',
       descricao: json['descricao'] as String?,
       locacaoUrl: json['locacao_url'] as String?,
       fotoUrl: json['foto_url'] as String?,
-      dataCriacao: json['created_at'] != null 
+      dataCriacao: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
     );
@@ -41,6 +45,7 @@ class AmbienteModel extends AmbienteEntity {
       'titulo': nome,
       'descricao': descricao,
       'valor': valor,
+      'condominio_id': condominioId,
       'locacao_url': locacaoUrl,
     };
   }
