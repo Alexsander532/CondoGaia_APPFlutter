@@ -94,6 +94,26 @@ class FakeReservaRepository implements ReservaRepository {
     if (throwError) throw Exception('Simulated Error');
     return reservas;
   }
+
+  @override
+  Future<bool> verificarDisponibilidade({
+    required String ambienteId,
+    required DateTime data,
+    String? reservaIdExcluir,
+  }) async {
+    if (throwError) throw Exception('Simulated Error');
+    final dataStr =
+        '${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}';
+    for (final r in reservas) {
+      final rDataStr =
+          '${r.dataReserva.year}-${r.dataReserva.month.toString().padLeft(2, '0')}-${r.dataReserva.day.toString().padLeft(2, '0')}';
+      if (r.ambienteId == ambienteId && rDataStr == dataStr) {
+        if (reservaIdExcluir != null && r.id == reservaIdExcluir) continue;
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -105,8 +125,6 @@ AmbienteEntity _makeAmbiente({String id = 'a1', String condominioId = 'c1'}) {
     valor: 150,
     condominioId: condominioId,
     descricao: '',
-    tipo: '',
-    capacidadeMaxima: 0,
     dataCriacao: DateTime.now(),
   );
 }

@@ -31,6 +31,23 @@ class ReservaRepositoryImpl implements ReservaRepository {
   }
 
   @override
+  Future<bool> verificarDisponibilidade({
+    required String ambienteId,
+    required DateTime data,
+    String? reservaIdExcluir,
+  }) async {
+    try {
+      return await remoteDataSource.verificarDisponibilidade(
+        ambienteId: ambienteId,
+        data: data,
+        reservaIdExcluir: reservaIdExcluir,
+      );
+    } catch (e) {
+      throw Exception('Erro ao verificar disponibilidade: $e');
+    }
+  }
+
+  @override
   Future<ReservaEntity> criarReserva({
     required String ambienteId,
     String? representanteId,

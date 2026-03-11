@@ -10,10 +10,9 @@ void main() {
         valor: 200.0,
         condominioId: 'cond1',
         descricao: 'Salao para 50 pessoas',
-        tipo: 'Comum',
-        capacidadeMaxima: 50,
         dataCriacao: DateTime(2026, 1, 1),
         locacaoUrl: 'http://link.com',
+        fotoUrl: 'http://foto.com/img.jpg',
       );
 
       expect(ambiente.id, '123');
@@ -21,10 +20,23 @@ void main() {
       expect(ambiente.valor, 200.0);
       expect(ambiente.condominioId, 'cond1');
       expect(ambiente.descricao, 'Salao para 50 pessoas');
-      expect(ambiente.tipo, 'Comum');
-      expect(ambiente.capacidadeMaxima, 50);
       expect(ambiente.dataCriacao, DateTime(2026, 1, 1));
       expect(ambiente.locacaoUrl, 'http://link.com');
+      expect(ambiente.fotoUrl, 'http://foto.com/img.jpg');
+    });
+
+    test('Campos opcionais (locacaoUrl, fotoUrl) podem ser null', () {
+      final ambiente = AmbienteEntity(
+        id: '456',
+        nome: 'Piscina',
+        valor: 0.0,
+        condominioId: 'cond2',
+        descricao: '',
+        dataCriacao: DateTime.now(),
+      );
+
+      expect(ambiente.locacaoUrl, isNull);
+      expect(ambiente.fotoUrl, isNull);
     });
   });
 }

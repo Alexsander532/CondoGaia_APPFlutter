@@ -108,8 +108,7 @@ class CancelarReservaUseCase {
 }
 
 // Caso de uso: Validar Disponibilidade
-// Verifica se o ambiente já possui reserva no mesmo DIA
-// (regra: apenas uma reserva por dia por ambiente)
+// Verifica se o ambiente já possui reserva na data via query direta no servidor
 class ValidarDisponibilidadeUseCase {
   final ReservaRepository repository;
 
@@ -123,33 +122,10 @@ class ValidarDisponibilidadeUseCase {
     String?
     reservaIdExcluir, // Para edição: excluir a própria reserva da validação
   }) async {
-    final reservas = await repository.obterReservas(condominioId);
-
-    final diaReserva = DateTime(
-      dataInicio.year,
-      dataInicio.month,
-      dataInicio.day,
+    return await repository.verificarDisponibilidade(
+      ambienteId: ambienteId,
+      data: dataInicio,
+      reservaIdExcluir: reservaIdExcluir,
     );
-
-    for (final reserva in reservas) {
-      // Pular a própria reserva quando editando
-      if (reservaIdExcluir != null && reserva.id == reservaIdExcluir) {
-        continue;
-      }
-
-      if (reserva.ambienteId != ambienteId) continue;
-
-      final diaExistente = DateTime(
-        reserva.dataReserva.year,
-        reserva.dataReserva.month,
-        reserva.dataReserva.day,
-      );
-
-      // Regra: apenas uma reserva por dia por ambiente
-      if (diaExistente == diaReserva) {
-        return false; // Já existe reserva nesse dia
-      }
-    }
-    return true;
   }
 }

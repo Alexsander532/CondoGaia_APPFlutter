@@ -69,7 +69,7 @@ class _SeletorAmbienteState extends State<SeletorAmbiente> {
                   value: ambiente,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 16),
-                    child: Text('${ambiente.nome} (Capacidade: ${ambiente.capacidadeMaxima})'),
+                    child: Text(ambiente.nome),
                   ),
                 );
               }).toList(),
@@ -89,7 +89,11 @@ class _SeletorAmbienteState extends State<SeletorAmbiente> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.blue, size: 20),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       widget.ambienteSelecionado!.nome,

@@ -13,6 +13,13 @@ abstract class ReservaRemoteDataSource {
   /// Busca ambientes do condomínio específico
   Future<List<AmbienteModel>> obterAmbientes(String condominioId);
 
+  /// Verifica disponibilidade de um ambiente em uma data específica
+  Future<bool> verificarDisponibilidade({
+    required String ambienteId,
+    required DateTime data,
+    String? reservaIdExcluir,
+  });
+
   Future<ReservaModel> criarReserva({
     required String ambienteId,
     String? representanteId,
@@ -110,7 +117,7 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
           .map((json) => AmbienteModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      return [];
+      throw Exception('Erro ao obter ambientes: $e');
     }
   }
 
@@ -134,7 +141,34 @@ class ReservaRemoteDataSourceImpl implements ReservaRemoteDataSource {
           .toList();
       return reservas;
     } catch (e) {
-      return [];
+      throw Exception('Erro ao obter reservas: $e');
+    }
+  }
+
+  @override
+  Future<bool> verificarDisponibilidade({
+    required String ambienteId,
+    required DateTime data,
+    String? reservaIdExcluir,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
+      final dataStr = data.toIso8601String().split('T')[0];
+
+      var query = client
+          .from('reservas')
+          .select('id')
+          .eq('ambiente_id', ambienteId)
+          .eq('data_reserva', dataStr);
+
+      if (reservaIdExcluir != null) {
+        query = query.neq('id', reservaIdExcluir);
+      }
+
+      final response = await query;
+      return (response as List).isEmpty; // true = disponível
+    } catch (e) {
+      throw Exception('Erro ao verificar disponibilidade: $e');
     }
   }
 

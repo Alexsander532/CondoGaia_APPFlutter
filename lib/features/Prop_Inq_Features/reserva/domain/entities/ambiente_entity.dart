@@ -5,10 +5,9 @@ class AmbienteEntity {
   final double valor;
   final String condominioId;
   final String descricao;
-  final String tipo;
-  final int capacidadeMaxima;
   final DateTime dataCriacao;
   final String? locacaoUrl;
+  final String? fotoUrl;
 
   AmbienteEntity({
     required this.id,
@@ -16,9 +15,8 @@ class AmbienteEntity {
     required this.valor,
     required this.condominioId,
     required this.descricao,
-    required this.tipo,
-    required this.capacidadeMaxima,
     required this.dataCriacao,
     this.locacaoUrl,
+    this.fotoUrl,
   });
 }

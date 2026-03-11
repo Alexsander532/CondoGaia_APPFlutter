@@ -6,6 +6,7 @@ import 'package:condogaiaapp/features/Prop_Inq_Features/reserva/data/models/ambi
 
 class FakeRemoteDataSource implements ReservaRemoteDataSource {
   bool throwError = false;
+  List<ReservaModel> _reservas = [];
 
   @override
   Future<ReservaModel> atualizarReserva({
@@ -91,6 +92,7 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
   @override
   Future<List<ReservaModel>> obterReservas(String condominioId) async {
     if (throwError) throw Exception('Erro na fonte de dados');
+    if (_reservas.isNotEmpty) return _reservas;
     return [
       ReservaModel(
         id: '1',
@@ -106,6 +108,24 @@ class FakeRemoteDataSource implements ReservaRemoteDataSource {
         dataAtualizacao: DateTime.now(),
       ),
     ];
+  }
+
+  @override
+  Future<bool> verificarDisponibilidade({
+    required String ambienteId,
+    required DateTime data,
+    String? reservaIdExcluir,
+  }) async {
+    if (throwError) throw Exception('Erro na fonte de dados');
+    final dataStr = data.toIso8601String().split('T')[0];
+    for (final r in _reservas) {
+      if (r.ambienteId == ambienteId &&
+          r.dataReserva.toIso8601String().split('T')[0] == dataStr) {
+        if (reservaIdExcluir != null && r.id == reservaIdExcluir) continue;
+        return false;
+      }
+    }
+    return true;
   }
 }
 

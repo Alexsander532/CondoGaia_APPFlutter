@@ -16,9 +16,8 @@ class AmbienteModel extends AmbienteEntity {
          valor: valor,
          descricao: descricao ?? '',
          locacaoUrl: locacaoUrl,
+         fotoUrl: fotoUrl,
          condominioId: condominioId,
-         tipo: '',
-         capacidadeMaxima: 0,
          dataCriacao: dataCriacao ?? DateTime.now(),
        );
 
@@ -47,6 +46,7 @@ class AmbienteModel extends AmbienteEntity {
       'valor': valor,
       'condominio_id': condominioId,
       'locacao_url': locacaoUrl,
+      'foto_url': fotoUrl,
     };
   }
 }
