@@ -6,7 +6,7 @@ class Boleto {
   final String? referencia;
   final DateTime? dataVencimento;
   final double valor;
-  final String status; // Ativo, Pago, Cancelado, Cancelado por Acordo
+  final String status; // Ativo, Pago, Cancelado, Cancelado por Acordo, Registrado
   final String? pgto;
   final String tipo; // Mensal, Avulso, Acordo
   final String? classe;
@@ -29,6 +29,13 @@ class Boleto {
   final double rateioAgua;
   final double desconto;
   final DateTime? createdAt;
+
+  // Campos ASAAS
+  final String? asaasPaymentId;
+  final String? bankSlipUrl;
+  final String? invoiceUrl;
+  final String? identificationField;
+  final String? barCode;
 
   // Campos auxiliares (join)
   final String? sacadoNome;
@@ -66,6 +73,11 @@ class Boleto {
     this.rateioAgua = 0,
     this.desconto = 0,
     this.createdAt,
+    this.asaasPaymentId,
+    this.bankSlipUrl,
+    this.invoiceUrl,
+    this.identificationField,
+    this.barCode,
     this.sacadoNome,
     this.sacadoEmail,
     this.contaBancariaNome,
@@ -109,9 +121,15 @@ class Boleto {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
           : null,
+      // ASAAS
+      asaasPaymentId: json['asaas_payment_id'],
+      bankSlipUrl: json['bank_slip_url'],
+      invoiceUrl: json['invoice_url'],
+      identificationField: json['identification_field'],
+      barCode: json['bar_code'],
       // Join fields
-      sacadoNome: json['moradores']?['nome'],
-      sacadoEmail: json['moradores']?['email'],
+      sacadoNome: json['moradores']?['nome'] ?? json['sacado']?.toString(),
+      sacadoEmail: json['moradores']?['email'], // Will leave email here or remove if requested later
       contaBancariaNome: json['contas_bancarias']?['banco'],
     );
   }
@@ -146,6 +164,11 @@ class Boleto {
       'controle': controle,
       'rateio_agua': rateioAgua,
       'desconto': desconto,
+      'asaas_payment_id': asaasPaymentId,
+      'bank_slip_url': bankSlipUrl,
+      'invoice_url': invoiceUrl,
+      'identification_field': identificationField,
+      'bar_code': barCode,
     };
     if (id != null) {
       data['id'] = id;
@@ -184,6 +207,11 @@ class Boleto {
     double? rateioAgua,
     double? desconto,
     DateTime? createdAt,
+    String? asaasPaymentId,
+    String? bankSlipUrl,
+    String? invoiceUrl,
+    String? identificationField,
+    String? barCode,
     String? sacadoNome,
     String? sacadoEmail,
     String? contaBancariaNome,
@@ -219,9 +247,15 @@ class Boleto {
       rateioAgua: rateioAgua ?? this.rateioAgua,
       desconto: desconto ?? this.desconto,
       createdAt: createdAt ?? this.createdAt,
+      asaasPaymentId: asaasPaymentId ?? this.asaasPaymentId,
+      bankSlipUrl: bankSlipUrl ?? this.bankSlipUrl,
+      invoiceUrl: invoiceUrl ?? this.invoiceUrl,
+      identificationField: identificationField ?? this.identificationField,
+      barCode: barCode ?? this.barCode,
       sacadoNome: sacadoNome ?? this.sacadoNome,
       sacadoEmail: sacadoEmail ?? this.sacadoEmail,
       contaBancariaNome: contaBancariaNome ?? this.contaBancariaNome,
     );
   }
 }
+

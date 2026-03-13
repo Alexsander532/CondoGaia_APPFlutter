@@ -300,6 +300,22 @@ class BoletoCubit extends Cubit<BoletoState> {
   // ENVIAR PARA REGISTRO
   // ============================================================
 
+  Future<void> registrarBoletoNoAsaas(String boletoId) async {
+    emit(state.copyWith(isSaving: true));
+    try {
+      await _service.registrarBoletoNoAsaas(boletoId);
+      emit(
+        state.copyWith(
+          isSaving: false,
+          successMessage: 'Boleto registrado com sucesso no ASAAS!',
+        ),
+      );
+      await carregarDados();
+    } catch (e) {
+      emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
+    }
+  }
+
   Future<void> enviarParaRegistro() async {
     if (state.itensSelecionados.isEmpty) return;
     emit(state.copyWith(isSaving: true));
@@ -307,8 +323,8 @@ class BoletoCubit extends Cubit<BoletoState> {
       final resultado = await _service.enviarParaRegistro(
         state.itensSelecionados.toList(),
       );
-      final sucesso = resultado['sucesso'] as int;
-      final erros = resultado['erros'] as List;
+      final sucesso = (resultado['sucesso'] ?? 0) as int;
+      final erros = (resultado['erros'] ?? []) as List;
 
       String msg = '$sucesso Boletos enviados com Sucesso.';
       if (erros.isNotEmpty) {

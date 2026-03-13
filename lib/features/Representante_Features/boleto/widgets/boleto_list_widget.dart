@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../cubit/boleto_cubit.dart';
 import '../cubit/boleto_state.dart';
 import '../models/boleto_model.dart';
@@ -54,19 +55,33 @@ class BoletoListWidget extends StatelessWidget {
           );
         }
 
-        return Column(
-          children: [
-            // Header da tabela
-            _buildTableHeader(cubit, boletos, state),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Aumentamos a largura mínima para 1000 para dar fôlego em telas desktop
+            final double tableWidth = constraints.maxWidth > 1000 ? constraints.maxWidth : 1000.0;
+            
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header da tabela
+                    _buildTableHeader(cubit, boletos, state),
 
-            // Linhas da tabela
-            ...boletos.map((boleto) => _buildTableRow(boleto, state, cubit)),
+                    // Linhas da tabela
+                    ...boletos.map((boleto) => _buildTableRow(context, boleto, state, cubit)),
 
-            const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-            // Legenda Boleto Registrado
-            _buildLegenda(),
-          ],
+                    // Legenda Boleto Registrado
+                    _buildLegenda(),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -101,39 +116,45 @@ class BoletoListWidget extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
           ),
-          _headerCell('REG', 30),
-          _headerCell('BL/UNID', 55),
-          _headerCell('SACADO', 65),
-          _headerCell('REF.', 45),
-          _headerCell('DATA VENC.', 70),
-          _headerCell('VALOR', 60),
-          _headerCell('STATUS', 50),
-          _headerCell('PGTO', 35),
-          _headerCell('TIPO', 50),
-          _headerCell('BAIXA', 55),
-          _headerCell('NOSSO Nº', 65),
-          _headerCell('VER', 30),
+          _headerCell('REG', null, width: 30),
+          _headerCell('BL/UNID', 2),
+          _headerCell('SACADO', 7),
+          _headerCell('REF.', 2),
+          _headerCell('DATA VENC.', 3),
+          _headerCell('VALOR', 3),
+          _headerCell('STATUS', 3),
+          _headerCell('PGTO', 2),
+          _headerCell('TIPO', 3),
+          _headerCell('BAIXA', 3),
+          _headerCell('NOSSO Nº', 5),
+          _headerCell('VER', null, width: 30),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text, double width) {
-    return SizedBox(
-      width: width,
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-        ),
-        overflow: TextOverflow.ellipsis,
+  Widget _headerCell(String text, int? flex, {double? width}) {
+    final cell = Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
       ),
+      overflow: TextOverflow.ellipsis,
+    );
+    
+    if (width != null) {
+      return SizedBox(width: width, child: cell);
+    }
+    
+    return Expanded(
+      flex: flex ?? 1,
+      child: cell,
     );
   }
 
-  Widget _buildTableRow(Boleto boleto, BoletoState state, BoletoCubit cubit) {
+  Widget _buildTableRow(BuildContext context, Boleto boleto, BoletoState state, BoletoCubit cubit) {
     final isSelected = state.itensSelecionados.contains(boleto.id);
     final formatter = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
     final dateFormatter = DateFormat('dd/MM/yyyy');
@@ -178,35 +199,56 @@ class BoletoListWidget extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
           ),
-          SizedBox(width: 30, child: Center(child: regIcon)),
-          _dataCell(boleto.blocoUnidade ?? '', 55),
-          _dataCell(boleto.sacado ?? '', 65),
-          _dataCell(boleto.referencia ?? '', 45),
+          SizedBox(
+            width: 30,
+            child: InkWell(
+              onTap: (boleto.boletoRegistrado == 'NAO' || boleto.boletoRegistrado == 'ERRO') && boleto.id != null
+                ? () => cubit.registrarBoletoNoAsaas(boleto.id!)
+                : null,
+              child: Center(child: regIcon),
+            ),
+          ),
+          _dataCell(boleto.blocoUnidade ?? '', 2),
+          _dataCell(boleto.sacadoNome ?? '', 7),
+          _dataCell(boleto.referencia ?? '', 2),
           _dataCell(
             boleto.dataVencimento != null
                 ? dateFormatter.format(boleto.dataVencimento!)
                 : '',
-            70,
+            3,
           ),
-          _dataCell(formatter.format(boleto.valor), 60),
-          _statusCell(boleto.status, 50),
-          _dataCell(boleto.pgto ?? '-', 35),
-          _dataCell(boleto.classe ?? boleto.tipo, 50),
-          _dataCell(boleto.baixa, 55),
-          _dataCell(boleto.nossoNumero ?? '', 65),
+          _dataCell(formatter.format(boleto.valor), 3),
+          _statusCell(boleto.status, 3), // Vou precisar ajustar o statusCell também
+          _dataCell(boleto.pgto ?? '-', 2),
+          _dataCell(boleto.classe ?? boleto.tipo, 3),
+          _dataCell(boleto.baixa, 3),
+          _dataCell(boleto.nossoNumero ?? '', 5),
           SizedBox(
             width: 30,
             child: GestureDetector(
-              onTap: () {
-                // Ver boleto
-                ScaffoldMessenger.of(
-                  // ignore: use_build_context_synchronously
-                  _getContext(boleto)!,
-                ).showSnackBar(
-                  const SnackBar(content: Text('Visualizar boleto — Em breve')),
-                );
+              onTap: () async {
+                if (boleto.bankSlipUrl != null && boleto.bankSlipUrl!.isNotEmpty) {
+                  final uri = Uri.parse(boleto.bankSlipUrl!);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Não foi possível abrir o link do boleto.')),
+                      );
+                    }
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Este boleto ainda não possui link de pagamento.')),
+                  );
+                }
               },
-              child: const Icon(Icons.qr_code, size: 16, color: _primaryColor),
+              child: Icon(
+                Icons.qr_code,
+                size: 16,
+                color: boleto.bankSlipUrl != null ? _primaryColor : Colors.grey,
+              ),
             ),
           ),
         ],
@@ -214,47 +256,46 @@ class BoletoListWidget extends StatelessWidget {
     );
   }
 
-  // Helper que retorna null - fallback para contexto
-  BuildContext? _getContext(Boleto boleto) => null;
-
-  Widget _dataCell(String text, double width) {
-    return SizedBox(
-      width: width,
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 10, color: Colors.black87),
-        overflow: TextOverflow.ellipsis,
+  // Widget de dados genérico
+  Widget _dataCell(String text, int flex) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
     );
   }
 
-  Widget _statusCell(String status, double width) {
+  Widget _statusCell(String status, int flex) {
     Color color;
-    switch (status) {
-      case 'Ativo':
+    switch (status.toUpperCase()) {
+      case 'PAGO':
         color = Colors.green;
         break;
-      case 'Pago':
-        color = Colors.blue;
-        break;
-      case 'Cancelado':
+      case 'CANCELADO':
         color = Colors.red;
         break;
-      case 'Cancelado por Acordo':
-        color = Colors.orange;
+      case 'REGISTRADO':
+        color = Colors.blue;
         break;
       default:
-        color = Colors.grey;
+        color = Colors.green; // ATIVO
     }
 
-    return SizedBox(
-      width: width,
+    return Expanded(
+      flex: flex,
       child: Text(
         status.toUpperCase(),
         style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
           color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
         overflow: TextOverflow.ellipsis,
       ),

@@ -85,7 +85,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verifica valor base
-      expect(find.text('50.0'), findsOneWidget);
+      expect(find.text('50,0'), findsOneWidget);
 
       // Verifica Faixa 1 (0 -> 10 = 30)
       expect(find.text('10'), findsOneWidget); // Fim da faixa 1

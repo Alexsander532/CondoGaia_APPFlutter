@@ -46,7 +46,7 @@ class LeituraService {
           .toList();
     } catch (e) {
       print('Erro ao buscar leituras: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -120,7 +120,7 @@ class LeituraService {
       }).toList();
     } catch (e) {
       print('Erro ao buscar unidades paginadas: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -164,7 +164,8 @@ class LeituraService {
       }
       return map;
     } catch (e) {
-      return {};
+      print('Erro ao buscar leituras anteriores: $e');
+      rethrow;
     }
   }
 

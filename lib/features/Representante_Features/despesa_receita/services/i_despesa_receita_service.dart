@@ -3,6 +3,7 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 abstract class IDespesaReceitaService {
   Future<List<CategoriaFinanceira>> listarCategorias();
@@ -18,6 +19,7 @@ abstract class IDespesaReceitaService {
   });
 
   Future<void> salvarDespesa(Despesa despesa);
+  Future<String> uploadFotoDespesa(XFile arquivo);
   Future<void> excluirDespesa(String id);
   Future<void> excluirDespesasMultiplas(List<String> ids);
 

@@ -165,7 +165,7 @@ class _SelecionarBlocoUnidDialogState extends State<SelecionarBlocoUnidDialog> {
                       final blocoUnidade = bloco.isNotEmpty
                           ? '$bloco-$unid'
                           : unid;
-                      final nome = unidade['morador_nome'] as String? ?? '';
+                      final nome = 'Morador'; // Nome is no longer fetched in this modal to save DB queries
                       final isSelected = _selecionados.contains(id);
 
                       return Container(

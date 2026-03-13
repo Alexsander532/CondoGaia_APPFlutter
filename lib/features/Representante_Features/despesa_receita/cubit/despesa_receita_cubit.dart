@@ -4,6 +4,7 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 import '../services/despesa_receita_service.dart';
 import 'despesa_receita_state.dart';
+import 'package:image_picker/image_picker.dart';
 
 class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   final DespesaReceitaService _service;
@@ -222,8 +223,23 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   Future<void> salvarDespesa(Despesa despesa) async {
     emit(state.copyWith(isSaving: true));
     try {
-      await _service.salvarDespesa(despesa);
-      emit(state.copyWith(isSaving: false, clearDespesaEditando: true));
+      String? fotoUrl = despesa.fotoUrl;
+
+      // Se houver uma nova imagem selecionada, faz o upload primeiro
+      if (state.imagemArquivo != null) {
+        fotoUrl = await _service.uploadFotoDespesa(state.imagemArquivo!);
+      }
+
+      final despesaFinal = despesa.copyWith(fotoUrl: fotoUrl);
+      await _service.salvarDespesa(despesaFinal);
+
+      emit(
+        state.copyWith(
+          isSaving: false,
+          clearDespesaEditando: true,
+          clearImagemArquivo: true,
+        ),
+      );
       await pesquisarDespesas();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -407,6 +423,31 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
 
   void cancelarEdicaoTransferencia() {
     emit(state.copyWith(clearTransferenciaEditando: true));
+  }
+
+  // ============================================================
+  // IMAGENS (FOTOS)
+  // ============================================================
+
+  Future<void> selecionarImagem(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        imageQuality: 70, // Reduz qualidade para economizar storage e banda
+        maxWidth: 1200,
+      );
+
+      if (image != null) {
+        emit(state.copyWith(imagemArquivo: image));
+      }
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Erro ao selecionar imagem: $e'));
+    }
+  }
+
+  void removerImagem() {
+    emit(state.copyWith(clearImagemArquivo: true));
   }
 
   // ============================================================

@@ -189,7 +189,33 @@ class BoletoAcoesWidget extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // === Enviar para Registro ===
+            // === Enviar para Registro (Individual) ===
+            if (state.itensSelecionados.length == 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => cubit.registrarBoletoNoAsaas(
+                      state.itensSelecionados.first,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: const Text(
+                      'Registrar no ASAAS',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
+
+            // === Verificar Registro / Registro em Lote ===
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -204,9 +230,11 @@ class BoletoAcoesWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25),
                   ),
                 ),
-                child: const Text(
-                  'Enviar para Registro',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                child: Text(
+                  state.itensSelecionados.length > 1
+                      ? 'Verificar/Registrar em Lote'
+                      : 'Verificar Registro no ASAAS',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
             ),

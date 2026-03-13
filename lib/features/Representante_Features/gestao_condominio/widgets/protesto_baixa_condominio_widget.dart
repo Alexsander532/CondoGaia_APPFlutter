@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../models/condominio.dart';
+import '../models/configuracao_financeira_model.dart';
+import '../services/gestao_condominio_service.dart';
+import '../cubit/configuracao_financeira_cubit.dart';
+import '../cubit/configuracao_financeira_state.dart';
 
 class ProtestoBaixaCondominioWidget extends StatefulWidget {
   final Condominio? condominio;
@@ -15,12 +20,21 @@ class _ProtestoBaixaCondominioWidgetState
     extends State<ProtestoBaixaCondominioWidget> {
   final _protestarBoletoController = TextEditingController();
   final _diasBaixaController = TextEditingController();
+  bool _isInitialized = false;
 
   @override
   void dispose() {
     _protestarBoletoController.dispose();
     _diasBaixaController.dispose();
     super.dispose();
+  }
+
+  void _populateFields(ConfiguracaoFinanceiraStatus status, var config) {
+    if (config != null && !_isInitialized) {
+      _protestarBoletoController.text = config.diasProtesto?.toString() ?? '';
+      _diasBaixaController.text = config.diasBaixa?.toString() ?? '';
+      _isInitialized = true;
+    }
   }
 
   Widget _buildInput(String label, TextEditingController controller) {
@@ -44,7 +58,7 @@ class _ProtestoBaixaCondominioWidgetState
           Expanded(
             child: TextField(
               controller: controller,
-              textAlign: TextAlign.center, // Center the number roughly
+              textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 border: InputBorder.none,
@@ -61,35 +75,108 @@ class _ProtestoBaixaCondominioWidgetState
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Row(
+    return BlocProvider(
+      create: (context) =>
+          ConfiguracaoFinanceiraCubit(service: GestaoCondominioService())
+            ..carregarConfiguracao(widget.condominio?.id ?? ''),
+      child: BlocConsumer<ConfiguracaoFinanceiraCubit, ConfiguracaoFinanceiraState>(
+        listener: (context, state) {
+          if (state.status == ConfiguracaoFinanceiraStatus.success) {
+            _populateFields(state.status, state.configuracao);
+          }
+          if (state.status == ConfiguracaoFinanceiraStatus.error) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erro ao carregar configurações')),
+            );
+          }
+        },
+        builder: (context, state) {
+          final cubit = context.read<ConfiguracaoFinanceiraCubit>();
+
+          return Column(
             children: [
-              Expanded(
-                child: _buildInput(
-                  'Protestar boleto:',
-                  _protestarBoletoController,
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildInput(
+                            'Protestar boleto:',
+                            _protestarBoletoController,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Dias', style: TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildInput(
+                            'Dias para Baixa:',
+                            _diasBaixaController,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Dias', style: TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 45,
+                child: ElevatedButton(
+                  onPressed: state.status == ConfiguracaoFinanceiraStatus.loading
+                      ? null
+                      : () {
+                          if (widget.condominio?.id == null) return;
+                          
+                          final config = (state.configuracao ??
+                                  ConfiguracaoFinanceira(
+                                    condominioId: widget.condominio!.id,
+                                  ))
+                              .copyWith(
+                            diasProtesto:
+                                int.tryParse(_protestarBoletoController.text),
+                            diasBaixa: int.tryParse(_diasBaixaController.text),
+                          );
+                          cubit.salvarConfiguracao(config);
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D3B66),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: state.status == ConfiguracaoFinanceiraStatus.loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'SALVAR ALTERAÇÕES',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text('Dias', style: TextStyle(fontSize: 13)),
             ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildInput('Dias para Baixa:', _diasBaixaController),
-              ),
-              const SizedBox(width: 8),
-              const Text('Dias', style: TextStyle(fontSize: 13)),
-            ],
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }

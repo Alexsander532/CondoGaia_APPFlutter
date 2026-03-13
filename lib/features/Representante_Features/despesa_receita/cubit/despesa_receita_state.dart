@@ -4,6 +4,7 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 import '../../gestao_condominio/models/conta_bancaria_model.dart';
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum DespesaReceitaStatus { initial, loading, success, error }
 
@@ -44,6 +45,7 @@ class DespesaReceitaState extends Equatable {
   final bool cadastroExpandido;
   final bool isSaving;
   final String? errorMessage;
+  final XFile? imagemArquivo;
 
   const DespesaReceitaState({
     this.status = DespesaReceitaStatus.initial,
@@ -72,6 +74,7 @@ class DespesaReceitaState extends Equatable {
     this.cadastroExpandido = false,
     this.isSaving = false,
     this.errorMessage,
+    this.imagemArquivo,
   });
 
   DespesaReceitaState copyWith({
@@ -105,6 +108,8 @@ class DespesaReceitaState extends Equatable {
     bool? isSaving,
     String? errorMessage,
     bool clearErrorMessage = false,
+    XFile? imagemArquivo,
+    bool clearImagemArquivo = false,
   }) {
     return DespesaReceitaState(
       status: status ?? this.status,
@@ -142,6 +147,9 @@ class DespesaReceitaState extends Equatable {
       errorMessage: clearErrorMessage
           ? null
           : (errorMessage ?? this.errorMessage),
+      imagemArquivo: clearImagemArquivo
+          ? null
+          : (imagemArquivo ?? this.imagemArquivo),
     );
   }
 
@@ -198,5 +206,6 @@ class DespesaReceitaState extends Equatable {
     cadastroExpandido,
     isSaving,
     errorMessage,
+    imagemArquivo,
   ];
 }

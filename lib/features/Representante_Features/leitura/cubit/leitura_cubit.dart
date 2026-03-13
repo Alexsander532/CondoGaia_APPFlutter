@@ -17,10 +17,6 @@ class LeituraCubit extends Cubit<LeituraState> {
     try {
       emit(state.copyWith(status: LeituraStatus.loading));
 
-      // Limpar cache ao recarregar para garantir dados atualizados
-      await _service.clearLeiturasCache(condominioId, state.selectedTipo);
-      await _service.clearConfigCache(condominioId, state.selectedTipo);
-
       // Carregar todos os dados em paralelo para melhor performance
       final futures = await Future.wait([
         _service.fetchUnidades(condominioId),
@@ -163,7 +159,8 @@ class LeituraCubit extends Cubit<LeituraState> {
 
       await _service.saveLeitura(updatedModel, condominioId, imagem: imagem);
 
-      // Recarregar dados automaticamente após gravar
+      // Limpar cache após gravar e recarregar dados
+      await _service.clearLeiturasCache(condominioId, state.selectedTipo);
       await loadLeituras();
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao gravar: $e'));
@@ -253,7 +250,9 @@ class LeituraCubit extends Cubit<LeituraState> {
       for (var item in selected) {
         await _service.deleteLeitura(item.id);
       }
-      loadLeituras();
+      // Limpar cache após excluir e recarregar dados
+      await _service.clearLeiturasCache(condominioId, state.selectedTipo);
+      await loadLeituras();
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao excluir: $e'));
     }

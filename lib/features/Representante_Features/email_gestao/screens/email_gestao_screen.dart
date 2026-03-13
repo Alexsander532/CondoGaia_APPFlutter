@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 
 import '../cubit/email_gestao_cubit.dart';
 import '../cubit/email_gestao_state.dart';
+import '../models/email_modelo_model.dart';
 import '../services/email_gestao_service.dart';
 import '../widgets/recipient_table_widget.dart';
 
@@ -40,6 +40,114 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
     super.dispose();
   }
 
+  // ── SALVAR MODELO: exibe diálogo para nomear o modelo ──
+
+  void _mostrarDialogSalvarModelo(EmailGestaoCubit cubit) {
+    final tituloController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Salvar Modelo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Dê um nome para identificar este modelo:',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: tituloController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Ex: Circular de Manutenção',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D3B66),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              cubit.salvarModelo(
+                titulo: tituloController.text.trim(),
+                assunto: _subjectController.text.trim(),
+                corpo: _bodyController.text.trim(),
+              );
+            },
+            child: const Text(
+              'Salvar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── EXCLUIR MODELO: confirmação ──
+
+  void _confirmarExclusaoModelo(
+    EmailGestaoCubit cubit,
+    EmailModeloModel modelo,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Modelo'),
+        content: Text(
+          'Tem certeza que deseja excluir o modelo "${modelo.titulo}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(ctx);
+              cubit.excluirModelo(modelo.id);
+            },
+            child: const Text(
+              'Excluir',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── SELECIONAR MODELO: preenche campos automaticamente ──
+
+  void _aoSelecionarModelo(
+    EmailGestaoCubit cubit,
+    EmailModeloModel? modelo,
+  ) {
+    if (modelo == null) {
+      cubit.limparModeloSelecionado();
+      _subjectController.clear();
+      _bodyController.clear();
+    } else {
+      cubit.selecionarModelo(modelo);
+      _subjectController.text = modelo.assunto;
+      _bodyController.text = modelo.corpo;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -48,15 +156,13 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
         condominioId: widget.condominioId,
       )..loadRecipients(),
       child: Scaffold(
-        backgroundColor: Colors.white, // White background
+        backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.menu, color: Colors.black, size: 28),
-            onPressed: () {
-              // Menu action if needed
-            },
+            onPressed: () {},
           ),
           title: Column(
             children: [
@@ -108,10 +214,13 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                         child: Text(
                           'Home/Gestão/Email',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54, fontSize: 14),
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 20), // Balance spacing
+                      const SizedBox(width: 20),
                     ],
                   ),
                 ),
@@ -129,8 +238,11 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   backgroundColor: Colors.green,
                 ),
               );
-              _subjectController.clear();
-              _bodyController.clear();
+              // Limpar campos somente após envio de email, não após salvar modelo
+              if (state.message.contains('enviado')) {
+                _subjectController.clear();
+                _bodyController.clear();
+              }
             } else if (state is EmailGestaoError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -157,7 +269,7 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Topic Dropdown
+                  // ── Tópico Dropdown ──
                   Row(
                     children: [
                       Expanded(
@@ -182,12 +294,12 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
-                                    value:
-                                        _topicos.contains(state.selectedTopic)
+                                    value: _topicos.contains(state.selectedTopic)
                                         ? state.selectedTopic
                                         : _topicos.first,
                                     isExpanded: true,
-                                    icon: const Icon(Icons.keyboard_arrow_down),
+                                    icon:
+                                        const Icon(Icons.keyboard_arrow_down),
                                     items: _topicos.map((String value) {
                                       return DropdownMenuItem<String>(
                                         value: value,
@@ -212,9 +324,108 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       const Icon(Icons.delete_outline, color: Colors.red),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                  // Assunto Input
+                  // ── Dropdown de Modelos Salvos ──
+                  if (state.modelos.isNotEmpty) ...[
+                    Container(
+                      height: 50,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF0D3B66).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bookmark_outlined,
+                            color: Color(0xFF0D3B66),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Modelo: ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFF0D3B66),
+                            ),
+                          ),
+                          Expanded(
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<EmailModeloModel?>(
+                                value: state.modeloSelecionado,
+                                isExpanded: true,
+                                hint: const Text(
+                                  'Selecionar modelo salvo...',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Color(0xFF0D3B66),
+                                ),
+                                items: [
+                                  const DropdownMenuItem<EmailModeloModel?>(
+                                    value: null,
+                                    child: Text(
+                                      '-- Nenhum --',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                  ...state.modelos.map((m) {
+                                    return DropdownMenuItem<EmailModeloModel?>(
+                                      value: m,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              m.titulo,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              _confirmarExclusaoModelo(
+                                                cubit,
+                                                m,
+                                              );
+                                            },
+                                            child: const Icon(
+                                              Icons.delete_outline,
+                                              size: 16,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (modelo) =>
+                                    _aoSelecionarModelo(cubit, modelo),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Assunto Input ──
                   Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -227,8 +438,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       textAlignVertical: TextAlignVertical.center,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                        // Using prefixIcon to force left alignment
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16),
                         prefixIcon: Padding(
                           padding: EdgeInsets.only(left: 16, right: 8),
                           child: Column(
@@ -253,7 +464,7 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Body Input
+                  // ── Body Input ──
                   Container(
                     height: 150,
                     padding: const EdgeInsets.all(16),
@@ -291,12 +502,11 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   const SizedBox(height: 8),
 
                   // Tags info
-                  // Tags info
                   Wrap(
                     spacing: 8,
                     children: [
                       Chip(
-                        label: Text(
+                        label: const Text(
                           'VER',
                           style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
@@ -308,26 +518,52 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Buttons Row
+                  // ── Botões: SALVAR MODELO + Anexar foto ──
                   Row(
                     children: [
-                      ElevatedButton(
-                        onPressed: () {},
+                      // SALVAR MODELO
+                      ElevatedButton.icon(
+                        onPressed: state.isSavingModelo
+                            ? null
+                            : () => _mostrarDialogSalvarModelo(cubit),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey.shade300,
                           foregroundColor: Colors.black,
                           elevation: 0,
                         ),
-                        child: const Text('SALVAR MODELO'),
+                        icon: state.isSavingModelo
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined, size: 16),
+                        label: const Text(
+                          'SALVAR MODELO',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                       const Spacer(),
+
+                      // Anexar foto
                       GestureDetector(
                         onTap: () async {
-                          FilePickerResult? result = await FilePicker.platform
-                              .pickFiles();
+                          final result = await FilePicker.platform.pickFiles(
+                            type: FileType.image,
+                            withData: true, // garante bytes para web + mobile
+                          );
                           if (result != null &&
-                              result.files.single.path != null) {
-                            cubit.attachFile(File(result.files.single.path!));
+                              result.files.single.bytes != null) {
+                            final file = result.files.single;
+                            cubit.attachBytes(
+                              bytes: file.bytes!,
+                              filename: file.name,
+                              mimeType: _mimeFromExtension(
+                                file.extension ?? 'jpg',
+                              ),
+                            );
                           }
                         },
                         child: Row(
@@ -338,31 +574,57 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              state.attachedFile != null
-                                  ? 'Anexo selecionado'
+                              state.attachment != null
+                                  ? state.attachment!.filename
                                   : 'Anexar foto',
                               style: const TextStyle(
                                 color: Color(0xFF0D3B66),
                                 decoration: TextDecoration.underline,
+                                fontSize: 13,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            if (state.attachedFile != null)
+                            if (state.attachment != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${state.attachment!.sizeFormatted})',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               IconButton(
                                 icon: const Icon(
                                   Icons.close,
                                   size: 16,
                                   color: Colors.red,
                                 ),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                                 onPressed: () => cubit.removeAttachment(),
                               ),
+                            ],
                           ],
                         ),
                       ),
                     ],
                   ),
+
+                  // Preview da imagem anexada
+                  if (state.attachment != null) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        state.attachment!.bytes,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
-                  // Recipient Filter
+                  // ── Enviar para ──
                   const Text(
                     'Enviar para',
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -377,7 +639,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       hintText: 'Pesquisar unidade/bloco ou nome',
                       filled: true,
                       fillColor: Colors.white,
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      prefixIcon:
+                          const Icon(Icons.search, color: Colors.grey),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 14,
@@ -407,39 +670,44 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Filter Dropdowns Row
+                  // Filter Dropdown
                   Row(
                     children: [
-                      // Type Filter
                       Expanded(
                         child: Container(
                           height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: Colors.grey.shade400),
+                            border:
+                                Border.all(color: Colors.grey.shade400),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: state.recipientFilterType,
                               isExpanded: true,
                               icon: const Icon(Icons.arrow_drop_down),
-                              items: ['TODOS', 'PROPRIETARIOS', 'INQUILINOS']
-                                  .map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(
-                                        value,
-                                        style: const TextStyle(fontSize: 13),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  })
-                                  .toList(),
+                              items: [
+                                'TODOS',
+                                'PROPRIETARIOS',
+                                'INQUILINOS',
+                              ].map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value,
+                                    style:
+                                        const TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   cubit.updateRecipientFilterType(val);
+                                }
                               },
                             ),
                           ),
@@ -449,14 +717,12 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Generate Button
+                  // Gerar button
                   Center(
                     child: SizedBox(
                       width: 150,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Logic to apply filter or refresh if needed.
-                          // For now, it reinforces the current state.
                           cubit.updateFilterText(_searchController.text);
                         },
                         style: ElevatedButton.styleFrom(
@@ -464,7 +730,8 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                           elevation: 0,
                         ),
                         child: const Text(
@@ -495,9 +762,7 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Center(
                         child: TextButton(
-                          onPressed: () {
-                            cubit.loadMoreRecipients();
-                          },
+                          onPressed: () => cubit.loadMoreRecipients(),
                           child: const Text('Carregar mais'),
                         ),
                       ),
@@ -520,8 +785,6 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // "Visualizar" button removed or kept? The image doesn't explicitly show it but the code had it.
-                      // Keeping it to be safe, but minimal change.
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
@@ -534,7 +797,10 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                       ),
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.share, color: Color(0xFF0D3B66)),
+                        icon: const Icon(
+                          Icons.share,
+                          color: Color(0xFF0D3B66),
+                        ),
                       ),
                     ],
                   ),
@@ -559,7 +825,9 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
                         ),
                       ),
                       child: state.isSending
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
                           : const Text(
                               'Enviar E-mail',
                               style: TextStyle(
@@ -578,5 +846,20 @@ class _EmailGestaoScreenState extends State<EmailGestaoScreen> {
         ),
       ),
     );
+  }
+
+  String _mimeFromExtension(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'bmp':
+        return 'image/bmp';
+      default:
+        return 'image/jpeg';
+    }
   }
 }

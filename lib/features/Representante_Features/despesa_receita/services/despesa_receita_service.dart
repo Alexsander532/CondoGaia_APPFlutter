@@ -5,6 +5,7 @@ import '../models/transferencia_model.dart';
 import '../../gestao_condominio/models/conta_bancaria_model.dart';
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
 import 'i_despesa_receita_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class DespesaReceitaService implements IDespesaReceitaService {
   final SupabaseClient _supabase;
@@ -110,6 +111,31 @@ class DespesaReceitaService implements IDespesaReceitaService {
     } catch (e) {
       print('⚠️ [DespesaReceitaService] Erro ao salvar despesa: $e');
       throw Exception('Erro ao salvar despesa.');
+    }
+  }
+
+  @override
+  Future<String> uploadFotoDespesa(XFile arquivo) async {
+    try {
+      final bytes = await arquivo.readAsBytes();
+      final extensao = arquivo.name.split('.').last.toLowerCase();
+      final nomeArquivo =
+          'despesa_${DateTime.now().millisecondsSinceEpoch}.$extensao';
+      final caminhoCompleto = 'comprovantes/$nomeArquivo';
+
+      // Bucket 'comprovantes_financeiros'
+      await _supabase.storage
+          .from('comprovantes_financeiros')
+          .uploadBinary(caminhoCompleto, bytes);
+
+      final urlPublica = _supabase.storage
+          .from('comprovantes_financeiros')
+          .getPublicUrl(caminhoCompleto);
+
+      return urlPublica;
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro no upload da foto: $e');
+      throw Exception('Erro ao fazer upload da foto.');
     }
   }
 

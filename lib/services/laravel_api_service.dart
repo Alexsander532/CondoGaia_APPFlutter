@@ -10,7 +10,12 @@ class LaravelApiService {
 
   /// Obtém a base URL da API (do .env ou padrão local)
   String get _baseUrl {
-    return dotenv.env['LARAVEL_API_URL'] ?? 'http://10.0.2.2:8000/api';
+    try {
+      return dotenv.env['LARAVEL_API_URL'] ?? 'http://127.0.0.1:8000/api';
+    } catch (_) {
+      // Se o dotenv não estiver inicializado, retorna o fallback padrão
+      return 'http://127.0.0.1:8000/api';
+    }
   }
 
   /// Recupera o token Sanctum armazenado no SharedPreferences

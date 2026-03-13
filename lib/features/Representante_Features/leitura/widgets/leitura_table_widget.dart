@@ -54,149 +54,164 @@ class LeituraTableWidget extends StatelessWidget {
               child: Text('Nenhuma unidade encontrada.'),
             ),
 
-          ...leituras.map((leitura) {
-            final isEven = leituras.indexOf(leitura) % 2 == 0;
-            return InkWell(
-              onTap: onRowTap != null ? () => onRowTap!(leitura) : null,
-              child: Container(
-                color: isEven ? Colors.blue.shade50 : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                child: Row(
-                  children: [
-                    Checkbox(
-                      value: leitura.isSelected,
-                      onChanged: (val) =>
-                          onSelectionChanged(leitura.unidadeId, val),
-                      side: const BorderSide(color: Color(0xFF0D3B66)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        '${leitura.unidadeNome} / ${leitura.bloco ?? ''}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: Color(0xFF0D3B66),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: leituras.length,
+            itemBuilder: (ctx, index) {
+              final leitura = leituras[index];
+              final isEven = index % 2 == 0;
+
+              // Cor de fundo: selecionada > azul mais forte, par/ímpar alternado
+              Color rowColor;
+              if (leitura.isSelected) {
+                rowColor = Colors.blue.shade200;
+              } else {
+                rowColor = isEven ? Colors.blue.shade50 : Colors.white;
+              }
+
+              return InkWell(
+                onTap: onRowTap != null ? () => onRowTap!(leitura) : null,
+                child: Container(
+                  color: rowColor,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: leitura.isSelected,
+                        onChanged: (val) =>
+                            onSelectionChanged(leitura.unidadeId, val),
+                        side: const BorderSide(color: Color(0xFF0D3B66)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        leitura.leituraAnterior.toStringAsFixed(3),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0D3B66),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '${leitura.unidadeNome} / ${leitura.bloco ?? ''}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Color(0xFF0D3B66),
+                          ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        leitura.id.isEmpty
-                            ? '-'
-                            : leitura.leituraAtual.toStringAsFixed(
-                                3,
-                              ), // Only show if saved
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0D3B66),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          leitura.leituraAnterior.toStringAsFixed(3),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF0D3B66),
+                          ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        leitura.id.isEmpty
-                            ? '-'
-                            : 'R\$ ${leitura.valor.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0D3B66),
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          leitura.id.isEmpty
+                              ? '-'
+                              : leitura.leituraAtual.toStringAsFixed(3),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF0D3B66),
+                          ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        leitura.id.isEmpty
-                            ? '-'
-                            : DateFormat(
-                                'dd/MM/yyyy',
-                              ).format(leitura.dataLeitura),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0D3B66),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          leitura.id.isEmpty
+                              ? '-'
+                              : 'R\$ ${leitura.valor.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF0D3B66),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: leitura.imagemUrl != null || leitura.id.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.image_outlined,
-                                color: Color(0xFF0D3B66),
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                if (leitura.imagemUrl != null &&
-                                    leitura.imagemUrl!.isNotEmpty) {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => Dialog(
-                                      child: Stack(
-                                        alignment: Alignment.topRight,
-                                        children: [
-                                          Image.network(
-                                            leitura.imagemUrl!,
-                                            fit: BoxFit.contain,
-                                            errorBuilder:
-                                                (
-                                                  context,
-                                                  error,
-                                                  stackTrace,
-                                                ) => const Padding(
-                                                  padding: EdgeInsets.all(20.0),
-                                                  child: Text(
-                                                    'Erro ao carregar imagem',
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          leitura.id.isEmpty
+                              ? '-'
+                              : DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(leitura.dataLeitura),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF0D3B66),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child:
+                            leitura.imagemUrl != null || leitura.id.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.image_outlined,
+                                  color: Color(0xFF0D3B66),
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  if (leitura.imagemUrl != null &&
+                                      leitura.imagemUrl!.isNotEmpty) {
+                                    showDialog(
+                                      context: ctx,
+                                      builder: (dialogCtx) => Dialog(
+                                        child: Stack(
+                                          alignment: Alignment.topRight,
+                                          children: [
+                                            Image.network(
+                                              leitura.imagemUrl!,
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (c, e, s) =>
+                                                  const Padding(
+                                                    padding: EdgeInsets.all(
+                                                      20.0,
+                                                    ),
+                                                    child: Text(
+                                                      'Erro ao carregar imagem',
+                                                    ),
                                                   ),
-                                                ),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.close,
-                                              color: Colors.black54,
                                             ),
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                          ),
-                                        ],
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.close,
+                                                color: Colors.black54,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.pop(dialogCtx),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Nenhuma imagem disponível.',
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Nenhuma imagem disponível.',
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
-                            )
-                          : const SizedBox(),
-                    ),
-                  ],
+                                    );
+                                  }
+                                },
+                              )
+                            : const SizedBox(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ],
       ),
     );

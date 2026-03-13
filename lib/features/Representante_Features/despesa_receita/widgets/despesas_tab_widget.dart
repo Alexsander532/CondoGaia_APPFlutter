@@ -7,6 +7,9 @@ import '../models/despesa_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
 import '../../../../../utils/input_formatters.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class DespesasTabWidget extends StatefulWidget {
   const DespesasTabWidget({super.key});
@@ -394,6 +397,10 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           ),
           style: const TextStyle(fontSize: 14),
         ),
+        const SizedBox(height: 12),
+
+        // Seção de Foto
+        _buildFotoSection(state, cubit),
         const SizedBox(height: 16),
 
         // Botões de ação
@@ -809,8 +816,118 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     _limparFormulario(cubit);
   }
 
+  Widget _buildFotoSection(DespesaReceitaState state, DespesaReceitaCubit cubit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (state.imagemArquivo != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: kIsWeb
+                      ? Image.network(
+                          state.imagemArquivo!.path,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(state.imagemArquivo!.path),
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Foto selecionada',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        state.imagemArquivo!.name,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => cubit.removerImagem(),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+              ],
+            ),
+          ),
+        OutlinedButton.icon(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (context) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('Tirar Foto'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        cubit.selecionarImagem(ImageSource.camera);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.photo_library),
+                      title: const Text('Galeria'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        cubit.selecionarImagem(ImageSource.gallery);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+          label: Text(
+            state.imagemArquivo != null ? 'Trocar Foto' : 'Anexar foto',
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _limparFormulario(DespesaReceitaCubit cubit) {
     cubit.cancelarEdicaoDespesa();
+    cubit.removerImagem();
     _descricaoController.clear();
     _valorController.clear();
     _linkController.clear();

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -35,8 +36,39 @@ class _LeituraScreenState extends State<LeituraScreen> {
   }
 
   Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF0D3B66)),
+              title: const Text('Câmera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF0D3B66),
+              ),
+              title: const Text('Galeria'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery);
+    final x = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
     if (x != null) {
       setState(() => _selectedImage = File(x.path));
     }
@@ -206,7 +238,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
 
                               // Data Auto
                               _buildReadOnlyField(
-                                'Data da Leitura: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)} (Automatica)',
+                                'Data da Leitura: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)}',
                               ),
                               const SizedBox(height: 12),
 
@@ -216,15 +248,41 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                 decoration: _inputDecoration(),
                                 child: TextField(
                                   controller: _m3Controller,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    prefixText: 'M³: ',
-                                    prefixStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9,]'),
+                                    ),
+                                  ],
+                                  decoration: InputDecoration(
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 16,
+                                        right: 8,
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${state.configuracao?.unidadeMedida ?? 'M³'}: ',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 0,
+                                      minHeight: 0,
                                     ),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 14,
                                     ),
@@ -256,7 +314,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         _selectedImage != null
-                                            ? 'Foto anexada'
+                                            ? 'Foto anexada (toque para trocar)'
                                             : 'Anexar foto',
                                         style: const TextStyle(
                                           color: Color(0xFF0D3B66),
@@ -267,6 +325,47 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                   ),
                                 ),
                               ),
+
+                              // Preview da foto selecionada
+                              if (_selectedImage != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Center(
+                                    child: Stack(
+                                      alignment: Alignment.topRight,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Image.file(
+                                            _selectedImage!,
+                                            width: 120,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () => setState(
+                                            () => _selectedImage = null,
+                                          ),
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            padding: const EdgeInsets.all(2),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
 
                               const SizedBox(height: 16),
 
@@ -302,9 +401,9 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                       );
                                       return;
                                     }
-                                    final leitura = double.tryParse(
-                                      _m3Controller.text,
-                                    );
+                                    final valStr = _m3Controller.text
+                                        .replaceAll(',', '.');
+                                    final leitura = double.tryParse(valStr);
                                     if (leitura == null) {
                                       ScaffoldMessenger.of(
                                         context,
@@ -357,7 +456,10 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                 onRowTap: (leitura) {
                                   cubit.selectUnidade(leitura.unidadeId);
                                   _m3Controller.text = leitura.leituraAtual > 0
-                                      ? leitura.leituraAtual.toString()
+                                      ? leitura.leituraAtual
+                                            .toString()
+                                            .replaceAll(RegExp(r'\.0$'), '')
+                                            .replaceAll('.', ',')
                                       : '';
                                 },
                               ),
@@ -367,10 +469,53 @@ class _LeituraScreenState extends State<LeituraScreen> {
                               // Footer Actions
                               Row(
                                 children: [
-                                  _buildFooterButton(
-                                    'Excluir',
-                                    () => cubit.deleteSelected(),
-                                  ),
+                                  _buildFooterButton('Excluir', () async {
+                                    final selected = filteredLeituras
+                                        .where(
+                                          (l) =>
+                                              l.isSelected && l.id.isNotEmpty,
+                                        )
+                                        .toList();
+                                    if (selected.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Selecione leituras gravadas para excluir',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Confirmar exclusão'),
+                                        content: Text(
+                                          'Excluir ${selected.length} leitura(s) selecionada(s)?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red,
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, true),
+                                            child: const Text('Excluir'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirmed == true) {
+                                      cubit.deleteSelected();
+                                    }
+                                  }),
                                   const SizedBox(width: 8),
                                   _buildFooterButton('Editar', () {
                                     final sel = filteredLeituras
@@ -394,7 +539,9 @@ class _LeituraScreenState extends State<LeituraScreen> {
                                     final l = sel.first;
                                     cubit.selectUnidade(l.unidadeId);
                                     _m3Controller.text = l.leituraAtual
-                                        .toString();
+                                        .toString()
+                                        .replaceAll(RegExp(r'\.0$'), '')
+                                        .replaceAll('.', ',');
                                   }, isDark: true),
                                   const Spacer(),
                                   Text(

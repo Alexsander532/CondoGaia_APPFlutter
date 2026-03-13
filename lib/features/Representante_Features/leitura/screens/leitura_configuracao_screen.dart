@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/leitura_configuracao_model.dart';
 import '../services/leitura_service.dart';
 
@@ -81,7 +82,10 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
       }
 
       if (config != null) {
-        _valorController.text = config.valorBase.toString();
+        _valorController.text = config.valorBase.toString().replaceAll(
+          '.',
+          ',',
+        );
         unidadeMedida = config.unidadeMedida;
         cobrancaTipo = config.cobrancaTipo;
 
@@ -97,32 +101,40 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
         if (config.faixas.isNotEmpty) {
           _faixa1FimController.text = config.faixas[0].fim
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
           _faixa1ValorController.text = config.faixas[0].valor
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
         }
         if (config.faixas.length > 1) {
           _faixa2InicioController.text = config.faixas[1].inicio
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
           _faixa2FimController.text = config.faixas[1].fim
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
           _faixa2ValorController.text = config.faixas[1].valor
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
         }
         if (config.faixas.length > 2) {
           _faixa3InicioController.text = config.faixas[2].inicio
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
           _faixa3FimController.text = config.faixas[2].fim
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
           _faixa3ValorController.text = config.faixas[2].valor
               .toString()
-              .replaceAll('.0', '');
+              .replaceAll(RegExp(r'\.0$'), '')
+              .replaceAll('.', ',');
         }
       }
     } catch (e) {
@@ -137,23 +149,32 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
   }
 
   Future<void> _gravar() async {
-    final valorBase = double.tryParse(_valorController.text) ?? 0;
+    final valorBase =
+        double.tryParse(_valorController.text.replaceAll(',', '.')) ?? 0;
 
     final faixas = <FaixaLeitura>[];
-    final f1f = double.tryParse(_faixa1FimController.text) ?? 0;
-    final f1v = double.tryParse(_faixa1ValorController.text) ?? 0;
+    final f1f =
+        double.tryParse(_faixa1FimController.text.replaceAll(',', '.')) ?? 0;
+    final f1v =
+        double.tryParse(_faixa1ValorController.text.replaceAll(',', '.')) ?? 0;
     if (f1f > 0 || f1v > 0) {
       faixas.add(FaixaLeitura(inicio: 0, fim: f1f, valor: f1v));
     }
-    final f2i = double.tryParse(_faixa2InicioController.text) ?? 0;
-    final f2f = double.tryParse(_faixa2FimController.text) ?? 0;
-    final f2v = double.tryParse(_faixa2ValorController.text) ?? 0;
+    final f2i =
+        double.tryParse(_faixa2InicioController.text.replaceAll(',', '.')) ?? 0;
+    final f2f =
+        double.tryParse(_faixa2FimController.text.replaceAll(',', '.')) ?? 0;
+    final f2v =
+        double.tryParse(_faixa2ValorController.text.replaceAll(',', '.')) ?? 0;
     if (f2f > f2i) {
       faixas.add(FaixaLeitura(inicio: f2i, fim: f2f, valor: f2v));
     }
-    final f3i = double.tryParse(_faixa3InicioController.text) ?? 0;
-    final f3f = double.tryParse(_faixa3FimController.text) ?? 0;
-    final f3v = double.tryParse(_faixa3ValorController.text) ?? 0;
+    final f3i =
+        double.tryParse(_faixa3InicioController.text.replaceAll(',', '.')) ?? 0;
+    final f3f =
+        double.tryParse(_faixa3FimController.text.replaceAll(',', '.')) ?? 0;
+    final f3v =
+        double.tryParse(_faixa3ValorController.text.replaceAll(',', '.')) ?? 0;
     if (f3f > f3i) {
       faixas.add(FaixaLeitura(inicio: f3i, fim: f3f, valor: f3v));
     }
@@ -287,12 +308,31 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
             decoration: _inputDecoration(),
             child: TextField(
               controller: _valorController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')),
+              ],
               decoration: InputDecoration(
-                prefixText: 'Valor por 1 $unidadeMedida: ',
-                prefixStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Valor por 1 $unidadeMedida: ',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 0,
+                  minHeight: 0,
                 ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
@@ -613,13 +653,50 @@ class _LeituraConfiguracaoScreenState extends State<LeituraConfiguracaoScreen> {
         ),
         child: TextField(
           controller: ctrl,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')),
+          ],
           textAlign: TextAlign.center,
           decoration: InputDecoration(
             border: InputBorder.none,
             contentPadding: const EdgeInsets.only(bottom: 8),
-            prefixText: prefix,
-            suffixText: suffix,
+            prefixIcon: prefix != null
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          prefix,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
+            ),
+            suffixIcon: suffix != null
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 4, right: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          suffix,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
+            ),
             hintText: suffix != null ? '___' : null,
           ),
           style: const TextStyle(fontWeight: FontWeight.bold),

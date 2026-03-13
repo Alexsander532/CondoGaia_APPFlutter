@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../services/laravel_api_service.dart';
 import '../models/boleto_model.dart';
 import 'boleto_email_service.dart';
+import 'dart:convert';
 
 class BoletoService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -23,7 +25,7 @@ class BoletoService {
     try {
       var query = _supabase
           .from('boletos')
-          .select('*, moradores(nome), contas_bancarias(banco)')
+          .select('*, contas_bancarias(banco)')
           .eq('condominio_id', condominioId);
 
       // Filtro por tipo de emissão
@@ -54,11 +56,9 @@ class BoletoService {
         query = query.eq('nosso_numero', nossoNumero);
       }
 
-      // Filtro por pesquisa (unidade/bloco ou nome)
+      // Filtro por pesquisa (unidade/bloco ou nome) - Removido sacado.ilike pois sacado é UUID
       if (pesquisa != null && pesquisa.isNotEmpty) {
-        query = query.or(
-          'bloco_unidade.ilike.%$pesquisa%,sacado.ilike.%$pesquisa%',
-        );
+        query = query.ilike('bloco_unidade', '%$pesquisa%');
       }
 
       // Filtro por intervalo de datas específico
@@ -79,8 +79,50 @@ class BoletoService {
       }
 
       final response = await query.order('data_vencimento', ascending: false);
+      
+      if ((response as List).isEmpty) {
+        return [];
+      }
 
-      return (response as List).map((e) => Boleto.fromJson(e)).toList();
+      final List boletosData = response;
+      
+      // Busca os nomes dos sacados da view moradores
+      final sacadosIds = boletosData.map((b) => b['sacado']?.toString()).where((id) => id != null && id.isNotEmpty).toSet().toList();
+      Map<String, Map<String, dynamic>> moradoresMap = {};
+      
+      if (sacadosIds.isNotEmpty) {
+        final moradoresResponse = await _supabase
+            .from('moradores')
+            .select('id, nome, email')
+            .inFilter('id', sacadosIds);
+        
+        for (var m in (moradoresResponse as List)) {
+          moradoresMap[m['id'].toString()] = {
+            'id': m['id'],
+            'nome': m['nome'],
+            'email': m['email'],
+          };
+        }
+      }
+
+      List<Boleto> result = boletosData.map((data) {
+        if (data['sacado'] != null && moradoresMap.containsKey(data['sacado'].toString())) {
+          data['moradores'] = moradoresMap[data['sacado'].toString()];
+        }
+        return Boleto.fromJson(data);
+      }).toList();
+
+      // Filtro manual em Dart para busca por nome (já que não conseguimos fazer Join com Like no Supabase nas views)
+      if (pesquisa != null && pesquisa.isNotEmpty) {
+        final search = pesquisa.toLowerCase();
+        result = result.where((b) {
+          final blocoUnid = (b.blocoUnidade ?? '').toLowerCase();
+          final nome = (b.sacadoNome ?? '').toLowerCase();
+          return blocoUnid.contains(search) || nome.contains(search);
+        }).toList();
+      }
+
+      return result;
     } catch (e) {
       print('⚠️ [BoletoService] Erro ao listar boletos: $e');
       return [];
@@ -162,10 +204,9 @@ class BoletoService {
     List<String>? unidadeIds,
   }) async {
     try {
-      // Busca as unidades do condomínio (ou as selecionadas)
       var query = _supabase
           .from('unidades')
-          .select('id, bloco, unidade, morador_nome, nome_pagador_boleto')
+          .select('id, bloco, numero, nome_pagador_boleto')
           .eq('condominio_id', condominioId);
 
       if (unidadeIds != null && unidadeIds.isNotEmpty) {
@@ -173,6 +214,17 @@ class BoletoService {
       }
 
       final unidades = await query;
+
+      if ((unidades as List).isEmpty) {
+        return; // Empty list so nothing to generate
+      }
+
+      // Busca proprietarios e inquilinos para extrair o id do sacado
+      final proprietarios = await _supabase.from('proprietarios').select('id, unidade_id').eq('condominio_id', condominioId);
+      final inquilinos = await _supabase.from('inquilinos').select('id, unidade_id').eq('condominio_id', condominioId);
+
+      Map<String, String> proprietariosMap = { for (var p in (proprietarios as List)) p['unidade_id'].toString(): p['id'].toString() };
+      Map<String, String> inquilinosMap = { for (var i in (inquilinos as List)) i['unidade_id'].toString(): i['id'].toString() };
 
       // Calcula o valor total do boleto
       final valor =
@@ -183,18 +235,34 @@ class BoletoService {
           rateioAgua -
           desconto;
 
-      // Cria um boleto para cada unidade
-      final boletos = (unidades as List).map((unidade) {
-        final bloco = unidade['bloco'] ?? '';
-        final unid = unidade['unidade'] ?? '';
-        final blocoUnidade = bloco.isNotEmpty ? '$bloco/$unid' : unid;
+      // dataVencimento vem como DD/MM/YYYY
+      final dateParts = dataVencimento.split('/');
+      final formattedDate = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
 
-        return {
+      // Cria um boleto para cada unidade
+      final boletos = [];
+      for(var unidade in (unidades as List)) {
+        final bloco = unidade['bloco'] ?? '';
+        final unid = unidade['numero'] ?? '';
+        final blocoUnidade = bloco.isNotEmpty ? '$bloco/$unid' : unid;
+        
+        final isPagadorInquilino = unidade['nome_pagador_boleto'] == 'inquilino';
+        final sacadoId = (isPagadorInquilino ? inquilinosMap[unidade['id']] : proprietariosMap[unidade['id']]) 
+                          ?? proprietariosMap[unidade['id']] // Fallback se o inquilino não existir
+                          ?? inquilinosMap[unidade['id']]; // Fallback se o proprietário não existir
+
+        // Se não houver nenhum sacado para a unidade, não gera o boleto para evitar erros no ASAAS
+        if (sacadoId == null) {
+          print('⚠️ [BoletoService] Unidade $blocoUnidade sem responsável vinculado. Boleto ignorado.');
+          continue;
+        }
+
+        boletos.add({
           'condominio_id': condominioId,
           'bloco_unidade': blocoUnidade,
-          'sacado': unidade['morador_nome'] ?? '',
+          'sacado': sacadoId,
           'referencia': dataVencimento.substring(3), // MM/YYYY
-          'data_vencimento': dataVencimento,
+          'data_vencimento': formattedDate,
           'valor': valor,
           'status': 'Ativo',
           'tipo': 'Mensal',
@@ -208,8 +276,8 @@ class BoletoService {
           'rateio_agua': rateioAgua,
           'desconto': desconto,
           'valor_total': valor,
-        };
-      }).toList();
+        });
+      }
 
       if (boletos.isNotEmpty) {
         await _supabase.from('boletos').insert(boletos);
@@ -367,20 +435,42 @@ class BoletoService {
   }
 
   // ============================================================
-  // ENVIAR PARA REGISTRO
+  // ENVIAR PARA REGISTRO (ASAAS)
   // ============================================================
+
+  Future<Map<String, dynamic>> registrarBoletoNoAsaas(String boletoId) async {
+    try {
+      final api = LaravelApiService();
+      final response = await api.post('/asaas/boletos/registrar-individual', {
+        'boletoId': boletoId,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erro ao registrar boleto no ASAAS.');
+      }
+    } catch (e) {
+      print('⚠️ [BoletoService] Erro ao registrar boleto no ASAAS: $e');
+      throw Exception('Erro ao registrar boleto no ASAAS: $e');
+    }
+  }
 
   Future<Map<String, dynamic>> enviarParaRegistro(
     List<String> boletoIds,
   ) async {
     try {
-      // Atualiza status de registro dos boletos
-      await _supabase
-          .from('boletos')
-          .update({'boleto_registrado': 'PENDENTE'})
-          .inFilter('id', boletoIds);
+      final api = LaravelApiService();
+      final response = await api.post('/asaas/boletos/verificar-registro', {
+        'paymentIds': boletoIds,
+      });
 
-      return {'sucesso': boletoIds.length, 'erros': <Map<String, String>>[]};
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Erro ao verificar registro de boletos.');
+      }
     } catch (e) {
       print('⚠️ [BoletoService] Erro ao enviar para registro: $e');
       throw Exception('Erro ao enviar para registro.');
@@ -464,12 +554,12 @@ class BoletoService {
     try {
       var query = _supabase
           .from('unidades')
-          .select('id, bloco, unidade, morador_nome')
+          .select('id, bloco, numero')
           .eq('condominio_id', condominioId);
 
       if (pesquisa != null && pesquisa.isNotEmpty) {
         query = query.or(
-          'bloco.ilike.%$pesquisa%,unidade.ilike.%$pesquisa%,morador_nome.ilike.%$pesquisa%',
+          'bloco.ilike.%$pesquisa%,numero.ilike.%$pesquisa%',
         );
       }
 

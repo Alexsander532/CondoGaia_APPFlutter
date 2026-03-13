@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:io';
 import '../models/recipient_model.dart';
+import '../models/email_modelo_model.dart';
+import '../models/email_attachment_model.dart';
 import '../../../../models/proprietario.dart';
 import '../../../../models/inquilino.dart';
 import '../../../../models/unidade.dart';
@@ -10,11 +11,14 @@ class EmailGestaoService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final LaravelApiService _apiService = LaravelApiService();
 
+  // ─────────────────────────────────────────────────────────
+  //  Recipients
+  // ─────────────────────────────────────────────────────────
+
   Future<List<RecipientModel>> fetchRecipients({
     required String condominioId,
   }) async {
     try {
-      // 1. Fetch Units
       final unidadesResponse = await _supabase
           .from('unidades')
           .select()
@@ -27,7 +31,6 @@ class EmailGestaoService {
 
       final Map<String, Unidade> unidadeMap = {for (var u in units) u.id: u};
 
-      // 2. Fetch Owners
       final ownersResponse = await _supabase
           .from('proprietarios')
           .select()
@@ -37,7 +40,6 @@ class EmailGestaoService {
           .map((e) => Proprietario.fromJson(e))
           .toList();
 
-      // 3. Fetch Tenants
       final tenantsResponse = await _supabase
           .from('inquilinos')
           .select()
@@ -49,7 +51,6 @@ class EmailGestaoService {
 
       List<RecipientModel> recipients = [];
 
-      // Map Owners
       for (var owner in owners) {
         String unitInfo = '';
         String? blockName;
@@ -77,7 +78,6 @@ class EmailGestaoService {
         );
       }
 
-      // Map Tenants
       for (var tenant in tenants) {
         String unitInfo = '';
         String? blockName;
@@ -105,26 +105,108 @@ class EmailGestaoService {
         );
       }
 
-      // Sort by Name
       recipients.sort((a, b) => a.name.compareTo(b.name));
-
       return recipients;
     } catch (e) {
       throw Exception('Erro ao buscar destinatários: $e');
     }
   }
 
-  /// Sends a Circular to multiple recipients (single email with multiple BCCs or similar via Laravel)
+  // ─────────────────────────────────────────────────────────
+  //  Modelos de Email (CRUD via Supabase)
+  // ─────────────────────────────────────────────────────────
+
+  /// Busca modelos de email do condomínio, filtrados por tópico.
+  Future<List<EmailModeloModel>> fetchModelos({
+    required String condominioId,
+    String? topico,
+  }) async {
+    try {
+      var query = _supabase
+          .from('email_modelos')
+          .select()
+          .eq('condominio_id', condominioId);
+
+      if (topico != null && topico.isNotEmpty) {
+        query = query.eq('topico', topico);
+      }
+
+      final response = await query.order('criado_em', ascending: false);
+
+      return (response as List)
+          .map((e) => EmailModeloModel.fromJson(e))
+          .toList();
+    } catch (e) {
+      throw Exception('Erro ao buscar modelos: $e');
+    }
+  }
+
+  /// Salva um novo modelo de email no Supabase.
+  Future<EmailModeloModel> salvarModelo({
+    required String condominioId,
+    required String topico,
+    required String titulo,
+    required String assunto,
+    required String corpo,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('email_modelos')
+          .insert({
+            'condominio_id': condominioId,
+            'topico': topico,
+            'titulo': titulo,
+            'assunto': assunto,
+            'corpo': corpo,
+          })
+          .select()
+          .single();
+
+      return EmailModeloModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Erro ao salvar modelo: $e');
+    }
+  }
+
+  /// Exclui um modelo de email pelo ID.
+  Future<void> excluirModelo(String id) async {
+    try {
+      await _supabase.from('email_modelos').delete().eq('id', id);
+    } catch (e) {
+      throw Exception('Erro ao excluir modelo: $e');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  //  Email Sending
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> sendEmail({
+    required String subject,
+    required String body,
+    required String topic,
+    required List<RecipientModel> recipients,
+    EmailAttachmentModel? attachment,
+  }) async {
+    await enviarCircular(
+      subject: subject,
+      body: body,
+      topic: topic,
+      recipients: recipients,
+      condominioNome: 'CondoGaia',
+      attachment: attachment,
+    );
+  }
+
   Future<void> enviarCircular({
     required String subject,
     required String body,
     required String topic,
     required List<RecipientModel> recipients,
     required String condominioNome,
-    File?
-    attachment, // Backend does not support attachment yet, skipped for now
+    EmailAttachmentModel? attachment,
   }) async {
-    final payload = {
+    final payload = <String, dynamic>{
       'subject': subject,
       'body': body,
       'topic': topic,
@@ -133,6 +215,10 @@ class EmailGestaoService {
           .map((r) => {'email': r.email, 'name': r.name, 'type': r.type})
           .toList(),
     };
+
+    if (attachment != null) {
+      payload['attachment'] = attachment.toJsonPayload();
+    }
 
     final response = await _apiService.post('/resend/gestao/circular', payload);
 
@@ -143,41 +229,14 @@ class EmailGestaoService {
     }
   }
 
-  /// Backward compatible generic send logic (defaults to Circular if topic provided, otherwise Aviso)
-  Future<void> sendEmail({
-    required String subject,
-    required String body,
-    required String topic,
-    required List<RecipientModel> recipients,
-    File? attachment,
-  }) async {
-    // Determine which endpoint to call based on the original intent
-    if (topic.isNotEmpty) {
-      await enviarCircular(
-        subject: subject,
-        body: body,
-        topic: topic,
-        recipients: recipients,
-        condominioNome: 'CondoGaia', // Hardcoded for now, ideal if passed
-      );
-    } else {
-      await enviarAviso(
-        subject: subject,
-        body: body,
-        recipients: recipients,
-        condominioNome: 'CondoGaia',
-      );
-    }
-  }
-
-  /// Sends a warning to specific recipients
   Future<void> enviarAviso({
     required String subject,
     required String body,
     required List<RecipientModel> recipients,
     required String condominioNome,
+    EmailAttachmentModel? attachment,
   }) async {
-    final payload = {
+    final payload = <String, dynamic>{
       'subject': subject,
       'body': body,
       'condominioNome': condominioNome,
@@ -185,6 +244,10 @@ class EmailGestaoService {
           .map((r) => {'email': r.email, 'name': r.name, 'type': r.type})
           .toList(),
     };
+
+    if (attachment != null) {
+      payload['attachment'] = attachment.toJsonPayload();
+    }
 
     final response = await _apiService.post('/resend/gestao/aviso', payload);
 
@@ -195,15 +258,15 @@ class EmailGestaoService {
     }
   }
 
-  /// Sends emails in mass (each recipient gets an individual email)
   Future<void> enviarEmMassa({
     required String subject,
     required String body,
     required String topic,
     required List<RecipientModel> recipients,
     required String condominioNome,
+    EmailAttachmentModel? attachment,
   }) async {
-    final payload = {
+    final payload = <String, dynamic>{
       'subject': subject,
       'body': body,
       'topic': topic,
@@ -212,6 +275,10 @@ class EmailGestaoService {
           .map((r) => {'email': r.email, 'name': r.name, 'type': r.type})
           .toList(),
     };
+
+    if (attachment != null) {
+      payload['attachment'] = attachment.toJsonPayload();
+    }
 
     final response = await _apiService.post('/resend/gestao/em-massa', payload);
 
