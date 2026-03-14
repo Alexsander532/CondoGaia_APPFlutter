@@ -8,7 +8,6 @@ import '../widgets/financeiro_condominio_widget.dart';
 import '../widgets/layout_boleto_widget.dart';
 import '../widgets/conta_bancaria_widget.dart';
 import '../widgets/textos_condominio_widget.dart';
-import '../widgets/perfil_usuario_condominio_widget.dart';
 import '../widgets/protesto_baixa_condominio_widget.dart';
 import '../widgets/garantidora_condominio_widget.dart';
 import 'categoria_subcategoria_screen.dart';
@@ -77,11 +76,6 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
       'title': 'Textos',
       'icon': Icons.text_fields,
       'content': 'Conteúdo Textos',
-    },
-    {
-      'title': 'Perfil de Usuário',
-      'icon': Icons.person,
-      'content': 'Conteúdo Perfil de Usuário',
     },
     {
       'title': 'Protestar/Baixa Boleto',
@@ -277,8 +271,6 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
         return ContaBancariaWidget(condominio: _condominio);
       case 'Textos':
         return TextosCondominioWidget(condominio: _condominio);
-      case 'Perfil de Usuário':
-        return PerfilUsuarioCondominioWidget(condominio: _condominio);
       case 'Protestar/Baixa Boleto':
         return ProtestoBaixaCondominioWidget(condominio: _condominio);
       case 'Garantidora':

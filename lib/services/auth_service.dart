@@ -10,6 +10,7 @@ import '../models/proprietario.dart';
 import '../models/inquilino.dart';
 import '../models/porteiro.dart';
 import 'supabase_service.dart';
+import 'permission_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -139,6 +140,8 @@ class AuthService {
           await prefs.setBool(_autoLoginKey, autoLogin);
           await prefs.setString(_userTypeKey, 'administrator');
 
+          PermissionService().initialize(administrator, UserType.administrator);
+
           return LoginResult(
             success: true,
             message: 'Login realizado com sucesso',
@@ -201,6 +204,8 @@ class AuthService {
           await prefs.setBool(_autoLoginKey, autoLogin);
           await prefs.setString(_userTypeKey, 'representante');
 
+          PermissionService().initialize(representante, UserType.representante);
+
           return LoginResult(
             success: true,
             message: 'Login realizado com sucesso',
@@ -245,6 +250,8 @@ class AuthService {
             await prefs.setString(_userEmailKey, email);
             await prefs.setBool(_autoLoginKey, autoLogin);
             await prefs.setString(_userTypeKey, 'proprietario');
+
+            PermissionService().initialize(proprietario, UserType.proprietario);
 
             return LoginResult(
               success: true,
@@ -293,6 +300,8 @@ class AuthService {
             await prefs.setString(_userEmailKey, email);
             await prefs.setBool(_autoLoginKey, autoLogin);
             await prefs.setString(_userTypeKey, 'inquilino');
+
+            PermissionService().initialize(inquilino, UserType.inquilino);
 
             return LoginResult(
               success: true,
@@ -345,6 +354,8 @@ class AuthService {
             await prefs.setString(_userTypeKey, 'porteiro');
             await prefs.setString('porteiro_id', porteiro.id);
             await prefs.setString('condominio_id', porteiro.condominioId);
+
+            PermissionService().initialize(porteiro, UserType.porteiro);
 
             return LoginResult(
               success: true,
@@ -499,6 +510,7 @@ class AuthService {
         }
 
         final administrator = Administrator.fromJson(response);
+        PermissionService().initialize(administrator, UserType.administrator);
         return LoginResult(
           success: true,
           message: 'Login automático realizado',
@@ -522,6 +534,7 @@ class AuthService {
         }
 
         final representante = Representante.fromJson(response);
+        PermissionService().initialize(representante, UserType.representante);
         return LoginResult(
           success: true,
           message: 'Login automático realizado',
@@ -545,6 +558,7 @@ class AuthService {
         }
 
         final proprietario = Proprietario.fromJson(response);
+        PermissionService().initialize(proprietario, UserType.proprietario);
         return LoginResult(
           success: true,
           message: 'Login automático realizado',
@@ -568,6 +582,7 @@ class AuthService {
         }
 
         final inquilino = Inquilino.fromJson(response);
+        PermissionService().initialize(inquilino, UserType.inquilino);
         return LoginResult(
           success: true,
           message: 'Login automático realizado',

@@ -1,5 +1,7 @@
+import 'user_permissions.dart';
+
 /// Modelo de dados para porteiros de condomínios
-/// Porteiros têm acesso exclusivo à área de Portaria
+/// Porteiros (Sub-usuários) têm permissões granulares definidas pelo Representante
 class Porteiro {
   final String id;
   final String condominioId;
@@ -10,6 +12,8 @@ class Porteiro {
   final String? email;
   final String? fotoPerfil;
   final bool ativo;
+  final String cargo;
+  final UserPermissions permissions;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +27,8 @@ class Porteiro {
     this.email,
     this.fotoPerfil,
     this.ativo = true,
+    this.cargo = 'Porteiro',
+    this.permissions = const UserPermissions(),
     required this.createdAt,
     required this.updatedAt,
   });
@@ -39,6 +45,8 @@ class Porteiro {
       email: json['email'] as String?,
       fotoPerfil: json['foto_perfil'] as String?,
       ativo: json['ativo'] as bool? ?? true,
+      cargo: json['cargo'] as String? ?? 'Porteiro',
+      permissions: UserPermissions.fromMap(json),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -56,6 +64,8 @@ class Porteiro {
       'email': email,
       'foto_perfil': fotoPerfil,
       'ativo': ativo,
+      'cargo': cargo,
+      ...permissions.toMap(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -72,6 +82,8 @@ class Porteiro {
     String? email,
     String? fotoPerfil,
     bool? ativo,
+    String? cargo,
+    UserPermissions? permissions,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -85,6 +97,8 @@ class Porteiro {
       email: email ?? this.email,
       fotoPerfil: fotoPerfil ?? this.fotoPerfil,
       ativo: ativo ?? this.ativo,
+      cargo: cargo ?? this.cargo,
+      permissions: permissions ?? this.permissions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -102,7 +116,7 @@ class Porteiro {
 
   @override
   String toString() {
-    return 'Porteiro(id: $id, nomeCompleto: $nomeCompleto, cpf: $cpf, condominioId: $condominioId)';
+    return 'Porteiro(id: $id, nomeCompleto: $nomeCompleto, cpf: $cpf, cargo: $cargo)';
   }
 
   @override

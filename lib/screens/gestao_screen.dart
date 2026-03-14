@@ -8,6 +8,8 @@ import '../features/Representante_Features/despesa_receita/screens/despesa_recei
 import '../features/Representante_Features/gestao_condominio/screens/acordo_screen.dart';
 import '../features/Representante_Features/relatorios/screens/relatorios_screen.dart';
 import '../features/Representante_Features/boleto/screens/boleto_screen.dart';
+import '../features/Representante_Features/gestao_usuarios/screens/gestao_usuarios_screen.dart';
+import '../services/permission_service.dart';
 
 class GestaoScreen extends StatefulWidget {
   final String? condominioId;
@@ -29,50 +31,76 @@ class _GestaoScreenState extends State<GestaoScreen> {
   final UnidadeService _unidadeService = UnidadeService();
   bool? _temBlocos;
   bool _loadingTemBlocos = false;
+  List<Map<String, dynamic>> _filteredGestaoItems = [];
 
-  // Lista de itens de gestão baseada na imagem
-  final List<Map<String, dynamic>> gestaoItems = [
-    {
-      'title': 'Boleto',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/Boleto_icone_gestao.png',
-    },
-    {
-      'title': 'Acordo',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/acordoiconegestao.png',
-    },
-    {
-      'title': 'Relatórios',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/relatoriosiconegestao.png',
-    },
-    {
-      'title': 'E-Mail',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/emailiconegestao.png',
-    },
-    {
-      'title': 'Despesa/Receita',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/despesareceitaiconegestao.png',
-    },
-    {
-      'title': 'Morador/Unidade',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/moradorunidadeiconegestao.png',
-    },
-    {
-      'title': 'Condomínio',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/condominioiconegestao.png',
-    },
-    {
-      'title': 'Portaria',
-      'imagePath':
-          'assets/images/HOME_Inquilino/Gestao_Inquilino/portariaiconegestao.png',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _filterItems();
+  }
+
+  void _filterItems() {
+    final perms = PermissionService();
+    final allItems = [
+      {
+        'title': 'Boleto',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/Boleto_icone_gestao.png',
+        'visible': perms.canAccessBoleto(),
+      },
+      {
+        'title': 'Acordo',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/acordoiconegestao.png',
+        'visible': perms.permissions.cobrancasAcordos || perms.permissions.todos,
+      },
+      {
+        'title': 'Relatórios',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/relatoriosiconegestao.png',
+        'visible': perms.canAccessRelatorios(),
+      },
+      {
+        'title': 'E-Mail',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/emailiconegestao.png',
+        'visible': perms.permissions.emailGestao || perms.permissions.todos,
+      },
+      {
+        'title': 'Despesa/Receita',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/despesareceitaiconegestao.png',
+        'visible': perms.permissions.despReceita || perms.permissions.todos,
+      },
+      {
+        'title': 'Morador/Unidade',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/moradorunidadeiconegestao.png',
+        'visible': perms.permissions.moradorUnid || perms.permissions.todos,
+      },
+      {
+        'title': 'Condomínio',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/condominioiconegestao.png',
+        'visible': perms.permissions.condominioGestao || perms.permissions.todos,
+      },
+      {
+        'title': 'Portaria',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/portariaiconegestao.png',
+        'visible': perms.canAccessPortaria(),
+      },
+      {
+        'title': 'Usuários',
+        'imagePath':
+            'assets/images/HOME_Inquilino/Gestao_Inquilino/moradorunidadeiconegestao.png',
+        'visible': perms.permissions.hasAdminAccess() || perms.permissions.todos,
+      },
+    ];
+
+    _filteredGestaoItems =
+        allItems.where((item) => item['visible'] == true).toList();
+  }
 
   Widget _buildGestaoItem({
     required String title,
@@ -193,9 +221,9 @@ class _GestaoScreenState extends State<GestaoScreen> {
                 color: Colors.white,
                 child: ListView.builder(
                   padding: EdgeInsets.zero,
-                  itemCount: gestaoItems.length,
+                  itemCount: _filteredGestaoItems.length,
                   itemBuilder: (context, index) {
-                    final item = gestaoItems[index];
+                    final item = _filteredGestaoItems[index];
                     return _buildGestaoItem(
                       title: item['title'],
                       imagePath: item['imagePath'],
@@ -351,6 +379,15 @@ class _GestaoScreenState extends State<GestaoScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => RelatoriosScreen(
+                                condominioId: widget.condominioId ?? '',
+                              ),
+                            ),
+                          );
+                        } else if (item['title'] == 'Usuários') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GestaoUsuariosScreen(
                                 condominioId: widget.condominioId ?? '',
                               ),
                             ),

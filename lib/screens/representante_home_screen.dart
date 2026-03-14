@@ -10,6 +10,7 @@ import 'login_screen.dart';
 import '../services/unidade_detalhes_service.dart';
 import 'representante_dashboard_screen.dart';
 import '../features/Representante_Features/leitura/screens/leitura_screen.dart';
+import '../services/permission_service.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -470,48 +471,52 @@ Copiado da CondoGaia''';
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.9,
                       children: [
-                        _buildMenuCardComingSoon(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_chat.png',
-                          title: 'Chat',
-                        ),
+                        if (PermissionService().canAccessChat())
+                          _buildMenuCardComingSoon(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_chat.png',
+                            title: 'Chat',
+                          ),
                         _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Classificados.png',
                           title: 'Classificados',
                         ),
-                        _buildMenuCard(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_Documentos.png',
-                          title: 'Documentos',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DocumentosScreen(
-                                  condominioId: widget.condominioId,
-                                  representanteId: widget.representante.id,
+                        if (PermissionService().permissions.documentos ||
+                            PermissionService().permissions.todos)
+                          _buildMenuCard(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_Documentos.png',
+                            title: 'Documentos',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DocumentosScreen(
+                                    condominioId: widget.condominioId,
+                                    representanteId: widget.representante.id,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildMenuCard(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
-                          title: 'Diário/Agenda',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AgendaScreen(
-                                  representante: widget.representante,
-                                  condominioId: widget.condominioId,
+                              );
+                            },
+                          ),
+                        if (PermissionService().canAccessDiario())
+                          _buildMenuCard(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_DiarioAgenda.png',
+                            title: 'Diário/Agenda',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AgendaScreen(
+                                    representante: widget.representante,
+                                    condominioId: widget.condominioId,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
                         _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_Controle.png',
@@ -522,59 +527,62 @@ Copiado da CondoGaia''';
                               'assets/images/Representante/HOME/Imagem_Cursos.png',
                           title: 'Cursos',
                         ),
-                        _buildMenuCard(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_Gestao.png',
-                          title: 'Gestão',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => GestaoScreen(
-                                  condominioId: widget.condominioId,
-                                  condominioNome: widget.condominioNome,
-                                  condominioCnpj: widget.condominioCnpj,
+                        if (PermissionService().canAccessGestao())
+                          _buildMenuCard(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_Gestao.png',
+                            title: 'Gestão',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => GestaoScreen(
+                                    condominioId: widget.condominioId,
+                                    condominioNome: widget.condominioNome,
+                                    condominioCnpj: widget.condominioCnpj,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildMenuCard(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_Reservas.png',
-                          title: 'Reservas',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ReservasScreen(
-                                  representante: widget.representante,
-                                  condominioId: widget.condominioId,
+                              );
+                            },
+                          ),
+                        if (PermissionService().canAccessReservas())
+                          _buildMenuCard(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_Reservas.png',
+                            title: 'Reservas',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReservasScreen(
+                                    representante: widget.representante,
+                                    condominioId: widget.condominioId,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
                         _buildMenuCardComingSoon(
                           imagePath:
                               'assets/images/Representante/HOME/Imagem_FolhaFunc.png',
                           title: 'Folha Func.',
                         ),
-                        _buildMenuCard(
-                          imagePath:
-                              'assets/images/Representante/HOME/Imagem_Leitura.png',
-                          title: 'Leitura',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LeituraScreen(
-                                  condominioId: widget.condominioId,
+                        if (PermissionService().canAccessLeitura())
+                          _buildMenuCard(
+                            imagePath:
+                                'assets/images/Representante/HOME/Imagem_Leitura.png',
+                            title: 'Leitura',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LeituraScreen(
+                                    condominioId: widget.condominioId,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),

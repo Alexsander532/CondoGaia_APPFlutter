@@ -11,6 +11,7 @@ import '../screens/upload_foto_perfil_screen.dart';
 import '../screens/upload_foto_perfil_proprietario_screen.dart';
 import '../screens/upload_foto_perfil_inquilino_screen.dart';
 import '../screens/portaria_representante_screen.dart';
+import '../models/representante.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? usuarioDeletado; // Nome do usuário que foi deletado
@@ -136,8 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
               _redirectInquilino(result);
             }
           } else if (result.userType == UserType.porteiro) {
-            // Porteiro vai direto para a tela de Portaria
-            _redirectPorteiro(result);
+            // Membro da Equipe (Tabela Porteiros): Verificar permissão para redirecionar corretamente
+            _redirectEquipe(result);
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -397,30 +398,74 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Redireciona porteiro diretamente para a tela de Portaria
-  Future<void> _redirectPorteiro(LoginResult result) async {
+  /// Redireciona membros da equipe baseado em suas permissões
+  Future<void> _redirectEquipe(LoginResult result) async {
     try {
-      // Buscar dados do condomínio do porteiro
+      final porteiro = result.porteiro!;
+      // Buscar dados do condomínio do membro da equipe
       final condominioData = await SupabaseService.client
           .from('condominios')
           .select('id, nome_condominio, cnpj, tem_blocos')
-          .eq('id', result.porteiro!.condominioId)
+          .eq('id', porteiro.condominioId)
           .single();
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => PortariaRepresentanteScreen(
-              condominioId: condominioData['id'],
-              condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
-              condominioCnpj: condominioData['cnpj'] ?? 'N/A',
-              temBlocos: condominioData['tem_blocos'] ?? true,
+        final perms = porteiro.permissions;
+        // Se a pessoa tiver ACESSO TOTAL, ou acessos de ADM, Comunicação, Financeiro, Docs, vai para a HomeScreen do Representante.
+        // A HomeScreen do Rep vai puxar as abas adequadas usando o PermissionService que bloqueia as que ele não tem acesso.
+        // Se ele tiver **somente** acesso de Portaria ou a base dele for portaria, e não tiver outros módulos, manda pra tela de Portaria direto.
+        // Como simplificação robusta: se ele puder acessar Gestão, Painel, Financeiro ou Comunicação, mandamos para o HomeScreen onde ele tem o menu completo.
+        
+        bool canAccessDashboardArea = perms.todos || 
+            perms.hasAdminAccess() || 
+            perms.hasFinAccess() || 
+            perms.hasDocsAccess() || 
+            perms.hasCommsAccess();
+
+        if (canAccessDashboardArea) {
+          // Busca o representante dono do condomínio para passar como parâmetro fictício pro HomeScreen (ou pode ser repensado no futuro)
+          // Na arquitetura atual, HomeScreen gasta um Representante no construtor antigo ou se adapta.
+          // Vamos enviar para a tela de Menu de condominios se for preciso, ou RepresentanteHomeScreen
+          // RepresentanteHomeScreen requer `representante`. Como ele é um Porteiro/Membro de Equipe logado, a tela de Representante precisa aceitar que quem está logado nem sempre é um representante da tabela representantes.
+          // Por sorte, muito do app já usa SupabaseService.currentUserType.
+          
+          // Simular um Representante contendo os próprios dados do Porteiro para compatibilidade com a View
+          final repEquipe = Representante(
+            id: porteiro.id,
+            nomeCompleto: porteiro.nomeCompleto,
+            cpf: porteiro.cpf,
+            senhaAcesso: porteiro.senhaAcesso,
+            fotoPerfil: porteiro.fotoPerfil,
+            createdAt: porteiro.createdAt,
+            updatedAt: porteiro.updatedAt,
+          );
+          
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+               builder: (context) => RepresentanteHomeScreen(
+                 representante: repEquipe,
+                 condominioId: condominioData['id'],
+                 condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+                 condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+               ),
             ),
-          ),
-        );
+          );
+        } else {
+           // Escopo restrito à Portaria ou nenhum dos de cima aplicáveis, vai pra PortariaRepresentanteScreen
+           Navigator.of(context).pushReplacement(
+             MaterialPageRoute(
+               builder: (context) => PortariaRepresentanteScreen(
+                 condominioId: condominioData['id'],
+                 condominioNome: condominioData['nome_condominio'] ?? 'Condomínio',
+                 condominioCnpj: condominioData['cnpj'] ?? 'N/A',
+                 temBlocos: condominioData['tem_blocos'] ?? true,
+               ),
+             ),
+           );
+        }
       }
     } catch (e) {
-      print('Erro ao redirecionar porteiro: $e');
+      print('Erro ao redirecionar equipe: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
