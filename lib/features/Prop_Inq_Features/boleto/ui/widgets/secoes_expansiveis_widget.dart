@@ -93,27 +93,65 @@ class SecoesExpansiveisWidget extends StatelessWidget {
   }
 
   Widget _buildComposicaoConteudo() {
-    // TODO: Conectar com dados reais
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLinhaComposicao('Cota Condominial', 'R\$ 300,00'),
-          const SizedBox(height: 8),
-          _buildLinhaComposicao('Fundo de Reserva', 'R\$ 50,00'),
-          const SizedBox(height: 8),
-          _buildLinhaComposicao('Rateio Água', 'R\$ 50,00'),
-          const Divider(height: 24),
-          _buildLinhaComposicao('Total', 'R\$ 400,00', isBold: true),
-        ],
-      ),
+    return BlocBuilder<BoletoPropCubit, BoletoPropState>(
+      builder: (context, state) {
+        final composicao = state.composicaoBoleto;
+        
+        if (composicao == null || composicao.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Text(
+              'Composição não disponível.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (composicao['cotaCondominial'] != null && composicao['cotaCondominial']! > 0)
+                _buildLinhaComposicao('Cota Condominial', 'R\$ ${composicao['cotaCondominial']!.toStringAsFixed(2)}'),
+              if (composicao['fundoReserva'] != null && composicao['fundoReserva']! > 0) ...[
+                const SizedBox(height: 8),
+                _buildLinhaComposicao('Fundo de Reserva', 'R\$ ${composicao['fundoReserva']!.toStringAsFixed(2)}'),
+              ],
+              if (composicao['rateioAgua'] != null && composicao['rateioAgua']! > 0) ...[
+                const SizedBox(height: 8),
+                _buildLinhaComposicao('Rateio Água', 'R\$ ${composicao['rateioAgua']!.toStringAsFixed(2)}'),
+              ],
+              if (composicao['multaInfracao'] != null && composicao['multaInfracao']! > 0) ...[
+                const SizedBox(height: 8),
+                _buildLinhaComposicao('Multa Infração', 'R\$ ${composicao['multaInfracao']!.toStringAsFixed(2)}'),
+              ],
+              if (composicao['controle'] != null && composicao['controle']! > 0) ...[
+                const SizedBox(height: 8),
+                _buildLinhaComposicao('Controle', 'R\$ ${composicao['controle']!.toStringAsFixed(2)}'),
+              ],
+              if (composicao['desconto'] != null && composicao['desconto']! > 0) ...[
+                const SizedBox(height: 8),
+                _buildLinhaComposicao('Desconto', 'R\$ -${composicao['desconto']!.toStringAsFixed(2)}'),
+              ],
+              const Divider(height: 24),
+              _buildLinhaComposicao('Total', 'R\$ ${composicao['valorTotal']?.toStringAsFixed(2) ?? '0,00'}', isBold: true),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -146,34 +184,156 @@ class SecoesExpansiveisWidget extends StatelessWidget {
   }
 
   Widget _buildLeiturasConteudo() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: const Text(
-        'Nenhuma leitura disponível para este período.',
-        style: TextStyle(fontSize: 13, color: Colors.grey),
-      ),
+    return BlocBuilder<BoletoPropCubit, BoletoPropState>(
+      builder: (context, state) {
+        final leituras = state.leituras;
+        
+        if (leituras == null || leituras.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Text(
+              'Nenhuma leitura disponível para este período.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: leituras.map((leitura) {
+              final dataLeitura = leitura['data_leitura'] as String?;
+              final tipoLeitura = leitura['tipo_leitura'] as String? ?? 'Não informado';
+              final valorLeitura = leitura['valor_leitura'] as num?;
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$tipoLeitura - ${dataLeitura ?? 'Sem data'}',
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                    Text(
+                      '${valorLeitura?.toString() ?? 'N/A'}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBalanceteConteudo() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: const Text(
-        'Balancete online não disponível para este período.',
-        style: TextStyle(fontSize: 13, color: Colors.grey),
-      ),
+    return BlocBuilder<BoletoPropCubit, BoletoPropState>(
+      builder: (context, state) {
+        final balancete = state.balanceteOnline;
+        
+        if (balancete == null || balancete.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Text(
+              'Balancete online não disponível para este período.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Balancete - ${balancete['mes']}/${balancete['ano']}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (balancete['receitas'] != null) ...[
+                _buildLinhaBalancete('Receitas', 'R\$ ${(balancete['receitas'] as num?)?.toStringAsFixed(2) ?? '0,00'}'),
+                const SizedBox(height: 8),
+              ],
+              if (balancete['despesas'] != null) ...[
+                _buildLinhaBalancete('Despesas', 'R\$ ${(balancete['despesas'] as num?)?.toStringAsFixed(2) ?? '0,00'}'),
+                const SizedBox(height: 8),
+              ],
+              if (balancete['saldo'] != null) ...[
+                const Divider(height: 16),
+                _buildLinhaBalancete('Saldo', 'R\$ ${(balancete['saldo'] as num?)?.toStringAsFixed(2) ?? '0,00'}', isBold: true),
+              ],
+              if (balancete['observacoes'] != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Observações: ${balancete['observacoes']}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLinhaBalancete(String label, String valor, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        Text(
+          valor,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            color: _primaryColor,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -63,4 +63,40 @@ class BoletoPropRepositoryImpl implements BoletoPropRepository {
       return {};
     }
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> obterLeituras({
+    required String unidadeId,
+    required int mes,
+    required int ano,
+  }) async {
+    try {
+      return await remoteDataSource.obterLeituras(
+        unidadeId: unidadeId,
+        mes: mes,
+        ano: ano,
+      );
+    } catch (e) {
+      print('⚠️ [BoletoPropRepository] Erro ao obter leituras: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> obterBalanceteOnline({
+    required String condominioId,
+    required int mes,
+    required int ano,
+  }) async {
+    try {
+      return await remoteDataSource.obterBalanceteOnline(
+        condominioId: condominioId,
+        mes: mes,
+        ano: ano,
+      );
+    } catch (e) {
+      print('⚠️ [BoletoPropRepository] Erro ao obter balancete: $e');
+      return {};
+    }
+  }
 }

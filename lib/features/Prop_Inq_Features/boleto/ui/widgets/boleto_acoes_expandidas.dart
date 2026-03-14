@@ -56,28 +56,13 @@ class BoletoAcoesExpandidas extends StatelessWidget {
                   label: 'Ver Boleto',
                   onTap: () {
                     cubit.verBoleto(boletoId);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Ver Boleto — Em breve'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
                   },
                 ),
                 _buildAcaoItem(
                   icon: Icons.copy_outlined,
                   label: 'Copiar Código\nde Barras',
                   onTap: () {
-                    if (codigoBarras != null) {
-                      Clipboard.setData(ClipboardData(text: codigoBarras!));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Código de barras copiado!'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                    cubit.copiarCodigoBarras(boletoId);
                   },
                 ),
                 _buildAcaoItem(
@@ -85,16 +70,59 @@ class BoletoAcoesExpandidas extends StatelessWidget {
                   label: 'Compartilhar',
                   onTap: () {
                     cubit.compartilharBoleto(boletoId);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Compartilhar — Em breve'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
                   },
                 ),
               ],
             ),
+            if (codigoBarras != null && codigoBarras!.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Código de Barras (Linha Digitável):',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SelectableText(
+                            codigoBarras!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w500,
+                              color: _primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.copy, size: 20, color: _primaryColor),
+                          onPressed: () => cubit.copiarCodigoBarras(boletoId),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Copiar código',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
 
           // Mensagem para boletos vencidos sem código de barras

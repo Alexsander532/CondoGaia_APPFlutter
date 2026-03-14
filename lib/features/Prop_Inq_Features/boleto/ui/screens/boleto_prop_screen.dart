@@ -2,20 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/boleto_prop_cubit.dart';
 import '../cubit/boleto_prop_state.dart';
+import '../../data/datasources/boleto_prop_remote_datasource.dart';
+import '../../data/repositories/boleto_prop_repository_impl.dart';
+import '../../domain/usecases/boleto_prop_usecases.dart';
 import '../widgets/boleto_filtro_dropdown.dart';
 import '../widgets/boleto_card_widget.dart';
 import '../widgets/demonstrativo_financeiro_widget.dart';
 import '../widgets/secoes_expansiveis_widget.dart';
+import '../widgets/skeleton_widgets.dart';
+import '../widgets/empty_state_widgets.dart';
 
 class BoletoPropScreen extends StatelessWidget {
   final String condominioId;
+  final String moradorId;
 
-  const BoletoPropScreen({super.key, required this.condominioId});
+  const BoletoPropScreen({
+    super.key, 
+    required this.condominioId,
+    required this.moradorId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => BoletoPropCubit()..carregarBoletos(),
+      create: (context) {
+        // Criar dependências
+        final dataSource = BoletoPropRemoteDataSourceImpl();
+        final repository = BoletoPropRepositoryImpl(remoteDataSource: dataSource);
+        final obterBoletosUseCase = ObterBoletosPropUseCase(repository: repository);
+        final obterComposicaoUseCase = ObterComposicaoBoletoUseCase(repository: repository);
+        final obterDemonstrativoUseCase = ObterDemonstrativoFinanceiroUseCase(repository: repository);
+        final obterLeiturasUseCase = ObterLeiturasUseCase(repository: repository);
+        final obterBalanceteOnlineUseCase = ObterBalanceteOnlineUseCase(repository: repository);
+        
+        return BoletoPropCubit(
+          obterBoletos: obterBoletosUseCase,
+          obterComposicao: obterComposicaoUseCase,
+          obterDemonstrativo: obterDemonstrativoUseCase,
+          obterLeituras: obterLeiturasUseCase,
+          obterBalanceteOnline: obterBalanceteOnlineUseCase,
+          moradorId: moradorId,
+          condominioId: condominioId,
+        )..carregarBoletos();
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -72,11 +101,44 @@ class BoletoPropScreen extends StatelessWidget {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
-                      const Expanded(
-                        child: Text(
-                          'Home/Gestão/Boleto',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54, fontSize: 14),
+                      Expanded(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Text(
+                              'Home/Gestão/Boleto',
+                              style: TextStyle(color: Colors.black54, fontSize: 14),
+                            ),
+                            Positioned(
+                              right: 0,
+                              child: BlocBuilder<BoletoPropCubit, BoletoPropState>(
+                                builder: (context, state) {
+                                  return IconButton(
+                                    icon: state.status == BoletoPropStatus.loading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.refresh,
+                                            size: 24,
+                                            color: Colors.blue,
+                                          ),
+                                    onPressed: state.status == BoletoPropStatus.loading
+                                        ? null
+                                        : () => context.read<BoletoPropCubit>().carregarBoletos(),
+                                    padding: const EdgeInsets.all(4),
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Recarregar tela',
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 20),
@@ -109,40 +171,46 @@ class BoletoPropScreen extends StatelessWidget {
             }
           },
           builder: (context, state) {
-            if (state.status == BoletoPropStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<BoletoPropCubit>().carregarBoletos();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ============================================
+                    // DROPDOWN FILTRO (Vencido/A Vencer ou Pago)
+                    // ============================================
+                    const BoletoFiltroDropdown(),
+                    const SizedBox(height: 20),
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ============================================
-                  // DROPDOWN FILTRO (Vencido/A Vencer ou Pago)
-                  // ============================================
-                  const BoletoFiltroDropdown(),
-                  const SizedBox(height: 20),
+                    // ============================================
+                    // CONTEÚDO DINÂMICO (Loading, Error, Empty, ou Lista)
+                    // ============================================
+                    _buildConteudoDinamico(context, state),
+                    const SizedBox(height: 24),
 
-                  // ============================================
-                  // LISTA DE BOLETOS (Cards expansíveis)
-                  // ============================================
-                  _buildListaBoletos(state),
-                  const SizedBox(height: 24),
+                    // ============================================
+                    // DEMONSTRATIVO FINANCEIRO
+                    // ============================================
+                    if (state.status != BoletoPropStatus.loading)
+                      const DemonstrativoFinanceiroWidget(),
+                    if (state.status != BoletoPropStatus.loading) ...[
+                      const Divider(height: 1),
+                      const SizedBox(height: 8),
+                    ],
 
-                  // ============================================
-                  // DEMONSTRATIVO FINANCEIRO
-                  // ============================================
-                  const DemonstrativoFinanceiroWidget(),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-
-                  // ============================================
-                  // SEÇÕES EXPANSÍVEIS
-                  // ============================================
-                  const SecoesExpansiveisWidget(),
-                  const SizedBox(height: 20),
-                ],
+                    // ============================================
+                    // SEÇÕES EXPANSÍVEIS
+                    // ============================================
+                    if (state.status != BoletoPropStatus.loading)
+                      const SecoesExpansiveisWidget(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             );
           },
@@ -151,31 +219,43 @@ class BoletoPropScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListaBoletos(BoletoPropState state) {
+  Widget _buildConteudoDinamico(BuildContext context, BoletoPropState state) {
     final boletos = state.boletosFiltrados;
 
-    if (boletos.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        child: const Center(
-          child: Column(
-            children: [
-              Icon(Icons.receipt_long, size: 48, color: Colors.grey),
-              SizedBox(height: 12),
-              Text(
-                'Nenhum boleto encontrado',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
+    // Loading state com skeletons
+    if (state.status == BoletoPropStatus.loading) {
+      return Column(
+        children: [
+          // Skeletons para boletos
+          ...List.generate(3, (index) => const BoletoSkeleton()),
+          const SizedBox(height: 24),
+          // Skeletons para seções
+          const DemonstrativoSkeleton(),
+          const SizedBox(height: 16),
+          const SecaoSkeleton(),
+        ],
       );
     }
 
+    // Error state
+    if (state.status == BoletoPropStatus.error) {
+      return ErrorStateWidget(
+        message: state.errorMessage ?? 'Ocorreu um erro ao carregar os boletos.',
+        onRetry: () => context.read<BoletoPropCubit>().carregarBoletos(),
+      );
+    }
+
+    // Empty state
+    if (boletos.isEmpty) {
+      return EmptyStateWidget(
+        message: state.filtroSelecionado == 'Pago'
+            ? 'Não há boletos pagos para exibir.\nTente alterar o filtro para "Vencido/ A Vencer".'
+            : 'Não há boletos em aberto para exibir.\nTente alterar o filtro para "Pago".',
+        onRefresh: () => context.read<BoletoPropCubit>().carregarBoletos(),
+      );
+    }
+
+    // Lista de boletos
     return Column(
       children: boletos
           .map((boleto) => BoletoCardWidget(boleto: boleto))

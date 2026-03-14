@@ -632,6 +632,7 @@ Copiado da CondoGaia''';
                               MaterialPageRoute(
                                 builder: (context) => BoletoPropScreen(
                                   condominioId: widget.condominioId,
+                                  moradorId: widget.inquilinoId ?? widget.proprietarioId ?? '',
                                 ),
                               ),
                             );

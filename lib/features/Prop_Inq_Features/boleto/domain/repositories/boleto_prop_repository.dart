@@ -20,4 +20,18 @@ abstract class BoletoPropRepository {
     required int mes,
     required int ano,
   });
+
+  /// Retorna leituras da unidade para o mês/ano
+  Future<List<Map<String, dynamic>>> obterLeituras({
+    required String unidadeId,
+    required int mes,
+    required int ano,
+  });
+
+  /// Retorna balancete online para o mês/ano
+  Future<Map<String, dynamic>> obterBalanceteOnline({
+    required String condominioId,
+    required int mes,
+    required int ano,
+  });
 }

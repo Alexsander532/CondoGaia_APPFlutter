@@ -48,7 +48,7 @@ class BoletoCardWidget extends StatelessWidget {
             children: [
               // Header do card (sempre visível)
               InkWell(
-                onTap: () => cubit.toggleBoletoExpandido(boleto.id),
+                onTap: () => cubit.expandirBoleto(boleto.id),
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(

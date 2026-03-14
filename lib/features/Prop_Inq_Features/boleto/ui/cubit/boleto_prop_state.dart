@@ -22,6 +22,12 @@ class BoletoPropState extends Equatable {
   final bool leiturasExpandida;
   final bool balanceteOnlineExpandido;
 
+  // Dados das seções
+  final Map<String, double>? composicaoBoleto;
+  final Map<String, dynamic>? demonstrativoFinanceiro;
+  final List<Map<String, dynamic>>? leituras;
+  final Map<String, dynamic>? balanceteOnline;
+
   // Mensagens
   final String? errorMessage;
   final String? successMessage;
@@ -36,6 +42,10 @@ class BoletoPropState extends Equatable {
     this.composicaoBoletoExpandida = false,
     this.leiturasExpandida = false,
     this.balanceteOnlineExpandido = false,
+    this.composicaoBoleto,
+    this.demonstrativoFinanceiro,
+    this.leituras,
+    this.balanceteOnline,
     this.errorMessage,
     this.successMessage,
   });
@@ -60,6 +70,10 @@ class BoletoPropState extends Equatable {
     bool? composicaoBoletoExpandida,
     bool? leiturasExpandida,
     bool? balanceteOnlineExpandido,
+    Map<String, double>? composicaoBoleto,
+    Map<String, dynamic>? demonstrativoFinanceiro,
+    List<Map<String, dynamic>>? leituras,
+    Map<String, dynamic>? balanceteOnline,
     String? errorMessage,
     String? successMessage,
   }) {
@@ -77,6 +91,10 @@ class BoletoPropState extends Equatable {
       leiturasExpandida: leiturasExpandida ?? this.leiturasExpandida,
       balanceteOnlineExpandido:
           balanceteOnlineExpandido ?? this.balanceteOnlineExpandido,
+      composicaoBoleto: composicaoBoleto ?? this.composicaoBoleto,
+      demonstrativoFinanceiro: demonstrativoFinanceiro ?? this.demonstrativoFinanceiro,
+      leituras: leituras ?? this.leituras,
+      balanceteOnline: balanceteOnline ?? this.balanceteOnline,
       errorMessage: errorMessage,
       successMessage: successMessage,
     );
@@ -93,6 +111,10 @@ class BoletoPropState extends Equatable {
     composicaoBoletoExpandida,
     leiturasExpandida,
     balanceteOnlineExpandido,
+    composicaoBoleto,
+    demonstrativoFinanceiro,
+    leituras,
+    balanceteOnline,
     errorMessage,
     successMessage,
   ];

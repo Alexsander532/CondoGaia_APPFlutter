@@ -47,3 +47,41 @@ class ObterDemonstrativoFinanceiroUseCase {
     );
   }
 }
+
+/// Caso de uso: Obter leituras da unidade
+class ObterLeiturasUseCase {
+  final BoletoPropRepository repository;
+
+  ObterLeiturasUseCase({required this.repository});
+
+  Future<List<Map<String, dynamic>>> call({
+    required String unidadeId,
+    required int mes,
+    required int ano,
+  }) {
+    return repository.obterLeituras(
+      unidadeId: unidadeId,
+      mes: mes,
+      ano: ano,
+    );
+  }
+}
+
+/// Caso de uso: Obter balancete online
+class ObterBalanceteOnlineUseCase {
+  final BoletoPropRepository repository;
+
+  ObterBalanceteOnlineUseCase({required this.repository});
+
+  Future<Map<String, dynamic>> call({
+    required String condominioId,
+    required int mes,
+    required int ano,
+  }) {
+    return repository.obterBalanceteOnline(
+      condominioId: condominioId,
+      mes: mes,
+      ano: ano,
+    );
+  }
+}
