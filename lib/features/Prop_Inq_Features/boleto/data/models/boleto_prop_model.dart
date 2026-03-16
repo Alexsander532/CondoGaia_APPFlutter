@@ -25,6 +25,7 @@ class BoletoPropModel extends BoletoPropEntity {
     super.barCode,
     super.identificationField,
     super.invoiceUrl,
+    super.asaasPaymentId,
     super.codigoBarras,
     super.descricao,
     super.isVencido = false,
@@ -58,7 +59,8 @@ class BoletoPropModel extends BoletoPropEntity {
       barCode: json['bar_code'],
       identificationField: json['identification_field'],
       invoiceUrl: json['invoice_url'],
-      codigoBarras: json['codigo_barras'] ?? json['bar_code'], // Compatibilidade
+      asaasPaymentId: json['asaas_payment_id'],
+      codigoBarras: json['codigo_barras'] ?? json['bar_code'],
       descricao: json['descricao'],
       isVencido: dataVenc.isBefore(DateTime.now()) && json['status'] != 'Pago',
     );

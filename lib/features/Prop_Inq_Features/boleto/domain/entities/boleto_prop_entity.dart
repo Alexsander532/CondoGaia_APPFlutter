@@ -27,6 +27,7 @@ class BoletoPropEntity {
   final String? barCode;
   final String? identificationField;
   final String? invoiceUrl;
+  final String? asaasPaymentId;
   
   // Campos legados (mantidos para compatibilidade)
   final String? codigoBarras;
@@ -58,6 +59,7 @@ class BoletoPropEntity {
     this.barCode,
     this.identificationField,
     this.invoiceUrl,
+    this.asaasPaymentId,
     this.codigoBarras,
     this.descricao,
     this.isVencido = false,

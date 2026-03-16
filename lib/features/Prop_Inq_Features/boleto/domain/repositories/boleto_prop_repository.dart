@@ -11,6 +11,9 @@ abstract class BoletoPropRepository {
   /// Retorna detalhes de um boleto específico
   Future<BoletoPropEntity?> obterBoletoPorId(String boletoId);
 
+  /// Sincroniza dados do boleto com o gateway (Asaas)
+  Future<String> sincronizarBoleto(String boletoId);
+
   /// Retorna composição detalhada do boleto
   Future<Map<String, double>> obterComposicaoBoleto(String boletoId);
 

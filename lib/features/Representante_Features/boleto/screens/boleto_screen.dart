@@ -7,6 +7,7 @@ import '../widgets/boleto_filtro_widget.dart';
 import '../widgets/boleto_list_widget.dart';
 import '../widgets/boleto_acoes_widget.dart';
 import '../widgets/gerar_cobranca_mensal_dialog.dart';
+import '../../cobranca_avulsa/ui/screens/cobranca_avulsa_screen.dart';
 
 class BoletoScreen extends StatelessWidget {
   final String condominioId;
@@ -38,6 +39,17 @@ class BoletoScreen extends StatelessWidget {
           centerTitle: true,
           actions: [
             IconButton(
+              icon: const Icon(Icons.add_circle, color: Colors.grey, size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CobrancaAvulsaScreen(),
+                  ),
+                );
+              },
+            ),
+            IconButton(
               icon: Image.asset(
                 'assets/images/Sino_Notificacao.png',
                 width: 24,
@@ -55,6 +67,7 @@ class BoletoScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
           ],
+
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(40.0),
             child: Column(

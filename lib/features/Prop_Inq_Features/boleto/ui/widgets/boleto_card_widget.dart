@@ -115,7 +115,9 @@ class BoletoCardWidget extends StatelessWidget {
               // Conteúdo expandido
               if (isExpandido)
                 BoletoAcoesExpandidas(
-                  codigoBarras: boleto.codigoBarras,
+                  codigoBarras: boleto.identificationField ?? 
+                                boleto.barCode ?? 
+                                boleto.codigoBarras,
                   boletoId: boleto.id,
                   tipo: boleto.tipo,
                   isVencido: boleto.isVencido,

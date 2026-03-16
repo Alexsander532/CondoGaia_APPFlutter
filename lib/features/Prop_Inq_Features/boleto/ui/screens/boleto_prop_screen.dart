@@ -34,6 +34,7 @@ class BoletoPropScreen extends StatelessWidget {
         final obterDemonstrativoUseCase = ObterDemonstrativoFinanceiroUseCase(repository: repository);
         final obterLeiturasUseCase = ObterLeiturasUseCase(repository: repository);
         final obterBalanceteOnlineUseCase = ObterBalanceteOnlineUseCase(repository: repository);
+        final sincronizarBoletoUseCase = SincronizarBoletoUseCase(repository: repository);
         
         return BoletoPropCubit(
           obterBoletos: obterBoletosUseCase,
@@ -41,6 +42,7 @@ class BoletoPropScreen extends StatelessWidget {
           obterDemonstrativo: obterDemonstrativoUseCase,
           obterLeituras: obterLeiturasUseCase,
           obterBalanceteOnline: obterBalanceteOnlineUseCase,
+          sincronizarBoleto: sincronizarBoletoUseCase,
           moradorId: moradorId,
           condominioId: condominioId,
         )..carregarBoletos();
@@ -159,6 +161,7 @@ class BoletoPropScreen extends StatelessWidget {
                   backgroundColor: Colors.red,
                 ),
               );
+              context.read<BoletoPropCubit>().limparMensagens();
             }
             if (state.successMessage != null &&
                 state.successMessage!.isNotEmpty) {
@@ -168,6 +171,7 @@ class BoletoPropScreen extends StatelessWidget {
                   backgroundColor: Colors.green,
                 ),
               );
+              context.read<BoletoPropCubit>().limparMensagens();
             }
           },
           builder: (context, state) {

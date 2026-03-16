@@ -85,3 +85,14 @@ class ObterBalanceteOnlineUseCase {
     );
   }
 }
+
+/// Caso de uso: Sincronizar boleto com gateway
+class SincronizarBoletoUseCase {
+  final BoletoPropRepository repository;
+
+  SincronizarBoletoUseCase({required this.repository});
+
+  Future<String> call(String boletoId) {
+    return repository.sincronizarBoleto(boletoId);
+  }
+}

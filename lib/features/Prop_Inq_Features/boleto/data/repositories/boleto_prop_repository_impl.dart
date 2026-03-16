@@ -37,6 +37,11 @@ class BoletoPropRepositoryImpl implements BoletoPropRepository {
   }
 
   @override
+  Future<String> sincronizarBoleto(String boletoId) async {
+    return await remoteDataSource.sincronizarBoleto(boletoId);
+  }
+
+  @override
   Future<Map<String, double>> obterComposicaoBoleto(String boletoId) async {
     try {
       return await remoteDataSource.obterComposicaoBoleto(boletoId);

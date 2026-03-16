@@ -11,6 +11,7 @@ class MockObterComposicaoBoletoUseCase extends Mock implements ObterComposicaoBo
 class MockObterDemonstrativoFinanceiroUseCase extends Mock implements ObterDemonstrativoFinanceiroUseCase {}
 class MockObterLeiturasUseCase extends Mock implements ObterLeiturasUseCase {}
 class MockObterBalanceteOnlineUseCase extends Mock implements ObterBalanceteOnlineUseCase {}
+class MockSincronizarBoletoUseCase extends Mock implements SincronizarBoletoUseCase {}
 
 void main() {
   group('BoletoPropCubit Tests', () {
@@ -19,6 +20,7 @@ void main() {
     late MockObterDemonstrativoFinanceiroUseCase mockObterDemonstrativo;
     late MockObterLeiturasUseCase mockObterLeituras;
     late MockObterBalanceteOnlineUseCase mockObterBalanceteOnline;
+    late MockSincronizarBoletoUseCase mockSincronizarBoleto;
     
     const moradorId = 'morador_123';
     const condominioId = 'cond_123';
@@ -29,6 +31,7 @@ void main() {
       mockObterDemonstrativo = MockObterDemonstrativoFinanceiroUseCase();
       mockObterLeituras = MockObterLeiturasUseCase();
       mockObterBalanceteOnline = MockObterBalanceteOnlineUseCase();
+      mockSincronizarBoleto = MockSincronizarBoletoUseCase();
     });
 
     BoletoPropCubit createCubit() {
@@ -38,6 +41,7 @@ void main() {
         obterDemonstrativo: mockObterDemonstrativo,
         obterLeituras: mockObterLeituras,
         obterBalanceteOnline: mockObterBalanceteOnline,
+        sincronizarBoleto: mockSincronizarBoleto,
         moradorId: moradorId,
         condominioId: condominioId,
       );

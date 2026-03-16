@@ -10,6 +10,7 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
   final ObterDemonstrativoFinanceiroUseCase _obterDemonstrativo;
   final ObterLeiturasUseCase _obterLeituras;
   final ObterBalanceteOnlineUseCase _obterBalanceteOnline;
+  final SincronizarBoletoUseCase _sincronizarBoleto;
   final String moradorId;
   final String condominioId;
 
@@ -19,6 +20,7 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
     required ObterDemonstrativoFinanceiroUseCase obterDemonstrativo,
     required ObterLeiturasUseCase obterLeituras,
     required ObterBalanceteOnlineUseCase obterBalanceteOnline,
+    required SincronizarBoletoUseCase sincronizarBoleto,
     required this.moradorId,
     required this.condominioId,
   })  : _obterBoletos = obterBoletos,
@@ -26,6 +28,7 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
         _obterDemonstrativo = obterDemonstrativo,
         _obterLeituras = obterLeituras,
         _obterBalanceteOnline = obterBalanceteOnline,
+        _sincronizarBoleto = sincronizarBoleto,
         super(
           BoletoPropState(
             mesSelecionado: DateTime.now().month,
@@ -253,16 +256,38 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
     try {
       final boleto = state.boletos.firstWhere((b) => b.id == boletoId);
       
-      // Priorizar identification_field (linha digitável) > barCode
-      final texto = boleto.identificationField ?? boleto.barCode ?? '';
+      // Priorizar identification_field (linha digitável) > barCode > codigoBarras
+      final texto = boleto.identificationField ?? 
+                    boleto.barCode ?? 
+                    boleto.codigoBarras ?? 
+                    '';
       
       if (texto.isNotEmpty) {
         await Clipboard.setData(ClipboardData(text: texto));
         emit(state.copyWith(successMessage: 'Código copiado com sucesso!'));
       } else {
-        emit(state.copyWith(
-          errorMessage: 'Código de barras não disponível',
-        ));
+        // Se o código não estiver disponível, tentar sincronizar com Asaas
+        emit(state.copyWith(status: BoletoPropStatus.loading));
+        
+        try {
+          final codigo = await _sincronizarBoleto.call(boletoId);
+          
+          emit(state.copyWith(status: BoletoPropStatus.success));
+          
+          if (codigo.isNotEmpty) {
+            await Clipboard.setData(ClipboardData(text: codigo));
+            emit(state.copyWith(successMessage: 'Código sincronizado e copiado!'));
+          } else {
+            emit(state.copyWith(
+              errorMessage: 'Código de barras não disponível no Asaas',
+            ));
+          }
+        } catch (e) {
+          emit(state.copyWith(
+            status: BoletoPropStatus.error,
+            errorMessage: 'Erro ao sincronizar boleto: $e',
+          ));
+        }
       }
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao copiar código: $e'));
@@ -284,5 +309,9 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao compartilhar boleto: $e'));
     }
+  }
+
+  void limparMensagens() {
+    emit(state.copyWith(successMessage: null, errorMessage: null));
   }
 }

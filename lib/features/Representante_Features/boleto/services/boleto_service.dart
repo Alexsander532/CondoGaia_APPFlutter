@@ -204,6 +204,7 @@ class BoletoService {
     List<String>? unidadeIds,
   }) async {
     try {
+      // 1. Buscar unidades
       var query = _supabase
           .from('unidades')
           .select('id, bloco, numero, nome_pagador_boleto')
@@ -213,133 +214,87 @@ class BoletoService {
         query = query.inFilter('id', unidadeIds);
       }
 
-      final unidades = await query;
+      final unidadesRaw = await query;
+      final unidades = unidadesRaw as List;
 
-      if ((unidades as List).isEmpty) {
-        return; // Empty list so nothing to generate
-      }
+      if (unidades.isEmpty) return;
 
-      // Busca proprietarios e inquilinos para extrair o id do sacado
-      final proprietarios = await _supabase.from('proprietarios').select('id, unidade_id').eq('condominio_id', condominioId);
-      final inquilinos = await _supabase.from('inquilinos').select('id, unidade_id').eq('condominio_id', condominioId);
+      // 2. Buscar moradores com dados completos para o ASAAS
+      final proprietariosRaw = await _supabase
+          .from('proprietarios')
+          .select('id, unidade_id, nome, cpf_cnpj, email')
+          .eq('condominio_id', condominioId);
+      
+      final inquilinosRaw = await _supabase
+          .from('inquilinos')
+          .select('id, unidade_id, nome, cpf_cnpj, email')
+          .eq('condominio_id', condominioId);
 
-      Map<String, String> proprietariosMap = { for (var p in (proprietarios as List)) p['unidade_id'].toString(): p['id'].toString() };
-      Map<String, String> inquilinosMap = { for (var i in (inquilinos as List)) i['unidade_id'].toString(): i['id'].toString() };
+      final proprietarios = proprietariosRaw as List;
+      final inquilinos = inquilinosRaw as List;
 
-      // Calcula o valor total do boleto
-      final valor =
-          cotaCondominial +
-          fundoReserva +
-          multaInfracao +
-          controle +
-          rateioAgua -
-          desconto;
+      Map<String, dynamic> propMap = {
+        for (var p in proprietarios) p['unidade_id'].toString(): p
+      };
+      Map<String, dynamic> inqMap = {
+        for (var i in inquilinos) i['unidade_id'].toString(): i
+      };
 
-      // dataVencimento vem como DD/MM/YYYY
-      final dateParts = dataVencimento.split('/');
-      final formattedDate = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
+      // 3. Montar lista de moradores para o backend
+      final List<Map<String, dynamic>> moradoresParaApi = [];
 
-      // Cria um boleto para cada unidade
-      final boletos = [];
-      for(var unidade in (unidades as List)) {
-        final bloco = unidade['bloco'] ?? '';
-        final unid = unidade['numero'] ?? '';
-        final blocoUnidade = bloco.isNotEmpty ? '$bloco/$unid' : unid;
-        
+      for (var unidade in unidades) {
+        final unidadeId = unidade['id'].toString();
         final isPagadorInquilino = unidade['nome_pagador_boleto'] == 'inquilino';
-        final sacadoId = (isPagadorInquilino ? inquilinosMap[unidade['id']] : proprietariosMap[unidade['id']]) 
-                          ?? proprietariosMap[unidade['id']] // Fallback se o inquilino não existir
-                          ?? inquilinosMap[unidade['id']]; // Fallback se o proprietário não existir
+        
+        final moradorData = (isPagadorInquilino ? inqMap[unidadeId] : propMap[unidadeId])
+            ?? propMap[unidadeId]
+            ?? inqMap[unidadeId];
 
-        // Se não houver nenhum sacado para a unidade, não gera o boleto para evitar erros no ASAAS
-        if (sacadoId == null) {
-          print('⚠️ [BoletoService] Unidade $blocoUnidade sem responsável vinculado. Boleto ignorado.');
+        if (moradorData == null) {
+          print('⚠️ [BoletoService] Unidade ${unidade['numero']} sem responsável vinculado. Ignorado.');
           continue;
         }
 
-        boletos.add({
-          'condominio_id': condominioId,
-          'bloco_unidade': blocoUnidade,
-          'sacado': sacadoId,
-          'referencia': dataVencimento.substring(3), // MM/YYYY
-          'data_vencimento': formattedDate,
-          'valor': valor,
-          'status': 'Ativo',
-          'tipo': 'Mensal',
-          'baixa': 'Manual',
-          'boleto_registrado': enviarParaRegistro ? 'PENDENTE' : 'NAO',
-          'unidade_id': unidade['id'],
-          'cota_condominial': cotaCondominial,
-          'fundo_reserva': fundoReserva,
-          'multa_infracao': multaInfracao,
-          'controle': controle,
-          'rateio_agua': rateioAgua,
-          'desconto': desconto,
-          'valor_total': valor,
+        moradoresParaApi.add({
+          'id': moradorData['id'],
+          'name': moradorData['nome'],
+          'cpfCnpj': moradorData['cpf_cnpj'],
+          'email': moradorData['email'],
+          'unidadeId': unidadeId,
+          'bloco': unidade['bloco'],
+          'unidade': unidade['numero'],
         });
       }
 
-      if (boletos.isNotEmpty) {
-        await _supabase.from('boletos').insert(boletos);
+      if (moradoresParaApi.isEmpty) return;
 
-        if (enviarPorEmail) {
-          // Busca e-mails dos moradores
-          final proprietariosRes = await _supabase
-              .from('proprietarios')
-              .select('unidade_id, email')
-              .eq('condominio_id', condominioId);
+      // dataVencimento vem como DD/MM/YYYY
+      final dateParts = dataVencimento.split('/');
+      final formattedVencimento = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
 
-          final inquilinosRes = await _supabase
-              .from('inquilinos')
-              .select('unidade_id, email')
-              .eq('condominio_id', condominioId);
+      // 4. Chamar API do Backend
+      final response = await LaravelApiService().post('/asaas/boletos/gerar-mensal', {
+        'condominioId': condominioId,
+        'dataVencimento': formattedVencimento,
+        'cotaCondominial': cotaCondominial,
+        'fundoReserva': fundoReserva,
+        'multaInfracao': multaInfracao,
+        'controle': controle,
+        'rateioAgua': rateioAgua,
+        'desconto': desconto,
+        'enviarParaRegistro': enviarParaRegistro,
+        'moradores': moradoresParaApi,
+      });
 
-          Map<String, String> emailsIquilinos = {};
-          for (var i in (inquilinosRes as List)) {
-            if (i['unidade_id'] != null && i['email'] != null) {
-              emailsIquilinos[i['unidade_id']] = i['email'];
-            }
-          }
-
-          Map<String, String> emailsProprietarios = {};
-          for (var p in (proprietariosRes as List)) {
-            if (p['unidade_id'] != null && p['email'] != null) {
-              emailsProprietarios[p['unidade_id']] = p['email'];
-            }
-          }
-
-          List<Map<String, dynamic>> boletosParaEmail = [];
-
-          for (var unidade in (unidades as List)) {
-            String? email;
-            String pagador = unidade['nome_pagador_boleto'] ?? 'proprietario';
-            String unidId = unidade['id'];
-
-            if (pagador == 'inquilino') {
-              email = emailsIquilinos[unidId] ?? emailsProprietarios[unidId];
-            } else {
-              email = emailsProprietarios[unidId] ?? emailsIquilinos[unidId];
-            }
-
-            if (email != null && email.isNotEmpty) {
-              boletosParaEmail.add({
-                'email': email,
-                'nome': unidade['morador_nome'] ?? 'Condômino',
-                'valor': valor,
-                'dataVencimento': dataVencimento,
-              });
-            }
-          }
-
-          await enviarBoletosPorEmail(
-            condominioId: condominioId,
-            boletosData: boletosParaEmail,
-          );
-        }
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erro ao gerar boletos no backend.');
       }
+
     } catch (e) {
       print('⚠️ [BoletoService] Erro ao gerar cobrança mensal: $e');
-      throw Exception('Erro ao gerar cobrança mensal.');
+      rethrow;
     }
   }
 
