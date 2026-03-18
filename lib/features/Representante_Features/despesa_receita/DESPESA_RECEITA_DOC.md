@@ -2,7 +2,7 @@
 
 > **Feature:** `despesa_receita`  
 > **Módulo:** Representante Features → Gestão de Condomínio  
-> **Última atualização:** 2026-03-09
+> **Última atualização:** 2026-03-18
 
 ---
 
@@ -74,6 +74,8 @@ Representante → Gestão → Despesas/Receitas
 | `id` | UUID | Auto | Identificador único |
 | `condominio_id` | UUID | ✅ | FK para condomínio |
 | `conta_id` | UUID | - | FK para `contas_bancarias` |
+| `categoria_id` | UUID | - | FK para `categorias_financeiras` |
+| `subcategoria_id` | UUID | - | FK para `subcategorias_financeiras` |
 | `conta_contabil` | String | - | Classificação contábil (Controle, Fundo Reserva, Obras) |
 | `descricao` | String | - | Descrição da receita |
 | `valor` | Double | ✅ | Valor em R$ (deve ser > 0) |
@@ -117,8 +119,8 @@ Representante → Gestão → Despesas/Receitas
 - **Seleção múltipla:** Checkbox individual ou "selecionar todos" no cabeçalho da tabela.
 
 ### 4.3. Receitas
-- **Filtros:** Conta Bancária, Conta Contábil (Controle / Fundo Reserva / Obras), Tipo (Todos / Manual / Automático).
-- **Cadastro:** Conta + Conta Contábil + Descrição + Valor + Data Crédito + Recorrência.
+- **Filtros:** Conta Bancária, Categoria, Subcategoria, Conta Contábil (Controle / Fundo Reserva / Obras), Tipo (Todos / Manual / Automático), Palavra-chave.
+- **Cadastro:** Conta + Categoria + Subcategoria + Conta Contábil + Descrição + Valor + Data Crédito + Recorrência.
 - **Validações:** Valor > 0 e Data do Crédito obrigatória.
 - **Edição/Exclusão:** Mesmo fluxo das despesas.
 
@@ -140,6 +142,16 @@ Representante → Gestão → Despesas/Receitas
 - Apenas para despesas: opção "Me Avisar" para notificações.
 - **TODO (futuro)**: lógica automática de geração de registros recorrentes.
 
+### 4.7. Upload de Comprovantes (Despesas)
+- Seleção de imagem via câmera ou galeria (`image_picker`).
+- Upload para bucket Supabase `comprovantes_financeiros`.
+- Compressão automática (qualidade 70%, max 1200px).
+- Visualização no modal de detalhes.
+
+### 4.8. Links Externos (Despesas)
+- Campo `link` para armazenar URL de boleto ou nota fiscal.
+- No modal de detalhes: botões para copiar link e abrir no navegador.
+
 ---
 
 ## 5. Arquitetura do Código
@@ -149,22 +161,29 @@ despesa_receita/
 ├── models/
 │   ├── despesa_model.dart          # Modelo Despesa (Equatable)
 │   ├── receita_model.dart          # Modelo Receita (Equatable)
-│   └── transferencia_model.dart    # Modelo Transferencia (Equatable)
+│   ├── transferencia_model.dart    # Modelo Transferencia (Equatable)
+│   └── MODELS_ENTIDADES_GUIA.md    # Guia de modelos
 ├── services/
 │   ├── i_despesa_receita_service.dart  # Interface abstrata
-│   └── despesa_receita_service.dart    # Implementação (Supabase)
+│   ├── despesa_receita_service.dart    # Implementação (Supabase)
+│   └── SERVICES_ACESSO_DADOS_GUIA.md   # Guia de serviços
 ├── cubit/
 │   ├── despesa_receita_cubit.dart   # Lógica de negócio (BLoC)
-│   └── despesa_receita_state.dart   # Estado imutável (Equatable)
+│   ├── despesa_receita_state.dart   # Estado imutável (Equatable)
+│   └── CUBIT_ESTADO_GUIA.md         # Guia do Cubit
 ├── screens/
-│   └── despesa_receita_screen.dart  # Tela principal com TabBar
+│   ├── despesa_receita_screen.dart  # Tela principal com TabBar
+│   └── SCREEN_ENTRADA_GUIA.md       # Guia da tela
 └── widgets/
     ├── base_tab_widget.dart         # Widget genérico para as 3 abas
-    ├── shared_widgets.dart          # Componentes reutilizáveis
+    ├── shared_widgets.dart          # Componentes reutilizáveis (cores, constantes)
     ├── despesas_tab_widget.dart     # Aba de Despesas
+    ├── despesa_detail_modal.dart    # Modal de detalhes da despesa
     ├── receitas_tab_widget.dart     # Aba de Receitas
+    ├── receita_detail_modal.dart    # Modal de detalhes da receita
     ├── transferencia_tab_widget.dart # Aba de Transferências
-    └── resumo_financeiro_widget.dart # Widget do resumo financeiro
+    ├── resumo_financeiro_widget.dart # Widget do resumo financeiro
+    └── WIDGETS_GUIA_VISUAL.md       # Guia visual dos widgets
 ```
 
 ### 5.1. Padrão de Arquitetura
@@ -172,6 +191,8 @@ despesa_receita/
 - **Models:** Imutáveis com `Equatable`, `fromJson`, `toJson`, `copyWith`.
 - **Service:** Abstração via interface, implementação direta com `supabase_flutter`.
 - **Queries:** Supabase select com joins inline (ex: `contas_bancarias(banco)`).
+- **Storage:** Supabase Storage bucket `comprovantes_financeiros` para upload de fotos.
+- **Imagens:** `image_picker` para seleção de câmera/galeria.
 
 ### 5.2. Dependências Externas
 - `contas_bancarias` — alimenta os dropdowns de conta.
@@ -186,31 +207,45 @@ despesa_receita/
 | `contas_bancarias` | ✅ Populada | 4 contas |
 | `categorias_financeiras` | ✅ Populada | ~20 categorias |
 | `subcategorias_financeiras` | ✅ Populada | ~60 subcategorias |
-| `despesas` | ⚠️ Precisa criar tabela | 0 |
-| `receitas` | ⚠️ Precisa criar tabela | 0 |
-| `transferencias` | ⚠️ Precisa criar tabela | 0 |
+| `despesas` | ✅ Criada | - |
+| `receitas` | ✅ Criada | - |
+| `transferencias` | ✅ Criada | - |
+
+### 6.1. Supabase Storage
+| Bucket | Status | Uso |
+|--------|--------|-----|
+| `comprovantes_financeiros` | ✅ Criado | Upload de fotos/comprovantes de despesas |
 
 ---
 
 ## 7. O que Funciona Hoje vs. O que Precisa Ser Feito
 
 ### ✅ Já implementado no Flutter:
-- Modelos de dados completos (Despesa, Receita, Transferência)
-- Service com CRUD completo + filtros + cálculo de saldo anterior
-- Cubit com toda a lógica de estado (filtros, seleção, edição, navegação)
+- Modelos de dados completos (Despesa, Receita, Transferência) com campos de join
+- Service com CRUD completo + filtros + cálculo de saldo anterior + upload de fotos
+- Cubit com toda a lógica de estado (filtros, seleção, edição, navegação, imagens)
 - UI completa com 3 abas (Despesas, Receitas, Transferências)
 - Formulários de cadastro e edição
 - Tabela com seleção múltipla, editar e excluir
 - Componentes compartilhados (dropdowns, date picker, recorrência)
 - Resumo financeiro com saldo anterior/atual
 - Validações de formulário
+- **Modal de detalhes** para despesas com visualização de foto, link e recorrência
+- **Modal de detalhes** para receitas com indicador de tipo (Manual/Automático)
+- **Upload de comprovantes** para despesas (câmera/galeria)
+- **Links externos** para despesas (abrir no navegador, copiar)
+- **Indicadores visuais** de tipo MANUAL/AUTOMATICO
+
+### ✅ Backend Supabase:
+- Tabelas `despesas`, `receitas`, `transferencias` criadas
+- Bucket `comprovantes_financeiros` criado
+- RLS configurado
 
 ### ⚠️ Pendente para funcionar 100%:
-1. **Criar tabelas** `despesas`, `receitas` e `transferencias` no Supabase
-2. **Configurar RLS** (Row Level Security) nas tabelas
-3. **Testar CRUD** end-to-end (criar, ler, editar, excluir)
-4. **Verificar queries com join** (contas_bancarias, categorias, subcategorias)
-5. **Popular dados de teste** para validar a listagem e filtros
-6. **(Futuro)** Implementar lógica de recorrência automática
-7. **(Futuro)** Implementar upload de anexos/fotos
-8. **(Futuro)** Implementar resumo detalhado por conta bancária
+1. **Testar CRUD** end-to-end (criar, ler, editar, excluir)
+2. **Verificar queries com join** (contas_bancarias, categorias, subcategorias)
+3. **Popular dados de teste** para validar a listagem e filtros
+4. **(Futuro)** Implementar lógica de recorrência automática
+5. **(Futuro)** Implementar resumo detalhado por conta bancária
+6. **(Futuro)** Implementar notificações "Me Avisar" para despesas recorrentes
+7. **(Futuro)** Upload de comprovantes para receitas

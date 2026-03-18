@@ -29,6 +29,7 @@ class Boleto {
   final double rateioAgua;
   final double desconto;
   final DateTime? createdAt;
+  final String? constarRelatorio; // SIM, NAO
 
   // Campos ASAAS
   final String? asaasPaymentId;
@@ -73,6 +74,7 @@ class Boleto {
     this.rateioAgua = 0,
     this.desconto = 0,
     this.createdAt,
+    this.constarRelatorio,
     this.asaasPaymentId,
     this.bankSlipUrl,
     this.invoiceUrl,
@@ -121,6 +123,7 @@ class Boleto {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
           : null,
+      constarRelatorio: json['constar_relatorio'],
       // ASAAS
       asaasPaymentId: json['asaas_payment_id'],
       bankSlipUrl: json['bank_slip_url'],
@@ -164,6 +167,7 @@ class Boleto {
       'controle': controle,
       'rateio_agua': rateioAgua,
       'desconto': desconto,
+      'constar_relatorio': constarRelatorio,
       'asaas_payment_id': asaasPaymentId,
       'bank_slip_url': bankSlipUrl,
       'invoice_url': invoiceUrl,
@@ -207,6 +211,7 @@ class Boleto {
     double? rateioAgua,
     double? desconto,
     DateTime? createdAt,
+    String? constarRelatorio,
     String? asaasPaymentId,
     String? bankSlipUrl,
     String? invoiceUrl,
@@ -247,6 +252,7 @@ class Boleto {
       rateioAgua: rateioAgua ?? this.rateioAgua,
       desconto: desconto ?? this.desconto,
       createdAt: createdAt ?? this.createdAt,
+      constarRelatorio: constarRelatorio ?? this.constarRelatorio,
       asaasPaymentId: asaasPaymentId ?? this.asaasPaymentId,
       bankSlipUrl: bankSlipUrl ?? this.bankSlipUrl,
       invoiceUrl: invoiceUrl ?? this.invoiceUrl,

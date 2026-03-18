@@ -7,6 +7,7 @@ import '../widgets/boleto_filtro_widget.dart';
 import '../widgets/boleto_list_widget.dart';
 import '../widgets/boleto_acoes_widget.dart';
 import '../widgets/gerar_cobranca_mensal_dialog.dart';
+import '../widgets/gerar_cobranca_avulsa_dialog.dart';
 import '../../cobranca_avulsa/ui/screens/cobranca_avulsa_screen.dart';
 
 class BoletoScreen extends StatelessWidget {
@@ -44,7 +45,7 @@ class BoletoScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CobrancaAvulsaScreen(),
+                    builder: (context) => CobrancaAvulsaScreen(condominioId: condominioId),
                   ),
                 );
               },
@@ -154,18 +155,43 @@ class BoletoScreen extends StatelessWidget {
         ),
         floatingActionButton: Builder(
           builder: (context) {
-            return FloatingActionButton(
-              backgroundColor: _primaryColor,
-              child: const Icon(Icons.add, color: Colors.white),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<BoletoCubit>(),
-                    child: const GerarCobrancaMensalDialog(),
-                  ),
-                );
-              },
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Botão Gerar Cobrança Mensal
+                FloatingActionButton.extended(
+                  heroTag: "mensal",
+                  backgroundColor: _primaryColor,
+                  icon: const Icon(Icons.calendar_month, color: Colors.white),
+                  label: const Text('Mensal', style: TextStyle(color: Colors.white)),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<BoletoCubit>(),
+                        child: const GerarCobrancaMensalDialog(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                // Botão Gerar Cobrança Avulsa
+                FloatingActionButton.extended(
+                  heroTag: "avulso",
+                  backgroundColor: Colors.orange.shade700,
+                  icon: const Icon(Icons.description, color: Colors.white),
+                  label: const Text('Avulsa', style: TextStyle(color: Colors.white)),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<BoletoCubit>(),
+                        child: const GerarCobrancaAvulsaDialog(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             );
           },
         ),

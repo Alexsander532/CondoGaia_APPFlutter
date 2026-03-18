@@ -12,6 +12,8 @@ class CobrancaAvulsaEntity {
   final String? tipoCobranca;
   final String status;
   final String? anexoUrl;
+  final bool recorrente;
+  final int? qtdMeses;
 
   CobrancaAvulsaEntity({
     this.id,
@@ -27,6 +29,8 @@ class CobrancaAvulsaEntity {
     this.tipoCobranca,
     this.status = 'Pendente',
     this.anexoUrl,
+    this.recorrente = false,
+    this.qtdMeses,
   });
 
   // ============ COPYWITH ============
@@ -44,6 +48,8 @@ class CobrancaAvulsaEntity {
     String? tipoCobranca,
     String? status,
     String? anexoUrl,
+    bool? recorrente,
+    int? qtdMeses,
   }) {
     return CobrancaAvulsaEntity(
       id: id ?? this.id,
@@ -59,6 +65,8 @@ class CobrancaAvulsaEntity {
       tipoCobranca: tipoCobranca ?? this.tipoCobranca,
       status: status ?? this.status,
       anexoUrl: anexoUrl ?? this.anexoUrl,
+      recorrente: recorrente ?? this.recorrente,
+      qtdMeses: qtdMeses ?? this.qtdMeses,
     );
   }
 }

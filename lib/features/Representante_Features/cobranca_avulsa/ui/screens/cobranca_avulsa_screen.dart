@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/cobranca_avulsa_cubit.dart';
+import '../cubit/cobranca_avulsa_state.dart';
 import '../../data/repositories/cobranca_avulsa_repository.dart';
 import '../tabs/pesquisar_cobranca_tab.dart';
 import '../tabs/cadastrar_cobranca_tab.dart';
+import 'package:condogaiaapp/services/unidade_service.dart';
 
 class CobrancaAvulsaScreen extends StatelessWidget {
-  const CobrancaAvulsaScreen({super.key});
+  final String condominioId;
+
+  const CobrancaAvulsaScreen({super.key, required this.condominioId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => CobrancaAvulsaCubit(CobrancaAvulsaRepository()),
+      create: (_) => CobrancaAvulsaCubit(
+        CobrancaAvulsaRepository(),
+        UnidadeService(),
+        condominioId: condominioId,
+      ),
       child: const _CobrancaAvulsaView(),
     );
   }
@@ -113,11 +121,37 @@ class _CobrancaAvulsaView extends StatelessWidget {
             ),
           ),
         ),
-        body: const TabBarView(
-          children: [
-            PesquisarCobrancaTab(),
-            CadastrarCobrancaTab(),
-          ],
+        body: BlocListener<CobrancaAvulsaCubit, CobrancaAvulsaState>(
+          listener: (context, state) {
+            if (state.status == CobrancaAvulsaStatus.success) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cobranças geradas com sucesso!'), backgroundColor: Colors.green),
+              );
+            } else if (state.status == CobrancaAvulsaStatus.error && state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage!), backgroundColor: Colors.red),
+              );
+            }
+          },
+          child: const TabBarView(
+            children: [
+              PesquisarCobrancaTab(),
+              CadastrarCobrancaTab(),
+            ],
+          ),
+        ),
+        floatingActionButton: BlocBuilder<CobrancaAvulsaCubit, CobrancaAvulsaState>(
+          builder: (context, state) {
+            if (state.itemsCarrinho.isEmpty) return const SizedBox.shrink();
+            return FloatingActionButton.extended(
+              onPressed: state.isSaving ? null : () => context.read<CobrancaAvulsaCubit>().salvarCobrancas(),
+              label: state.isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Gerar ${state.itemsCarrinho.length} Cobrança(s)', style: const TextStyle(color: Colors.white)),
+              icon: state.isSaving ? null : const Icon(Icons.check, color: Colors.white),
+              backgroundColor: const Color(0xFF0D3B66),
+            );
+          },
         ),
       ),
     );

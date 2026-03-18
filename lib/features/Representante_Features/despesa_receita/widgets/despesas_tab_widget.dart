@@ -10,6 +10,7 @@ import '../../../../../utils/input_formatters.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'despesa_detail_modal.dart';
 
 class DespesasTabWidget extends StatefulWidget {
   const DespesasTabWidget({super.key});
@@ -29,7 +30,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // Filtro controllers
   final _palavraChaveController = TextEditingController();
 
-  bool _filtrosExpandidos = true;
+  bool _filtrosExpandidos = false;
   bool _cadastroExpandido = false;
   bool _recorrente = false;
   bool _meAvisar = false;
@@ -475,42 +476,54 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   // ══════════════════════════════════════════════════════
 
   Widget _buildHeaderRow(DespesaReceitaState state, DespesaReceitaCubit cubit) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: kPrimaryColor,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            child: GestureDetector(
-              onTap: () {
-                cubit.selecionarTodasDespesas(
-                  state.despesas
-                      .where((d) => d.id != null)
-                      .map((d) => d.id!)
-                      .toList(),
-                );
-              },
-              child: Icon(
-                state.despesas.isNotEmpty &&
-                        state.despesas.every(
-                          (d) => state.despesasSelecionadas.contains(d.id),
-                        )
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                color: Colors.white,
-                size: 18,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          color: kPrimaryColor,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                child: GestureDetector(
+                  onTap: () {
+                    cubit.selecionarTodasDespesas(
+                      state.despesas
+                          .where((d) => d.id != null)
+                          .map((d) => d.id!)
+                          .toList(),
+                    );
+                  },
+                  child: Icon(
+                    state.despesas.isNotEmpty &&
+                            state.despesas.every(
+                              (d) => state.despesasSelecionadas.contains(d.id),
+                            )
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              if (isMobile) ...[
+                _headerCell('Desc.', flex: 4),
+                _headerCell('Venc.', flex: 2),
+                _headerCell('Val.', flex: 2),
+                _headerCell('Tipo', flex: 1),
+              ] else ...[
+                _headerCell('Descrição', flex: 4),
+                _headerCell('Vencimento', flex: 2),
+                _headerCell('Valor', flex: 2),
+                _headerCell('Tipo', flex: 1),
+              ],
+            ],
           ),
-          const SizedBox(width: 8),
-          _headerCell('Descrição', flex: 3),
-          _headerCell('Categoria', flex: 2),
-          _headerCell('Vencimento', flex: 2),
-          _headerCell('Valor', flex: 2),
-          _headerCell('Tipo', flex: 1),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -537,110 +550,193 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   ) {
     final isSelected = state.despesasSelecionadas.contains(d.id);
     final dataStr = d.dataVencimento != null
-        ? '${d.dataVencimento!.day.toString().padLeft(2, '0')}/${d.dataVencimento!.month.toString().padLeft(2, '0')}/${d.dataVencimento!.year}'
+        ? '${d.dataVencimento!.day}/${d.dataVencimento!.month}'
         : '--';
-    final valorStr = 'R\$ ${d.valor.toStringAsFixed(2).replaceAll('.', ',')}';
+    final valorStr = 'R\$${d.valor.toStringAsFixed(0).replaceAll('.', ',')}';
 
-    return GestureDetector(
-      onTap: () {
-        if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? kAccentColor.withOpacity(0.06)
-              : (index.isEven ? Colors.white : Colors.grey.shade50),
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-            left: isSelected
-                ? const BorderSide(color: kAccentColor, width: 3)
-                : BorderSide.none,
-          ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 24,
-              child: Icon(
-                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 18,
-                color: isSelected ? kAccentColor : Colors.grey.shade400,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return GestureDetector(
+          onTap: () {
+            // Abrir modal de detalhes
+            showDialog(
+              context: context,
+              builder: (context) => DespesaDetailModal(despesa: d),
+            );
+          },
+          onLongPress: () {
+            // Manter a seleção para múltipla exclusão
+            if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 12, 
+              vertical: 10
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? kAccentColor.withOpacity(0.06)
+                  : (index.isEven ? Colors.white : Colors.grey.shade50),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+                left: isSelected
+                    ? const BorderSide(color: kAccentColor, width: 3)
+                    : BorderSide.none,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    d.descricao ?? 'Sem descrição',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Icon(
+                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                    size: 18,
+                    color: isSelected ? kAccentColor : Colors.grey.shade400,
                   ),
-                  if (d.contaNome != null)
-                    Text(
-                      d.contaNome!,
-                      style: TextStyle(
+                ),
+                const SizedBox(width: 4),
+                if (isMobile) ...[
+                  // Mobile layout - colunas compactas
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.descricao ?? 'Sem desc.',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        if (d.contaNome != null)
+                          Text(
+                            d.contaNome!,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey.shade500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      dataStr, 
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      valorStr,
+                      style: const TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red,
                       ),
                     ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                d.categoriaNome ?? '--',
-                style: const TextStyle(fontSize: 11),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(dataStr, style: const TextStyle(fontSize: 11)),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                valorStr,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: d.recorrente
-                      ? Colors.orange.withOpacity(0.12)
-                      : Colors.blue.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  d.recorrente ? 'Rec.' : d.tipo,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: d.recorrente ? Colors.orange.shade700 : kAccentColor,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: d.recorrente
+                            ? Colors.orange.withOpacity(0.12)
+                            : Colors.blue.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        d.recorrente ? 'R' : d.tipo.substring(0, 1),
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          color: d.recorrente ? Colors.orange.shade700 : kAccentColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Desktop layout - colunas completas
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.descricao ?? 'Sem descrição',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        if (d.contaNome != null)
+                          Text(
+                            d.contaNome!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '${d.dataVencimento?.day.toString().padLeft(2, '0')}/${d.dataVencimento?.month.toString().padLeft(2, '0')}/${d.dataVencimento?.year}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'R\$ ${d.valor.toStringAsFixed(2).replaceAll('.', ',')}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: d.recorrente
+                            ? Colors.orange.withOpacity(0.12)
+                            : Colors.blue.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        d.recorrente ? 'Rec.' : d.tipo,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: d.recorrente ? Colors.orange.shade700 : kAccentColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

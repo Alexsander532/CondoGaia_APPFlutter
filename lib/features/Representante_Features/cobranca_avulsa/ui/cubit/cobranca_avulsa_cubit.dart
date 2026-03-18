@@ -4,12 +4,17 @@ import 'package:image_picker/image_picker.dart';
 import 'cobranca_avulsa_state.dart';
 import '../../data/repositories/cobranca_avulsa_repository.dart';
 import '../../domain/entities/cobranca_avulsa_entity.dart';
+import 'package:condogaiaapp/services/unidade_service.dart';
+import '../../services/cobranca_avulsa_email_service.dart';
 
 class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
   final CobrancaAvulsaRepository _repository;
+  final UnidadeService _unidadeService;
+  final CobrancaAvulsaEmailService _emailService = CobrancaAvulsaEmailService();
+  final String condominioId;
   final ImagePicker _picker = ImagePicker();
 
-  CobrancaAvulsaCubit(this._repository) : super(CobrancaAvulsaState());
+  CobrancaAvulsaCubit(this._repository, this._unidadeService, {required this.condominioId}) : super(CobrancaAvulsaState());
 
   // ============ ATUALIZAÇÃO DE CAMPOS ============
 
@@ -17,8 +22,37 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     emit(state.copyWith(contaContabilId: val));
   }
 
-  void atualizarPesquisaUnidade(String val) {
-    emit(state.copyWith(pesquisaUnidade: val));
+  void atualizarPesquisaUnidade(String val) async {
+    emit(state.copyWith(pesquisaUnidade: val, loadingUnidades: true));
+    
+    if (val.isEmpty) {
+      emit(state.copyWith(unidadesPesquisadas: [], loadingUnidades: false));
+      return;
+    }
+
+    try {
+      final resultados = await _unidadeService.buscarUnidades(
+        condominioId: condominioId,
+        termo: val,
+      );
+      emit(state.copyWith(unidadesPesquisadas: resultados, loadingUnidades: false));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Erro ao buscar unidades: $e', loadingUnidades: false));
+    }
+  }
+
+  void alternarSelecaoUnidade(String unidadeId) {
+    final novasSelecionadas = Set<String>.from(state.unidadesSelecionadas);
+    if (novasSelecionadas.contains(unidadeId)) {
+      novasSelecionadas.remove(unidadeId);
+    } else {
+      novasSelecionadas.add(unidadeId);
+    }
+    emit(state.copyWith(unidadesSelecionadas: novasSelecionadas));
+  }
+
+  void limparSelecaoUnidades() {
+    emit(state.copyWith(unidadesSelecionadas: {}));
   }
 
   void atualizarMes(int mes) {
@@ -86,19 +120,33 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
       return;
     }
 
-    final novoItem = CobrancaAvulsaEntity(
-      condominioId: 'COND_FIXO_TEMP', // TODO: Pegar do Auth ou Contexto
-      contaContabilId: state.contaContabilId,
-      valor: state.valorPorUnidade!,
-      descricao: state.descricao,
-      tipoCobranca: state.tipoCobranca,
-      mesRef: state.mesSelecionado.toString().padLeft(2, '0'),
-      anoRef: state.anoSelecionado.toString(),
-      dataVencimento: DateTime(state.anoSelecionado, state.mesSelecionado, state.dia ?? 1),
-    );
+    if (state.unidadesSelecionadas.isEmpty) {
+      emit(state.copyWith(errorMessage: 'Selecione pelo menos uma unidade.'));
+      return;
+    }
 
-    final listaAtualizada = List<CobrancaAvulsaEntity>.from(state.itemsCarrinho)..add(novoItem);
-    emit(state.copyWith(itemsCarrinho: listaAtualizada));
+    final novosItems = <CobrancaAvulsaEntity>[];
+    for (var unidadeId in state.unidadesSelecionadas) {
+      novosItems.add(CobrancaAvulsaEntity(
+        condominioId: condominioId,
+        contaContabilId: state.contaContabilId,
+        unidadeId: unidadeId,
+        valor: state.valorPorUnidade!,
+        descricao: state.descricao,
+        tipoCobranca: state.tipoCobranca,
+        mesRef: state.mesSelecionado.toString().padLeft(2, '0'),
+        anoRef: state.anoSelecionado.toString(),
+        dataVencimento: DateTime(state.anoSelecionado, state.mesSelecionado, state.dia ?? 1),
+        recorrente: state.recorrente,
+        qtdMeses: state.recorrente ? state.qtdMeses : null,
+      ));
+    }
+
+    final listaAtualizada = List<CobrancaAvulsaEntity>.from(state.itemsCarrinho)..addAll(novosItems);
+    emit(state.copyWith(
+      itemsCarrinho: listaAtualizada,
+      unidadesSelecionadas: {}, // Limpar seleção após adicionar
+    ));
   }
 
   void removerDoCarrinho(int index) {
@@ -114,9 +162,62 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     emit(state.copyWith(isSaving: true, status: CobrancaAvulsaStatus.loading));
 
     try {
-      for (var item in state.itemsCarrinho) {
-        await _repository.insertCobrancaAvulsa(item);
+      // 1. Upload do comprovante (se houver imagem selecionada)
+      String? comprovanteUrl;
+      if (state.imagemArquivo != null) {
+        comprovanteUrl = await _repository.uploadComprovante(
+          condominioId: condominioId,
+          arquivo: state.imagemArquivo!,
+        );
       }
+
+      // 2. Agrupar itens do carrinho por características comuns
+      final groupedItems = <String, List<CobrancaAvulsaEntity>>{};
+      for (var item in state.itemsCarrinho) {
+        final key = '${item.valor}_${item.descricao}_${item.dataVencimento?.toIso8601String()}_${item.recorrente}_${item.qtdMeses}';
+        if (!groupedItems.containsKey(key)) {
+          groupedItems[key] = [];
+        }
+        groupedItems[key]!.add(item);
+      }
+
+      // 3. Enviar ao backend em lote (uma chamada por grupo de características)
+      for (var entry in groupedItems.entries) {
+        final items = entry.value;
+        final firstItem = items.first;
+        final unidades = items.map((e) => e.unidadeId).where((id) => id != null).cast<String>().toList();
+
+        if (unidades.isNotEmpty) {
+          await _repository.insertCobrancaAvulsaBatch(
+            condominioId: condominioId,
+            unidades: unidades,
+            valor: firstItem.valor,
+            dataVencimento: firstItem.dataVencimento,
+            descricao: firstItem.descricao ?? '',
+            recorrente: firstItem.recorrente,
+            qtdMeses: firstItem.qtdMeses,
+          );
+        }
+      }
+
+      // 4. Disparar e-mail (melhor esforço — não bloqueia sucesso se falhar)
+      try {
+        final dataVencimentoStr = state.itemsCarrinho.first.dataVencimento
+            ?.toIso8601String()
+            .split('T')
+            .first ?? '';
+        await _emailService.enviarCobrancaAvulsa(
+          email: '', // Email será buscado pelo backend via morador_id
+          nome: '',
+          descricao: state.descricao ?? state.itemsCarrinho.first.descricao ?? '',
+          valor: state.valorPorUnidade ?? 0,
+          dataVencimento: dataVencimentoStr,
+          comprovanteUrl: comprovanteUrl,
+        );
+      } catch (_) {
+        // Silencioso: falha de e-mail não impede sucesso da cobrança
+      }
+
       emit(state.copyWith(
         status: CobrancaAvulsaStatus.success,
         clearCarrinho: true,

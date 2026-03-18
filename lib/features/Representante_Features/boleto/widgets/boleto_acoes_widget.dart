@@ -20,7 +20,9 @@ class BoletoAcoesWidget extends StatelessWidget {
         return Column(
           children: [
             // === Botões principais: Receber, Excluir, Agrupar ===
-            Row(
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
               children: [
                 // Receber
                 ElevatedButton(
@@ -53,7 +55,6 @@ class BoletoAcoesWidget extends StatelessWidget {
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
-                const SizedBox(width: 10),
 
                 // Excluir
                 OutlinedButton(
@@ -76,7 +77,6 @@ class BoletoAcoesWidget extends StatelessWidget {
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
-                const SizedBox(width: 10),
 
                 // Agrupar
                 ElevatedButton(
@@ -146,12 +146,12 @@ class BoletoAcoesWidget extends StatelessWidget {
             const SizedBox(height: 16),
 
             // === Botões secundários: Ver PDF, Visualizar, E-mail, Compartilhar ===
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _actionButton(context, 'Ver PDF', Icons.picture_as_pdf),
-                const SizedBox(width: 8),
                 _actionButton(context, 'Visualizar', Icons.visibility),
-                const SizedBox(width: 8),
                 _actionButton(
                   context,
                   'E-mail',
@@ -167,7 +167,6 @@ class BoletoAcoesWidget extends StatelessWidget {
                     }
                   },
                 ),
-                const SizedBox(width: 8),
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: _primaryColor),

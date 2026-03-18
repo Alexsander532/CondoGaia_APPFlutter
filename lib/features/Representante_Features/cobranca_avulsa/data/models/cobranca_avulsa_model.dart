@@ -15,6 +15,8 @@ class CobrancaAvulsaModel extends CobrancaAvulsaEntity {
     super.tipoCobranca,
     super.status,
     super.anexoUrl,
+    super.recorrente = false,
+    super.qtdMeses,
   });
 
   factory CobrancaAvulsaModel.fromJson(Map<String, dynamic> json) {

@@ -1,6 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:cross_file/cross_file.dart';
+import 'dart:io';
 import '../../domain/usecases/boleto_prop_usecases.dart';
 import 'boleto_prop_state.dart';
 
@@ -296,16 +302,64 @@ class BoletoPropCubit extends Cubit<BoletoPropState> {
 
   Future<void> compartilharBoleto(String boletoId) async {
     try {
-      // TODO: Implementar compartilhamento com package share_plus
-      // final boleto = state.boletos.firstWhere((b) => b.id == boletoId);
-      // await Share.share('''
-      // Boleto CondoGaia
-      // Vencimento: ${boleto.dataVencimento.day.toString().padLeft(2, '0')}/${boleto.dataVencimento.month.toString().padLeft(2, '0')}/${boleto.dataVencimento.year}
-      // Valor: R\$ ${boleto.valor.toStringAsFixed(2)}
-      // Código: ${boleto.identificationField ?? boleto.barCode ?? 'N/A'}
-      // ''');
+      final boleto = state.boletos.firstWhere((b) => b.id == boletoId);
       
-      emit(state.copyWith(successMessage: 'Compartilhamento em breve disponível'));
+      final dateFormatter = DateFormat('dd/MM/yyyy');
+      final currencyFormatter = NumberFormat.currency(
+        locale: 'pt_BR',
+        symbol: r'R$',
+      );
+      
+      final texto = '''
+📄 Boleto CondoGaia
+━━━━━━━━━━━━━━━━━━━━
+🏢 Unidade: ${boleto.blocoUnidade ?? 'N/A'}
+📅 Vencimento: ${dateFormatter.format(boleto.dataVencimento)}
+💰 Valor: ${currencyFormatter.format(boleto.valor)}
+━━━━━━━━━━━━━━━━━━━━
+${boleto.identificationField ?? boleto.barCode ?? 'Código não disponível'}
+━━━━━━━━━━━━━━━━━━━━
+CondoGaia - Gestão Condominial
+''';
+      
+      // Tentar compartilhar o PDF se disponível
+      if (boleto.bankSlipUrl != null && boleto.bankSlipUrl!.isNotEmpty) {
+        // Baixar o PDF primeiro
+        try {
+          final uri = Uri.parse(boleto.bankSlipUrl!);
+          final response = await http.get(uri);
+          
+          if (response.statusCode == 200) {
+            // Criar arquivo temporário
+            final tempDir = await getTemporaryDirectory();
+            final fileName = 'boleto_${boleto.blocoUnidade}_${dateFormatter.format(boleto.dataVencimento).replaceAll('/', '-')}.pdf';
+            final filePath = '${tempDir.path}/$fileName';
+            final file = File(filePath);
+            await file.writeAsBytes(response.bodyBytes);
+            
+            // Compartilhar o PDF
+            await Share.shareXFiles(
+              [XFile(file.path)],
+              text: texto,
+              subject: 'Boleto CondoGaia - ${boleto.blocoUnidade ?? ''}',
+            );
+            
+            emit(state.copyWith(successMessage: 'PDF do boleto compartilhado com sucesso!'));
+            return;
+          }
+        } catch (e) {
+          print('Erro ao baixar PDF: $e');
+          // Se falhar, continua com o compartilhamento de texto apenas
+        }
+      }
+      
+      // Se não tiver PDF ou falhar, compartilha apenas o texto
+      await Share.share(
+        texto,
+        subject: 'Boleto CondoGaia - ${boleto.blocoUnidade ?? ''}',
+      );
+      
+      emit(state.copyWith(successMessage: 'Boleto compartilhado com sucesso!'));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao compartilhar boleto: $e'));
     }

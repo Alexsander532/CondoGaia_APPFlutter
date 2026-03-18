@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/boleto_prop_cubit.dart';
 import '../cubit/boleto_prop_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Seções expansíveis: Composição do Boleto, Leituras, Balancete Online
 class SecoesExpansiveisWidget extends StatelessWidget {
@@ -216,8 +217,8 @@ class SecoesExpansiveisWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: leituras.map((leitura) {
               final dataLeitura = leitura['data_leitura'] as String?;
-              final tipoLeitura = leitura['tipo_leitura'] as String? ?? 'Não informado';
-              final valorLeitura = leitura['valor_leitura'] as num?;
+              final tipoLeitura = leitura['tipo'] as String? ?? 'Não informado';
+              final valorLeitura = leitura['valor'] as num?;
               
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -267,6 +268,10 @@ class SecoesExpansiveisWidget extends StatelessWidget {
           );
         }
 
+        final nomeArquivo = balancete['nome_arquivo'] as String? ?? 'Balancete';
+        final url = balancete['url'] as String?;
+        final linkExterno = balancete['link_externo'] as String?;
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -287,25 +292,38 @@ class SecoesExpansiveisWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              if (balancete['receitas'] != null) ...[
-                _buildLinhaBalancete('Receitas', 'R\$ ${(balancete['receitas'] as num?)?.toStringAsFixed(2) ?? '0,00'}'),
-                const SizedBox(height: 8),
-              ],
-              if (balancete['despesas'] != null) ...[
-                _buildLinhaBalancete('Despesas', 'R\$ ${(balancete['despesas'] as num?)?.toStringAsFixed(2) ?? '0,00'}'),
-                const SizedBox(height: 8),
-              ],
-              if (balancete['saldo'] != null) ...[
-                const Divider(height: 16),
-                _buildLinhaBalancete('Saldo', 'R\$ ${(balancete['saldo'] as num?)?.toStringAsFixed(2) ?? '0,00'}', isBold: true),
-              ],
-              if (balancete['observacoes'] != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Observações: ${balancete['observacoes']}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      nomeArquivo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                  ),
+                  if (url != null || linkExterno != null)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final uriString = url ?? linkExterno;
+                        if (uriString != null && uriString.isNotEmpty) {
+                          final uri = Uri.parse(uriString);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('Baixar'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         );

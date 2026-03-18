@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/cobranca_avulsa_cubit.dart';
 import '../cubit/cobranca_avulsa_state.dart';
+import 'package:condogaiaapp/models/bloco_com_unidades.dart';
 
 class CadastrarCobrancaTab extends StatefulWidget {
   const CadastrarCobrancaTab({super.key});
@@ -132,6 +133,45 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                   ),
                   onChanged: (val) => cubit.atualizarPesquisaUnidade(val),
                 ),
+                const SizedBox(height: 8),
+
+                if (state.loadingUnidades)
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (state.unidadesPesquisadas.isNotEmpty)
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: state.unidadesPesquisadas.length,
+                      itemBuilder: (context, index) {
+                        final bloco = state.unidadesPesquisadas[index];
+                        return ExpansionTile(
+                          title: Text(bloco.bloco.nome),
+                          initiallyExpanded: true,
+                          children: bloco.unidades.map((unidade) {
+                            final isSelected = state.unidadesSelecionadas.contains(unidade.id);
+                            return CheckboxListTile(
+                              title: Text('Unidade ${unidade.numero}'),
+                              value: isSelected,
+                              activeColor: const Color(0xFF0D3B66),
+                              onChanged: (val) {
+                                if (unidade.id.isNotEmpty) {
+                                  cubit.alternarSelecaoUnidade(unidade.id);
+                                }
+                              },
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ),
                 const SizedBox(height: 16),
 
                 // ============ SEÇÃO 3: MÊS/ANO ============
@@ -379,9 +419,11 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                         ),
                       ),
                       onPressed: () => cubit.adicionarAoCarrinho(),
-                      child: const Text(
-                        'ADICIONAR AO CARRINHO',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      child: Text(
+                        state.unidadesSelecionadas.isEmpty
+                            ? 'ADICIONAR AO CARRINHO'
+                            : 'ADICIONAR (${state.unidadesSelecionadas.length}) AO CARRINHO',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

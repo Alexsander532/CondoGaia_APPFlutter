@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../../domain/entities/cobranca_avulsa_entity.dart';
+import 'package:condogaiaapp/models/bloco_com_unidades.dart';
 
 // ====================================================================
 // ENUM FOR STATUS
@@ -29,6 +30,11 @@ class CobrancaAvulsaState {
   bool enviarParaRegistro;
   bool enviarPorEmail;
 
+  // ============ PESQUISA DE UNIDADES ============
+  List<BlocoComUnidades> unidadesPesquisadas;
+  Set<String> unidadesSelecionadas; // IDs das unidades selecionadas
+  bool loadingUnidades;
+
   // ============ CARRINHO (LOTE EM ELABORAÇÃO) ============
   List<CobrancaAvulsaEntity> itemsCarrinho;
   Set<String> itemsSelecionados; // IDs dos items selecionados
@@ -57,6 +63,9 @@ class CobrancaAvulsaState {
     this.imagemArquivo,
     this.enviarParaRegistro = false,
     this.enviarPorEmail = false,
+    this.unidadesPesquisadas = const [],
+    this.unidadesSelecionadas = const {},
+    this.loadingUnidades = false,
     this.itemsCarrinho = const [],
     this.itemsSelecionados = const {},
     this.cobrancasCarregadas = const [],
@@ -82,6 +91,9 @@ class CobrancaAvulsaState {
     File? imagemArquivo,
     bool? enviarParaRegistro,
     bool? enviarPorEmail,
+    List<BlocoComUnidades>? unidadesPesquisadas,
+    Set<String>? unidadesSelecionadas,
+    bool? loadingUnidades,
     List<CobrancaAvulsaEntity>? itemsCarrinho,
     Set<String>? itemsSelecionados,
     List<CobrancaAvulsaEntity>? cobrancasCarregadas,
@@ -108,6 +120,9 @@ class CobrancaAvulsaState {
       imagemArquivo: clearImagemArquivo == true ? null : (imagemArquivo ?? this.imagemArquivo),
       enviarParaRegistro: enviarParaRegistro ?? this.enviarParaRegistro,
       enviarPorEmail: enviarPorEmail ?? this.enviarPorEmail,
+      unidadesPesquisadas: unidadesPesquisadas ?? this.unidadesPesquisadas,
+      unidadesSelecionadas: unidadesSelecionadas ?? this.unidadesSelecionadas,
+      loadingUnidades: loadingUnidades ?? this.loadingUnidades,
       itemsCarrinho: clearCarrinho == true ? [] : (itemsCarrinho ?? this.itemsCarrinho),
       itemsSelecionados: itemsSelecionados ?? this.itemsSelecionados,
       cobrancasCarregadas: cobrancasCarregadas ?? this.cobrancasCarregadas,

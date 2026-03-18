@@ -363,6 +363,47 @@ class BoletoCubit extends Cubit<BoletoState> {
   }
 
   // ============================================================
+  // GERAR COBRANÇA AVULSA
+  // ============================================================
+
+  Future<void> gerarCobrancaAvulsa({
+    required String contaContabil,
+    required String contaNome,
+    required String dataVencimento,
+    required double valor,
+    required String descricao,
+    required bool constarRelatorio,
+    required bool enviarParaRegistro,
+    required bool enviarPorEmail,
+    List<String>? unidadeIds,
+  }) async {
+    emit(state.copyWith(isSaving: true));
+    try {
+      await _service.gerarCobrancaAvulsa(
+        condominioId: condominioId,
+        contaContabil: contaContabil,
+        contaNome: contaNome,
+        dataVencimento: dataVencimento,
+        valor: valor,
+        descricao: descricao,
+        constarRelatorio: constarRelatorio,
+        enviarParaRegistro: enviarParaRegistro,
+        enviarPorEmail: enviarPorEmail,
+        unidadeIds: unidadeIds,
+      );
+      emit(
+        state.copyWith(
+          isSaving: false,
+          successMessage: 'Cobrança avulsa gerada com sucesso!',
+        ),
+      );
+      await carregarDados();
+    } catch (e) {
+      emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
+    }
+  }
+
+  // ============================================================
   // CARREGAR UNIDADES (para dialog)
   // ============================================================
 

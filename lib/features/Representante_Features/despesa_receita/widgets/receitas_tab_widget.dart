@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
@@ -8,6 +7,7 @@ import '../../gestao_condominio/models/categoria_financeira_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
 import '../../../../../utils/input_formatters.dart';
+import 'receita_detail_modal.dart';
 
 class ReceitasTabWidget extends StatefulWidget {
   const ReceitasTabWidget({super.key});
@@ -23,7 +23,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   final _dataCreditoController = TextEditingController();
   final _palavraChaveController = TextEditingController();
 
-  bool _filtrosExpandidos = true;
+  bool _filtrosExpandidos = false;
   bool _cadastroExpandido = false;
   bool _recorrente = false;
 
@@ -492,42 +492,54 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
   // ══════════════════════════════════════════════════════
 
   Widget _buildHeaderRow(DespesaReceitaState state, DespesaReceitaCubit cubit) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: kPrimaryColor,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            child: GestureDetector(
-              onTap: () {
-                cubit.selecionarTodasReceitas(
-                  state.receitas
-                      .where((r) => r.id != null)
-                      .map((r) => r.id!)
-                      .toList(),
-                );
-              },
-              child: Icon(
-                state.receitas.isNotEmpty &&
-                        state.receitas.every(
-                          (r) => state.receitasSelecionadas.contains(r.id),
-                        )
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                color: Colors.white,
-                size: 18,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          color: kPrimaryColor,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                child: GestureDetector(
+                  onTap: () {
+                    cubit.selecionarTodasReceitas(
+                      state.receitas
+                          .where((r) => r.id != null)
+                          .map((r) => r.id!)
+                          .toList(),
+                    );
+                  },
+                  child: Icon(
+                    state.receitas.isNotEmpty &&
+                            state.receitas.every(
+                              (r) => state.receitasSelecionadas.contains(r.id),
+                            )
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              if (isMobile) ...[
+                _headerCell('Desc.', flex: 4),
+                _headerCell('Créd.', flex: 2),
+                _headerCell('Val.', flex: 2),
+                _headerCell('Tipo', flex: 1),
+              ] else ...[
+                _headerCell('Descrição', flex: 4),
+                _headerCell('Crédito', flex: 2),
+                _headerCell('Valor', flex: 2),
+                _headerCell('Tipo', flex: 1),
+              ],
+            ],
           ),
-          const SizedBox(width: 8),
-          _headerCell('Descrição', flex: 3),
-          _headerCell('Categoria', flex: 2),
-          _headerCell('Crédito', flex: 2),
-          _headerCell('Valor', flex: 2),
-          _headerCell('Tipo', flex: 1),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -553,125 +565,144 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     DespesaReceitaCubit cubit,
   ) {
     final isSelected = state.receitasSelecionadas.contains(r.id);
-    final dataStr = r.dataCredito != null
-        ? '${r.dataCredito!.day.toString().padLeft(2, '0')}/${r.dataCredito!.month.toString().padLeft(2, '0')}/${r.dataCredito!.year}'
-        : '--';
-    final valorStr = 'R\$ ${r.valor.toStringAsFixed(2).replaceAll('.', ',')}';
 
-    return GestureDetector(
-      onTap: () {
-        if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? kAccentColor.withOpacity(0.06)
-              : (index.isEven ? Colors.white : Colors.grey.shade50),
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-            left: isSelected
-                ? const BorderSide(color: kAccentColor, width: 3)
-                : BorderSide.none,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return GestureDetector(
+          onTap: () {
+            // Abrir modal de detalhes
+            showDialog(
+              context: context,
+              builder: (context) => ReceitaDetailModal(receita: r),
+            );
+          },
+          onLongPress: () {
+            // Manter a seleção para múltipla exclusão
+            if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 12, 
+              vertical: 10
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? kAccentColor.withOpacity(0.06)
+                  : (index.isEven ? Colors.white : Colors.grey.shade50),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+                left: isSelected
+                    ? const BorderSide(color: kAccentColor, width: 3)
+                    : BorderSide.none,
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Icon(
+                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                    size: 18,
+                    color: isSelected ? kAccentColor : Colors.grey.shade400,
+                  ),
+                ),
+                if (isMobile) ...[
+                  // Mobile layout - indicador de tipo
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: r.recorrente
+                            ? Colors.orange.withOpacity(0.12)
+                            : Colors.blue.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        r.recorrente ? 'R' : r.tipo.substring(0, 1),
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Desktop layout - colunas completas
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.descricao ?? 'Sem descrição',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        if (r.contaContabil != null)
+                          Text(
+                            r.contaContabil!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '${r.dataCredito?.day.toString().padLeft(2, '0')}/${r.dataCredito?.month.toString().padLeft(2, '0')}/${r.dataCredito?.year}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'R\$ ${r.valor.toStringAsFixed(2).replaceAll('.', ',')}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: r.recorrente
+                            ? Colors.orange.withOpacity(0.12)
+                            : Colors.blue.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        r.recorrente ? 'Rec.' : r.tipo,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 24,
-              child: Icon(
-                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 18,
-                color: isSelected ? kAccentColor : Colors.grey.shade400,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    r.descricao ?? 'Sem descrição',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  if (r.contaContabil != null)
-                    Text(
-                      r.contaContabil!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    r.categoriaNome ?? '--',
-                    style: const TextStyle(fontSize: 11),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (r.subcategoriaNome != null)
-                    Text(
-                      r.subcategoriaNome!,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey.shade500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(dataStr, style: const TextStyle(fontSize: 11)),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                valorStr,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.green.shade700,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: r.recorrente
-                      ? Colors.orange.withOpacity(0.12)
-                      : Colors.blue.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  r.recorrente ? 'Rec.' : r.tipo,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 

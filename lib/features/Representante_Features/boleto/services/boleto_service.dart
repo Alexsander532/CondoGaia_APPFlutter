@@ -187,6 +187,117 @@ class BoletoService {
   }
 
   // ============================================================
+  // GERAR COBRANÇA AVULSA
+  // ============================================================
+
+  Future<void> gerarCobrancaAvulsa({
+    required String condominioId,
+    required String contaContabil,
+    required String contaNome,
+    required String dataVencimento,
+    required double valor,
+    required String descricao,
+    required bool constarRelatorio,
+    required bool enviarParaRegistro,
+    required bool enviarPorEmail,
+    List<String>? unidadeIds,
+  }) async {
+    try {
+      // 1. Buscar unidades
+      var query = _supabase
+          .from('unidades')
+          .select('id, bloco, numero, nome_pagador_boleto')
+          .eq('condominio_id', condominioId);
+
+      if (unidadeIds != null && unidadeIds.isNotEmpty) {
+        query = query.inFilter('id', unidadeIds);
+      }
+
+      final unidadesRaw = await query;
+      final unidades = unidadesRaw as List;
+
+      if (unidades.isEmpty) return;
+
+      // 2. Buscar moradores com dados completos para o ASAAS
+      final proprietariosRaw = await _supabase
+          .from('proprietarios')
+          .select('id, unidade_id, nome, cpf_cnpj, email')
+          .eq('condominio_id', condominioId);
+      
+      final inquilinosRaw = await _supabase
+          .from('inquilinos')
+          .select('id, unidade_id, nome, cpf_cnpj, email')
+          .eq('condominio_id', condominioId);
+
+      final proprietarios = proprietariosRaw as List;
+      final inquilinos = inquilinosRaw as List;
+
+      Map<String, dynamic> propMap = {
+        for (var p in proprietarios) p['unidade_id'].toString(): p
+      };
+      Map<String, dynamic> inqMap = {
+        for (var i in inquilinos) i['unidade_id'].toString(): i
+      };
+
+      // 3. Montar lista de moradores para o backend
+      final List<Map<String, dynamic>> moradoresParaApi = [];
+
+      for (var unidade in unidades) {
+        final unidadeId = unidade['id'].toString();
+        final isPagadorInquilino = unidade['nome_pagador_boleto'] == 'inquilino';
+        
+        final moradorData = (isPagadorInquilino ? inqMap[unidadeId] : propMap[unidadeId])
+            ?? propMap[unidadeId]
+            ?? inqMap[unidadeId];
+
+        if (moradorData == null) {
+          print('⚠️ [BoletoService] Unidade ${unidade['numero']} sem responsável vinculado. Ignorado.');
+          continue;
+        }
+
+        moradoresParaApi.add({
+          'id': moradorData['id'],
+          'name': moradorData['nome'],
+          'cpfCnpj': moradorData['cpf_cnpj'],
+          'email': moradorData['email'],
+          'unidadeId': unidadeId,
+          'bloco': unidade['bloco'],
+          'unidade': unidade['numero'],
+        });
+      }
+
+      if (moradoresParaApi.isEmpty) return;
+
+      // dataVencimento vem como DD/MM/YYYY
+      final dateParts = dataVencimento.split('/');
+      final formattedVencimento = '${dateParts[2]}-${dateParts[1]}-${dateParts[0]}';
+
+      // 4. Chamar API do Backend
+      final response = await LaravelApiService().post('/asaas/boletos/gerar-avulso', {
+        'condominioId': condominioId,
+        'contaContabil': contaContabil,
+        'contaNome': contaNome,
+        'dataVencimento': formattedVencimento,
+        'valor': valor,
+        'descricao': descricao,
+        'constarRelatorio': constarRelatorio,
+        'enviarParaRegistro': enviarParaRegistro,
+        'enviarPorEmail': enviarPorEmail,
+        'moradores': moradoresParaApi,
+      });
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erro ao gerar boleto avulso no backend.');
+      }
+
+    } catch (e) {
+      print('⚠️ [BoletoService] Erro ao gerar cobrança avulsa: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================================
   // GERAR COBRANÇA MENSAL
   // ============================================================
 

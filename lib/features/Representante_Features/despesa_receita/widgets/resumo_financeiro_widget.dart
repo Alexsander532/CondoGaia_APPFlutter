@@ -27,192 +27,262 @@ class ResumoFinanceiroWidget extends StatefulWidget {
 }
 
 class _ResumoFinanceiroWidgetState extends State<ResumoFinanceiroWidget> {
-  bool _expanded = false; // Start closed as requested
+  bool _expanded = false;
 
   static const _primaryColor = Color(0xFF0D3B66);
+  static const _accentColor = Color(0xFF2196F3);
 
   @override
   Widget build(BuildContext context) {
-    // Calculando saldo atual se vier zerado (opcional, dependendo da lógica de negócio)
-    final saldoCalc =
-        widget.saldoAnterior + widget.totalCredito - widget.totalDebito;
+    final saldoCalc = widget.saldoAnterior + widget.totalCredito - widget.totalDebito;
     final saldoFinal = widget.saldoAtual != 0 ? widget.saldoAtual : saldoCalc;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header "Resumo" com seta
-        GestureDetector(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Color(0xFF2196F3),
-                  width: 2,
-                ), // Blue underline like image
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header "Resumo" melhorado
+            GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: _expanded ? _primaryColor.withOpacity(0.05) : Colors.transparent,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _accentColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.analytics_outlined,
+                            size: 16,
+                            color: _accentColor,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Resumo Financeiro',
+                            style: TextStyle(
+                              fontSize: isMobile ? 14 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: _primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Icon(
+                        Icons.expand_more,
+                        color: _primaryColor,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              mainAxisSize:
-                  MainAxisSize.min, // Wrap content to look like the image label
-              children: [
-                const Text(
-                  'Resumo',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: _primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  _expanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: _primaryColor,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
 
-        const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-        if (_expanded)
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight:
-                  MediaQuery.of(context).size.height *
-                  0.4, // Max 40% of available height
+            // Conteúdo expandido com animação
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: _expanded
+                  ? _buildExpandedContent(saldoFinal, isMobile)
+                  : const SizedBox.shrink(),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildSummarySection(
-                    title: 'SALDO ANTERIOR (DO MES PASSADO)',
-                    totalValue: widget.saldoAnterior,
-                    accounts: widget.saldoAnteriorPorConta,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSummarySection(
-                    title: 'TOTAL RECEITA',
-                    totalValue: widget.totalCredito,
-                    accounts: widget.totalCreditoPorConta,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSummarySection(
-                    title: 'TOTAL DESPESA',
-                    totalValue: widget.totalDebito,
-                    accounts: widget.totalDebitoPorConta,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSummarySection(
-                    title: 'SALDO ATUAL',
-                    totalValue: saldoFinal,
-                    accounts: widget.saldoAtualPorConta,
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildSummarySection({
+  Widget _buildExpandedContent(double saldoFinal, bool isMobile) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.5,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          children: [
+            // Cards em grid responsivo
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = isMobile ? 2 : 4;
+                final childAspectRatio = isMobile ? 1.2 : 1.5;
+                
+                return GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: childAspectRatio,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  children: [
+                    _buildModernCard(
+                      title: 'Saldo Anterior',
+                      subtitle: 'Mês passado',
+                      value: widget.saldoAnterior,
+                      icon: Icons.history,
+                      color: Colors.orange,
+                      isNeutral: true,
+                      isMobile: isMobile,
+                    ),
+                    _buildModernCard(
+                      title: 'Receitas',
+                      subtitle: 'Total recebido',
+                      value: widget.totalCredito,
+                      icon: Icons.trending_up,
+                      color: Colors.green,
+                      isNeutral: false,
+                      isMobile: isMobile,
+                    ),
+                    _buildModernCard(
+                      title: 'Despesas',
+                      subtitle: 'Total gasto',
+                      value: widget.totalDebito,
+                      icon: Icons.trending_down,
+                      color: Colors.red,
+                      isNeutral: false,
+                      isMobile: isMobile,
+                    ),
+                    _buildModernCard(
+                      title: 'Saldo Atual',
+                      subtitle: 'Disponível',
+                      value: saldoFinal,
+                      icon: Icons.account_balance_wallet,
+                      color: saldoFinal >= 0 ? Colors.blue : Colors.red,
+                      isNeutral: false,
+                      isMobile: isMobile,
+                    ),
+                  ],
+                );
+              },
+            ),
+
+                      ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernCard({
     required String title,
-    required double totalValue,
-    required Map<String, double> accounts,
+    required String subtitle,
+    required double value,
+    required IconData icon,
+    required Color color,
+    required bool isNeutral,
+    required bool isMobile,
   }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _primaryColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: TITLE ...... Total Value
+          // Header com ícone
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight
-                      .w400, // Regular weight as per image, maybe slight bold
-                  color:
-                      _primaryColor, // Or black, image looks blackish/dark grey
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: isMobile ? 16 : 20,
+                  color: color,
                 ),
               ),
-              Text(
-                'R\$ ${totalValue.toStringAsFixed(2).replaceAll('.', ',')}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.black,
+              const Spacer(),
+              if (!isNeutral)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    value >= 0 ? 'Positivo' : 'Negativo',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
 
-          if (accounts.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(
-                top: 8,
-                left: 16,
-              ), // Indent accounts
-              child: Column(
-                children: accounts.entries.map((e) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          e.key,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Color(
-                              0xFF0D3B66,
-                            ), // Dark blue for account names? Or black
-                          ),
-                        ),
-                        Text(
-                          'R\$ ${e.value.toStringAsFixed(2).replaceAll('.', ',')}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(top: 8, left: 16),
-              child: const Text(
-                'Sem dados de contas',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey,
-                ),
-              ),
+          const SizedBox(height: 12),
+
+          // Valor principal
+          Text(
+            'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}',
+            style: TextStyle(
+              fontSize: isMobile ? 16 : 18,
+              fontWeight: FontWeight.w700,
+              color: value >= 0 ? Colors.black87 : Colors.red,
             ),
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 4),
+
+          // Título
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 13,
+              fontWeight: FontWeight.w600,
+              color: _primaryColor,
+            ),
+          ),
+
+          // Subtítulo
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: isMobile ? 10 : 11,
+              color: Colors.grey[600],
+            ),
+          ),
         ],
       ),
     );
   }
-}
+
+  }

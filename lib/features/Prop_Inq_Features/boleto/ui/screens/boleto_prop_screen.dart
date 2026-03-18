@@ -198,7 +198,7 @@ class BoletoPropScreen extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     // ============================================
-                    // DEMONSTRATIVO FINANCEIRO
+                    // DEMONSTRATIVO FINANCEIRO (apenas seletor de mês/ano)
                     // ============================================
                     if (state.status != BoletoPropStatus.loading)
                       const DemonstrativoFinanceiroWidget(),
