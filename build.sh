@@ -52,6 +52,6 @@ flutter pub get
 
 # Fazer build para web com JavaScript (não Wasm)
 echo "🔨 Fazendo build para web..."
-flutter build web --release --no-wasm-dry-run
+flutter build web --release --no-wasm
 
 echo "🎉 Build concluído com sucesso!"
