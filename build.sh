@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Parar em qualquer erro
+set -e
+
 # Configurações
 FLUTTER_VERSION="3.35.0"
 FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
@@ -32,6 +35,12 @@ flutter --version
 # Voltar para o diretório do projeto
 cd /vercel/path0
 
+# Gerar arquivo .env dinamicamente a partir das variáveis do Vercel
+echo "📝 Gerando arquivo .env..."
+echo "SUPABASE_URL=$SUPABASE_URL" > .env
+echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> .env
+echo "LARAVEL_API_URL=$LARAVEL_API_URL" >> .env
+
 # Limpar builds anteriores
 echo "🧹 Limpando builds anteriores..."
 flutter clean
@@ -43,6 +52,6 @@ flutter pub get
 
 # Fazer build para web com JavaScript (não Wasm)
 echo "🔨 Fazendo build para web..."
-flutter build web --release --dart-define=FLUTTER_WEB_USE_WASM=false
+flutter build web --release --no-wasm-dry-run
 
 echo "🎉 Build concluído com sucesso!"

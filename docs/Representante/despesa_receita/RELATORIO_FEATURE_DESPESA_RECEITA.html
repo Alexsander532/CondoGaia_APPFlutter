@@ -1,0 +1,742 @@
+<!DOCTYPE html><html><head>
+      <title>RELATORIO_FEATURE_DESPESA_RECEITA</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="-relatório-da-feature--gestão-de-despesas-receitas-e-transferências">💰 Relatório da Feature — Gestão de Despesas, Receitas e Transferências </h1>
+<p><strong>Projeto:</strong> CondoGaia App<br>
+<strong>Módulo:</strong> Gestão Financeira do Condomínio<br>
+<strong>Perfil de Usuário:</strong> Representante (Síndico / Administrador)<br>
+<strong>Data:</strong> 22/03/2026<br>
+<strong>Versão:</strong> 1.0 — Feature Completa</p>
+<hr>
+<h2 id="1-o-que-é-essa-feature">1. O que é essa Feature? </h2>
+<p>A feature de <strong>Gestão de Despesas, Receitas e Transferências</strong> é o módulo financeiro central do CondoGaia. Ela permite que o representante (síndico ou administrador) do condomínio registre, acompanhe e controle toda a movimentação financeira do condomínio de forma simples, organizada e em tempo real.</p>
+<p><strong>Em resumo:</strong> é o "caixa" digital do condomínio. Tudo que entra e sai de dinheiro é registrado e calculado automaticamente.</p>
+<hr>
+<h2 id="2-por-que-essa-feature-é-importante">2. Por que essa Feature é importante? </h2>
+<p>Sem esse módulo, o síndico precisaria controlar tudo em planilhas externas ou no papel. Com ele:</p>
+<ul>
+<li>✅ O síndico registra despesas no momento em que elas acontecem</li>
+<li>✅ As receitas são registradas automaticamente quando um boleto é pago</li>
+<li>✅ O saldo do condomínio é calculado em tempo real</li>
+<li>✅ Existe um histórico financeiro completo, organizado por mês</li>
+<li>✅ Os dados podem ser filtrados por conta bancária, categoria e tipo</li>
+<li>✅ Há transparência total na prestação de contas</li>
+</ul>
+<hr>
+<h2 id="3-como-o-usuário-acessa">3. Como o Usuário Acessa? </h2>
+<p>O representante acessa pelo menu lateral do app:</p>
+<p><strong>Menu → Gestão → Despesas/Receitas</strong></p>
+<p>Ao abrir a tela, ele encontra <strong>três abas</strong> na parte superior:</p>
+<table>
+<thead>
+<tr>
+<th>Aba</th>
+<th>Função</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Despesas</strong></td>
+<td>Controle de saídas de dinheiro</td>
+</tr>
+<tr>
+<td><strong>Receitas</strong></td>
+<td>Controle de entradas de dinheiro</td>
+</tr>
+<tr>
+<td><strong>Transferências</strong></td>
+<td>Movimentações entre contas do condomínio</td>
+</tr>
+</tbody>
+</table>
+<p>Na parte inferior, há um <strong>Resumo Financeiro fixo</strong> que mostra o saldo atualizado.</p>
+<hr>
+<h2 id="4-módulo-de-despesas--como-funciona">4. Módulo de Despesas — Como Funciona </h2>
+<h3 id="41-o-que-são-despesas">4.1 O que são Despesas? </h3>
+<p>Despesas são <strong>todos os gastos que o condomínio precisa pagar</strong> para funcionar. Exemplos do dia a dia:</p>
+<table>
+<thead>
+<tr>
+<th>Despesa</th>
+<th style="text-align:center">Valor Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Conta de energia das áreas comuns</td>
+<td style="text-align:center">R$ 1.500,00</td>
+</tr>
+<tr>
+<td>Conta de água do prédio</td>
+<td style="text-align:center">R$ 800,00</td>
+</tr>
+<tr>
+<td>Salário do porteiro</td>
+<td style="text-align:center">R$ 2.500,00</td>
+</tr>
+<tr>
+<td>Manutenção do elevador</td>
+<td style="text-align:center">R$ 1.200,00</td>
+</tr>
+<tr>
+<td>Serviço de limpeza</td>
+<td style="text-align:center">R$ 600,00</td>
+</tr>
+<tr>
+<td>Taxa administrativa da administradora</td>
+<td style="text-align:center">R$ 800,00</td>
+</tr>
+<tr>
+<td>Seguro do prédio</td>
+<td style="text-align:center">R$ 400,00</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-cadastrando-uma-despesa--exemplo-real">4.2 Cadastrando uma Despesa — Exemplo Real </h3>
+<p><strong>Cenário:</strong> O síndico recebeu a fatura mensal da empresa de manutenção do elevador, no valor de R$ 1.200,00, com vencimento em 15/04/2026.</p>
+<p><strong>Passo a passo do que ele faz no app:</strong></p>
+<ol>
+<li>Abre o menu <strong>Gestão → Despesas/Receitas</strong></li>
+<li>Clica no botão <strong>"+ Cadastrar"</strong></li>
+<li>Preenche o formulário:
+<ul>
+<li><strong>Conta Bancária:</strong> Banco Itaú — Conta Principal</li>
+<li><strong>Categoria:</strong> Manutenção</li>
+<li><strong>Subcategoria:</strong> Elevador</li>
+<li><strong>Descrição:</strong> "Manutenção preventiva mensal do elevador — Abril/2026"</li>
+<li><strong>Valor:</strong> R$ 1.200,00 (o app formata automaticamente com ponto e vírgula)</li>
+<li><strong>Data de Vencimento:</strong> 15/04/2026 (o app formata automaticamente no padrão DD/MM/AAAA)</li>
+<li><strong>Recorrente:</strong> ✅ Sim — 12 meses (pois a manutenção é mensal)</li>
+<li><strong>Me Avisar:</strong> ✅ Sim (para ser notificado antes do vencimento)</li>
+</ul>
+</li>
+<li>Opcionalmente, ele pode:
+<ul>
+<li>Anexar uma <strong>foto do boleto</strong> tirando da câmera ou selecionando da galeria</li>
+<li>Colar o <strong>link</strong> do boleto ou nota fiscal</li>
+</ul>
+</li>
+<li>Clica em <strong>"Salvar Despesa"</strong></li>
+<li>Resultado: A despesa aparece na tabela, o Total Débito no resumo financeiro aumenta R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.200</mn><mo separator="true">,</mo><mn>00</mn><mi>e</mi><mi>o</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mi>A</mi><mi>t</mi><mi>u</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>i</mi><mi>m</mi><mi>i</mi><mi>n</mi><mi>u</mi><mi>i</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">1.200,00 e o Saldo Atual diminui R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord">1.200</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00</span><span class="mord mathnormal">eo</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mord mathnormal">A</span><span class="mord mathnormal">t</span><span class="mord mathnormal">u</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">imin</span><span class="mord mathnormal">u</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 1.200,00. Uma mensagem verde de confirmação aparece na tela.</li>
+</ol>
+<h3 id="43-filtrando-despesas">4.3 Filtrando Despesas </h3>
+<p>O síndico pode filtrar a lista de despesas usando 4 filtros:</p>
+<table>
+<thead>
+<tr>
+<th>Filtro</th>
+<th>Para que serve</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Conta Bancária</strong></td>
+<td>Ver despesas de uma conta específica</td>
+<td>"Mostrar só despesas do Banco Itaú"</td>
+</tr>
+<tr>
+<td><strong>Categoria</strong></td>
+<td>Ver despesas de uma categoria</td>
+<td>"Mostrar só gastos com Manutenção"</td>
+</tr>
+<tr>
+<td><strong>Subcategoria</strong></td>
+<td>Detalhar dentro da categoria</td>
+<td>"Mostrar só gastos com Elevador"</td>
+</tr>
+<tr>
+<td><strong>Palavra-chave</strong></td>
+<td>Buscar na descrição</td>
+<td>Digitar "elevador" mostra apenas despesas que contêm essa palavra</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-editando-uma-despesa">4.4 Editando uma Despesa </h3>
+<p><strong>Cenário:</strong> O valor da manutenção do elevador mudou de R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.200</mn><mo separator="true">,</mo><mn>00</mn><mi>p</mi><mi>a</mi><mi>r</mi><mi>a</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">1.200,00 para R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord">1.200</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00</span><span class="mord mathnormal">p</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 1.350,00.</p>
+<ol>
+<li>O síndico marca o checkbox na linha da despesa na tabela</li>
+<li>Clica no botão <strong>"Editar"</strong> que aparece no rodapé</li>
+<li>O formulário abre pré-preenchido com todos os dados</li>
+<li>Ele altera o valor para R$ 1.350,00</li>
+<li>Clica em <strong>"Salvar Alterações"</strong></li>
+<li>Resultado: A tabela atualiza com o novo valor. O resumo financeiro recalcula automaticamente.</li>
+</ol>
+<h3 id="45-excluindo-despesas">4.5 Excluindo Despesas </h3>
+<p><strong>Cenário:</strong> Uma despesa foi lançada por engano.</p>
+<ol>
+<li>O síndico marca o checkbox da(s) despesa(s) que deseja excluir</li>
+<li>Clica no botão <strong>"Excluir"</strong></li>
+<li>Um diálogo de confirmação aparece: "Tem certeza que deseja excluir?"</li>
+<li>Ele confirma</li>
+<li>Resultado: Despesa(s) removida(s) da tabela. Resumo financeiro recalcula.</li>
+</ol>
+<p>É possível usar o botão <strong>"Selecionar Todos"</strong> no cabeçalho da tabela para marcar/desmarcar todas as despesas de uma vez.</p>
+<h3 id="46-modal-de-detalhes">4.6 Modal de Detalhes </h3>
+<p>Ao tocar em qualquer despesa na tabela, abre um painel detalhado que mostra:</p>
+<ul>
+<li>Conta bancária vinculada</li>
+<li>Categoria e subcategoria</li>
+<li>Descrição completa</li>
+<li>Valor formatado</li>
+<li>Data de vencimento</li>
+<li>Indicador visual "MANUAL" ou "AUTOMÁTICO"</li>
+<li>Foto do comprovante (se houver)</li>
+<li>Link externo com botões para <strong>copiar</strong> ou <strong>abrir no navegador</strong> (se houver)</li>
+</ul>
+<hr>
+<h2 id="5-módulo-de-receitas--como-funciona">5. Módulo de Receitas — Como Funciona </h2>
+<h3 id="51-o-que-são-receitas">5.1 O que são Receitas? </h3>
+<p>Receitas são <strong>todas as entradas de dinheiro no condomínio</strong>. Exemplos:</p>
+<table>
+<thead>
+<tr>
+<th>Receita</th>
+<th style="text-align:center">Valor Exemplo</th>
+<th style="text-align:center">Tipo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pagamento de boleto condominial (morador A/101)</td>
+<td style="text-align:center">R$ 193,75</td>
+<td style="text-align:center">Automático</td>
+</tr>
+<tr>
+<td>Pagamento de boleto condominial (morador A/102)</td>
+<td style="text-align:center">R$ 193,75</td>
+<td style="text-align:center">Automático</td>
+</tr>
+<tr>
+<td>Aluguel do salão de festas</td>
+<td style="text-align:center">R$ 500,00</td>
+<td style="text-align:center">Manual</td>
+</tr>
+<tr>
+<td>Rendimento de aplicação financeira</td>
+<td style="text-align:center">R$ 120,00</td>
+<td style="text-align:center">Manual</td>
+</tr>
+<tr>
+<td>Juros por atraso de pagamento</td>
+<td style="text-align:center">R$ 45,00</td>
+<td style="text-align:center">Automático</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-tipo-manual-vs-automático">5.2 Tipo Manual vs. Automático </h3>
+<p>O sistema diferencia dois tipos de receita com um indicador visual:</p>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Significado</th>
+<th>Quando acontece</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MANUAL</strong></td>
+<td>Receita cadastrada pelo síndico</td>
+<td>Aluguel do salão, rendimento, receita avulsa</td>
+</tr>
+<tr>
+<td><strong>AUTOMÁTICO</strong></td>
+<td>Receita criada automaticamente pelo sistema</td>
+<td>Quando um boleto é pago pelo morador</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Importante:</strong> Quando um morador paga o boleto condominial, o sistema recebe a confirmação do gateway de pagamento (Asaas) e cria automaticamente uma receita do tipo "AUTOMÁTICO" no valor pago. Isso garante que o saldo do condomínio se atualize sem que o síndico precise fazer nada.</p>
+</blockquote>
+<h3 id="53-cadastrando-uma-receita-manual--exemplo-real">5.3 Cadastrando uma Receita Manual — Exemplo Real </h3>
+<p><strong>Cenário:</strong> O morador da unidade A/103 alugou o salão de festas por R$ 500,00.</p>
+<ol>
+<li>O síndico vai para a aba <strong>"Receitas"</strong></li>
+<li>Clica em <strong>"+ Cadastrar"</strong></li>
+<li>Preenche o formulário:
+<ul>
+<li><strong>Conta Bancária:</strong> Banco Itaú — Conta Principal</li>
+<li><strong>Categoria:</strong> Aluguel de Áreas</li>
+<li><strong>Subcategoria:</strong> Salão de Festas</li>
+<li><strong>Conta Contábil:</strong> Controle (para fins de classificação contábil)</li>
+<li><strong>Descrição:</strong> "Aluguel salão de festas — Unidade A/103 — 20/03/2026"</li>
+<li><strong>Valor:</strong> R$ 500,00</li>
+<li><strong>Data do Crédito:</strong> 20/03/2026</li>
+<li><strong>Tipo:</strong> Manual</li>
+</ul>
+</li>
+<li>Clica em <strong>"Salvar Receita"</strong></li>
+<li>Resultado: A receita aparece na tabela, o Total Crédito aumenta R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>500</mn><mo separator="true">,</mo><mn>00</mn><mi>e</mi><mi>o</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mi>A</mi><mi>t</mi><mi>u</mi><mi>a</mi><mi>l</mi><mi>a</mi><mi>u</mi><mi>m</mi><mi>e</mi><mi>n</mi><mi>t</mi><mi>a</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">500,00 e o Saldo Atual aumenta R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord">500</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00</span><span class="mord mathnormal">eo</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mord mathnormal">A</span><span class="mord mathnormal">t</span><span class="mord mathnormal">u</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">a</span><span class="mord mathnormal">u</span><span class="mord mathnormal">m</span><span class="mord mathnormal">e</span><span class="mord mathnormal">n</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 500,00.</li>
+</ol>
+<h3 id="54-conta-contábil">5.4 Conta Contábil </h3>
+<p>Cada receita pode ser classificada em uma <strong>Conta Contábil</strong>, que organiza a contabilidade do condomínio:</p>
+<table>
+<thead>
+<tr>
+<th>Conta Contábil</th>
+<th>Para que serve</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Controle</strong></td>
+<td>Receitas de operação diária</td>
+<td>Taxa condominial, aluguel de salão</td>
+</tr>
+<tr>
+<td><strong>Fundo de Reserva</strong></td>
+<td>Reserva financeira do condomínio</td>
+<td>Percentual sobre cota, rendimentos</td>
+</tr>
+<tr>
+<td><strong>Obras</strong></td>
+<td>Receitas destinadas a obras</td>
+<td>Rateio de obras, contribuições extras</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-filtrando-receitas">5.5 Filtrando Receitas </h3>
+<table>
+<thead>
+<tr>
+<th>Filtro</th>
+<th>Exemplo de Uso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Conta Bancária</strong></td>
+<td>Ver receitas recebidas na conta do Itaú</td>
+</tr>
+<tr>
+<td><strong>Conta Contábil</strong></td>
+<td>Ver apenas receitas do Fundo de Reserva</td>
+</tr>
+<tr>
+<td><strong>Tipo</strong></td>
+<td>Ver só receitas Automáticas (boletos pagos) ou só Manuais</td>
+</tr>
+<tr>
+<td><strong>Palavra-chave</strong></td>
+<td>Buscar "salão" na descrição</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-módulo-de-transferências--como-funciona">6. Módulo de Transferências — Como Funciona </h2>
+<h3 id="61-o-que-são-transferências">6.1 O que são Transferências? </h3>
+<p>Transferências são <strong>movimentações internas entre contas bancárias</strong> do próprio condomínio. Não representam entrada nem saída de dinheiro — apenas remanejamento entre contas.</p>
+<h3 id="62-exemplo-real">6.2 Exemplo Real </h3>
+<p><strong>Cenário:</strong> O síndico precisa transferir R$ 5.000,00 da conta corrente para a poupança (fundo de reserva).</p>
+<ol>
+<li>O síndico vai para a aba <strong>"Transferências"</strong></li>
+<li>Clica em <strong>"+ Cadastrar"</strong></li>
+<li>Preenche:
+<ul>
+<li><strong>Conta Débito (Origem):</strong> Banco Itaú — Conta Corrente</li>
+<li><strong>Conta Crédito (Destino):</strong> Banco Itaú — Poupança</li>
+<li><strong>Descrição:</strong> "Transferência para fundo de reserva — Abril/2026"</li>
+<li><strong>Valor:</strong> R$ 5.000,00</li>
+<li><strong>Data:</strong> 05/04/2026</li>
+</ul>
+</li>
+<li>Clica em <strong>"Salvar Transferência"</strong></li>
+</ol>
+<blockquote>
+<p><strong>Proteção:</strong> O sistema impede que o síndico selecione a mesma conta como origem e destino. Se tentar, uma mensagem de erro é exibida.</p>
+</blockquote>
+<hr>
+<h2 id="7-resumo-financeiro--o-painel-de-controle-do-dinheiro">7. Resumo Financeiro — O "Painel de Controle" do Dinheiro </h2>
+<p>Na parte inferior da tela existe um <strong>painel fixo</strong> que mostra o resumo financeiro do mês selecionado. Este painel atualiza em tempo real conforme o síndico cadastra, edita ou exclui registros.</p>
+<h3 id="71-composição-do-resumo">7.1 Composição do Resumo </h3>
+<table>
+<thead>
+<tr>
+<th>Indicador</th>
+<th>O que representa</th>
+<th>Cor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Saldo Anterior</strong></td>
+<td>Dinheiro que sobrou do mês passado</td>
+<td>Azul</td>
+</tr>
+<tr>
+<td><strong>Total Crédito</strong></td>
+<td>Soma de todas as receitas do mês</td>
+<td>Verde</td>
+</tr>
+<tr>
+<td><strong>Total Débito</strong></td>
+<td>Soma de todas as despesas do mês</td>
+<td>Vermelho</td>
+</tr>
+<tr>
+<td><strong>Saldo Atual</strong></td>
+<td>Resultado final do mês</td>
+<td>Verde (positivo) / Vermelho (negativo)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-fórmula-do-saldo">7.2 Fórmula do Saldo </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>Saldo Atual = Saldo Anterior + Total Crédito − Total Débito
+</code></pre><h3 id="73-exemplo-prático-completo-com-números-reais">7.3 Exemplo Prático Completo com Números Reais </h3>
+<p><strong>Condomínio Gaia Prime — Abril/2026</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Passo</th>
+<th>O que aconteceu</th>
+<th>Efeito no Resumo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">—</td>
+<td>Saldo anterior (sobrou de Março)</td>
+<td>Saldo Anterior: <strong>R$ 2.500,00</strong></td>
+</tr>
+<tr>
+<td style="text-align:center">1</td>
+<td>Síndico lança despesa de Energia: R$ 1.500,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.500</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">1.500,00 / Saldo: R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1.500</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 1.000,00</td>
+</tr>
+<tr>
+<td style="text-align:center">2</td>
+<td>Síndico lança despesa de Água: R$ 800,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2.300</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">2.300,00 / Saldo: R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">2.300</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 200,00</td>
+</tr>
+<tr>
+<td style="text-align:center">3</td>
+<td>Síndico lança despesa de Porteiro: R$ 2.500,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>4.800</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>−</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">4.800,00 / Saldo: −R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">4.800</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 2.300,00 🔴</td>
+</tr>
+<tr>
+<td style="text-align:center">4</td>
+<td>Síndico lança despesa de Elevador: R$ 1.200,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6.000</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>−</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">6.000,00 / Saldo: −R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">6.000</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 3.500,00 🔴</td>
+</tr>
+<tr>
+<td style="text-align:center">5</td>
+<td>Síndico lança despesa de Limpeza: R$ 600,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6.600</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>−</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">6.600,00 / Saldo: −R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">6.600</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 4.100,00 🔴</td>
+</tr>
+<tr>
+<td style="text-align:center">6</td>
+<td>Síndico lança despesa Administrativa: R$ 800,00</td>
+<td>Total Débito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>7.400</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>−</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">7.400,00 / Saldo: −R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">7.400</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 4.900,00 🔴</td>
+</tr>
+<tr>
+<td style="text-align:center">7</td>
+<td>Moradores começam a pagar boletos...</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td>10 moradores pagam (R$ 193,75 cada) → Receita Automática</td>
+<td>Total Crédito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.937</mn><mo separator="true">,</mo><mn>50</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>−</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">1.937,50 / Saldo: −R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1.937</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">50/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 2.962,50 🔴</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td>Mais 20 moradores pagam → Receita Automática acumula</td>
+<td>Total Crédito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5.812</mn><mo separator="true">,</mo><mn>50</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">5.812,50 / Saldo: R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">5.812</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">50/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 912,50</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td>Todos os 48 moradores pagaram</td>
+<td>Total Crédito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>9.300</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>∗</mo><mo>∗</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">9.300,00 / Saldo: **R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">9.300</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4653em;"></span><span class="mord">∗</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 4.400,00** ✅</td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td>Aluguel do salão: R$ 500,00 (receita manual)</td>
+<td>Total Crédito: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>9.800</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><mi>S</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>o</mi><mo>:</mo><mo>∗</mo><mo>∗</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">9.800,00 / Saldo: **R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">9.800</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4653em;"></span><span class="mord">∗</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 4.900,00** ✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resumo final do mês:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Indicador</th>
+<th style="text-align:right">Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Saldo Anterior</td>
+<td style="text-align:right">R$ 2.500,00</td>
+</tr>
+<tr>
+<td>Total Crédito (Receitas)</td>
+<td style="text-align:right">R$ 9.800,00</td>
+</tr>
+<tr>
+<td>Total Débito (Despesas)</td>
+<td style="text-align:right">R$ 7.400,00</td>
+</tr>
+<tr>
+<td><strong>Saldo Atual</strong></td>
+<td style="text-align:right"><strong>R$ 4.900,00</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Observação:</strong> O saldo negativo é exibido em vermelho, sinalizando ao síndico que ainda faltam receitas para cobrir as despesas do mês. Conforme os moradores pagam os boletos, o saldo vai se tornando positivo.</p>
+</blockquote>
+<hr>
+<h2 id="8-navegação-por-mêsano">8. Navegação por Mês/Ano </h2>
+<p>Na parte superior da tela existe um seletor com setas que permite navegar entre os meses:</p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>    [ &lt; ]    Março 2026    [ &gt; ]
+</code></pre><ul>
+<li>Ao clicar na <strong>seta esquerda</strong>, o sistema carrega os dados do mês anterior</li>
+<li>Ao clicar na <strong>seta direita</strong>, carrega o mês seguinte</li>
+<li>O ano muda automaticamente (Dezembro → Novembro troca o ano)</li>
+<li>Todos os dados recarregam: despesas, receitas, transferências e saldo anterior</li>
+</ul>
+<p><strong>Utilidade:</strong> O síndico pode consultar o histórico financeiro de qualquer mês para prestação de contas ou conferência.</p>
+<hr>
+<h2 id="9-funcionalidades-adicionais">9. Funcionalidades Adicionais </h2>
+<h3 id="91-upload-de-comprovantes-despesas">9.1 Upload de Comprovantes (Despesas) </h3>
+<p>O síndico pode <strong>anexar fotos</strong> de boletos, notas fiscais ou recibos às despesas:</p>
+<ul>
+<li>Pode tirar uma foto com a <strong>câmera</strong> do dispositivo</li>
+<li>Ou selecionar da <strong>galeria</strong> de imagens</li>
+<li>A imagem é automaticamente comprimida para economizar espaço</li>
+<li>A foto fica disponível no Modal de Detalhes para consulta futura</li>
+</ul>
+<h3 id="92-links-externos-despesas">9.2 Links Externos (Despesas) </h3>
+<p>Cada despesa pode ter um <strong>link</strong> para a nota fiscal, boleto online ou qualquer documento externo:</p>
+<ul>
+<li>No Modal de Detalhes, existem dois botões:
+<ul>
+<li><strong>"Copiar"</strong> — copia o link para a área de transferência</li>
+<li><strong>"Abrir"</strong> — abre o link no navegador</li>
+</ul>
+</li>
+</ul>
+<h3 id="93-formatação-automática-de-valores">9.3 Formatação Automática de Valores </h3>
+<p>O sistema formata automaticamente os campos de entrada:</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Comportamento</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Valor (R$)</strong></td>
+<td>Adiciona pontos de milhar e vírgula decimal automaticamente. Ex: digitar "150050" → exibe "1.500,50"</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Adiciona barras automaticamente. Ex: digitar "15032026" → exibe "15/03/2026"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="94-validações-de-segurança">9.4 Validações de Segurança </h3>
+<p>O sistema impede erros comuns do usuário:</p>
+<table>
+<thead>
+<tr>
+<th>Validação</th>
+<th>O que acontece</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Salvar sem valor</td>
+<td>❌ Sistema bloqueia e exibe mensagem de erro</td>
+</tr>
+<tr>
+<td>Salvar sem data</td>
+<td>❌ Sistema bloqueia e exibe mensagem de erro</td>
+</tr>
+<tr>
+<td>Transferir para a mesma conta</td>
+<td>❌ Sistema bloqueia — conta origem deve ser diferente da conta destino</td>
+</tr>
+<tr>
+<td>Excluir sem confirmação</td>
+<td>❌ Sempre aparece diálogo "Tem certeza?"</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="10-conexão-com-o-boleto--o-ciclo-completo-do-dinheiro">10. Conexão com o Boleto — O Ciclo Completo do Dinheiro </h2>
+<p>Esta feature está diretamente conectada ao módulo de Boletos do sistema. O ciclo funciona assim:</p>
+<h3 id="passo-1--o-síndico-lança-as-despesas-do-mês">Passo 1 — O síndico lança as despesas do mês </h3>
+<p>O síndico registra todos os gastos previstos do condomínio (energia, água, salários, manutenção, etc.).</p>
+<h3 id="passo-2--o-síndico-calcula-a-cota-condominial">Passo 2 — O síndico calcula a cota condominial </h3>
+<p>Com base no total de despesas, ele divide pelo número de unidades do condomínio:</p>
+<blockquote>
+<p><strong>Exemplo:</strong> R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>7.400</mn><mo separator="true">,</mo><mn>00</mn><mi>d</mi><mi>e</mi><mi>d</mi><mi>e</mi><mi>s</mi><mi>p</mi><mi>e</mi><mi>s</mi><mi>a</mi><mi>s</mi><mo>÷</mo><mn>48</mn><mi>u</mi><mi>n</mi><mi>i</mi><mi>d</mi><mi>a</mi><mi>d</mi><mi>e</mi><mi>s</mi><mo>=</mo><mo>∗</mo><mo>∗</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">7.400,00 de despesas ÷ 48 unidades = **R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord">7.400</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00</span><span class="mord mathnormal">d</span><span class="mord mathnormal">e</span><span class="mord mathnormal">d</span><span class="mord mathnormal">es</span><span class="mord mathnormal">p</span><span class="mord mathnormal">es</span><span class="mord mathnormal">a</span><span class="mord mathnormal">s</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">÷</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">48</span><span class="mord mathnormal">u</span><span class="mord mathnormal">ni</span><span class="mord mathnormal">d</span><span class="mord mathnormal">a</span><span class="mord mathnormal">d</span><span class="mord mathnormal">es</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4653em;"></span><span class="mord">∗</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 154,17 por unidade**</p>
+</blockquote>
+<h3 id="passo-3--o-síndico-gera-os-boletos">Passo 3 — O síndico gera os boletos </h3>
+<p>Na tela de Geração de Cobrança Mensal, ele define o valor do boleto (cota + fundo de reserva + taxas) e gera um boleto para cada morador.</p>
+<h3 id="passo-4--os-moradores-pagam">Passo 4 — Os moradores pagam </h3>
+<p>Os moradores pagam via banco, internet banking ou lotérica.</p>
+<h3 id="passo-5--o-sistema-registra-receitas-automaticamente">Passo 5 — O sistema registra receitas automaticamente </h3>
+<p>Quando o gateway de pagamento (Asaas) confirma que um boleto foi pago, o sistema <strong>automaticamente</strong> cria uma receita do tipo "AUTOMÁTICO" no valor pago. O síndico não precisa fazer nada — o saldo é atualizado em tempo real.</p>
+<h3 id="resumo-visual-do-ciclo">Resumo Visual do Ciclo </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>  DESPESAS (síndico lança)
+       ↓
+  COTA CONDOMINIAL (total despesas ÷ unidades)
+       ↓
+  BOLETOS (gerados para cada morador)
+       ↓
+  PAGAMENTO (morador paga)
+       ↓
+  RECEITA AUTOMÁTICA (sistema registra)
+       ↓
+  SALDO ATUALIZADO (em tempo real)
+</code></pre><hr>
+<h2 id="11-casos-de-uso-reais--dia-a-dia-do-síndico">11. Casos de Uso Reais — Dia a Dia do Síndico </h2>
+<h3 id="caso-1-chegou-a-conta-de-luz">Caso 1: "Chegou a conta de luz" </h3>
+<p>O síndico recebe a fatura de energia elétrica das áreas comuns no valor de R$ 1.850,00. Ele:</p>
+<ol>
+<li>Abre Despesas/Receitas</li>
+<li>Cadastra com categoria "Energia", subcategoria "Áreas Comuns"</li>
+<li>Digita R$ 1.850,00 como valor</li>
+<li>Marca como recorrente (12 meses)</li>
+<li>Anexa a foto da fatura</li>
+<li>Salva</li>
+</ol>
+<p><strong>Resultado:</strong> A despesa fica registrada, o saldo do mês atualiza e ele tem o comprovante guardado digitalmente.</p>
+<hr>
+<h3 id="caso-2-morador-alugou-o-salão">Caso 2: "Morador alugou o salão" </h3>
+<p>O morador do ap. B/205 pagou R$ 500,00 para alugar o salão de festas. O síndico:</p>
+<ol>
+<li>Vai na aba Receitas</li>
+<li>Cadastra como receita Manual</li>
+<li>Seleciona conta contábil "Controle"</li>
+<li>Informa a descrição: "Aluguel salão — B/205 — Festa dia 25/03"</li>
+<li>Salva</li>
+</ol>
+<p><strong>Resultado:</strong> O saldo do condomínio aumenta R$ 500,00.</p>
+<hr>
+<h3 id="caso-3-preciso-mover-dinheiro-para-a-poupança">Caso 3: "Preciso mover dinheiro para a poupança" </h3>
+<p>O síndico precisa transferir R$ 3.000,00 da conta corrente para a poupança do fundo de reserva. Ele:</p>
+<ol>
+<li>Vai na aba Transferências</li>
+<li>Seleciona conta débito: Conta Corrente Itaú</li>
+<li>Seleciona conta crédito: Poupança Itaú</li>
+<li>Informa valor e data</li>
+<li>Salva</li>
+</ol>
+<p><strong>Resultado:</strong> A transferência fica registrada como movimentação interna, sem alterar o saldo total do condomínio.</p>
+<hr>
+<h3 id="caso-4-morador-pagou-o-boleto-atrasado">Caso 4: "Morador pagou o boleto atrasado" </h3>
+<p>Um morador pagou o boleto de Fevereiro com atraso (com juros). O sistema:</p>
+<ol>
+<li>Recebe a confirmação de pagamento do Asaas (gateway)</li>
+<li>Atualiza o status do boleto para "Pago"</li>
+<li><strong>Cria automaticamente</strong> uma receita do tipo "AUTOMÁTICO"</li>
+<li>O saldo do condomínio é atualizado</li>
+</ol>
+<p><strong>Resultado:</strong> O síndico não precisa fazer nada. Ao abrir a tela de Receitas, ele verá a receita marcada com o badge "AUTOMÁTICO".</p>
+<hr>
+<h3 id="caso-5-preciso-prestar-contas-do-mês-passado">Caso 5: "Preciso prestar contas do mês passado" </h3>
+<p>O conselho fiscal pede o demonstrativo de Fevereiro/2026. O síndico:</p>
+<ol>
+<li>Abre Despesas/Receitas</li>
+<li>Usa as setas de navegação para voltar para Fevereiro/2026</li>
+<li>Visualiza todas as despesas, receitas e transferências do mês</li>
+<li>Confere o resumo: Saldo Anterior, Total Crédito, Total Débito, Saldo Atual</li>
+<li>Usa os filtros para detalhar por categoria ou conta bancária</li>
+</ol>
+<p><strong>Resultado:</strong> Todas as informações para a prestação de contas estão organizadas e acessíveis.</p>
+<hr>
+<h2 id="12-resumo-final-da-feature">12. Resumo Final da Feature </h2>
+<table>
+<thead>
+<tr>
+<th>Aspecto</th>
+<th>Detalhe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Despesas</strong></td>
+<td>Cadastro completo com categoria, subcategoria, recorrência, foto e link</td>
+</tr>
+<tr>
+<td><strong>Receitas</strong></td>
+<td>Manuais (síndico cadastra) e Automáticas (geradas pelo pagamento de boleto)</td>
+</tr>
+<tr>
+<td><strong>Transferências</strong></td>
+<td>Movimentações entre contas do condomínio</td>
+</tr>
+<tr>
+<td><strong>Resumo Financeiro</strong></td>
+<td>Saldo Anterior + Créditos − Débitos = Saldo Atual (atualização em tempo real)</td>
+</tr>
+<tr>
+<td><strong>Histórico</strong></td>
+<td>Navegação por mês/ano para consultar qualquer período</td>
+</tr>
+<tr>
+<td><strong>Filtros</strong></td>
+<td>Por conta bancária, categoria, subcategoria, conta contábil, tipo e palavra-chave</td>
+</tr>
+<tr>
+<td><strong>Validações</strong></td>
+<td>Valor obrigatório, data obrigatória, contas diferentes em transferência</td>
+</tr>
+<tr>
+<td><strong>Feedback</strong></td>
+<td>Mensagens de sucesso/erro em cada operação</td>
+</tr>
+<tr>
+<td><strong>Comprovantes</strong></td>
+<td>Upload de fotos de boletos e notas fiscais</td>
+</tr>
+<tr>
+<td><strong>Automação</strong></td>
+<td>Receitas criadas automaticamente quando boletos são pagos</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>Documento preparado em 22/03/2026 — Equipe Desenvolvimento CondoGaia</em></p>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>
