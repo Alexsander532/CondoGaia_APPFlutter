@@ -52,6 +52,6 @@ flutter pub get
 
 # Fazer build para web com JavaScript (não Wasm)
 echo "🔨 Fazendo build para web..."
-flutter build web --release --no-wasm
+flutter build web --release --dart-define=FLUTTER_WEB_USE_WASM=false
 
 echo "🎉 Build concluído com sucesso!"
