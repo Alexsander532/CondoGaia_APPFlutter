@@ -45,6 +45,7 @@ class DespesaReceitaState extends Equatable {
   final bool cadastroExpandido;
   final bool isSaving;
   final String? errorMessage;
+  final String? successMessage;
   final XFile? imagemArquivo;
 
   const DespesaReceitaState({
@@ -74,6 +75,7 @@ class DespesaReceitaState extends Equatable {
     this.cadastroExpandido = false,
     this.isSaving = false,
     this.errorMessage,
+    this.successMessage,
     this.imagemArquivo,
   });
 
@@ -108,6 +110,8 @@ class DespesaReceitaState extends Equatable {
     bool? isSaving,
     String? errorMessage,
     bool clearErrorMessage = false,
+    String? successMessage,
+    bool clearSuccessMessage = false,
     XFile? imagemArquivo,
     bool clearImagemArquivo = false,
   }) {
@@ -147,6 +151,9 @@ class DespesaReceitaState extends Equatable {
       errorMessage: clearErrorMessage
           ? null
           : (errorMessage ?? this.errorMessage),
+      successMessage: clearSuccessMessage
+          ? null
+          : (successMessage ?? this.successMessage),
       imagemArquivo: clearImagemArquivo
           ? null
           : (imagemArquivo ?? this.imagemArquivo),
@@ -206,6 +213,7 @@ class DespesaReceitaState extends Equatable {
     cadastroExpandido,
     isSaving,
     errorMessage,
+    successMessage,
     imagemArquivo,
   ];
 }

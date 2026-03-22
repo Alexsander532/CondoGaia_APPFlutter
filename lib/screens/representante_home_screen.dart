@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/representante.dart';
 import 'documentos_screen.dart';
 import 'agenda_screen_backup.dart';
 import 'reservas_screen.dart';
 import 'gestao_screen.dart';
-import 'login_screen.dart';
-import '../services/unidade_detalhes_service.dart';
 import 'representante_dashboard_screen.dart';
 import '../features/Representante_Features/leitura/screens/leitura_screen.dart';
 import '../services/permission_service.dart';
+import '../widgets/custom_drawer.dart';
 
 class RepresentanteHomeScreen extends StatefulWidget {
   final Representante representante;
@@ -221,180 +219,11 @@ Copiado da CondoGaia''';
     );
   }
 
-  /// Constrói o drawer (menu lateral)
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          // Header do drawer
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1976D2)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset('assets/images/logo_CondoGaia.png', height: 40),
-                const SizedBox(height: 16),
-                const Text(
-                  'Menu',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Botão Sair da conta
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Sair da conta',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-            ),
-            onTap: () {
-              Navigator.pop(context); // Fecha o drawer
-              _handleLogout();
-            },
-          ),
-          const Divider(),
-          // Botão Excluir conta
-          ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text(
-              'Excluir conta',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-            ),
-            onTap: () {
-              Navigator.pop(context); // Fecha o drawer
-              _handleDeleteAccount();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Trata logout do usuário
-  Future<void> _handleLogout() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Sair'),
-          content: const Text('Deseja realmente sair da sua conta?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-
-                try {
-                  // Fazer logout via Supabase
-                  await Supabase.instance.client.auth.signOut();
-
-                  // Limpar dados locais se necessário
-                  // await SharedPreferences.getInstance().then((prefs) => prefs.clear());
-
-                  // Navegar para a tela de login
-                  if (mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  }
-                } catch (e) {
-                  print('Erro ao fazer logout: $e');
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao sair: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Sair'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Trata exclusão de conta do usuário
-  Future<void> _handleDeleteAccount() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Excluir Conta'),
-          content: const Text(
-            'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                try {
-                  final service = UnidadeDetalhesService();
-
-                  // Deletar o representante
-                  print(
-                    '🗑️ Deletando representante: ${widget.representante.id}',
-                  );
-                  await service.deletarRepresentante(
-                    representanteId: widget.representante.id,
-                  );
-                  print('✅ Representante deletado com sucesso!');
-
-                  // Fazer logout
-                  print('🚪 Realizando logout...');
-                  final supabase = Supabase.instance.client;
-                  await supabase.auth.signOut();
-                  print('✅ Logout realizado!');
-
-                  // Navegar para login (SEM usar ScaffoldMessenger pois a tela foi destruída)
-                  if (mounted) {
-                    print('🔄 Navegando para login...');
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            LoginScreen(usuarioDeletado: 'Representante'),
-                      ),
-                      (route) => false,
-                    );
-                  }
-                } catch (e) {
-                  print('❌ ERRO ao excluir conta: $e');
-                  // NÃO mostrar snackbar aqui pois a tela já foi destruída
-                }
-              },
-              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: _buildDrawer(),
+      drawer: const CustomDrawer(),
       body: SafeArea(
         child: Builder(
           builder: (BuildContext scaffoldContext) {

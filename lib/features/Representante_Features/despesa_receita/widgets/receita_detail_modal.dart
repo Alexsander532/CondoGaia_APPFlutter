@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/receita_model.dart';
+import '../cubit/despesa_receita_cubit.dart';
 import 'shared_widgets.dart';
 
 class ReceitaDetailModal extends StatelessWidget {
@@ -29,20 +31,20 @@ class ReceitaDetailModal extends StatelessWidget {
             _buildHeader(context),
             
             // Content
-            Expanded(
+            Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildMainInfo(),
-                    const SizedBox(height: 24),
-                    _buildDetailsGrid(),
+                    const SizedBox(height: 20),
+                    _buildDetailsList(),
                     if (receita.recorrente) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       _buildRecorrenteInfo(),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     _buildTypeIndicator(),
                   ],
                 ),
@@ -60,10 +62,10 @@ class ReceitaDetailModal extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.green, Colors.green.shade700],
+          colors: [Colors.green, Colors.green.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -83,7 +85,7 @@ class ReceitaDetailModal extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.trending_up,
                   color: Colors.white,
                   size: 28,
@@ -92,7 +94,7 @@ class ReceitaDetailModal extends StatelessWidget {
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: Colors.white),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.2),
                 ),
@@ -100,9 +102,9 @@ class ReceitaDetailModal extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Detalhes da Receita',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -112,9 +114,9 @@ class ReceitaDetailModal extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _getTypeColor().withOpacity(0.2),
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _getTypeColor().withOpacity(0.5)),
+              border: Border.all(color: Colors.white.withOpacity(0.5)),
             ),
             child: Text(
               receita.tipo,
@@ -132,7 +134,7 @@ class ReceitaDetailModal extends StatelessWidget {
 
   Widget _buildMainInfo() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -151,19 +153,12 @@ class ReceitaDetailModal extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.add_circle,
-                  color: Colors.green,
-                  size: 24,
-                ),
+              const Icon(
+                Icons.add_circle_outline,
+                color: Colors.green,
+                size: 24,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
                 'R\$ ${receita.valor.toStringAsFixed(2).replaceAll('.', ',')}',
                 style: const TextStyle(
@@ -179,16 +174,10 @@ class ReceitaDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.5,
+  Widget _buildDetailsList() {
+    return Column(
       children: [
-        _buildDetailCard(
+        _buildDetailListItem(
           icon: Icons.calendar_today,
           label: 'Data do Crédito',
           value: receita.dataCredito != null
@@ -196,20 +185,22 @@ class ReceitaDetailModal extends StatelessWidget {
               : 'Não definida',
           color: Colors.blue,
         ),
-        _buildDetailCard(
+        const SizedBox(height: 12),
+        _buildDetailListItem(
           icon: Icons.account_balance,
           label: 'Conta',
           value: receita.contaNome ?? 'Não definida',
           color: kPrimaryColor,
         ),
-        // REMOVIDOS: Categoria e Subcategoria
-        _buildDetailCard(
+        const SizedBox(height: 12),
+        _buildDetailListItem(
           icon: Icons.account_balance_wallet,
           label: 'Conta Contábil',
           value: receita.contaContabil ?? 'Não definida',
           color: Colors.orange,
         ),
-        _buildDetailCard(
+        const SizedBox(height: 12),
+        _buildDetailListItem(
           icon: Icons.schedule,
           label: 'Criado em',
           value: receita.createdAt != null
@@ -221,45 +212,46 @@ class ReceitaDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailCard({
+  Widget _buildDetailListItem({
     required IconData icon,
     required String label,
     required String value,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 10,
-            ),
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(height: 4),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: color,
-                fontSize: 12,
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -274,10 +266,10 @@ class ReceitaDetailModal extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.repeat, color: Colors.orange, size: 20),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Receita Recorrente',
                 style: TextStyle(
@@ -300,21 +292,20 @@ class ReceitaDetailModal extends StatelessWidget {
   }
 
   Widget _buildTypeIndicator() {
-    Color backgroundColor;
+    Color color;
     IconData icon;
     String title;
     String description;
 
     switch (receita.tipo) {
       case 'AUTOMATICO':
-        backgroundColor = Colors.green.withOpacity(0.1);
+        color = Colors.green;
         icon = Icons.auto_mode;
         title = 'Receita Automática';
         description = 'Gerada automaticamente pelo sistema quando um boleto é pago.';
         break;
-      case 'MANUAL':
       default:
-        backgroundColor = kPrimaryColor.withOpacity(0.1);
+        color = kPrimaryColor;
         icon = Icons.edit;
         title = 'Receita Manual';
         description = 'Lançada manualmente pelo síndico ou administrador.';
@@ -324,22 +315,22 @@ class ReceitaDetailModal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _getTypeColor().withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: _getTypeColor(), size: 20),
+              Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: _getTypeColor(),
+                  color: color,
                   fontSize: 12,
                 ),
               ),
@@ -359,8 +350,10 @@ class ReceitaDetailModal extends StatelessWidget {
   }
 
   Widget _buildFooter(BuildContext context) {
+    final cubit = context.read<DespesaReceitaCubit>();
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: const BorderRadius.only(
@@ -375,12 +368,12 @@ class ReceitaDetailModal extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Colors.green),
+                side: const BorderSide(color: Colors.green),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 'Fechar',
                 style: TextStyle(
                   color: Colors.green,
@@ -394,7 +387,7 @@ class ReceitaDetailModal extends StatelessWidget {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Implementar edição
+                cubit.iniciarEdicaoReceita(receita);
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
@@ -404,9 +397,9 @@ class ReceitaDetailModal extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 'Editar',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
@@ -417,16 +410,6 @@ class ReceitaDetailModal extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _getTypeColor() {
-    switch (receita.tipo) {
-      case 'AUTOMATICO':
-        return Colors.green;
-      case 'MANUAL':
-      default:
-        return kPrimaryColor;
-    }
   }
 
   String _formatDate(DateTime date) {

@@ -46,7 +46,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     String? catId,
   ) {
     if (catId == null) return [];
-    final cat = state.categoriasReceita.where((c) => c.id == catId).toList();
+    final cat = state.categoriasDespesa.where((c) => c.id == catId).toList();
     if (cat.isEmpty) return [];
     return cat.first.subcategorias;
   }
@@ -150,7 +150,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           label: 'Categoria',
           icon: Icons.category,
           value: _filtroCategoriaId,
-          items: state.categoriasReceita
+          items: state.categoriasDespesa
               .map(
                 (c) => DropdownMenuItem<String>(
                   value: c.id,
@@ -318,7 +318,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           label: 'Categoria',
           icon: Icons.category,
           value: _categoriaIdCadastro,
-          items: state.categoriasReceita
+          items: state.categoriasDespesa
               .map(
                 (c) => DropdownMenuItem<String>(
                   value: c.id,
@@ -421,25 +421,32 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         ),
         const SizedBox(height: 16),
 
+        const SizedBox(height: 16),
+
         if (_editandoId != null)
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _limparFormulario(cubit),
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: const Text('Cancelar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _limparFormulario(cubit),
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('Cancelar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(flex: 2, child: _buildSalvarButton(state, cubit)),
+              Expanded(
+                child: _buildSalvarButton(state, cubit),
+              ),
             ],
           )
         else
@@ -455,9 +462,9 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     final isEditing = _editandoId != null;
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 36,
       child: ElevatedButton.icon(
-        onPressed: state.isSaving ? null : () => _salvar(cubit),
+        onPressed: state.isSaving ? null : () => _salvar(cubit, state),
         icon: state.isSaving
             ? const SizedBox(
                 width: 18,
@@ -471,13 +478,11 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         label: Text(
           state.isSaving
               ? 'Salvando...'
-              : (isEditing ? 'Salvar Alterações' : 'Salvar Receita'),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              : (isEditing ? 'Salvar' : 'Salvar Receita'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isEditing
-              ? Colors.orange.shade700
-              : Colors.green.shade700,
+          backgroundColor: Colors.green.shade700,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -570,136 +575,160 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
         
-        return GestureDetector(
-          onTap: () {
-            // Abrir modal de detalhes
-            showDialog(
-              context: context,
-              builder: (context) => ReceitaDetailModal(receita: r),
-            );
-          },
-          onLongPress: () {
-            // Manter a seleção para múltipla exclusão
-            if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 8 : 12, 
-              vertical: 10
+        return Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? kAccentColor.withOpacity(0.06)
+                : (index.isEven ? Colors.white : Colors.grey.shade50),
+            border: Border(
+              bottom: BorderSide(color: Colors.grey.shade200),
+              left: isSelected
+                  ? const BorderSide(color: kAccentColor, width: 3)
+                  : BorderSide.none,
             ),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? kAccentColor.withOpacity(0.06)
-                  : (index.isEven ? Colors.white : Colors.grey.shade50),
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade200),
-                left: isSelected
-                    ? const BorderSide(color: kAccentColor, width: 3)
-                    : BorderSide.none,
-              ),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Icon(
-                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 18,
-                    color: isSelected ? kAccentColor : Colors.grey.shade400,
-                  ),
-                ),
-                if (isMobile) ...[
-                  // Mobile layout - indicador de tipo
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: r.recorrente
-                            ? Colors.orange.withOpacity(0.12)
-                            : Colors.blue.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        r.recorrente ? 'R' : r.tipo.substring(0, 1),
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w600,
-                          color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+          ),
+          child: Row(
+            children: [
+              // Checkbox - Área separada para seleção
+              GestureDetector(
+                onTap: () {
+                  if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
+                },
+                child: Container(
+                  width: isMobile ? 40 : 48, // Área de toque maior
+                  height: 48,
+                  color: Colors.transparent, // Facilita o clique
+                  child: Center(
+                    child: Icon(
+                      isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                      size: 18,
+                      color: isSelected ? kAccentColor : Colors.grey.shade400,
                     ),
                   ),
-                ] else ...[
-                  // Desktop layout - colunas completas
-                  Expanded(
-                    flex: 4,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              
+              // Conteúdo da Linha - Abre o modal
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    // Abrir modal de detalhes
+                    showDialog(
+                      context: context,
+                      builder: (_) => BlocProvider.value(
+                        value: cubit,
+                        child: ReceitaDetailModal(receita: r),
+                      ),
+                    );
+                  },
+                  onLongPress: () {
+                    // Manter a seleção por long press também
+                    if (r.id != null) cubit.toggleReceitaSelecionada(r.id!);
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 4 : 8, 
+                      vertical: 10
+                    ),
+                    color: Colors.transparent, // Garante que toda a área seja clicável
+                    child: Row(
                       children: [
-                        Text(
-                          r.descricao ?? 'Sem descrição',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        if (r.contaContabil != null)
-                          Text(
-                            r.contaContabil!,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade500,
+                        if (isMobile) ...[
+                          // Mobile layout - indicador de tipo
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: r.recorrente
+                                    ? Colors.orange.withOpacity(0.12)
+                                    : Colors.blue.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                r.recorrente ? 'R' : r.tipo.substring(0, 1),
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w600,
+                                  color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
+                        ] else ...[
+                          // Desktop layout - colunas completas
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.descricao ?? 'Sem descrição',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                if (r.contaContabil != null)
+                                  Text(
+                                    r.contaContabil!,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${r.dataCredito?.day.toString().padLeft(2, '0')}/${r.dataCredito?.month.toString().padLeft(2, '0')}/${r.dataCredito?.year}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'R\$ ${r.valor.toStringAsFixed(2).replaceAll('.', ',')}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: r.recorrente
+                                    ? Colors.orange.withOpacity(0.12)
+                                    : Colors.blue.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                r.recorrente ? 'Rec.' : r.tipo,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '${r.dataCredito?.day.toString().padLeft(2, '0')}/${r.dataCredito?.month.toString().padLeft(2, '0')}/${r.dataCredito?.year}',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'R\$ ${r.valor.toStringAsFixed(2).replaceAll('.', ',')}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: r.recorrente
-                            ? Colors.orange.withOpacity(0.12)
-                            : Colors.blue.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        r.recorrente ? 'Rec.' : r.tipo,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: r.recorrente ? Colors.orange.shade700 : kAccentColor,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -826,7 +855,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     });
   }
 
-  void _salvar(DespesaReceitaCubit cubit) {
+  void _salvar(DespesaReceitaCubit cubit, DespesaReceitaState state) {
     // Validação
     final valorStr = _valorController.text
         .replaceAll('.', '')
@@ -871,6 +900,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
 
   void _limparFormulario(DespesaReceitaCubit cubit) {
     cubit.cancelarEdicaoReceita();
+    cubit.removerImagem();
     _descricaoController.clear();
     _valorController.clear();
     _qtdMesesController.clear();

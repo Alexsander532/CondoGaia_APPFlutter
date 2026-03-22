@@ -19,7 +19,8 @@ abstract class IDespesaReceitaService {
   });
 
   Future<void> salvarDespesa(Despesa despesa);
-  Future<String> uploadFotoDespesa(XFile arquivo);
+  Future<void> salvarDespesasMultiplas(List<Despesa> despesas);
+  Future<String> uploadFoto(XFile arquivo);
   Future<void> excluirDespesa(String id);
   Future<void> excluirDespesasMultiplas(List<String> ids);
 
@@ -36,6 +37,7 @@ abstract class IDespesaReceitaService {
   });
 
   Future<void> salvarReceita(Receita receita);
+  Future<void> salvarReceitasMultiplas(List<Receita> receitas);
   Future<void> excluirReceita(String id);
   Future<void> excluirReceitasMultiplas(List<String> ids);
 

@@ -7,6 +7,7 @@ import '../widgets/despesas_tab_widget.dart';
 import '../widgets/receitas_tab_widget.dart';
 import '../widgets/transferencia_tab_widget.dart';
 import '../widgets/resumo_financeiro_widget.dart';
+import '../../../../widgets/custom_drawer.dart';
 
 class DespesaReceitaScreen extends StatelessWidget {
   final String condominioId;
@@ -52,12 +53,15 @@ class _DespesaReceitaViewState extends State<_DespesaReceitaView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: const CustomDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black, size: 28),
-          onPressed: () {},
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black, size: 28),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
         title: Column(
           children: [
@@ -153,6 +157,16 @@ class _DespesaReceitaViewState extends State<_DespesaReceitaView>
               ),
             );
             context.read<DespesaReceitaCubit>().limparErro();
+          }
+
+          if (state.successMessage != null && state.successMessage!.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.successMessage!),
+                backgroundColor: Colors.green,
+              ),
+            );
+            context.read<DespesaReceitaCubit>().limparSucesso();
           }
         },
         builder: (context, state) {

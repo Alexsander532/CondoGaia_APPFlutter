@@ -227,17 +227,41 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
 
       // Se houver uma nova imagem selecionada, faz o upload primeiro
       if (state.imagemArquivo != null) {
-        fotoUrl = await _service.uploadFotoDespesa(state.imagemArquivo!);
+        fotoUrl = await _service.uploadFoto(state.imagemArquivo!);
       }
 
       final despesaFinal = despesa.copyWith(fotoUrl: fotoUrl);
-      await _service.salvarDespesa(despesaFinal);
+
+      // Lógica de Recorrência (apenas para novos registros)
+      if (despesa.id == null && despesa.recorrente) {
+        final int meses = (despesa.qtdMeses != null && despesa.qtdMeses! > 0)
+            ? despesa.qtdMeses!
+            : 12; // Padrão 12 meses para "infinito"
+
+        final List<Despesa> despesasParaSalvar = [];
+        final dataBase = despesaFinal.dataVencimento ?? DateTime.now();
+
+        for (int i = 0; i < meses; i++) {
+          final novaData = DateTime(
+            dataBase.year,
+            dataBase.month + i,
+            dataBase.day,
+          );
+          despesasParaSalvar.add(despesaFinal.copyWith(dataVencimento: novaData));
+        }
+
+        await _service.salvarDespesasMultiplas(despesasParaSalvar);
+      } else {
+        // Fluxo normal (adição simples ou edição)
+        await _service.salvarDespesa(despesaFinal);
+      }
 
       emit(
         state.copyWith(
           isSaving: false,
           clearDespesaEditando: true,
           clearImagemArquivo: true,
+          successMessage: 'Despesa salva com sucesso!',
         ),
       );
       await pesquisarDespesas();
@@ -254,6 +278,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         state.despesasSelecionadas.toList(),
       );
       await pesquisarDespesas();
+      emit(state.copyWith(successMessage: 'Despesas excluídas com sucesso!'));
     } catch (e) {
       emit(
         state.copyWith(
@@ -271,8 +296,41 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   Future<void> salvarReceita(Receita receita) async {
     emit(state.copyWith(isSaving: true));
     try {
-      await _service.salvarReceita(receita);
-      emit(state.copyWith(isSaving: false, clearReceitaEditando: true));
+      final receitaFinal = receita;
+
+      // Lógica de Recorrência (apenas para novos registros)
+      if (receita.id == null && receita.recorrente) {
+        // Se não informar a quantidade de meses, gera 12 meses por padrão
+        final int meses = (receita.qtdMeses != null && receita.qtdMeses! > 0)
+            ? receita.qtdMeses!
+            : 12;
+
+        final List<Receita> receitasParaSalvar = [];
+        final dataBase = receitaFinal.dataCredito ?? DateTime.now();
+
+        for (int i = 0; i < meses; i++) {
+          final novaData = DateTime(
+            dataBase.year,
+            dataBase.month + i,
+            dataBase.day,
+          );
+          receitasParaSalvar.add(receitaFinal.copyWith(dataCredito: novaData));
+        }
+
+        await _service.salvarReceitasMultiplas(receitasParaSalvar);
+      } else {
+        // Fluxo normal (adição simples ou edição)
+        await _service.salvarReceita(receitaFinal);
+      }
+
+      emit(
+        state.copyWith(
+          isSaving: false,
+          clearReceitaEditando: true,
+          clearImagemArquivo: true,
+          successMessage: 'Receita salva com sucesso!',
+        ),
+      );
       await pesquisarReceitas();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -287,6 +345,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         state.receitasSelecionadas.toList(),
       );
       await pesquisarReceitas();
+      emit(state.copyWith(successMessage: 'Receitas excluídas com sucesso!'));
     } catch (e) {
       emit(
         state.copyWith(
@@ -305,7 +364,11 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(isSaving: true));
     try {
       await _service.salvarTransferencia(transferencia);
-      emit(state.copyWith(isSaving: false, clearTransferenciaEditando: true));
+      emit(state.copyWith(
+        isSaving: false,
+        clearTransferenciaEditando: true,
+        successMessage: 'Transferência realizada com sucesso!',
+      ));
       await pesquisarTransferencias();
     } catch (e) {
       emit(state.copyWith(isSaving: false, errorMessage: e.toString()));
@@ -320,6 +383,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         state.transferenciasSelecionadas.toList(),
       );
       await pesquisarTransferencias();
+      emit(state.copyWith(successMessage: 'Transferências excluídas com sucesso!'));
     } catch (e) {
       emit(
         state.copyWith(
@@ -450,6 +514,17 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     emit(state.copyWith(clearImagemArquivo: true));
   }
 
+  void removerFotoExistenteDespesa() {
+    if (state.despesaEditando != null) {
+      emit(
+        state.copyWith(
+          despesaEditando: state.despesaEditando!.copyWith(clearFotoUrl: true),
+        ),
+      );
+    }
+  }
+
+
   // ============================================================
   // UI STATE
   // ============================================================
@@ -460,5 +535,9 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
 
   void limparErro() {
     emit(state.copyWith(clearErrorMessage: true));
+  }
+
+  void limparSucesso() {
+    emit(state.copyWith(clearSuccessMessage: true));
   }
 }

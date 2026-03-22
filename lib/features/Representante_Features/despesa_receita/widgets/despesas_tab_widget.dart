@@ -409,21 +409,26 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _limparFormulario(cubit),
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: const Text('Cancelar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _limparFormulario(cubit),
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('Cancelar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(flex: 2, child: _buildSalvarButton(state, cubit)),
+              Expanded(
+                child: _buildSalvarButton(state, cubit),
+              ),
             ],
           )
         else
@@ -439,7 +444,7 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
     final isEditing = _editandoId != null;
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 36,
       child: ElevatedButton.icon(
         onPressed: state.isSaving ? null : () => _salvar(cubit),
         icon: state.isSaving
@@ -455,13 +460,11 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
         label: Text(
           state.isSaving
               ? 'Salvando...'
-              : (isEditing ? 'Salvar Alterações' : 'Salvar Despesa'),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              : (isEditing ? 'Salvar' : 'Salvar Despesa'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isEditing
-              ? Colors.orange.shade700
-              : Colors.green.shade700,
+          backgroundColor: Colors.green.shade700,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -558,46 +561,65 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
         
-        return GestureDetector(
-          onTap: () {
-            // Abrir modal de detalhes
-            showDialog(
-              context: context,
-              builder: (context) => DespesaDetailModal(despesa: d),
-            );
-          },
-          onLongPress: () {
-            // Manter a seleção para múltipla exclusão
-            if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 8 : 12, 
-              vertical: 10
+        return Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? kAccentColor.withOpacity(0.06)
+                : (index.isEven ? Colors.white : Colors.grey.shade50),
+            border: Border(
+              bottom: BorderSide(color: Colors.grey.shade200),
+              left: isSelected
+                  ? const BorderSide(color: kAccentColor, width: 3)
+                  : BorderSide.none,
             ),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? kAccentColor.withOpacity(0.06)
-                  : (index.isEven ? Colors.white : Colors.grey.shade50),
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade200),
-                left: isSelected
-                    ? const BorderSide(color: kAccentColor, width: 3)
-                    : BorderSide.none,
-              ),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Icon(
-                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 18,
-                    color: isSelected ? kAccentColor : Colors.grey.shade400,
+          ),
+          child: Row(
+            children: [
+              // Checkbox - Área separada para seleção
+              GestureDetector(
+                onTap: () {
+                  if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
+                },
+                child: Container(
+                  width: isMobile ? 40 : 48, // Área de toque maior
+                  height: 48,
+                  color: Colors.transparent, // Facilita o clique
+                  child: Center(
+                    child: Icon(
+                      isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                      size: 18,
+                      color: isSelected ? kAccentColor : Colors.grey.shade400,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                if (isMobile) ...[
+              ),
+              
+              // Conteúdo da Linha - Abre o modal
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    // Abrir modal de detalhes
+                    showDialog(
+                      context: context,
+                      builder: (_) => BlocProvider.value(
+                        value: cubit,
+                        child: DespesaDetailModal(despesa: d),
+                      ),
+                    );
+                  },
+                  onLongPress: () {
+                    // Manter a seleção por long press também
+                    if (d.id != null) cubit.toggleDespesaSelecionada(d.id!);
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 4 : 8, 
+                      vertical: 10
+                    ),
+                    color: Colors.transparent, // Garante que toda a área seja clicável
+                    child: Row(
+                      children: [
+                        if (isMobile) ...[
                   // Mobile layout - colunas compactas
                   Expanded(
                     flex: 4,
@@ -733,7 +755,11 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
                   ),
                 ],
               ],
-            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -913,17 +939,93 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
   }
 
   Widget _buildFotoSection(DespesaReceitaState state, DespesaReceitaCubit cubit) {
+    final fotoExistente = state.despesaEditando?.fotoUrl;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (state.imagemArquivo != null)
+        if (fotoExistente != null) ...[
+          const Text(
+            'Foto Atual:',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
           Container(
-            margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FullScreenImageViewer(imageUrl: fotoExistente),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: 'foto_editando',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        fotoExistente,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      _fotoActionButton(
+                        label: 'Trocar',
+                        icon: Icons.sync,
+                        color: kPrimaryColor,
+                        onPressed: () async {
+                          final confirm = await _showConfirmAction(
+                            title: 'Trocar Foto',
+                            message: 'Deseja realmente trocar a foto atual?',
+                          );
+                          if (confirm && mounted) _showImagePicker(context, cubit);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _fotoActionButton(
+                        label: 'Deletar',
+                        icon: Icons.delete_outline,
+                        color: Colors.red,
+                        onPressed: () async {
+                          final confirm = await _showConfirmAction(
+                            title: 'Deletar Foto',
+                            message: 'Deseja realmente remover a foto atual?',
+                          );
+                          if (confirm && mounted) cubit.removerFotoExistenteDespesa();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (state.imagemArquivo != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
             ),
             child: Row(
               children: [
@@ -944,81 +1046,123 @@ class _DespesasTabWidgetState extends State<DespesasTabWidget> {
                         ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Foto selecionada',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        state.imagemArquivo!.name,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                const Expanded(
+                  child: Text(
+                    'Nova foto selecionada',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
                   ),
                 ),
                 IconButton(
                   onPressed: () => cubit.removerImagem(),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: const Icon(Icons.close, color: Colors.grey),
                 ),
               ],
             ),
           ),
-        OutlinedButton.icon(
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        if (fotoExistente == null && state.imagemArquivo == null)
+          OutlinedButton.icon(
+            onPressed: () => _showImagePicker(context, cubit),
+            icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+            label: const Text('Anexar foto'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-              builder: (context) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text('Tirar Foto'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        cubit.selecionarImagem(ImageSource.camera);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.photo_library),
-                      title: const Text('Galeria'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        cubit.selecionarImagem(ImageSource.gallery);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          icon: const Icon(Icons.add_a_photo_outlined, size: 20),
-          label: Text(
-            state.imagemArquivo != null ? 'Trocar Foto' : 'Anexar foto',
+            ),
           ),
+      ],
+    );
+  }
+
+  Widget _fotoActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: SizedBox(
+        height: 36,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 16),
+          label: Text(label, style: const TextStyle(fontSize: 11)),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            foregroundColor: color,
+            side: BorderSide(color: color),
+            padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
         ),
-      ],
+      ),
     );
+  }
+
+  void _showImagePicker(BuildContext context, DespesaReceitaCubit cubit) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Tirar Foto'),
+              onTap: () {
+                Navigator.pop(context);
+                cubit.selecionarImagem(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galeria'),
+              onTap: () {
+                Navigator.pop(context);
+                cubit.selecionarImagem(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showConfirmAction({
+    required String title,
+    required String message,
+  }) async {
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirmar'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   void _limparFormulario(DespesaReceitaCubit cubit) {

@@ -115,12 +115,28 @@ class DespesaReceitaService implements IDespesaReceitaService {
   }
 
   @override
-  Future<String> uploadFotoDespesa(XFile arquivo) async {
+  Future<void> salvarDespesasMultiplas(List<Despesa> despesas) async {
+    try {
+      final data = despesas.map((d) {
+        final map = d.toJson();
+        map.remove('id');
+        return map;
+      }).toList();
+      
+      await _supabase.from('despesas').insert(data);
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao salvar despesas múltiplas: $e');
+      throw Exception('Erro ao salvar despesas recorrentes.');
+    }
+  }
+
+  @override
+  Future<String> uploadFoto(XFile arquivo) async {
     try {
       final bytes = await arquivo.readAsBytes();
       final extensao = arquivo.name.split('.').last.toLowerCase();
       final nomeArquivo =
-          'despesa_${DateTime.now().millisecondsSinceEpoch}.$extensao';
+          'financeiro_${DateTime.now().millisecondsSinceEpoch}.$extensao';
       final caminhoCompleto = 'comprovantes/$nomeArquivo';
 
       // Bucket 'comprovantes_financeiros'
@@ -228,6 +244,22 @@ class DespesaReceitaService implements IDespesaReceitaService {
     } catch (e) {
       print('⚠️ [DespesaReceitaService] Erro ao salvar receita: $e');
       throw Exception('Erro ao salvar receita.');
+    }
+  }
+
+  @override
+  Future<void> salvarReceitasMultiplas(List<Receita> receitas) async {
+    try {
+      final data = receitas.map((r) {
+        final map = r.toJson();
+        map.remove('id');
+        return map;
+      }).toList();
+      
+      await _supabase.from('receitas').insert(data);
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao salvar receitas múltiplas: $e');
+      throw Exception('Erro ao salvar receitas recorrentes.');
     }
   }
 
@@ -351,39 +383,28 @@ class DespesaReceitaService implements IDespesaReceitaService {
     required int ano,
   }) async {
     try {
-      // Mês anterior
-      int mesAnterior = mes - 1;
-      int anoAnterior = ano;
-      if (mesAnterior < 1) {
-        mesAnterior = 12;
-        anoAnterior--;
-      }
+      // Início do mês atual selecionado
+      final inicioMesAtual = DateTime(ano, mes, 1);
+      final dataCorteStr = inicioMesAtual.toIso8601String().split('T').first;
 
-      final inicio = DateTime(anoAnterior, mesAnterior, 1);
-      final fim = DateTime(anoAnterior, mesAnterior + 1, 0);
-      final inicioStr = inicio.toIso8601String().split('T').first;
-      final fimStr = fim.toIso8601String().split('T').first;
-
-      // Buscar receitas do mês anterior
+      // Buscar TODAS as receitas ANTES do mês atual
       final receitasResp = await _supabase
           .from('receitas')
           .select('valor')
           .eq('condominio_id', condominioId)
-          .gte('data_credito', inicioStr)
-          .lte('data_credito', fimStr);
+          .lt('data_credito', dataCorteStr);
 
       final totalReceitas = (receitasResp as List).fold<double>(
         0,
         (sum, r) => sum + ((r['valor'] ?? 0) as num).toDouble(),
       );
 
-      // Buscar despesas do mês anterior
+      // Buscar TODAS as despesas ANTES do mês atual
       final despesasResp = await _supabase
           .from('despesas')
           .select('valor')
           .eq('condominio_id', condominioId)
-          .gte('data_vencimento', inicioStr)
-          .lte('data_vencimento', fimStr);
+          .lt('data_vencimento', dataCorteStr);
 
       final totalDespesas = (despesasResp as List).fold<double>(
         0,

@@ -47,7 +47,7 @@ class DespesaDetailModal extends StatelessWidget {
                     ],
                     if (despesa.fotoUrl != null && despesa.fotoUrl!.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      _buildImageSection(),
+                      _buildImageSection(context),
                     ],
                     if (despesa.recorrente) ...[
                       const SizedBox(height: 20),
@@ -323,7 +323,7 @@ class DespesaDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildImageSection() {
+  Widget _buildImageSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -349,37 +349,64 @@ class DespesaDetailModal extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
+          GestureDetector(
+            onTap: () => FullScreenImageViewer.show(
+              context,
               despesa.fotoUrl!,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
+              tag: 'despesa_foto_${despesa.id}',
+            ),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Hero(
+                tag: 'despesa_foto_${despesa.id}',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    color: Colors.white, // Fundo branco para imagens com transparência ou menores
+                    child: Image.network(
+                      despesa.fotoUrl!,
+                      height: 250,
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.broken_image, size: 48, color: Colors.grey.shade600),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Erro ao carregar imagem',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 48, color: Colors.grey.shade600),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Erro ao carregar imagem',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              'Toque para expandir',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
         ],
