@@ -22,6 +22,7 @@ import 'package:condogaiaapp/features/Representante_Features/despesa_receita/cub
 import 'package:condogaiaapp/features/Representante_Features/despesa_receita/models/despesa_model.dart';
 import 'package:condogaiaapp/features/Representante_Features/despesa_receita/models/receita_model.dart';
 import 'package:condogaiaapp/features/Representante_Features/despesa_receita/models/transferencia_model.dart';
+import 'package:condogaiaapp/features/Representante_Features/despesa_receita/models/conta_contabil_model.dart';
 import 'package:condogaiaapp/features/Representante_Features/despesa_receita/services/despesa_receita_service.dart';
 import 'package:condogaiaapp/features/Representante_Features/gestao_condominio/models/conta_bancaria_model.dart';
 import 'package:condogaiaapp/features/Representante_Features/gestao_condominio/models/categoria_financeira_model.dart';
@@ -65,6 +66,14 @@ final _categorias = [
     'tipo': 'RECEITA',
     'condominio_id': 'cond-1',
   }),
+];
+
+final _contasContabeis = [
+  ContaContabilModel(
+    id: 'cc-1',
+    nome: 'Controle',
+    condominioId: 'cond-1',
+  ),
 ];
 
 const _despesas = [
@@ -153,6 +162,9 @@ void main() {
             ano: any(named: 'ano'),
           ),
         ).thenAnswer((_) async => 5000.0);
+        when(
+          () => mockService.listarContasContabeis(any()),
+        ).thenAnswer((_) async => _contasContabeis);
         return _buildCubit();
       },
       act: (cubit) => cubit.carregarDados(),
@@ -318,7 +330,7 @@ void main() {
         palavraChave: 'manutenção',
         contaDebitoId: 'cd-1',
         contaCreditoId: 'cc-1',
-        contaContabil: 'Controle',
+        filtroContaContabilId: 'Controle',
         tipoReceita: 'MANUAL',
       ),
       expect: () => [
@@ -329,7 +341,7 @@ void main() {
             .having((s) => s.filtroPalavraChave, 'palavraChave', 'manutenção')
             .having((s) => s.filtroContaDebitoId, 'contaDebitoId', 'cd-1')
             .having((s) => s.filtroContaCreditoId, 'contaCreditoId', 'cc-1')
-            .having((s) => s.filtroContaContabil, 'contaContabil', 'Controle')
+            .having((s) => s.filtroContaContabilId, 'contaContabil', 'Controle')
             .having((s) => s.filtroTipoReceita, 'tipoReceita', 'MANUAL'),
       ],
     );
@@ -621,6 +633,9 @@ void main() {
             ano: any(named: 'ano'),
           ),
         ).thenAnswer((_) async => 0.0);
+        when(
+          () => mockService.listarContasContabeis(any()),
+        ).thenAnswer((_) async => _contasContabeis);
         return _buildCubit();
       },
       act: (cubit) => cubit.mesAnterior(),

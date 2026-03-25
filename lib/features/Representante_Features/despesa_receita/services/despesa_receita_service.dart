@@ -4,6 +4,7 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 import '../../gestao_condominio/models/conta_bancaria_model.dart';
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import '../models/conta_contabil_model.dart';
 import 'i_despesa_receita_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -44,6 +45,52 @@ class DespesaReceitaService implements IDespesaReceitaService {
           .toList();
     } catch (e) {
       throw Exception('Erro ao listar categorias: $e');
+    }
+  }
+
+  // ============================================================
+  // CONTA CONTÁBIL (CRUD)
+  // ============================================================
+
+  @override
+  Future<List<ContaContabilModel>> listarContasContabeis(String condominioId) async {
+    try {
+      final response = await _supabase
+          .from('conta_contabil')
+          .select()
+          .eq('condominio_id', condominioId)
+          .order('nome');
+
+      return (response as List).map((e) => ContaContabilModel.fromJson(e)).toList();
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao listar contas contábeis: $e');
+      throw Exception('Erro ao listar contas contábeis.');
+    }
+  }
+
+  @override
+  Future<void> salvarContaContabil(ContaContabilModel conta) async {
+    try {
+      final data = conta.toJson();
+      if (conta.id != null) {
+        await _supabase.from('conta_contabil').update(data).eq('id', conta.id!);
+      } else {
+        data.remove('id');
+        await _supabase.from('conta_contabil').insert(data);
+      }
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao salvar conta contábil: $e');
+      throw Exception('Erro ao salvar conta contábil.');
+    }
+  }
+
+  @override
+  Future<void> excluirContaContabil(String id) async {
+    try {
+      await _supabase.from('conta_contabil').delete().eq('id', id);
+    } catch (e) {
+      print('⚠️ [DespesaReceitaService] Erro ao excluir conta contábil: $e');
+      throw Exception('Erro ao excluir conta contábil.');
     }
   }
 

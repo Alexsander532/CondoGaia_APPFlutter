@@ -196,7 +196,7 @@ class ReceitaDetailModal extends StatelessWidget {
         _buildDetailListItem(
           icon: Icons.account_balance_wallet,
           label: 'Conta Contábil',
-          value: receita.contaContabil ?? 'Não definida',
+          value: receita.contaContabilNome ?? 'Não definida',
           color: Colors.orange,
         ),
         const SizedBox(height: 12),

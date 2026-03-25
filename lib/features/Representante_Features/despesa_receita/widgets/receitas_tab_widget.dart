@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/despesa_receita_cubit.dart';
 import '../cubit/despesa_receita_state.dart';
 import '../models/receita_model.dart';
-import '../../gestao_condominio/models/categoria_financeira_model.dart';
 import 'shared_widgets.dart';
 import 'base_tab_widget.dart';
 import '../../../../../utils/input_formatters.dart';
@@ -29,27 +28,15 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
 
   // Filtros
   String? _filtroContaId;
-  String? _filtroCategoriaId;
-  String? _filtroSubcategoriaId;
   String? _filtroContaContabil;
   String _filtroTipo = 'Todos';
 
   // Cadastro
   String? _contaIdCadastro;
-  String? _categoriaIdCadastro;
-  String? _subcategoriaIdCadastro;
   String? _contaContabilCadastro;
   DateTime? _dataCredito;
 
-  List<SubcategoriaFinanceira> _getSubcategorias(
-    DespesaReceitaState state,
-    String? catId,
-  ) {
-    if (catId == null) return [];
-    final cat = state.categoriasDespesa.where((c) => c.id == catId).toList();
-    if (cat.isEmpty) return [];
-    return cat.first.subcategorias;
-  }
+
 
   // Edição
   String? _editandoId;
@@ -147,44 +134,16 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
         ),
         const SizedBox(height: 10),
         buildDropdownField(
-          label: 'Categoria',
-          icon: Icons.category,
-          value: _filtroCategoriaId,
-          items: state.categoriasDespesa
+          label: 'Conta Contábil',
+          icon: Icons.book,
+          value: _filtroContaContabil,
+          items: state.contasContabeis
               .map(
                 (c) => DropdownMenuItem<String>(
                   value: c.id,
                   child: Text(c.nome, overflow: TextOverflow.ellipsis),
                 ),
               )
-              .toList(),
-          onChanged: (v) => setState(() {
-            _filtroCategoriaId = v;
-            _filtroSubcategoriaId = null;
-          }),
-        ),
-        const SizedBox(height: 10),
-        buildDropdownField(
-          label: 'Subcategoria',
-          icon: Icons.subdirectory_arrow_right,
-          value: _filtroSubcategoriaId,
-          items: _getSubcategorias(state, _filtroCategoriaId)
-              .map<DropdownMenuItem<String>>(
-                (s) => DropdownMenuItem<String>(
-                  value: s.id,
-                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _filtroSubcategoriaId = v),
-        ),
-        const SizedBox(height: 10),
-        buildDropdownField(
-          label: 'Conta Contábil',
-          icon: Icons.book,
-          value: _filtroContaContabil,
-          items: ['Controle', 'Fundo Reserva', 'Obras']
-              .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
               .toList(),
           onChanged: (v) => setState(() => _filtroContaContabil = v),
         ),
@@ -225,9 +184,9 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                       : () {
                           cubit.atualizarFiltros(
                             contaId: _filtroContaId,
-                            categoriaId: _filtroCategoriaId,
-                            subcategoriaId: _filtroSubcategoriaId,
-                            contaContabil: _filtroContaContabil,
+                            categoriaId: null,
+                            subcategoriaId: null,
+                            filtroContaContabilId: _filtroContaContabil,
                             tipoReceita: _filtroTipo,
                             palavraChave: _palavraChaveController.text,
                           );
@@ -255,8 +214,6 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                 onPressed: () {
                   setState(() {
                     _filtroContaId = null;
-                    _filtroCategoriaId = null;
-                    _filtroSubcategoriaId = null;
                     _filtroContaContabil = null;
                     _filtroTipo = 'Todos';
                     _palavraChaveController.clear();
@@ -265,7 +222,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                     contaId: '',
                     categoriaId: '',
                     subcategoriaId: '',
-                    contaContabil: '',
+                    filtroContaContabilId: '',
                     tipoReceita: 'Todos',
                     palavraChave: '',
                   );
@@ -314,47 +271,30 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
           onChanged: (v) => setState(() => _contaIdCadastro = v),
         ),
         const SizedBox(height: 10),
-        buildDropdownField(
-          label: 'Categoria',
-          icon: Icons.category,
-          value: _categoriaIdCadastro,
-          items: state.categoriasDespesa
-              .map(
-                (c) => DropdownMenuItem<String>(
-                  value: c.id,
-                  child: Text(c.nome, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() {
-            _categoriaIdCadastro = v;
-            _subcategoriaIdCadastro = null;
-          }),
-        ),
-        const SizedBox(height: 10),
-        buildDropdownField(
-          label: 'Subcategoria',
-          icon: Icons.subdirectory_arrow_right,
-          value: _subcategoriaIdCadastro,
-          items: _getSubcategorias(state, _categoriaIdCadastro)
-              .map<DropdownMenuItem<String>>(
-                (s) => DropdownMenuItem<String>(
-                  value: s.id,
-                  child: Text(s.nome, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _subcategoriaIdCadastro = v),
-        ),
-        const SizedBox(height: 10),
-        buildDropdownField(
-          label: 'Conta Contábil',
-          icon: Icons.book,
-          value: _contaContabilCadastro,
-          items: ['Controle', 'Fundo Reserva', 'Obras']
-              .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
-              .toList(),
-          onChanged: (v) => setState(() => _contaContabilCadastro = v),
+        Row(
+          children: [
+            Expanded(
+              child: buildDropdownField(
+                label: 'Conta Contábil',
+                icon: Icons.book,
+                value: _contaContabilCadastro,
+                items: state.contasContabeis
+                    .map(
+                      (c) => DropdownMenuItem<String>(
+                        value: c.id,
+                        child: Text(c.nome, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => _contaContabilCadastro = v),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit, color: kAccentColor),
+              onPressed: () => _exibirModalContaContabil(cubit),
+              tooltip: 'Gerenciar Contas Contábeis',
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         const Divider(),
@@ -672,9 +612,9 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
-                                if (r.contaContabil != null)
+                                if (r.contaContabilNome != null)
                                   Text(
-                                    r.contaContabil!,
+                                    r.contaContabilNome!,
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey.shade500,
@@ -830,9 +770,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
     setState(() {
       _editandoId = r.id;
       _contaIdCadastro = r.contaId;
-      _categoriaIdCadastro = r.categoriaId;
-      _subcategoriaIdCadastro = r.subcategoriaId;
-      _contaContabilCadastro = r.contaContabil;
+      _contaContabilCadastro = r.contaContabilId;
       _descricaoController.text = r.descricao ?? '';
       _valorController.text = r.valor.toStringAsFixed(2).replaceAll('.', ',');
       // Force format with thousands separators
@@ -885,9 +823,7 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
       id: _editandoId,
       condominioId: cubit.condominioId,
       contaId: _contaIdCadastro,
-      categoriaId: _categoriaIdCadastro,
-      subcategoriaId: _subcategoriaIdCadastro,
-      contaContabil: _contaContabilCadastro,
+      contaContabilId: _contaContabilCadastro,
       descricao: _descricaoController.text,
       valor: valor,
       dataCredito: _dataCredito,
@@ -910,10 +846,89 @@ class _ReceitasTabWidgetState extends State<ReceitasTabWidget> {
       _dataCredito = null;
       _recorrente = false;
       _contaIdCadastro = null;
-      _categoriaIdCadastro = null;
-      _subcategoriaIdCadastro = null;
       _contaContabilCadastro = null;
       _cadastroExpandido = false;
     });
+  }
+
+  void _exibirModalContaContabil(DespesaReceitaCubit cubit) {
+    final nomeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BlocProvider.value(
+          value: cubit,
+          child: BlocBuilder<DespesaReceitaCubit, DespesaReceitaState>(
+            builder: (context, state) {
+              return AlertDialog(
+                title: const Text('Contas Contábeis'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: nomeController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nova Conta Contábil',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle, color: Colors.green),
+                            onPressed: () {
+                              if (nomeController.text.trim().isNotEmpty) {
+                                cubit.salvarContaContabil(nomeController.text.trim());
+                                nomeController.clear();
+                              }
+                            },
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: state.contasContabeis.length,
+                          itemBuilder: (context, index) {
+                            final conta = state.contasContabeis[index];
+                            return ListTile(
+                              title: Text(conta.nome),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () {
+                                  cubit.excluirContaContabil(conta.id!);
+                                  if (_contaContabilCadastro == conta.id) {
+                                    setState(() => _contaContabilCadastro = null);
+                                  }
+                                  if (_filtroContaContabil == conta.id) {
+                                    setState(() => _filtroContaContabil = null);
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }

@@ -150,9 +150,7 @@ void main() {
         'id': 'rec-001',
         'condominio_id': 'cond-001',
         'conta_id': 'conta-001',
-        'categoria_id': 'cat-002',
-        'subcategoria_id': 'sub-002',
-        'conta_contabil': 'Controle',
+        'conta_contabil_id': 'contabil-001',
         'descricao': 'Taxa condominial',
         'valor': 850.00,
         'data_credito': '2026-03-01',
@@ -161,8 +159,7 @@ void main() {
         'tipo': 'MANUAL',
         'created_at': '2026-01-05T08:00:00',
         'contas_bancarias': {'banco': 'Itaú'},
-        'categorias_financeiras': {'nome': 'Taxas'},
-        'subcategorias_financeiras': {'nome': 'Condominial'},
+        'conta_contabil': {'nome': 'Controle'},
       };
     });
 
@@ -177,12 +174,11 @@ void main() {
       final receita = Receita.fromJson(fullJson);
 
       expect(receita.id, 'rec-001');
-      expect(receita.contaContabil, 'Controle');
+      expect(receita.contaContabilId, 'contabil-001');
       expect(receita.valor, 850.00);
       expect(receita.dataCredito, DateTime(2026, 3, 1));
       expect(receita.contaNome, 'Itaú');
-      expect(receita.categoriaNome, 'Taxas');
-      expect(receita.subcategoriaNome, 'Condominial');
+      expect(receita.contaContabilNome, 'Controle');
     });
 
     test('deve tratar JSON mínimo (nullable fields)', () {
@@ -196,13 +192,14 @@ void main() {
       final receita = Receita.fromJson(fullJson);
       final json = receita.toJson();
       expect(json['id'], 'rec-001');
-      expect(json['conta_contabil'], 'Controle');
+      expect(json['conta_contabil_id'], 'contabil-001');
     });
 
     test('toJson não deve incluir campos auxiliares de join', () {
       final json = Receita.fromJson(fullJson).toJson();
       expect(json.containsKey('contas_bancarias'), false);
-      expect(json.containsKey('categorias_financeiras'), false);
+      expect(json.containsKey('conta_contabil'), false);
+      expect(json.containsKey('conta_contabilNome'), false);
       expect(json.containsKey('contaNome'), false);
     });
 
@@ -213,7 +210,7 @@ void main() {
       expect(copy.descricao, 'Novo descricao');
       expect(copy.valor, 999);
       expect(copy.id, original.id);
-      expect(copy.contaContabil, original.contaContabil);
+      expect(copy.contaContabilId, original.contaContabilId);
     });
 
     test('Equatable: receitas idênticas devem ser iguais', () {

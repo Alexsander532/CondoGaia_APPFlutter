@@ -34,7 +34,7 @@ void main() {
       expect(state.filtroCategoriaId, isNull);
       expect(state.filtroSubcategoriaId, isNull);
       expect(state.filtroPalavraChave, isNull);
-      expect(state.filtroContaContabil, isNull);
+      expect(state.filtroContaContabilId, isNull);
       expect(state.filtroContaCreditoId, isNull);
       expect(state.filtroContaDebitoId, isNull);
       expect(state.filtroTipoReceita, 'Todos');

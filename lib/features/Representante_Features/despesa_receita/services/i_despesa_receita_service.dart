@@ -3,10 +3,15 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import '../models/conta_contabil_model.dart';
 import 'package:image_picker/image_picker.dart';
 
 abstract class IDespesaReceitaService {
   Future<List<CategoriaFinanceira>> listarCategorias();
+
+  Future<List<ContaContabilModel>> listarContasContabeis(String condominioId);
+  Future<void> salvarContaContabil(ContaContabilModel conta);
+  Future<void> excluirContaContabil(String id);
 
   Future<List<Despesa>> listarDespesas(
     String condominioId, {

@@ -75,8 +75,10 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     emit(state.copyWith(dia: val));
   }
 
-  void atualizarValorPorUnidade(double? val) {
-    emit(state.copyWith(valorPorUnidade: val));
+  void atualizarValorPorUnidade(String unidadeId, double val) {
+    final map = Map<String, double>.from(state.valoresPorUnidade);
+    map[unidadeId] = val;
+    emit(state.copyWith(valoresPorUnidade: map));
   }
 
   void atualizarRecorrente(bool val) {
@@ -115,7 +117,7 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
   // ============ LÓGICA DO CARRINHO ============
 
   void adicionarAoCarrinho() {
-    if (state.contaContabilId == null || state.valorPorUnidade == null) {
+    if (state.contaContabilId == null) {
       emit(state.copyWith(errorMessage: 'Preencha os campos obrigatórios.'));
       return;
     }
@@ -127,11 +129,17 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
 
     final novosItems = <CobrancaAvulsaEntity>[];
     for (var unidadeId in state.unidadesSelecionadas) {
+      final valorUnidade = state.valoresPorUnidade[unidadeId] ?? 0.0;
+      if (valorUnidade <= 0) {
+        emit(state.copyWith(errorMessage: 'Preencha os valores para as unidades selecionadas.'));
+        return;
+      }
+
       novosItems.add(CobrancaAvulsaEntity(
         condominioId: condominioId,
         contaContabilId: state.contaContabilId,
         unidadeId: unidadeId,
-        valor: state.valorPorUnidade!,
+        valor: valorUnidade,
         descricao: state.descricao,
         tipoCobranca: state.tipoCobranca,
         mesRef: state.mesSelecionado.toString().padLeft(2, '0'),
@@ -146,6 +154,7 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     emit(state.copyWith(
       itemsCarrinho: listaAtualizada,
       unidadesSelecionadas: {}, // Limpar seleção após adicionar
+      valoresPorUnidade: {}, // Limpa os valores também
     ));
   }
 
@@ -210,7 +219,7 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
           email: '', // Email será buscado pelo backend via morador_id
           nome: '',
           descricao: state.descricao ?? state.itemsCarrinho.first.descricao ?? '',
-          valor: state.valorPorUnidade ?? 0,
+          valor: state.itemsCarrinho.first.valor,
           dataVencimento: dataVencimentoStr,
           comprovanteUrl: comprovanteUrl,
         );

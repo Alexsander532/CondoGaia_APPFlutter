@@ -21,7 +21,7 @@ class CobrancaAvulsaState {
   String? descricao;
   String? tipoCobranca; // 'Junto a Taxa Cond.' ou 'Boleto Avulso'
   int? dia;
-  double? valorPorUnidade;
+  Map<String, double> valoresPorUnidade;
   bool recorrente;
   int? qtdMeses;
   DateTime? dataInicio;
@@ -55,7 +55,7 @@ class CobrancaAvulsaState {
     this.descricao,
     this.tipoCobranca,
     this.dia,
-    this.valorPorUnidade,
+    this.valoresPorUnidade = const {},
     this.recorrente = false,
     this.qtdMeses,
     this.dataInicio,
@@ -83,7 +83,7 @@ class CobrancaAvulsaState {
     String? descricao,
     String? tipoCobranca,
     int? dia,
-    double? valorPorUnidade,
+    Map<String, double>? valoresPorUnidade,
     bool? recorrente,
     int? qtdMeses,
     DateTime? dataInicio,
@@ -112,7 +112,7 @@ class CobrancaAvulsaState {
       descricao: descricao ?? this.descricao,
       tipoCobranca: tipoCobranca ?? this.tipoCobranca,
       dia: dia ?? this.dia,
-      valorPorUnidade: valorPorUnidade ?? this.valorPorUnidade,
+      valoresPorUnidade: valoresPorUnidade ?? this.valoresPorUnidade,
       recorrente: recorrente ?? this.recorrente,
       qtdMeses: qtdMeses ?? this.qtdMeses,
       dataInicio: dataInicio ?? this.dataInicio,

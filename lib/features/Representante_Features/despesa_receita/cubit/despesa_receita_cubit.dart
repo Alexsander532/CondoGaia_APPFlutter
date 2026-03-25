@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import '../models/despesa_model.dart';
 import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
+import '../models/conta_contabil_model.dart';
 import '../services/despesa_receita_service.dart';
 import 'despesa_receita_state.dart';
 import 'package:image_picker/image_picker.dart';
@@ -50,11 +51,15 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         ano: state.anoSelecionado,
       );
 
+      // Buscar contas contábeis
+      final contasContabeis = await _service.listarContasContabeis(condominioId);
+
       emit(
         state.copyWith(
           status: DespesaReceitaStatus.success,
           contas: contas,
           categorias: categorias,
+          contasContabeis: contasContabeis,
           despesas: despesas,
           receitas: receitas,
           transferencias: transferencias,
@@ -109,7 +114,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
     String? categoriaId,
     String? subcategoriaId,
     String? palavraChave,
-    String? contaContabil,
+    String? filtroContaContabilId,
     String? tipoReceita,
     String? contaCreditoId,
     String? contaDebitoId,
@@ -120,7 +125,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         filtroCategoriaId: categoriaId ?? '',
         filtroSubcategoriaId: subcategoriaId ?? '',
         filtroPalavraChave: palavraChave ?? '',
-        filtroContaContabil: contaContabil ?? '',
+        filtroContaContabilId: filtroContaContabilId ?? '',
         filtroContaCreditoId: contaCreditoId ?? state.filtroContaCreditoId,
         filtroContaDebitoId: contaDebitoId ?? state.filtroContaDebitoId,
         filtroTipoReceita: tipoReceita ?? state.filtroTipoReceita,
@@ -167,7 +172,7 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
         contaId: state.filtroContaId,
         categoriaId: state.filtroCategoriaId,
         subcategoriaId: state.filtroSubcategoriaId,
-        contaContabil: state.filtroContaContabil,
+        contaContabil: state.filtroContaContabilId,
         tipo: state.filtroTipoReceita,
         palavraChave: state.filtroPalavraChave,
       );
@@ -464,6 +469,37 @@ class DespesaReceitaCubit extends Cubit<DespesaReceitaState> {
   // ============================================================
   // MODO EDIÇÃO
   // ============================================================
+
+  Future<void> salvarContaContabil(String nome) async {
+    try {
+      final novaConta = ContaContabilModel(
+        id: '', // Supabase irá gerar ou podemos ignorar se for insert, mas deve compilar.
+        nome: nome,
+        condominioId: condominioId,
+      );
+      await _service.salvarContaContabil(novaConta);
+      final contasContabeis = await _service.listarContasContabeis(condominioId);
+      emit(state.copyWith(
+        contasContabeis: contasContabeis,
+        successMessage: 'Conta Contábil salva com sucesso!',
+      ));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Erro ao salvar Conta Contábil: $e'));
+    }
+  }
+
+  Future<void> excluirContaContabil(String id) async {
+    try {
+      await _service.excluirContaContabil(id);
+      final contasContabeis = await _service.listarContasContabeis(condominioId);
+      emit(state.copyWith(
+        contasContabeis: contasContabeis,
+        successMessage: 'Conta Contábil excluída com sucesso!',
+      ));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'Erro ao excluir Conta Contábil: $e'));
+    }
+  }
 
   void iniciarEdicaoDespesa(Despesa despesa) {
     emit(state.copyWith(despesaEditando: despesa));

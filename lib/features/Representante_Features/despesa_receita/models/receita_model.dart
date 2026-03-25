@@ -4,9 +4,7 @@ class Receita extends Equatable {
   final String? id;
   final String condominioId;
   final String? contaId;
-  final String? categoriaId;
-  final String? subcategoriaId;
-  final String? contaContabil;
+  final String? contaContabilId;
   final String? descricao;
   final double valor;
   final DateTime? dataCredito;
@@ -17,16 +15,13 @@ class Receita extends Equatable {
 
   // Campos auxiliares (join data)
   final String? contaNome;
-  final String? categoriaNome;
-  final String? subcategoriaNome;
+  final String? contaContabilNome;
 
   const Receita({
     this.id,
     required this.condominioId,
     this.contaId,
-    this.categoriaId,
-    this.subcategoriaId,
-    this.contaContabil,
+    this.contaContabilId,
     this.descricao,
     this.valor = 0,
     this.dataCredito,
@@ -35,8 +30,7 @@ class Receita extends Equatable {
     this.tipo = 'MANUAL',
     this.createdAt,
     this.contaNome,
-    this.categoriaNome,
-    this.subcategoriaNome,
+    this.contaContabilNome,
   });
 
   factory Receita.fromJson(Map<String, dynamic> json) {
@@ -44,9 +38,7 @@ class Receita extends Equatable {
       id: json['id'],
       condominioId: json['condominio_id'] ?? '',
       contaId: json['conta_id'],
-      categoriaId: json['categoria_id'],
-      subcategoriaId: json['subcategoria_id'],
-      contaContabil: json['conta_contabil'],
+      contaContabilId: json['conta_contabil_id'],
       descricao: json['descricao'],
       valor: (json['valor'] ?? 0).toDouble(),
       dataCredito: json['data_credito'] != null
@@ -59,8 +51,7 @@ class Receita extends Equatable {
           ? DateTime.tryParse(json['created_at'])
           : null,
       contaNome: json['contas_bancarias']?['banco'],
-      categoriaNome: json['categorias_financeiras']?['nome'],
-      subcategoriaNome: json['subcategorias_financeiras']?['nome'],
+      contaContabilNome: json['conta_contabil']?['nome'],
     );
   }
 
@@ -68,9 +59,7 @@ class Receita extends Equatable {
     final Map<String, dynamic> data = {
       'condominio_id': condominioId,
       'conta_id': contaId,
-      'categoria_id': categoriaId,
-      'subcategoria_id': subcategoriaId,
-      'conta_contabil': contaContabil,
+      'conta_contabil_id': contaContabilId,
       'descricao': descricao,
       'valor': valor,
       'data_credito': dataCredito?.toIso8601String().split('T').first,
@@ -88,9 +77,7 @@ class Receita extends Equatable {
     String? id,
     String? condominioId,
     String? contaId,
-    String? categoriaId,
-    String? subcategoriaId,
-    String? contaContabil,
+    String? contaContabilId,
     String? descricao,
     double? valor,
     DateTime? dataCredito,
@@ -99,16 +86,13 @@ class Receita extends Equatable {
     String? tipo,
     DateTime? createdAt,
     String? contaNome,
-    String? categoriaNome,
-    String? subcategoriaNome,
+    String? contaContabilNome,
   }) {
     return Receita(
       id: id ?? this.id,
       condominioId: condominioId ?? this.condominioId,
       contaId: contaId ?? this.contaId,
-      categoriaId: categoriaId ?? this.categoriaId,
-      subcategoriaId: subcategoriaId ?? this.subcategoriaId,
-      contaContabil: contaContabil ?? this.contaContabil,
+      contaContabilId: contaContabilId ?? this.contaContabilId,
       descricao: descricao ?? this.descricao,
       valor: valor ?? this.valor,
       dataCredito: dataCredito ?? this.dataCredito,
@@ -117,8 +101,7 @@ class Receita extends Equatable {
       tipo: tipo ?? this.tipo,
       createdAt: createdAt ?? this.createdAt,
       contaNome: contaNome ?? this.contaNome,
-      categoriaNome: categoriaNome ?? this.categoriaNome,
-      subcategoriaNome: subcategoriaNome ?? this.subcategoriaNome,
+      contaContabilNome: contaContabilNome ?? this.contaContabilNome,
     );
   }
 
@@ -127,9 +110,7 @@ class Receita extends Equatable {
     id,
     condominioId,
     contaId,
-    categoriaId,
-    subcategoriaId,
-    contaContabil,
+    contaContabilId,
     descricao,
     valor,
     dataCredito,
@@ -138,7 +119,6 @@ class Receita extends Equatable {
     tipo,
     createdAt,
     contaNome,
-    categoriaNome,
-    subcategoriaNome,
+    contaContabilNome,
   ];
 }

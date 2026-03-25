@@ -4,6 +4,7 @@ import '../models/receita_model.dart';
 import '../models/transferencia_model.dart';
 import '../../gestao_condominio/models/conta_bancaria_model.dart';
 import '../../gestao_condominio/models/categoria_financeira_model.dart';
+import '../models/conta_contabil_model.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum DespesaReceitaStatus { initial, loading, success, error }
@@ -15,6 +16,7 @@ class DespesaReceitaState extends Equatable {
   final List<Transferencia> transferencias;
   final List<ContaBancaria> contas;
   final List<CategoriaFinanceira> categorias;
+  final List<ContaContabilModel> contasContabeis;
 
   // Filtros / seleção
   final int mesSelecionado;
@@ -23,7 +25,7 @@ class DespesaReceitaState extends Equatable {
   final String? filtroCategoriaId;
   final String? filtroSubcategoriaId;
   final String? filtroPalavraChave;
-  final String? filtroContaContabil;
+  final String? filtroContaContabilId;
   final String? filtroContaCreditoId;
   final String? filtroContaDebitoId;
   final String filtroTipoReceita; // Todos, Manual, Automático
@@ -55,13 +57,14 @@ class DespesaReceitaState extends Equatable {
     this.transferencias = const [],
     this.contas = const [],
     this.categorias = const [],
+    this.contasContabeis = const [],
     this.mesSelecionado = 0,
     this.anoSelecionado = 0,
     this.filtroContaId,
     this.filtroCategoriaId,
     this.filtroSubcategoriaId,
     this.filtroPalavraChave,
-    this.filtroContaContabil,
+    this.filtroContaContabilId,
     this.filtroContaCreditoId,
     this.filtroContaDebitoId,
     this.filtroTipoReceita = 'Todos',
@@ -86,13 +89,14 @@ class DespesaReceitaState extends Equatable {
     List<Transferencia>? transferencias,
     List<ContaBancaria>? contas,
     List<CategoriaFinanceira>? categorias,
+    List<ContaContabilModel>? contasContabeis,
     int? mesSelecionado,
     int? anoSelecionado,
     String? filtroContaId,
     String? filtroCategoriaId,
     String? filtroSubcategoriaId,
     String? filtroPalavraChave,
-    String? filtroContaContabil,
+    String? filtroContaContabilId,
     String? filtroContaCreditoId,
     String? filtroContaDebitoId,
     String? filtroTipoReceita,
@@ -122,13 +126,14 @@ class DespesaReceitaState extends Equatable {
       transferencias: transferencias ?? this.transferencias,
       contas: contas ?? this.contas,
       categorias: categorias ?? this.categorias,
+      contasContabeis: contasContabeis ?? this.contasContabeis,
       mesSelecionado: mesSelecionado ?? this.mesSelecionado,
       anoSelecionado: anoSelecionado ?? this.anoSelecionado,
       filtroContaId: filtroContaId ?? this.filtroContaId,
       filtroCategoriaId: filtroCategoriaId ?? this.filtroCategoriaId,
       filtroSubcategoriaId: filtroSubcategoriaId ?? this.filtroSubcategoriaId,
       filtroPalavraChave: filtroPalavraChave ?? this.filtroPalavraChave,
-      filtroContaContabil: filtroContaContabil ?? this.filtroContaContabil,
+      filtroContaContabilId: filtroContaContabilId ?? this.filtroContaContabilId,
       filtroContaCreditoId: filtroContaCreditoId ?? this.filtroContaCreditoId,
       filtroContaDebitoId: filtroContaDebitoId ?? this.filtroContaDebitoId,
       filtroTipoReceita: filtroTipoReceita ?? this.filtroTipoReceita,
@@ -193,13 +198,14 @@ class DespesaReceitaState extends Equatable {
     transferencias,
     contas,
     categorias,
+    contasContabeis,
     mesSelecionado,
     anoSelecionado,
     filtroContaId,
     filtroCategoriaId,
     filtroSubcategoriaId,
     filtroPalavraChave,
-    filtroContaContabil,
+    filtroContaContabilId,
     filtroContaCreditoId,
     filtroContaDebitoId,
     filtroTipoReceita,
