@@ -161,11 +161,19 @@ class _SelecionarBlocoUnidDialogState extends State<SelecionarBlocoUnidDialog> {
                       final unidade = state.unidades[index];
                       final id = unidade['id'] as String;
                       final bloco = unidade['bloco'] ?? '';
-                      final unid = unidade['unidade'] ?? '';
+                      final unid = unidade['numero'] ?? '';
                       final blocoUnidade = bloco.isNotEmpty
                           ? '$bloco-$unid'
                           : unid;
-                      final nome = 'Morador'; // Nome is no longer fetched in this modal to save DB queries
+                      final props = unidade['proprietarios'];
+                      String nome = 'Morador';
+                      if (props != null) {
+                        if (props is List && props.isNotEmpty) {
+                          nome = props[0]['nome'] ?? 'Morador';
+                        } else if (props is Map) {
+                          nome = props['nome'] ?? 'Morador';
+                        }
+                      }
                       final isSelected = _selecionados.contains(id);
 
                       return Container(

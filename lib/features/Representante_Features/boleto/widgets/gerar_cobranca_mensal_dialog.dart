@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../cubit/boleto_cubit.dart';
 import '../cubit/boleto_state.dart';
 import 'selecionar_bloco_unid_dialog.dart';
+import '../../gestao_condominio/screens/gestao_condominio_screen.dart';
 
 class GerarCobrancaMensalDialog extends StatefulWidget {
   const GerarCobrancaMensalDialog({super.key});
@@ -26,14 +28,85 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
   bool _enviarRegistro = false;
   bool _enviarEmail = false;
   List<String> _unidadesSelecionadas = [];
-  String _labelUnidades = 'Todos';
+  bool _isInitialized = false;
+
+  void _updateDesconto(BoletoState state) {
+    if (state.configuracaoFinanceira == null) return;
+    final config = state.configuracaoFinanceira!;
+    
+    // Se não houver desconto padrão, limpa o campo
+    if (config.descontoPadrao <= 0) {
+      _descontoController.text = '0,00';
+      return;
+    }
+
+    // Calcula o número de unidades
+    // Se _unidadesSelecionadas estiver vazia, considera TODAS as unidades do condomínio (que estão no state.unidades)
+    final int qtdUnidades = _unidadesSelecionadas.isEmpty 
+        ? state.unidades.length 
+        : _unidadesSelecionadas.length;
+
+    final double totalDesconto = config.descontoPadrao * qtdUnidades;
+    
+    _descontoController.text = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: '',
+    ).format(totalDesconto);
+  }
+
+  void _initializeValues(BoletoState state) {
+    if (_isInitialized || state.configuracaoFinanceira == null) return;
+
+    final config = state.configuracaoFinanceira!;
+    final now = DateTime.now();
+
+    // Data de Vencimento (Próximo mês com o dia configurado)
+    int mesVencimento = now.month;
+    int anoVencimento = now.year;
+    if (mesVencimento == 12) {
+      mesVencimento = 1;
+      anoVencimento++;
+    } else {
+      mesVencimento++;
+    }
+
+    final diaVenc = config.diaVencimento ?? 10;
+    _dataController.text =
+        '${diaVenc.toString().padLeft(2, '0')}/${mesVencimento.toString().padLeft(2, '0')}/$anoVencimento';
+
+    // Cota Condominial
+    double cota = 0;
+    if (config.tipoCobranca == 'FIXO') {
+      cota = config.valorCondominioFixo ?? 0;
+      _cotaCondominialController.text =
+          NumberFormat.currency(locale: 'pt_BR', symbol: '').format(cota);
+    }
+
+    // Fundo de Reserva
+    double fundoReserva = 0;
+    if (config.fundoReservaTipo == 'FIXO') {
+      fundoReserva = config.fundoReservaValor ?? 0;
+    } else if (config.fundoReservaTipo == 'PERCENTUAL' && cota > 0) {
+      fundoReserva = (cota * (config.fundoReservaValor ?? 0)) / 100;
+    }
+    _fundoReservaController.text =
+        NumberFormat.currency(locale: 'pt_BR', symbol: '').format(fundoReserva);
+
+    // Desconto (Total = Unitário * Qtd Unidades)
+    _updateDesconto(state);
+
+    _isInitialized = true;
+  }
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _dataController.text =
-        '10/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    // Carrega as unidades para garantir que o cálculo do desconto (total = unitario * unidades) funcione
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<BoletoCubit>().carregarUnidades();
+      }
+    });
   }
 
   @override
@@ -50,8 +123,23 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<BoletoCubit, BoletoState>(
+    return BlocConsumer<BoletoCubit, BoletoState>(
+      listener: (context, state) {
+        if (state.status == BoletoStatus.success) {
+          _initializeValues(state);
+        }
+        // Se as unidades acabaram de carregar e ainda não foram selecionadas unidades manualmente,
+        // atualiza o desconto para refletir o total do condomínio.
+        if (state.unidades.isNotEmpty && _unidadesSelecionadas.isEmpty) {
+          _updateDesconto(state);
+        }
+      },
       builder: (context, state) {
+        final config = state.configuracaoFinanceira;
+        final hasConfig = config != null &&
+            (config.tipoCobranca != 'FIXO' ||
+                (config.valorCondominioFixo ?? 0) > 0);
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -87,12 +175,76 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                   const Divider(),
                   const SizedBox(height: 8),
 
+                  if (!hasConfig) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded,
+                                  color: Colors.red.shade700),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Configuração financeira não definida ou incompleta.',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Para automatizar a geração, defina a cota e os encargos na tela de Gestão.',
+                            style: TextStyle(fontSize: 12, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => GestaoCondominioScreen(
+                                      condominioId: context
+                                          .read<BoletoCubit>()
+                                          .condominioId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.settings),
+                              label: const Text('Configurar agora'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Boletos info + Selecionador Bloco/Unid
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '$_labelUnidades',
+                        _unidadesSelecionadas.isEmpty
+                            ? 'Todos (${state.unidades.length})'
+                            : '${_unidadesSelecionadas.length} Boletos',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -108,9 +260,7 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                                 onConfirm: (ids) {
                                   setState(() {
                                     _unidadesSelecionadas = ids;
-                                    _labelUnidades = ids.isEmpty
-                                        ? 'Todos'
-                                        : '${ids.length} Boletos';
+                                    _updateDesconto(state);
                                   });
                                 },
                               ),
@@ -145,6 +295,7 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                       Expanded(
                         child: TextField(
                           controller: _dataController,
+                          readOnly: hasConfig,
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
@@ -160,6 +311,8 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                                 color: Colors.grey.shade300,
                               ),
                             ),
+                            filled: hasConfig,
+                            fillColor: hasConfig ? Colors.grey.shade100 : null,
                           ),
                           style: const TextStyle(fontSize: 13),
                         ),
@@ -177,19 +330,27 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Campos financeiros
                   _buildCampoValor(
                     'Cota Condominial:',
                     _cotaCondominialController,
+                    readOnly: hasConfig && config.tipoCobranca == 'FIXO',
                   ),
-                  _buildCampoValor('Fundo Reserva:', _fundoReservaController),
+                  _buildCampoValor(
+                    'Fundo Reserva:',
+                    _fundoReservaController,
+                    readOnly: hasConfig,
+                  ),
                   _buildCampoValor(
                     'Multa por Infração:',
                     _multaInfracaoController,
                   ),
                   _buildCampoValor('Controle:', _controleController),
                   _buildCampoValor('Rateio água:', _rateioAguaController),
-                  _buildCampoValor('Desconto:', _descontoController),
+                  _buildCampoValor(
+                    'Desconto:',
+                    _descontoController,
+                    readOnly: hasConfig && config.descontoPadrao > 0,
+                  ),
                   const SizedBox(height: 16),
 
                   // Checkboxes
@@ -230,7 +391,7 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: state.isSaving
+                      onPressed: !hasConfig || state.isSaving
                           ? null
                           : () => _gerarBoleto(context),
                       style: ElevatedButton.styleFrom(
@@ -268,7 +429,11 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
     );
   }
 
-  Widget _buildCampoValor(String label, TextEditingController controller) {
+  Widget _buildCampoValor(
+    String label,
+    TextEditingController controller, {
+    bool readOnly = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -286,8 +451,11 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
             child: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
+              readOnly: readOnly,
               decoration: InputDecoration(
                 isDense: true,
+                filled: readOnly,
+                fillColor: readOnly ? Colors.grey.shade100 : null,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,
@@ -309,12 +477,21 @@ class _GerarCobrancaMensalDialogState extends State<GerarCobrancaMensalDialog> {
     final cubit = context.read<BoletoCubit>();
     cubit.gerarCobrancaMensal(
       dataVencimento: _dataController.text,
-      cotaCondominial: double.tryParse(_cotaCondominialController.text) ?? 0,
-      fundoReserva: double.tryParse(_fundoReservaController.text) ?? 0,
-      multaInfracao: double.tryParse(_multaInfracaoController.text) ?? 0,
-      controle: double.tryParse(_controleController.text) ?? 0,
-      rateioAgua: double.tryParse(_rateioAguaController.text) ?? 0,
-      desconto: double.tryParse(_descontoController.text) ?? 0,
+      cotaCondominial: double.tryParse(
+              _cotaCondominialController.text.replaceAll(',', '.')) ??
+          0,
+      fundoReserva:
+          double.tryParse(_fundoReservaController.text.replaceAll(',', '.')) ??
+              0,
+      multaInfracao:
+          double.tryParse(_multaInfracaoController.text.replaceAll(',', '.')) ??
+              0,
+      controle:
+          double.tryParse(_controleController.text.replaceAll(',', '.')) ?? 0,
+      rateioAgua:
+          double.tryParse(_rateioAguaController.text.replaceAll(',', '.')) ?? 0,
+      desconto:
+          double.tryParse(_descontoController.text.replaceAll(',', '.')) ?? 0,
       enviarParaRegistro: _enviarRegistro,
       enviarPorEmail: _enviarEmail,
       unidadeIds: _unidadesSelecionadas.isNotEmpty

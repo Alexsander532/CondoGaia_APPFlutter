@@ -46,6 +46,24 @@ class _FinanceiroCondominioWidgetState
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _valorFixoCondominioController.addListener(_onValorFixoChanged);
+  }
+
+  void _onValorFixoChanged() {
+    if (_tipoCobrancaCondominio == 1) {
+      // 1 = Valor Fixo
+      setState(() {
+        if (_tipos.isNotEmpty) {
+          _tipos[0]['valor'] = _valorFixoCondominioController.text;
+          _tipos[0]['tipo'] = 'A'; // Garante que o primeiro é sempre A
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _jurosController.dispose();
     _multaController.dispose();
@@ -690,7 +708,9 @@ class _FinanceiroCondominioWidgetState
                           width: 60,
                           height: 36,
                           child: TextFormField(
+                            key: index == 0 ? ValueKey('tipo_nome_$index') : null,
                             initialValue: tipo['tipo'],
+                            enabled: index != 0, // Bloqueia Tipo A
                             textAlign: TextAlign.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.only(bottom: 12),
@@ -706,7 +726,11 @@ class _FinanceiroCondominioWidgetState
                           width: 100,
                           height: 36,
                           child: TextFormField(
+                            key: index == 0 
+                              ? ValueKey('tipo_valor_${tipo['valor']}') 
+                              : null,
                             initialValue: tipo['valor'].toString(),
+                            enabled: index != 0, // Bloqueia Valor do Tipo A
                             decoration: InputDecoration(
                               prefixText: 'R\$ ',
                               contentPadding: const EdgeInsets.only(

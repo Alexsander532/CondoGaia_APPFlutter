@@ -618,6 +618,7 @@ class BoletoService {
     String? pesquisa,
   }) async {
     try {
+      // Busca unidades filtrando por bloco/numero
       var query = _supabase
           .from('unidades')
           .select('id, bloco, numero')
@@ -629,9 +630,69 @@ class BoletoService {
         );
       }
 
-      final response = await query.order('bloco').order('unidade');
+      final response = await query.order('bloco').order('numero');
+      final unidades = List<Map<String, dynamic>>.from(response);
 
-      return List<Map<String, dynamic>>.from(response);
+      // Busca proprietários do condomínio
+      final proprietariosRaw = await _supabase
+          .from('proprietarios')
+          .select('unidade_id, nome')
+          .eq('condominio_id', condominioId);
+      
+      final proprietarios = List<Map<String, dynamic>>.from(proprietariosRaw);
+
+      // Mapa de proprietários por unidade
+      Map<String, List<Map<String, dynamic>>> propMap = {};
+      for (var p in proprietarios) {
+        final uid = p['unidade_id']?.toString();
+        if (uid != null) {
+          propMap.putIfAbsent(uid, () => []).add(p);
+        }
+      }
+
+      // Injeta proprietários nas unidades
+      for (var u in unidades) {
+        final uid = u['id'].toString();
+        u['proprietarios'] = propMap[uid];
+      }
+
+      // Se houver pesquisa, e o resultado não pegou pelo bloco/número, 
+      // verificamos se o nome do proprietário bate com a pesquisa (Filtro em memória adicional)
+      if (pesquisa != null && pesquisa.isNotEmpty) {
+        final termo = pesquisa.toLowerCase();
+        
+        // Estratégia: Se a pesquisa não for vazia, buscamos proprietários que batem com o nome
+        // e garantimos que suas unidades estejam na lista.
+        final matchingProps = proprietarios.where((p) => 
+          (p['nome'] ?? '').toString().toLowerCase().contains(termo)
+        ).toList();
+
+        for (var p in matchingProps) {
+          final uid = p['unidade_id']?.toString();
+          if (uid != null && !unidades.any((u) => u['id'].toString() == uid)) {
+            // Se a unidade não está na lista (não bateu bloco/número), buscamos ela
+            final unitResponse = await _supabase
+                .from('unidades')
+                .select('id, bloco, numero')
+                .eq('id', uid)
+                .maybeSingle();
+            
+            if (unitResponse != null) {
+              final newUnit = Map<String, dynamic>.from(unitResponse);
+              newUnit['proprietarios'] = propMap[uid];
+              unidades.add(newUnit);
+            }
+          }
+        }
+      }
+
+      // Filtra para retornar APENAS unidades que possuem pelo menos um proprietário
+      final unidadesComProprietarios = unidades.where((u) {
+        final props = u['proprietarios'] as List?;
+        return props != null && props.isNotEmpty;
+      }).toList();
+
+      return unidadesComProprietarios;
     } catch (e) {
       print('⚠️ [BoletoService] Erro ao listar unidades: $e');
       return [];

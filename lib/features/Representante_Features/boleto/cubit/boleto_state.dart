@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../models/boleto_model.dart';
+import '../../gestao_condominio/models/configuracao_financeira_model.dart';
 
 enum BoletoStatus { initial, loading, success, error }
 
@@ -8,6 +9,7 @@ class BoletoState extends Equatable {
   final List<Boleto> boletos;
   final List<Map<String, dynamic>> contasBancarias;
   final List<Map<String, dynamic>> unidades;
+  final ConfiguracaoFinanceira? configuracaoFinanceira;
 
   // Filtros
   final int mesSelecionado;
@@ -36,6 +38,7 @@ class BoletoState extends Equatable {
     this.boletos = const [],
     this.contasBancarias = const [],
     this.unidades = const [],
+    this.configuracaoFinanceira,
     this.mesSelecionado = 0,
     this.anoSelecionado = 0,
     this.tipoEmissao = 'Todos',
@@ -87,6 +90,7 @@ class BoletoState extends Equatable {
     List<Boleto>? boletos,
     List<Map<String, dynamic>>? contasBancarias,
     List<Map<String, dynamic>>? unidades,
+    ConfiguracaoFinanceira? configuracaoFinanceira,
     int? mesSelecionado,
     int? anoSelecionado,
     String? tipoEmissao,
@@ -108,6 +112,8 @@ class BoletoState extends Equatable {
       boletos: boletos ?? this.boletos,
       contasBancarias: contasBancarias ?? this.contasBancarias,
       unidades: unidades ?? this.unidades,
+      configuracaoFinanceira:
+          configuracaoFinanceira ?? this.configuracaoFinanceira,
       mesSelecionado: mesSelecionado ?? this.mesSelecionado,
       anoSelecionado: anoSelecionado ?? this.anoSelecionado,
       tipoEmissao: tipoEmissao ?? this.tipoEmissao,
@@ -132,6 +138,7 @@ class BoletoState extends Equatable {
     boletos,
     contasBancarias,
     unidades,
+    configuracaoFinanceira,
     mesSelecionado,
     anoSelecionado,
     tipoEmissao,
@@ -149,3 +156,4 @@ class BoletoState extends Equatable {
     successMessage,
   ];
 }
+

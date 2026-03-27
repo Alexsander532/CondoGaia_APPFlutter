@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/boleto_cubit.dart';
 import '../cubit/boleto_state.dart';
 import '../services/boleto_service.dart';
+import '../../gestao_condominio/services/gestao_condominio_service.dart';
 import '../widgets/boleto_filtro_widget.dart';
 import '../widgets/boleto_list_widget.dart';
 import '../widgets/boleto_acoes_widget.dart';
@@ -25,10 +26,13 @@ class _BoletoScreenState extends State<BoletoScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          BoletoCubit(service: BoletoService(), condominioId: widget.condominioId)
-            ..carregarDados(),
+      create: (context) => BoletoCubit(
+        service: BoletoService(),
+        gestaoService: GestaoCondominioService(),
+        condominioId: widget.condominioId,
+      )..carregarDados(),
       child: Scaffold(
+
         backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,

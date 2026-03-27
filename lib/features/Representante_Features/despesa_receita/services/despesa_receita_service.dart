@@ -229,8 +229,6 @@ class DespesaReceitaService implements IDespesaReceitaService {
     int? mes,
     int? ano,
     String? contaId,
-    String? categoriaId,
-    String? subcategoriaId,
     String? contaContabil,
     String? tipo,
     String? palavraChave,
@@ -239,21 +237,15 @@ class DespesaReceitaService implements IDespesaReceitaService {
       var query = _supabase
           .from('receitas')
           .select(
-            '*, contas_bancarias(banco), categorias_financeiras(nome), subcategorias_financeiras(nome)',
+            '*, contas_bancarias(banco), conta_contabil(nome)',
           )
           .eq('condominio_id', condominioId);
 
       if (contaId != null && contaId.isNotEmpty) {
         query = query.eq('conta_id', contaId);
       }
-      if (categoriaId != null && categoriaId.isNotEmpty) {
-        query = query.eq('categoria_id', categoriaId);
-      }
-      if (subcategoriaId != null && subcategoriaId.isNotEmpty) {
-        query = query.eq('subcategoria_id', subcategoriaId);
-      }
       if (contaContabil != null && contaContabil.isNotEmpty) {
-        query = query.eq('conta_contabil', contaContabil);
+        query = query.eq('conta_contabil_id', contaContabil);
       }
       if (tipo != null && tipo.isNotEmpty && tipo != 'Todos') {
         query = query.eq('tipo', tipo.toUpperCase());

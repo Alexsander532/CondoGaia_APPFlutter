@@ -34,8 +34,6 @@ abstract class IDespesaReceitaService {
     int? mes,
     int? ano,
     String? contaId,
-    String? categoriaId,
-    String? subcategoriaId,
     String? contaContabil,
     String? tipo,
     String? palavraChave,

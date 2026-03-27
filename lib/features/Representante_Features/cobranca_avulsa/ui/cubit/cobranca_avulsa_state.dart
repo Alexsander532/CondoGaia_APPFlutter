@@ -50,8 +50,8 @@ class CobrancaAvulsaState {
   CobrancaAvulsaState({
     this.contaContabilId,
     this.pesquisaUnidade,
-    this.mesSelecionado = 1,
-    this.anoSelecionado = 2026,
+    int? mesSelecionado,
+    int? anoSelecionado,
     this.descricao,
     this.tipoCobranca,
     this.dia,
@@ -72,7 +72,12 @@ class CobrancaAvulsaState {
     this.status = CobrancaAvulsaStatus.initial,
     this.errorMessage,
     this.isSaving = false,
-  });
+  })  : this.mesSelecionado = mesSelecionado ??
+            (DateTime.now().month == 12 ? 1 : DateTime.now().month + 1),
+        this.anoSelecionado = anoSelecionado ??
+            (DateTime.now().month == 12
+                ? DateTime.now().year + 1
+                : DateTime.now().year);
 
   // ============ MÉTODO COPYWITH ============
   CobrancaAvulsaState copyWith({

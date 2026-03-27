@@ -1,19 +1,25 @@
 import 'package:bloc/bloc.dart';
 import '../services/boleto_service.dart';
+import '../../gestao_condominio/services/gestao_condominio_service.dart';
 import 'boleto_state.dart';
 
 class BoletoCubit extends Cubit<BoletoState> {
   final BoletoService _service;
+  final GestaoCondominioService _gestaoService;
   final String condominioId;
 
-  BoletoCubit({required BoletoService service, required this.condominioId})
-    : _service = service,
-      super(
-        BoletoState(
-          mesSelecionado: DateTime.now().month,
-          anoSelecionado: DateTime.now().year,
-        ),
-      );
+  BoletoCubit({
+    required BoletoService service,
+    required GestaoCondominioService gestaoService,
+    required this.condominioId,
+  }) : _service = service,
+       _gestaoService = gestaoService,
+       super(
+         BoletoState(
+           mesSelecionado: DateTime.now().month == 12 ? 1 : DateTime.now().month + 1,
+           anoSelecionado: DateTime.now().month == 12 ? DateTime.now().year + 1 : DateTime.now().year,
+         ),
+       );
 
   // ============================================================
   // CARREGAMENTO INICIAL
@@ -35,12 +41,16 @@ class BoletoCubit extends Cubit<BoletoState> {
       );
 
       final contas = await _service.listarContasBancarias(condominioId);
+      final configuracao = await _gestaoService.obterConfiguracaoFinanceira(
+        condominioId,
+      );
 
       emit(
         state.copyWith(
           status: BoletoStatus.success,
           boletos: boletos,
           contasBancarias: contas,
+          configuracaoFinanceira: configuracao,
           itensSelecionados: {},
         ),
       );
@@ -50,6 +60,7 @@ class BoletoCubit extends Cubit<BoletoState> {
       );
     }
   }
+
 
   // ============================================================
   // PESQUISAR

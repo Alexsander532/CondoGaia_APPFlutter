@@ -44,6 +44,7 @@ class _ContaBancariaView extends StatelessWidget {
         banco: result['banco'],
         agencia: result['agencia'],
         conta: result['conta'],
+        tipoConta: result['tipoConta'],
         isPrincipal: result['isPrincipal'],
       );
 
@@ -400,6 +401,7 @@ class _ContaBancariaDialogState extends State<_ContaBancariaDialog> {
   late TextEditingController _bancoController;
   late TextEditingController _agenciaController;
   late TextEditingController _contaController;
+  String _tipoConta = 'CORRENTE';
   bool _isPrincipal = false;
 
   @override
@@ -413,6 +415,7 @@ class _ContaBancariaDialogState extends State<_ContaBancariaDialog> {
       text: widget.conta?.agencia ?? '',
     );
     _contaController = TextEditingController(text: widget.conta?.conta ?? '');
+    _tipoConta = widget.conta?.tipoConta ?? 'CORRENTE';
     _isPrincipal = widget.conta?.isPrincipal ?? false;
   }
 
@@ -478,6 +481,21 @@ class _ContaBancariaDialogState extends State<_ContaBancariaDialog> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _tipoConta,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Conta',
+                  prefixIcon: Icon(Icons.merge_type),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'CORRENTE', child: Text('Corrente')),
+                  DropdownMenuItem(value: 'POUPANCA', child: Text('Poupança')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _tipoConta = val);
+                },
+              ),
               const SizedBox(height: 16),
               if (widget.conta == null || !widget.conta!.isPrincipal) ...[
                 Container(
@@ -523,6 +541,7 @@ class _ContaBancariaDialogState extends State<_ContaBancariaDialog> {
                 'banco': _bancoController.text,
                 'agencia': _agenciaController.text,
                 'conta': _contaController.text,
+                'tipoConta': _tipoConta,
                 'isPrincipal': _isPrincipal,
               });
             }
