@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:intl/intl.dart';
 import '../../domain/entities/cobranca_avulsa_entity.dart';
 import 'package:condogaiaapp/models/bloco_com_unidades.dart';
 
@@ -6,7 +7,15 @@ import 'package:condogaiaapp/models/bloco_com_unidades.dart';
 // ENUM FOR STATUS
 // ====================================================================
 
-enum CobrancaAvulsaStatus { initial, loading, success, error }
+enum CobrancaAvulsaStatus { 
+  initial, 
+  loading, 
+  saveSuccess, 
+  loadSuccess, 
+  deleteSuccess, 
+  syncSuccess, 
+  error 
+}
 
 // ====================================================================
 // STATE CLASS
@@ -15,12 +24,14 @@ enum CobrancaAvulsaStatus { initial, loading, success, error }
 class CobrancaAvulsaState {
   // ============ DADOS DO FORMULÁRIO ============
   String? contaContabilId;
+  String? contaContabilPesquisaId;
   String? pesquisaUnidade;
   int mesSelecionado;
   int anoSelecionado;
   String? descricao;
   String? tipoCobranca; // 'Junto a Taxa Cond.' ou 'Boleto Avulso'
   int? dia;
+  String? dataVencimentoStr;
   Map<String, double> valoresPorUnidade;
   bool recorrente;
   int? qtdMeses;
@@ -34,6 +45,7 @@ class CobrancaAvulsaState {
   List<BlocoComUnidades> unidadesPesquisadas;
   Set<String> unidadesSelecionadas; // IDs das unidades selecionadas
   bool loadingUnidades;
+  Map<String, String> nomeProprietarioPorUnidade; // unidadeId → nome do proprietário
 
   // ============ CARRINHO (LOTE EM ELABORAÇÃO) ============
   List<CobrancaAvulsaEntity> itemsCarrinho;
@@ -49,12 +61,14 @@ class CobrancaAvulsaState {
 
   CobrancaAvulsaState({
     this.contaContabilId,
+    this.contaContabilPesquisaId,
     this.pesquisaUnidade,
     int? mesSelecionado,
     int? anoSelecionado,
     this.descricao,
     this.tipoCobranca,
     this.dia,
+    String? dataVencimentoStr,
     this.valoresPorUnidade = const {},
     this.recorrente = false,
     this.qtdMeses,
@@ -66,6 +80,7 @@ class CobrancaAvulsaState {
     this.unidadesPesquisadas = const [],
     this.unidadesSelecionadas = const {},
     this.loadingUnidades = false,
+    this.nomeProprietarioPorUnidade = const {},
     this.itemsCarrinho = const [],
     this.itemsSelecionados = const {},
     this.cobrancasCarregadas = const [],
@@ -73,21 +88,27 @@ class CobrancaAvulsaState {
     this.errorMessage,
     this.isSaving = false,
   })  : this.mesSelecionado = mesSelecionado ??
-            (DateTime.now().month == 12 ? 1 : DateTime.now().month + 1),
+            (DateTime(DateTime.now().year, DateTime.now().month + 1, 1).month),
         this.anoSelecionado = anoSelecionado ??
-            (DateTime.now().month == 12
-                ? DateTime.now().year + 1
-                : DateTime.now().year);
+            (DateTime(DateTime.now().year, DateTime.now().month + 1, 1).year),
+        this.dataVencimentoStr = dataVencimentoStr ??
+            DateFormat('dd/MM/yyyy').format(DateTime(
+              DateTime.now().year,
+              DateTime.now().month + 1,
+              10, // Default to 10th of next month
+            ));
 
   // ============ MÉTODO COPYWITH ============
   CobrancaAvulsaState copyWith({
     String? contaContabilId,
+    String? contaContabilPesquisaId,
     String? pesquisaUnidade,
     int? mesSelecionado,
     int? anoSelecionado,
     String? descricao,
     String? tipoCobranca,
     int? dia,
+    String? dataVencimentoStr,
     Map<String, double>? valoresPorUnidade,
     bool? recorrente,
     int? qtdMeses,
@@ -99,6 +120,7 @@ class CobrancaAvulsaState {
     List<BlocoComUnidades>? unidadesPesquisadas,
     Set<String>? unidadesSelecionadas,
     bool? loadingUnidades,
+    Map<String, String>? nomeProprietarioPorUnidade,
     List<CobrancaAvulsaEntity>? itemsCarrinho,
     Set<String>? itemsSelecionados,
     List<CobrancaAvulsaEntity>? cobrancasCarregadas,
@@ -111,12 +133,14 @@ class CobrancaAvulsaState {
   }) {
     return CobrancaAvulsaState(
       contaContabilId: contaContabilId ?? this.contaContabilId,
+      contaContabilPesquisaId: contaContabilPesquisaId ?? this.contaContabilPesquisaId,
       pesquisaUnidade: pesquisaUnidade ?? this.pesquisaUnidade,
       mesSelecionado: mesSelecionado ?? this.mesSelecionado,
       anoSelecionado: anoSelecionado ?? this.anoSelecionado,
       descricao: descricao ?? this.descricao,
       tipoCobranca: tipoCobranca ?? this.tipoCobranca,
       dia: dia ?? this.dia,
+      dataVencimentoStr: dataVencimentoStr ?? this.dataVencimentoStr,
       valoresPorUnidade: valoresPorUnidade ?? this.valoresPorUnidade,
       recorrente: recorrente ?? this.recorrente,
       qtdMeses: qtdMeses ?? this.qtdMeses,
@@ -128,6 +152,7 @@ class CobrancaAvulsaState {
       unidadesPesquisadas: unidadesPesquisadas ?? this.unidadesPesquisadas,
       unidadesSelecionadas: unidadesSelecionadas ?? this.unidadesSelecionadas,
       loadingUnidades: loadingUnidades ?? this.loadingUnidades,
+      nomeProprietarioPorUnidade: nomeProprietarioPorUnidade ?? this.nomeProprietarioPorUnidade,
       itemsCarrinho: clearCarrinho == true ? [] : (itemsCarrinho ?? this.itemsCarrinho),
       itemsSelecionados: itemsSelecionados ?? this.itemsSelecionados,
       cobrancasCarregadas: cobrancasCarregadas ?? this.cobrancasCarregadas,

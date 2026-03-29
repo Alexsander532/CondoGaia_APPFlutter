@@ -1,0 +1,559 @@
+<!DOCTYPE html><html><head>
+      <title>RELATORIO_LEITURA_DE_CONSUMO</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      <div>
+<h1 id="-relatório-de-implementação--leitura-de-consumo-água-e-gás">📊 Relatório de Implementação — Leitura de Consumo (Água e Gás) </h1>
+<blockquote>
+<p><strong>Documento para revisão de sócio</strong> · Versão 1.0 · Março 2026<br>
+<strong>Objetivo:</strong> Explicar como funciona a feature de leitura de medidores, como o consumo é calculado, como as faixas de preço funcionam e como isso se reflete nos boletos dos moradores.</p>
+</blockquote>
+<hr>
+<h2 id="1-visão-geral-do-módulo">1. Visão Geral do Módulo </h2>
+<p>O módulo de <strong>Leitura</strong> permite que o síndico ou zelador registre as leituras mensais de consumo de <strong>água</strong> e <strong>gás</strong> de cada unidade do condomínio. O sistema calcula automaticamente:</p>
+<ul>
+<li><strong>Consumo do período</strong> (leitura atual – leitura anterior)</li>
+<li><strong>Valor a pagar</strong> (baseado em faixas de preço configuráveis)</li>
+</ul>
+<h3 id="status-geral">Status Geral: </h3>
+<table>
+<thead>
+<tr>
+<th>Funcionalidade</th>
+<th>Status</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Registrar leitura de água</td>
+<td>✅ Funcional</td>
+<td>Registro manual por unidade</td>
+</tr>
+<tr>
+<td>Registrar leitura de gás</td>
+<td>✅ Funcional</td>
+<td>Registro manual por unidade</td>
+</tr>
+<tr>
+<td>Cálculo automático de consumo</td>
+<td>✅ Funcional</td>
+<td>Diferença entre leitura atual e anterior</td>
+</tr>
+<tr>
+<td>Cálculo por faixas de preço</td>
+<td>✅ Funcional</td>
+<td>Preço progressivo conforme consumo</td>
+</tr>
+<tr>
+<td>Configurar faixas de preço</td>
+<td>✅ Funcional</td>
+<td>Síndico define faixas e valores</td>
+</tr>
+<tr>
+<td>Anexar foto do medidor</td>
+<td>✅ Funcional</td>
+<td>Upload de foto como comprovante</td>
+</tr>
+<tr>
+<td>Cobrança junto com taxa</td>
+<td>✅ Funcional</td>
+<td>Valor é incluído no boleto mensal</td>
+</tr>
+<tr>
+<td>Cobrança avulsa</td>
+<td>✅ Funcional</td>
+<td>Gera boleto separado para consumo</td>
+</tr>
+<tr>
+<td>Cache local (offline)</td>
+<td>✅ Funcional</td>
+<td>Dados ficam salvos mesmo sem internet</td>
+</tr>
+<tr>
+<td>Histórico gráfico de consumo</td>
+<td>🔲 Futuro</td>
+<td>Ainda não implementado</td>
+</tr>
+<tr>
+<td>Importação por planilha</td>
+<td>🔲 Futuro</td>
+<td>Ainda não implementado</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-fluxo-de-trabalho--passo-a-passo">2. Fluxo de Trabalho — Passo a Passo </h2>
+<h3 id="21-como-registrar-uma-leitura">2.1 Como registrar uma leitura </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>╭──────────────────────────────────────╮
+│  1. Síndico/Zelador abre "Leitura"  │
+╰──────────────┬───────────────────────╯
+               │
+               ▼
+╭──────────────────────────────────────╮
+│  2. Seleciona o tipo: Água ou Gás   │
+╰──────────────┬───────────────────────╯
+               │
+               ▼
+╭──────────────────────────────────────╮
+│  3. Navega no mês/ano desejado      │
+╰──────────────┬───────────────────────╯
+               │
+               ▼
+╭──────────────────────────────────────╮
+│  4. Vê a tabela com todas as        │
+│     unidades do condomínio          │
+╰──────────────┬───────────────────────╯
+               │
+               ▼
+╭──────────────────────────────────────╮
+│  5. Para cada unidade:              │
+│     - Insere a leitura atual (m³)   │
+│     - Sistema mostra a anterior     │
+│     - Calcula consumo e valor       │
+│     - Opcionalmente tira uma foto   │
+╰──────────────┬───────────────────────╯
+               │
+               ▼
+╭──────────────────────────────────────╮
+│  6. Salva as leituras               │
+│     (dados vão para o Supabase)     │
+╰──────────────────────────────────────╯
+</code></pre><h3 id="22-o-que-aparece-na-tabela-de-leituras">2.2 O que aparece na tabela de leituras </h3>
+<p>A tabela mostra uma linha para cada unidade do condomínio com as seguintes colunas:</p>
+<table>
+<thead>
+<tr>
+<th>Coluna</th>
+<th>O que é</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bloco/Unid</strong></td>
+<td>Identificação da unidade</td>
+<td>A-101</td>
+</tr>
+<tr>
+<td><strong>Leitura Anterior</strong></td>
+<td>Medição do mês passado (m³)</td>
+<td>150</td>
+</tr>
+<tr>
+<td><strong>Leitura Atual</strong></td>
+<td>Medição deste mês (preenchida pelo zelador)</td>
+<td>162</td>
+</tr>
+<tr>
+<td><strong>Consumo</strong></td>
+<td>Diferença (calculada automaticamente)</td>
+<td>12 m³</td>
+</tr>
+<tr>
+<td><strong>Valor</strong></td>
+<td>Preço calculado pelas faixas de preço</td>
+<td>R$ 84,00</td>
+</tr>
+<tr>
+<td><strong>📷 Foto</strong></td>
+<td>Comprovante fotográfico do medidor</td>
+<td>(ícone de câmera)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-sistema-de-faixas-de-preço--a-regra-mais-importante">3. Sistema de Faixas de Preço — A Regra Mais Importante </h2>
+<h3 id="31-o-que-são-faixas-de-preço">3.1 O que são faixas de preço? </h3>
+<p>As faixas funcionam como uma <strong>tabela progressiva</strong> — quanto mais consome, mais caro fica por unidade (m³). É igual ao imposto de renda progressivo: cada faixa tem seu próprio preço.</p>
+<h3 id="32-como-o-síndico-configura">3.2 Como o síndico configura? </h3>
+<p>O síndico vai em <strong>Leitura &gt; Configuração</strong> e define:</p>
+<table>
+<thead>
+<tr>
+<th>Faixa</th>
+<th>De (m³)</th>
+<th>Até (m³)</th>
+<th>Valor por m³</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faixa 1</td>
+<td>0</td>
+<td>10</td>
+<td>R$ 5,00</td>
+</tr>
+<tr>
+<td>Faixa 2</td>
+<td>10</td>
+<td>20</td>
+<td>R$ 7,00</td>
+</tr>
+<tr>
+<td>Faixa 3</td>
+<td>20</td>
+<td>30</td>
+<td>R$ 10,00</td>
+</tr>
+<tr>
+<td>Faixa 4</td>
+<td>30+</td>
+<td>∞</td>
+<td>R$ 15,00</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-como-o-cálculo-funciona-na-prática">3.3 Como o cálculo funciona na prática? </h3>
+<h4 id="caso-real-1-consumo-dentro-da-primeira-faixa">Caso Real 1: Consumo dentro da primeira faixa </h4>
+<blockquote>
+<p><strong>Unidade A-101 consumiu 8 m³ de água</strong></p>
+<table>
+<thead>
+<tr>
+<th>Faixa</th>
+<th>Consumo na faixa</th>
+<th>Valor por m³</th>
+<th>Subtotal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faixa 1 (0–10)</td>
+<td>8 m³</td>
+<td>R$ 5,00</td>
+<td>R$ 40,00</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>8 m³</strong></td>
+<td></td>
+<td><strong>R$ 40,00</strong></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<h4 id="caso-real-2-consumo-atravessando-duas-faixas">Caso Real 2: Consumo atravessando duas faixas </h4>
+<blockquote>
+<p><strong>Unidade B-202 consumiu 15 m³ de água</strong></p>
+<table>
+<thead>
+<tr>
+<th>Faixa</th>
+<th>Consumo na faixa</th>
+<th>Valor por m³</th>
+<th>Subtotal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faixa 1 (0–10)</td>
+<td>10 m³</td>
+<td>R$ 5,00</td>
+<td>R$ 50,00</td>
+</tr>
+<tr>
+<td>Faixa 2 (10–20)</td>
+<td>5 m³</td>
+<td>R$ 7,00</td>
+<td>R$ 35,00</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>15 m³</strong></td>
+<td></td>
+<td><strong>R$ 85,00</strong></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<h4 id="caso-real-3-alto-consumo-atravessando-três-faixas">Caso Real 3: Alto consumo atravessando três faixas </h4>
+<blockquote>
+<p><strong>Unidade C-303 consumiu 25 m³ de água</strong></p>
+<table>
+<thead>
+<tr>
+<th>Faixa</th>
+<th>Consumo na faixa</th>
+<th>Valor por m³</th>
+<th>Subtotal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faixa 1 (0–10)</td>
+<td>10 m³</td>
+<td>R$ 5,00</td>
+<td>R$ 50,00</td>
+</tr>
+<tr>
+<td>Faixa 2 (10–20)</td>
+<td>10 m³</td>
+<td>R$ 7,00</td>
+<td>R$ 70,00</td>
+</tr>
+<tr>
+<td>Faixa 3 (20–30)</td>
+<td>5 m³</td>
+<td>R$ 10,00</td>
+<td>R$ 50,00</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>25 m³</strong></td>
+<td></td>
+<td><strong>R$ 170,00</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> Se o condomínio não tivesse faixas e cobrasse tudo a R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>7</mn><mi mathvariant="normal">/</mi><msup><mi>m</mi><mn>3</mn></msup><mo separator="true">,</mo><mi>o</mi><mi>m</mi><mi>o</mi><mi>r</mi><mi>a</mi><mi>d</mi><mi>o</mi><mi>r</mi><mi>p</mi><mi>a</mi><mi>g</mi><mi>a</mi><mi>r</mi><mi>i</mi><mi>a</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">7/m³, o morador pagaria R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord">7/</span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">o</span><span class="mord mathnormal">m</span><span class="mord mathnormal" style="margin-right:0.02778em;">or</span><span class="mord mathnormal">a</span><span class="mord mathnormal">d</span><span class="mord mathnormal" style="margin-right:0.02778em;">or</span><span class="mord mathnormal">p</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord mathnormal">ia</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 175. Com faixas, ele paga R$ 170 porque o começo do consumo é mais barato.</p>
+</blockquote>
+<h4 id="caso-real-4-consumo-zero">Caso Real 4: Consumo zero </h4>
+<blockquote>
+<p><strong>Unidade D-404 teve leitura anterior 200 e leitura atual 200</strong></p>
+<p>Consumo = 200 - 200 = <strong>0 m³</strong> → <strong>Valor = R$ 0,00</strong></p>
+<p>O sistema não cobra nada quando não há consumo.</p>
+</blockquote>
+<h3 id="34-valor-base-fallback">3.4 Valor Base (fallback) </h3>
+<p>Se o síndico <strong>não configurar faixas</strong>, o sistema usa um <strong>valor base</strong> por m³. Exemplo:</p>
+<blockquote>
+<p>Valor base: R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6</mn><mo separator="true">,</mo><mn>00</mn><mi mathvariant="normal">/</mi><msup><mi>m</mi><mn>3</mn></msup><mi>C</mi><mi>o</mi><mi>n</mi><mi>s</mi><mi>u</mi><mi>m</mi><mi>o</mi><mo>:</mo><mn>12</mn><msup><mi>m</mi><mn>3</mn></msup><mi>T</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi><mo>:</mo><mn>12</mn><mo>×</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">6,00/m³
+Consumo: 12 m³
+Total: 12 × R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord">6</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00/</span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.07153em;">C</span><span class="mord mathnormal">o</span><span class="mord mathnormal">n</span><span class="mord mathnormal">s</span><span class="mord mathnormal">u</span><span class="mord mathnormal">m</span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">12</span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="mord mathnormal">o</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">12</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 6,00 = <strong>R$ 72,00</strong></p>
+</blockquote>
+<hr>
+<h2 id="4-configurações-disponíveis">4. Configurações Disponíveis </h2>
+<p>O síndico configura cada tipo de medidor (Água, Gás) separadamente:</p>
+<table>
+<thead>
+<tr>
+<th>Configuração</th>
+<th>O que é</th>
+<th>Opções</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tipo</strong></td>
+<td>Qual recurso está medindo</td>
+<td>Água / Gás</td>
+</tr>
+<tr>
+<td><strong>Unidade de Medida</strong></td>
+<td>Como o consumo é medido</td>
+<td>M³ (padrão)</td>
+</tr>
+<tr>
+<td><strong>Valor Base</strong></td>
+<td>Preço por m³ quando sem faixas</td>
+<td>Ex: R$ 6,00</td>
+</tr>
+<tr>
+<td><strong>Faixas de Preço</strong></td>
+<td>Tabela progressiva de preços</td>
+<td>Personalizável</td>
+</tr>
+<tr>
+<td><strong>Tipo de Cobrança</strong></td>
+<td>Como o valor vai ser cobrado</td>
+<td>1 = Junto com Taxa / 2 = Boleto Avulso</td>
+</tr>
+<tr>
+<td><strong>Vencimento Avulso</strong></td>
+<td>Data de vencimento se for boleto separado</td>
+<td>Ex: dia 15</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-diferença-entre-junto-com-taxa-e-boleto-avulso">4.1 Diferença entre "Junto com Taxa" e "Boleto Avulso" </h3>
+<table>
+<thead>
+<tr>
+<th>Modo</th>
+<th>O que acontece</th>
+<th>Quando usar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Junto com Taxa</strong></td>
+<td>O valor do consumo é somado ao boleto mensal</td>
+<td>Condomínios que querem um único boleto</td>
+</tr>
+<tr>
+<td><strong>Boleto Avulso</strong></td>
+<td>É gerado um boleto separado só para água/gás</td>
+<td>Quando o consumo varia muito e precisa de destaque</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Caso Real:</strong> O "Residencial Pinheiros" cobra R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>500</mn><mi>d</mi><mi>e</mi><mi>t</mi><mi>a</mi><mi>x</mi><mi>a</mi><mo>+</mo><mover accent="true"><mi>a</mi><mo>ˊ</mo></mover><mi>g</mi><mi>u</mi><mi>a</mi><mi>j</mi><mi>u</mi><mi>n</mi><mi>t</mi><mi>o</mi><mi mathvariant="normal">.</mi><mi>O</mi><mi>m</mi><mi>o</mi><mi>r</mi><mi>a</mi><mi>d</mi><mi>o</mi><mi>r</mi><mi>d</mi><mi>a</mi><mi>u</mi><mi>n</mi><mi>i</mi><mi>d</mi><mi>a</mi><mi>d</mi><mi>e</mi><mi>A</mi><mo>−</mo><mn>101</mn><mi>c</mi><mi>o</mi><mi>n</mi><mi>s</mi><mi>u</mi><mi>m</mi><mi>i</mi><mi>u</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">500 de taxa + água junto. O morador da unidade A-101 consumiu R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7778em;vertical-align:-0.0833em;"></span><span class="mord">500</span><span class="mord mathnormal">d</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal">x</span><span class="mord mathnormal">a</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">a</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.25em;"><span class="mord">ˊ</span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="mord mathnormal">u</span><span class="mord mathnormal" style="margin-right:0.05724em;">aj</span><span class="mord mathnormal">u</span><span class="mord mathnormal">n</span><span class="mord mathnormal">t</span><span class="mord mathnormal">o</span><span class="mord">.</span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="mord mathnormal">m</span><span class="mord mathnormal" style="margin-right:0.02778em;">or</span><span class="mord mathnormal">a</span><span class="mord mathnormal">d</span><span class="mord mathnormal" style="margin-right:0.02778em;">or</span><span class="mord mathnormal">d</span><span class="mord mathnormal">a</span><span class="mord mathnormal">u</span><span class="mord mathnormal">ni</span><span class="mord mathnormal">d</span><span class="mord mathnormal">a</span><span class="mord mathnormal">d</span><span class="mord mathnormal">e</span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord">101</span><span class="mord mathnormal">co</span><span class="mord mathnormal">n</span><span class="mord mathnormal">s</span><span class="mord mathnormal">u</span><span class="mord mathnormal">mi</span><span class="mord mathnormal">u</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 85 de água.<br>
+→ Boleto do mês: <strong>R$ 585,00</strong> (taxa + água incluída)</p>
+</blockquote>
+<blockquote>
+<p><strong>Caso Real 2:</strong> O "Edifício Aurora" cobra água separado. O morador recebe dois boletos:<br>
+→ Boleto 1: <strong>R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>450</mn><mo separator="true">,</mo><mn>00</mn><mo>∗</mo><mo>∗</mo><mo stretchy="false">(</mo><mi>t</mi><mi>a</mi><mi>x</mi><mi>a</mi><mi>m</mi><mi>e</mi><mi>n</mi><mi>s</mi><mi>a</mi><mi>l</mi><mo stretchy="false">)</mo><mo>→</mo><mi>B</mi><mi>o</mi><mi>l</mi><mi>e</mi><mi>t</mi><mi>o</mi><mn>2</mn><mo>:</mo><mo>∗</mo><mo>∗</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">450,00** (taxa mensal)
+→ Boleto 2: **R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8389em;vertical-align:-0.1944em;"></span><span class="mord">450</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">00</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∗</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal">x</span><span class="mord mathnormal">am</span><span class="mord mathnormal">e</span><span class="mord mathnormal">n</span><span class="mord mathnormal">s</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.05017em;">B</span><span class="mord mathnormal">o</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord mathnormal">o</span><span class="mord">2</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4653em;"></span><span class="mord">∗</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 85,00</strong> (consumo de água)</p>
+</blockquote>
+<hr>
+<h2 id="5-como-a-leitura-é-armazenada">5. Como a Leitura é Armazenada </h2>
+<p>Cada leitura registrada grava no banco de dados os seguintes dados:</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Descrição</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>unidade_id</code></td>
+<td>Qual unidade</td>
+<td>ID da unidade A-101</td>
+</tr>
+<tr>
+<td><code>condominio_id</code></td>
+<td>Qual condomínio</td>
+<td>ID do Residencial Pinheiros</td>
+</tr>
+<tr>
+<td><code>tipo</code></td>
+<td>Água ou Gás</td>
+<td>"Agua"</td>
+</tr>
+<tr>
+<td><code>leitura_anterior</code></td>
+<td>Medição do mês passado</td>
+<td>150.0</td>
+</tr>
+<tr>
+<td><code>leitura_atual</code></td>
+<td>Medição deste mês</td>
+<td>162.0</td>
+</tr>
+<tr>
+<td><code>consumo</code></td>
+<td>Diferença calculada</td>
+<td>12.0</td>
+</tr>
+<tr>
+<td><code>valor_calculado</code></td>
+<td>Valor em R$</td>
+<td>85.00</td>
+</tr>
+<tr>
+<td><code>data_leitura</code></td>
+<td>Data do registro</td>
+<td>2026-03-15</td>
+</tr>
+<tr>
+<td><code>imagem_url</code></td>
+<td>Foto do medidor</td>
+<td>URL da foto</td>
+</tr>
+<tr>
+<td><code>observacao</code></td>
+<td>Alguma nota</td>
+<td>"Medidor com vazamento"</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-funcionalidade-de-cache-offline">6. Funcionalidade de Cache (Offline) </h2>
+<p>O sistema usa <strong>cache local</strong> para que o zelador possa:</p>
+<ol>
+<li>Abrir a tela de leitura sem internet (dados do mês anterior aparecem do cache)</li>
+<li>Agilizar a navegação (não precisa esperar carregar toda vez)</li>
+<li>Em caso de queda de internet, os dados mais recentes ficam salvos localmente</li>
+</ol>
+<blockquote>
+<p><strong>Atenção:</strong> O registro (botão "Salvar") <strong>precisa de internet</strong> para enviar ao banco de dados.</p>
+</blockquote>
+<hr>
+<h2 id="7-foto-do-medidor">7. Foto do Medidor </h2>
+<p>O zelador pode tirar ou anexar uma <strong>foto do medidor</strong> para cada unidade. Essa foto serve como:</p>
+<ul>
+<li><strong>Comprovante</strong> de que a leitura foi feita corretamente</li>
+<li><strong>Prova</strong> em caso de contestação do morador</li>
+<li><strong>Registro visual</strong> do estado do medidor</li>
+</ul>
+<p>A foto é enviada automaticamente para o Supabase Storage e fica vinculada àquela leitura.</p>
+<hr>
+<h2 id="8-regras-de-negócio--resumo">8. Regras de Negócio — Resumo </h2>
+<h3 id="-regras-implementadas">✅ Regras implementadas: </h3>
+<ol>
+<li><strong>Consumo = Leitura Atual − Leitura Anterior</strong> — Cálculo automático, o zelador só informa a leitura atual</li>
+<li><strong>Leitura anterior é preenchida automaticamente</strong> — O sistema busca no banco de dados a leitura do mês passado</li>
+<li><strong>Faixas de preço são progressivas</strong> — Cada faixa tem seu próprio valor por m³</li>
+<li><strong>Consumo zero = valor zero</strong> — Não cobra quando não tem consumo</li>
+<li><strong>Se não há faixas configuradas, usa valor base</strong> — Fallback de segurança</li>
+<li><strong>Consumo excedente acima de todas as faixas usa o valor base</strong> — Se o consumo ultrapassar a última faixa, o excedente é cobrado pelo valor base</li>
+<li><strong>Cada tipo (Água/Gás) tem configuração independente</strong> — Podem ter faixas e vencimentos diferentes</li>
+<li><strong>O tipo de cobrança (junto/avulso) é definido por tipo de medidor</strong> — Água pode ser junto e gás avulso, ou vice-versa</li>
+</ol>
+<h3 id="️-o-que-ainda-não-está-implementado">⚠️ O que ainda não está implementado: </h3>
+<ol>
+<li>Gráfico de histórico de consumo por unidade ao longo dos meses</li>
+<li>Importação em massa de leituras via planilha Excel</li>
+<li>Alertas automáticos para consumo anormalmente alto</li>
+<li>Relatório mensal de consumo em PDF</li>
+</ol>
+<hr>
+<h2 id="9-integração-com-boletos">9. Integração com Boletos </h2>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>╭────────────────╮     ╭──────────────────╮     ╭──────────────────╮
+│ Zelador faz    │     │ Sistema calcula  │     │ Valor vai para   │
+│ leitura (m³)   │ ──→ │ consumo e valor  │ ──→ │ o boleto mensal  │
+│ de cada unid.  │     │ pelas faixas     │     │ (ou avulso)      │
+╰────────────────╯     ╰──────────────────╯     ╰──────────────────╯
+</code></pre><p>Quando o síndico gera os boletos mensais:</p>
+<ul>
+<li>Se a cobrança é <strong>"Junto com Taxa"</strong>, o valor do consumo de água/gás é somado automaticamente à cota condominial no campo <strong>"Rateio Água"</strong> do boleto.</li>
+<li>Se é <strong>"Boleto Avulso"</strong>, um boleto separado é criado com a descrição do consumo.</li>
+</ul>
+<hr>
+<h2 id="10-resumo-para-verificação">10. Resumo para Verificação </h2>
+<p><strong>Perguntas para o sócio validar:</strong></p>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> As faixas de preço progressivas fazem sentido para o negócio?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> A diferenciação "Junto com Taxa" vs "Boleto Avulso" está clara?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> Falta algum dado que deveria ser registrado na leitura?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> O fluxo de leitura está prático para quem vai usar no dia a dia (zelador)?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> A opção de anexar foto é suficiente ou precisa de algo mais?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> Precisamos de uma funcionalidade de "leitura em massa" (importar planilha)?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> É necessário ter gráfico de histórico de consumo?</li>
+</ul>
+</div>
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>

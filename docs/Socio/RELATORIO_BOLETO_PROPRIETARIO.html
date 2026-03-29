@@ -1,0 +1,602 @@
+<!DOCTYPE html><html><head>
+      <title>RELATORIO_BOLETO_PROPRIETARIO</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      <div>
+<h1 id="-relatório-de-implementação--boleto-do-proprietário-visão-do-morador">📄 Relatório de Implementação — Boleto do Proprietário (Visão do Morador) </h1>
+<blockquote>
+<p><strong>Documento para revisão de sócio</strong> · Versão 1.0 · Março 2026<br>
+<strong>Objetivo:</strong> Explicar como funciona a tela de boletos na perspectiva do proprietário/inquilino — o que ele vê, o que ele pode fazer, como funcionam as ações (copiar código, compartilhar, ver PDF) e como os dados são buscados do sistema.</p>
+</blockquote>
+<hr>
+<h2 id="1-visão-geral-do-módulo">1. Visão Geral do Módulo </h2>
+<p>O módulo de <strong>Boleto do Proprietário</strong> é a tela que o <strong>morador</strong> (proprietário ou inquilino) usa para ver e gerenciar seus próprios boletos. Diferente do módulo do síndico (que gera boletos para todos), aqui o morador vê <strong>apenas os seus boletos</strong>.</p>
+<h3 id="o-que-o-morador-consegue-fazer">O que o morador consegue fazer: </h3>
+<table>
+<thead>
+<tr>
+<th>Funcionalidade</th>
+<th>Status</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ver lista de boletos em aberto</td>
+<td>✅ Funcional</td>
+<td>Filtro "Vencido/A Vencer"</td>
+</tr>
+<tr>
+<td>Ver lista de boletos pagos</td>
+<td>✅ Funcional</td>
+<td>Filtro "Pago"</td>
+</tr>
+<tr>
+<td>Copiar código de barras</td>
+<td>✅ Funcional</td>
+<td>Copia para a área de transferência</td>
+</tr>
+<tr>
+<td>Ver PDF do boleto</td>
+<td>✅ Funcional</td>
+<td>Abre no navegador/leitor de PDF</td>
+</tr>
+<tr>
+<td>Compartilhar boleto</td>
+<td>✅ Funcional</td>
+<td>Share nativo (WhatsApp, etc.) com PDF</td>
+</tr>
+<tr>
+<td>Ver composição do boleto</td>
+<td>✅ Funcional</td>
+<td>Detalhamento: taxa, fundo, água, etc.</td>
+</tr>
+<tr>
+<td>Ver demonstrativo financeiro</td>
+<td>✅ Funcional</td>
+<td>Resumo mensal de valores, pagos e em aberto</td>
+</tr>
+<tr>
+<td>Ver leituras de consumo</td>
+<td>✅ Funcional</td>
+<td>Leituras de água/gás vinculadas ao boleto</td>
+</tr>
+<tr>
+<td>Atualizar tela (pull-to-refresh)</td>
+<td>✅ Funcional</td>
+<td>Puxa para baixo para recarregar</td>
+</tr>
+<tr>
+<td>Sincronizar boleto com Asaas</td>
+<td>✅ Funcional</td>
+<td>Se o código não existe, busca no Asaas</td>
+</tr>
+<tr>
+<td>Skeleton loading</td>
+<td>✅ Funcional</td>
+<td>Animação de carregamento bonita</td>
+</tr>
+<tr>
+<td>Estado vazio</td>
+<td>✅ Funcional</td>
+<td>Mensagem amigável quando sem boletos</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-o-que-o-morador-vê-na-tela">2. O que o Morador Vê na Tela </h2>
+<h3 id="21-estrutura-da-tela">2.1 Estrutura da Tela </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>╭──────────────────────────────────────╮
+│  🔙  Logo CondoGaia    🔔  🎧       │  ← Cabeçalho
+│  Home/Gestão/Boleto      🔄         │  ← Breadcrumb + Atualizar
+├──────────────────────────────────────┤
+│                                      │
+│  [ Vencido/A Vencer ▼ ]             │  ← Filtro (Dropdown)
+│                                      │
+│  ╭────────────────────────────────╮  │
+│  │  📄 Boleto Mensal — 03/2026   │  │  ← Card do Boleto
+│  │  Venc: 10/03/2026             │  │
+│  │  Valor: R$ 550,00             │  │
+│  │  Status: A Vencer 🔵          │  │
+│  │  [Copiar] [Ver] [Compartilhar]│  │  ← Botões de ação
+│  ╰────────────────────────────────╯  │
+│                                      │
+│  ╭────────────────────────────────╮  │
+│  │  📄 Boleto Mensal — 02/2026   │  │  ← Outro boleto
+│  │  Venc: 10/02/2026             │  │
+│  │  Valor: R$ 550,00             │  │
+│  │  Status: Vencido 🔴           │  │
+│  ╰────────────────────────────────╯  │
+│                                      │
+│  ═══════════════════════════════════ │
+│  DEMONSTRATIVO FINANCEIRO            │  ← Seletor de mês/ano
+│  ← 03/2026 →                        │
+│  ═══════════════════════════════════ │
+│                                      │
+│  ▶ Composição do Boleto             │  ← Seção expansível
+│  ▶ Leituras de Consumo              │  ← Seção expansível
+│  ▶ Balancete Online                 │  ← Seção expansível
+│                                      │
+╰──────────────────────────────────────╯
+</code></pre><hr>
+<h2 id="3-filtro-de-boletos">3. Filtro de Boletos </h2>
+<p>O morador pode alternar entre dois filtros:</p>
+<table>
+<thead>
+<tr>
+<th>Filtro</th>
+<th>O que mostra</th>
+<th>Quando usar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Vencido/A Vencer</strong></td>
+<td>Boletos que ainda não foram pagos (em aberto, atrasados, a vencer)</td>
+<td>Ver o que precisa pagar</td>
+</tr>
+<tr>
+<td><strong>Pago</strong></td>
+<td>Boletos que já foram pagos</td>
+<td>Consultar histórico de pagamento</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Caso Real:</strong> O morador João quer ver quanto tem para pagar este mês. Ele seleciona "Vencido/A Vencer" e vê 2 boletos: um de R<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>550</mn><mo stretchy="false">(</mo><mi>t</mi><mi>a</mi><mi>x</mi><mi>a</mi><mi>m</mi><mi>e</mi><mi>n</mi><mi>s</mi><mi>a</mi><mi>l</mi><mi>d</mi><mi>e</mi><mi>m</mi><mi>a</mi><mi>r</mi><mover accent="true"><mi>c</mi><mo>\c</mo></mover><mi>o</mi><mo stretchy="false">)</mo><mi>e</mi><mi>u</mi><mi>m</mi><mi>d</mi><mi>e</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">550 (taxa mensal de março) e um de R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">550</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal">x</span><span class="mord mathnormal">am</span><span class="mord mathnormal">e</span><span class="mord mathnormal">n</span><span class="mord mathnormal">s</span><span class="mord mathnormal">a</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">d</span><span class="mord mathnormal">e</span><span class="mord mathnormal">ma</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.75em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">c</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">\c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.25em;"><span></span></span></span></span></span><span class="mord mathnormal">o</span><span class="mclose">)</span><span class="mord mathnormal">e</span><span class="mord mathnormal">u</span><span class="mord mathnormal">m</span><span class="mord mathnormal">d</span><span class="mord mathnormal">e</span><span class="mord mathnormal" style="margin-right:0.00773em;">R</span></span></span></span> 85 (consumo de água avulso).</p>
+</blockquote>
+<blockquote>
+<p><strong>Caso Real 2:</strong> A moradora Ana quer conferir se o pagamento de fevereiro foi registrado. Ela seleciona "Pago" e vê o boleto de fevereiro com status verde "Pago".</p>
+</blockquote>
+<hr>
+<h2 id="4-card-do-boleto--informações-exibidas">4. Card do Boleto — Informações Exibidas </h2>
+<p>Cada boleto aparece como um <strong>card</strong> com as seguintes informações:</p>
+<table>
+<thead>
+<tr>
+<th>Informação</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tipo</strong></td>
+<td>Mensal / Avulso / Acordo</td>
+</tr>
+<tr>
+<td><strong>Referência</strong></td>
+<td>03/2026</td>
+</tr>
+<tr>
+<td><strong>BL/Unidade</strong></td>
+<td>A-101</td>
+</tr>
+<tr>
+<td><strong>Data de Vencimento</strong></td>
+<td>10/03/2026</td>
+</tr>
+<tr>
+<td><strong>Valor</strong></td>
+<td>R$ 550,00</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td>A Vencer 🔵 / Vencido 🔴 / Pago 🟢</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-ações-do-boleto--o-que-o-morador-pode-fazer">5. Ações do Boleto — O que o Morador Pode Fazer </h2>
+<h3 id="51--copiar-código-de-barras">5.1 📋 Copiar Código de Barras </h3>
+<p><strong>O que faz:</strong> Copia a linha digitável do boleto para a área de transferência do celular. O morador cola no app do banco para pagar.</p>
+<p><strong>Fluxo inteligente:</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>╭────────────────────────────────────────╮
+│  Morador clica em "Copiar Código"      │
+╰────────────────┬───────────────────────╯
+                 │
+                 ▼
+╭────────────────────────────────────────╮
+│  O código existe no banco de dados?    │
+├────────┬───────────────────────────────┤
+│  SIM   │        NÃO                    │
+╰────┬───╯        │                      │
+     │             ▼                      │
+     │   ╭─────────────────────────────╮ │
+     │   │ O boleto tem ID do Asaas?   │ │
+     │   ├───────┬─────────────────────┤ │
+     │   │  SIM  │       NÃO           │ │
+     │   ╰───┬───╯       │             │ │
+     │       │            ▼             │ │
+     │       │   ╭──────────────────╮   │ │
+     │       │   │ Registra boleto  │   │ │
+     │       │   │ no Asaas via     │   │ │
+     │       │   │ Backend Laravel  │   │ │
+     │       │   ╰────────┬─────────╯   │ │
+     │       │            │             │ │
+     │       ▼            ▼             │ │
+     │   ╭─────────────────────────────╮ │
+     │   │ Busca linha digitável       │ │
+     │   │ via API do Asaas            │ │
+     │   ╰────────────┬────────────────╯ │
+     │                │                   │
+     ▼                ▼                   │
+╭────────────────────────────────────────╮
+│  ✅ Código copiado! Mensagem de        │
+│  sucesso aparece na tela               │
+╰────────────────────────────────────────╯
+</code></pre><p><strong>Caso Real:</strong></p>
+<blockquote>
+<p><strong>Morador João quer pagar o boleto pelo app do Nubank:</strong></p>
+<ol>
+<li>Abre o CondoGaia → Boletos</li>
+<li>Encontra o boleto de R$ 550 (março/2026)</li>
+<li>Clica em <strong>"Copiar Código"</strong></li>
+<li>📋 Mensagem: <em>"Código copiado com sucesso!"</em></li>
+<li>Abre o Nubank → Pagar → Cola o código</li>
+<li>Paga o boleto</li>
+</ol>
+</blockquote>
+<blockquote>
+<p><strong>Se o código não estava salvo no sistema:</strong></p>
+<ol>
+<li>Clica em "Copiar Código"</li>
+<li>Aparece loading (buscando no Asaas...)</li>
+<li>O sistema registra o boleto no Asaas</li>
+<li>Busca a linha digitável</li>
+<li>📋 Mensagem: <em>"Código sincronizado e copiado!"</em></li>
+</ol>
+</blockquote>
+<h3 id="52-️-ver-boleto-pdf">5.2 👁️ Ver Boleto (PDF) </h3>
+<p><strong>O que faz:</strong> Abre o PDF do boleto no navegador ou app de PDF do celular. O morador pode imprimir ou salvar.</p>
+<p><strong>Fluxo:</strong></p>
+<ol>
+<li>Morador clica em "Ver Boleto"</li>
+<li>O sistema verifica se existe URL do PDF (<code>bankSlipUrl</code>)</li>
+<li>Se existe → abre o link no navegador externo</li>
+<li>Se não existe → mostra erro: <em>"PDF do boleto não disponível"</em></li>
+</ol>
+<blockquote>
+<p><strong>Caso Real:</strong> A moradora Ana precisa levar o boleto impresso no banco para pagamento. Ela clica em "Ver Boleto", o PDF abre no Chrome, ela imprime na impressora de casa.</p>
+</blockquote>
+<h3 id="53--compartilhar-boleto">5.3 📤 Compartilhar Boleto </h3>
+<p><strong>O que faz:</strong> Usa o compartilhamento nativo do celular (WhatsApp, Telegram, E-mail, etc.) para enviar o boleto.</p>
+<p><strong>O que é compartilhado:</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>📄 Boleto CondoGaia
+━━━━━━━━━━━━━━━━━━━━
+🏢 Unidade: A-101
+📅 Vencimento: 10/03/2026
+💰 Valor: R$ 550,00
+━━━━━━━━━━━━━━━━━━━━
+23793.38128 60000.000003 00000.000403 1 85270000055000
+━━━━━━━━━━━━━━━━━━━━
+CondoGaia - Gestão Condominial
+</code></pre><p><strong>Se o PDF estiver disponível:</strong></p>
+<ul>
+<li>O sistema <strong>baixa o PDF</strong>, salva temporariamente e compartilha o <strong>arquivo PDF</strong> junto com o texto</li>
+</ul>
+<p><strong>Se o PDF não estiver disponível:</strong></p>
+<ul>
+<li>Compartilha apenas o <strong>texto</strong> com o código de barras</li>
+</ul>
+<blockquote>
+<p><strong>Caso Real:</strong> O proprietário José precisa que sua esposa pague o boleto. Ele clica em "Compartilhar" e envia pelo WhatsApp. A esposa recebe o PDF do boleto e o código de barras.</p>
+</blockquote>
+<hr>
+<h2 id="6-composição-do-boleto--detalhamento">6. Composição do Boleto — Detalhamento </h2>
+<p>Quando o morador expande um boleto, ele pode ver do que é composto o valor:</p>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>O que é</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cota Condominial</strong></td>
+<td>Taxa básica do condomínio</td>
+<td>R$ 450,00</td>
+</tr>
+<tr>
+<td><strong>Fundo de Reserva</strong></td>
+<td>Percentual guardado para emergências</td>
+<td>R$ 45,00</td>
+</tr>
+<tr>
+<td><strong>Rateio Água</strong></td>
+<td>Consumo de água da unidade</td>
+<td>R$ 85,00</td>
+</tr>
+<tr>
+<td><strong>Multa Infração</strong></td>
+<td>Se o morador recebeu multa</td>
+<td>R$ 0,00</td>
+</tr>
+<tr>
+<td><strong>Controle</strong></td>
+<td>Taxa administrativa</td>
+<td>R$ 0,00</td>
+</tr>
+<tr>
+<td><strong>Desconto</strong></td>
+<td>Desconto aplicado (se houver)</td>
+<td>-R$ 30,00</td>
+</tr>
+<tr>
+<td><strong>Valor Total</strong></td>
+<td>Soma de tudo</td>
+<td><strong>R$ 550,00</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Caso Real:</strong> O morador vê que seu boleto custa R$ 550 e quer saber o porquê. Ele expande e vê:</p>
+<ul>
+<li>Cota: R$ 450 (o básico)</li>
+<li>Fundo: R$ 45 (10% sobre a cota)</li>
+<li>Água: R$ 85 (consumo de 15m³ no mês)</li>
+<li>Desconto: -R$ 30 (desconto garantidora)</li>
+<li><strong>Total: R$ 550,00</strong></li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="7-demonstrativo-financeiro">7. Demonstrativo Financeiro </h2>
+<p>O demonstrativo mostra um <strong>resumo mensal</strong> da situação financeira do morador:</p>
+<table>
+<thead>
+<tr>
+<th>Informação</th>
+<th>Exemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Período</strong></td>
+<td>Março/2026</td>
+</tr>
+<tr>
+<td><strong>Total de boletos no mês</strong></td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>Valor total</strong></td>
+<td>R$ 635,00</td>
+</tr>
+<tr>
+<td><strong>Total pago</strong></td>
+<td>R$ 85,00 (boleto avulso de água)</td>
+</tr>
+<tr>
+<td><strong>Total em aberto</strong></td>
+<td>R$ 550,00 (boleto mensal)</td>
+</tr>
+<tr>
+<td><strong>Boletos pagos</strong></td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>Boletos em aberto</strong></td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>O morador pode navegar entre meses usando as setas <strong>← →</strong> para ver meses anteriores e futuros.</p>
+<hr>
+<h2 id="8-seções-expansíveis">8. Seções Expansíveis </h2>
+<p>Abaixo do demonstrativo, há 3 seções que o morador pode expandir:</p>
+<h3 id="81-composição-do-boleto">8.1 Composição do Boleto </h3>
+<ul>
+<li>Mostra o detalhamento do boleto selecionado (taxa, fundo, água, etc.)</li>
+<li>Só aparece quando um boleto está expandido</li>
+</ul>
+<h3 id="82-leituras-de-consumo">8.2 Leituras de Consumo </h3>
+<ul>
+<li>Mostra as leituras de água/gás da unidade no mês selecionado</li>
+<li>O morador pode verificar se o consumo registrado está correto</li>
+</ul>
+<h3 id="83-balancete-online">8.3 Balancete Online </h3>
+<ul>
+<li>Mostra o balancete geral do condomínio para o mês</li>
+<li>Transparência: o morador pode ver as receitas e despesas do condomínio</li>
+</ul>
+<hr>
+<h2 id="9-estados-da-tela">9. Estados da Tela </h2>
+<h3 id="91-loading-carregamento">9.1 Loading (Carregamento) </h3>
+<p>Enquanto os dados carregam, o morador vê <strong>skeletons animados</strong> (retângulos cinza pulsantes) no lugar dos cards de boleto. Isso dá uma sensação de velocidade e profissionalismo.</p>
+<h3 id="92-estado-vazio">9.2 Estado Vazio </h3>
+<p>Se não há boletos para o filtro selecionado:</p>
+<table>
+<thead>
+<tr>
+<th>Filtro</th>
+<th>Mensagem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vencido/A Vencer</td>
+<td>"Não há boletos em aberto para exibir. Tente alterar o filtro para 'Pago'."</td>
+</tr>
+<tr>
+<td>Pago</td>
+<td>"Não há boletos pagos para exibir. Tente alterar o filtro para 'Vencido/A Vencer'."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-estado-de-erro">9.3 Estado de Erro </h3>
+<p>Se ocorre um erro ao carregar:</p>
+<ul>
+<li>Mensagem vermelha no topo da tela</li>
+<li>Botão "Tentar Novamente" para recarregar</li>
+</ul>
+<hr>
+<h2 id="10-de-onde-vêm-os-dados">10. De Onde Vêm os Dados </h2>
+<p>Os boletos são buscados da tabela <code>boletos</code> no <strong>Supabase</strong>, filtrados pelo <code>sacado</code> (ID do morador):</p>
+<table>
+<thead>
+<tr>
+<th>Campo no Banco</th>
+<th>O que é</th>
+<th>Usado para</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>ID único do boleto</td>
+<td>Identificação</td>
+</tr>
+<tr>
+<td><code>sacado</code></td>
+<td>ID do proprietário/inquilino</td>
+<td>Filtrar boletos do morador</td>
+</tr>
+<tr>
+<td><code>condominio_id</code></td>
+<td>ID do condomínio</td>
+<td>Contexto</td>
+</tr>
+<tr>
+<td><code>unidade_id</code></td>
+<td>ID da unidade</td>
+<td>Vincular à unidade</td>
+</tr>
+<tr>
+<td><code>data_vencimento</code></td>
+<td>Data de vencimento</td>
+<td>Exibição no card</td>
+</tr>
+<tr>
+<td><code>valor</code></td>
+<td>Valor do boleto</td>
+<td>Exibição</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Ativo/Pago/Cancelado</td>
+<td>Filtro e cor</td>
+</tr>
+<tr>
+<td><code>tipo</code></td>
+<td>Mensal/Avulso/Acordo</td>
+<td>Tipo exibido</td>
+</tr>
+<tr>
+<td><code>bank_slip_url</code></td>
+<td>URL do PDF do boleto</td>
+<td>Botão "Ver Boleto"</td>
+</tr>
+<tr>
+<td><code>bar_code</code></td>
+<td>Código de barras</td>
+<td>Botão "Copiar Código"</td>
+</tr>
+<tr>
+<td><code>identification_field</code></td>
+<td>Linha digitável</td>
+<td>Botão "Copiar Código" (prioridade)</td>
+</tr>
+<tr>
+<td><code>invoice_url</code></td>
+<td>URL da fatura no Asaas</td>
+<td>Link alternativo</td>
+</tr>
+<tr>
+<td><code>asaas_payment_id</code></td>
+<td>ID do pagamento no Asaas</td>
+<td>Sincronização</td>
+</tr>
+<tr>
+<td><code>cota_condominial</code></td>
+<td>Valor da taxa base</td>
+<td>Composição</td>
+</tr>
+<tr>
+<td><code>fundo_reserva</code></td>
+<td>Valor do fundo</td>
+<td>Composição</td>
+</tr>
+<tr>
+<td><code>rateio_agua</code></td>
+<td>Valor do consumo de água</td>
+<td>Composição</td>
+</tr>
+<tr>
+<td><code>desconto</code></td>
+<td>Desconto aplicado</td>
+<td>Composição</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="11-regras-de-negócio--resumo">11. Regras de Negócio — Resumo </h2>
+<h3 id="-regras-implementadas">✅ Regras implementadas: </h3>
+<ol>
+<li><strong>O morador só vê seus próprios boletos</strong> — Filtrado pelo <code>sacado</code> (ID do morador logado)</li>
+<li><strong>O filtro padrão é "Vencido/A Vencer"</strong> — Mostra primeiro o que precisa pagar</li>
+<li><strong>Boletos são ordenados por data de vencimento</strong> — Mais recentes primeiro (decrescente)</li>
+<li><strong>O código de barras prioriza <code>identification_field</code> sobre <code>bar_code</code></strong> — A linha digitável é mais confiável</li>
+<li><strong>Se o código não existe localmente, o sistema sincroniza com o Asaas</strong> — Processo transparente para o morador</li>
+<li><strong>Se o boleto não está registrado no Asaas, o sistema registra automaticamente</strong> — Na hora que o morador pedir o código</li>
+<li><strong>O compartilhamento tenta enviar o PDF primeiro</strong> — Se falhar, envia só o texto</li>
+<li><strong>Pull-to-refresh funciona</strong> — Puxar para baixo recarrega os dados</li>
+<li><strong>Mensagens de sucesso e erro são mostradas e limpas automaticamente</strong> — Não ficam "travadas" na tela</li>
+<li><strong>A composição do boleto mostra todos os componentes</strong> — Total transparência para o morador</li>
+</ol>
+<h3 id="️-o-que-pode-ser-melhorado-no-futuro">⚠️ O que pode ser melhorado no futuro: </h3>
+<ol>
+<li>Notificação push quando um novo boleto é gerado</li>
+<li>Notificação push quando o vencimento está próximo (lembrete)</li>
+<li>Pagamento direto pelo app (integração com PIX/cartão via Asaas)</li>
+<li>Histórico de pagamentos com comprovantes</li>
+<li>Download do PDF para salvar offline</li>
+<li>QR Code PIX para pagamento rápido</li>
+</ol>
+<hr>
+<h2 id="12-resumo-para-verificação">12. Resumo para Verificação </h2>
+<p><strong>Perguntas para o sócio validar:</strong></p>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> As informações exibidas no card do boleto são suficientes?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> O fluxo de copiar código → pagar no banco está claro para o morador?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> A composição do boleto mostra todos os componentes necessários?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> O demonstrativo financeiro mensal é útil como está?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> O balancete online deve estar visível para todos os moradores?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> Precisamos de notificação push para lembrar vencimento?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> Precisamos de pagamento direto pelo app (PIX)?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> O compartilhamento via WhatsApp atende às necessidades?</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> Falta alguma ação que o morador deveria poder fazer com o boleto?</li>
+</ul>
+</div>
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'cobranca_avulsa_state.dart';
+import 'package:intl/intl.dart';
 import '../../data/repositories/cobranca_avulsa_repository.dart';
 import '../../domain/entities/cobranca_avulsa_entity.dart';
 import 'package:condogaiaapp/services/unidade_service.dart';
@@ -16,17 +18,21 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
 
   CobrancaAvulsaCubit(this._repository, this._unidadeService, {required this.condominioId}) : super(CobrancaAvulsaState());
 
-  // ============ ATUALIZAÇÃO DE CAMPOS ============
+  // ============ ATUALIZADORES DO FORMULÁRIO ============
 
-  void atualizarContaContabil(String? val) {
-    emit(state.copyWith(contaContabilId: val));
+  void atualizarContaContabil(String? valor) {
+    emit(state.copyWith(contaContabilId: valor));
+  }
+
+  void atualizarContaContabilPesquisa(String? valor) {
+    emit(state.copyWith(contaContabilPesquisaId: valor));
   }
 
   void atualizarPesquisaUnidade(String val) async {
     emit(state.copyWith(pesquisaUnidade: val, loadingUnidades: true));
     
     if (val.isEmpty) {
-      emit(state.copyWith(unidadesPesquisadas: [], loadingUnidades: false));
+      emit(state.copyWith(unidadesPesquisadas: [], loadingUnidades: false, nomeProprietarioPorUnidade: {}));
       return;
     }
 
@@ -35,7 +41,53 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
         condominioId: condominioId,
         termo: val,
       );
-      emit(state.copyWith(unidadesPesquisadas: resultados, loadingUnidades: false));
+
+      // Buscar nomes dos proprietários/inquilinos para exibição na tabela
+      final allUnidadeIds = resultados
+          .expand((b) => b.unidades)
+          .map((u) => u.id)
+          .where((id) => id.isNotEmpty)
+          .toList();
+
+      final Map<String, String> nomesMap = {};
+
+      if (allUnidadeIds.isNotEmpty) {
+        final supabase = Supabase.instance.client;
+
+        // Buscar proprietários
+        final propRes = await supabase
+            .from('proprietarios')
+            .select('unidade_id, nome')
+            .eq('condominio_id', condominioId)
+            .inFilter('unidade_id', allUnidadeIds);
+
+        for (var p in (propRes as List)) {
+          final uid = p['unidade_id']?.toString() ?? '';
+          if (uid.isNotEmpty && !nomesMap.containsKey(uid)) {
+            nomesMap[uid] = p['nome']?.toString() ?? 'Proprietário';
+          }
+        }
+
+        // Buscar inquilinos (para unidades sem proprietário)
+        final inqRes = await supabase
+            .from('inquilinos')
+            .select('unidade_id, nome')
+            .eq('condominio_id', condominioId)
+            .inFilter('unidade_id', allUnidadeIds);
+
+        for (var i in (inqRes as List)) {
+          final uid = i['unidade_id']?.toString() ?? '';
+          if (uid.isNotEmpty && !nomesMap.containsKey(uid)) {
+            nomesMap[uid] = i['nome']?.toString() ?? 'Inquilino';
+          }
+        }
+      }
+
+      emit(state.copyWith(
+        unidadesPesquisadas: resultados,
+        nomeProprietarioPorUnidade: nomesMap,
+        loadingUnidades: false,
+      ));
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Erro ao buscar unidades: $e', loadingUnidades: false));
     }
@@ -71,8 +123,12 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     emit(state.copyWith(tipoCobranca: val));
   }
 
-  void atualizarDia(int? val) {
-    emit(state.copyWith(dia: val));
+  void atualizarDia(int dia) {
+    emit(state.copyWith(dia: dia));
+  }
+
+  void atualizarDataVencimento(String data) {
+    emit(state.copyWith(dataVencimentoStr: data));
   }
 
   void atualizarValorPorUnidade(String unidadeId, double val) {
@@ -91,10 +147,28 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
 
   void atualizarDataInicio(DateTime? date) {
     emit(state.copyWith(dataInicio: date));
+    // Auto-calcular dataFim se qtdMeses estiver definida
+    if (date != null && state.qtdMeses != null && state.qtdMeses! > 0) {
+      final fim = DateTime(date.year, date.month + state.qtdMeses! - 1, date.day);
+      emit(state.copyWith(dataFim: fim));
+    }
   }
 
-  void atualizarDataFim(DateTime? date) {
-    emit(state.copyWith(dataFim: date));
+  void atualizarQtdMesesERecalcular(int? val) {
+    emit(state.copyWith(qtdMeses: val));
+    // Recalcular dataFim se dataInicio estiver definida
+    if (val != null && val > 0 && state.dataInicio != null) {
+      final fim = DateTime(state.dataInicio!.year, state.dataInicio!.month + val - 1, state.dataInicio!.day);
+      emit(state.copyWith(dataFim: fim));
+    }
+  }
+
+  void atualizarEnviarRegistro(bool val) {
+    emit(state.copyWith(enviarParaRegistro: val));
+  }
+
+  void atualizarEnviarEmail(bool val) {
+    emit(state.copyWith(enviarPorEmail: val));
   }
 
   // ============ IMAGEM ============
@@ -127,6 +201,27 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
       return;
     }
 
+    // Parse da data de vencimento
+    DateTime? dataVencimento;
+    if (state.dataVencimentoStr != null && state.dataVencimentoStr!.length == 10) {
+      try {
+        dataVencimento = DateFormat('dd/MM/yyyy').parse(state.dataVencimentoStr!);
+        
+        // Validação: Não pode ser antes de hoje
+        final hoje = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+        if (dataVencimento.isBefore(hoje)) {
+          emit(state.copyWith(errorMessage: 'A data de vencimento deve ser hoje ou uma data futura.'));
+          return;
+        }
+      } catch (e) {
+        emit(state.copyWith(errorMessage: 'Data de vencimento inválida. Use o formato dd/mm/aaaa.'));
+        return;
+      }
+    } else {
+      emit(state.copyWith(errorMessage: 'Informe uma data de vencimento válida (dd/mm/aaaa).'));
+      return;
+    }
+
     final novosItems = <CobrancaAvulsaEntity>[];
     for (var unidadeId in state.unidadesSelecionadas) {
       final valorUnidade = state.valoresPorUnidade[unidadeId] ?? 0.0;
@@ -140,11 +235,11 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
         contaContabilId: state.contaContabilId,
         unidadeId: unidadeId,
         valor: valorUnidade,
-        descricao: state.descricao,
+        descricao: state.descricao ?? "Cobrança Avulsa", // Valor padrão se vazio
         tipoCobranca: state.tipoCobranca,
         mesRef: state.mesSelecionado.toString().padLeft(2, '0'),
         anoRef: state.anoSelecionado.toString(),
-        dataVencimento: DateTime(state.anoSelecionado, state.mesSelecionado, state.dia ?? 1),
+        dataVencimento: dataVencimento,
         recorrente: state.recorrente,
         qtdMeses: state.recorrente ? state.qtdMeses : null,
       ));
@@ -228,7 +323,7 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
       }
 
       emit(state.copyWith(
-        status: CobrancaAvulsaStatus.success,
+        status: CobrancaAvulsaStatus.saveSuccess,
         clearCarrinho: true,
         isSaving: false,
       ));
@@ -243,11 +338,11 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
 
   // ============ LISTAGEM ============
 
-  Future<void> carregarCobrancas(String condominioId) async {
+  Future<void> carregarCobrancas() async {
     emit(state.copyWith(status: CobrancaAvulsaStatus.loading));
     try {
       final lista = await _repository.getCobrancasAvulsas(condominioId);
-      emit(state.copyWith(status: CobrancaAvulsaStatus.success, cobrancasCarregadas: lista));
+      emit(state.copyWith(status: CobrancaAvulsaStatus.loadSuccess, cobrancasCarregadas: lista));
     } catch (e) {
       emit(state.copyWith(status: CobrancaAvulsaStatus.error, errorMessage: 'Erro ao carregar: $e'));
     }
@@ -287,16 +382,10 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
         await _repository.deleteCobrancaAvulsa(id);
       }
       
-      // Recarregar a lista (usando o id do condomínio do primeiro item ou um fixo balanceado)
-      // Idealmente o estado teria o condomínioID atual carregado.
-      final condominioId = state.cobrancasCarregadas.isNotEmpty 
-        ? state.cobrancasCarregadas.first.condominioId 
-        : 'COND_ID_FIXO';
-
-      await carregarCobrancas(condominioId);
+      await carregarCobrancas();
       
       emit(state.copyWith(
-        status: CobrancaAvulsaStatus.success,
+        status: CobrancaAvulsaStatus.deleteSuccess,
         itemsSelecionados: {},
       ));
     } catch (e) {
@@ -307,7 +396,42 @@ class CobrancaAvulsaCubit extends Cubit<CobrancaAvulsaState> {
     }
   }
 
+  Future<void> sincronizarStatus(String id) async {
+    // 1. Achar o boleto na lista carregada para pegar o asaas_payment_id
+    // final boleto = state.cobrancasCarregadas.firstWhere((e) => e.id == id);
+    
+    emit(state.copyWith(status: CobrancaAvulsaStatus.loading));
+
+    try {
+      // Se não tivermos o asaas_id em mãos, não podemos sincronizar.
+      // Vou buscar o asaas_id do Supabase agora só para garantir.
+      final supabase = Supabase.instance.client;
+      final res = await supabase.from('boletos').select('asaas_payment_id').eq('id', id).single();
+      final realAsaasId = res['asaas_payment_id'];
+
+      if (realAsaasId == null) {
+        throw Exception('Este boleto não possui um ID do ASAAS vinculado.');
+      }
+
+      await _repository.sincronizarBoleto(realAsaasId);
+      
+      // Recarregar a lista para ver o novo status
+      await carregarCobrancas();
+      
+      emit(state.copyWith(status: CobrancaAvulsaStatus.syncSuccess));
+    } catch (e) {
+      emit(state.copyWith(
+        status: CobrancaAvulsaStatus.error,
+        errorMessage: 'Erro ao sincronizar: $e',
+      ));
+    }
+  }
+
   // ============ AUXILIARES ============
+
+  void resetStatus() {
+    emit(state.copyWith(status: CobrancaAvulsaStatus.initial));
+  }
 
   void limparErro() {
     emit(state.copyWith(clearErrorMessage: true));

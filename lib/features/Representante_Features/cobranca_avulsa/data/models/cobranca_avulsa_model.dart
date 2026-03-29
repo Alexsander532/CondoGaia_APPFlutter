@@ -20,18 +20,33 @@ class CobrancaAvulsaModel extends CobrancaAvulsaEntity {
   });
 
   factory CobrancaAvulsaModel.fromJson(Map<String, dynamic> json) {
+    // Tenta extrair valores aninhados do Join do Supabase
+    String unidadeFormatada = json['unidade_id'] ?? '';
+    String moradorFormatado = '';
+    
+    if (json['unidade'] != null) {
+      final u = json['unidade'];
+      final bloco = u['bloco'] ?? '';
+      final num = u['numero'] ?? '';
+      unidadeFormatada = '$bloco - $num';
+      
+      if (u['morador_id'] != null && u['morador_id'] is Map) {
+        moradorFormatado = u['morador_id']['nome'] ?? '';
+      }
+    }
+
     return CobrancaAvulsaModel(
       id: json['id'],
       condominioId: json['condominio_id'],
-      unidadeId: json['unidade_id'],
-      moradorId: json['morador_id'],
-      contaContabilId: json['conta_contabil_id'],
-      valor: (json['valor'] ?? 0).toDouble(),
+      unidadeId: unidadeFormatada,
+      moradorId: moradorFormatado.isEmpty ? null : moradorFormatado,
+      contaContabilId: null, // Boletos não mapeiam isso diretamente (já estão nos logs com o tipo/obs)
+      valor: (json['valor_total'] ?? json['valor'] ?? 0).toDouble(),
       dataVencimento: json['data_vencimento'] != null ? DateTime.parse(json['data_vencimento']) : null,
-      mesRef: json['mes_ref'],
-      anoRef: json['ano_ref'],
-      descricao: json['descricao'],
-      tipoCobranca: json['tipo_cobranca'],
+      mesRef: json['referencia']?.toString().split('-').last ?? json['mes_ref'],
+      anoRef: json['referencia']?.toString().split('-').first ?? json['ano_ref'],
+      descricao: json['obs'] ?? json['descricao'],
+      tipoCobranca: json['tipo'] ?? json['tipo_cobranca'],
       status: json['status'] ?? 'Pendente',
       anexoUrl: json['anexo_url'],
     );

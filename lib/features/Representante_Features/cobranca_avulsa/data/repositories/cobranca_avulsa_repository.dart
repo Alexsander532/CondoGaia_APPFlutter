@@ -13,9 +13,10 @@ class CobrancaAvulsaRepository {
 
   Future<List<CobrancaAvulsaEntity>> getCobrancasAvulsas(String condominioId) async {
     final response = await _supabase
-        .from('cobrancas_avulsas')
-        .select()
+        .from('boletos')
+        .select('*, unidade:unidade_id (bloco, numero)')
         .eq('condominio_id', condominioId)
+        .eq('tipo', 'Avulso')
         .order('created_at', ascending: false);
 
     return (response as List).map((e) => CobrancaAvulsaModel.fromJson(e)).toList();
@@ -108,7 +109,19 @@ class CobrancaAvulsaRepository {
     }
   }
 
-  Future<void> deleteCobrancaAvulsa(String id) async {
-    await _supabase.from('cobrancas_avulsas').delete().eq('id', id);
+  Future<bool> deleteCobrancaAvulsa(String id) async {
+    await _supabase.from('boletos').delete().eq('id', id);
+    return true; 
+  }
+
+  Future<Map<String, dynamic>> sincronizarBoleto(String asaasId) async {
+    final api = LaravelApiService();
+    final response = await api.get('/asaas/cobrancas/$asaasId/sincronizar');
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erro ao sincronizar boleto: ${response.body}');
+    }
   }
 }

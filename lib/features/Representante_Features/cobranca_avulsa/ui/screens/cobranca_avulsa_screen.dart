@@ -123,13 +123,34 @@ class _CobrancaAvulsaView extends StatelessWidget {
         ),
         body: BlocListener<CobrancaAvulsaCubit, CobrancaAvulsaState>(
           listener: (context, state) {
-            if (state.status == CobrancaAvulsaStatus.success) {
+            final cubit = context.read<CobrancaAvulsaCubit>();
+
+            if (state.status == CobrancaAvulsaStatus.saveSuccess) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cobranças geradas com sucesso!'), backgroundColor: Colors.green),
+                const SnackBar(content: Text('Cobrança(s) gerada(s) com sucesso!'), backgroundColor: Color(0xFF185FA5)),
               );
+              cubit.resetStatus();
+            } else if (state.status == CobrancaAvulsaStatus.deleteSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cobrança(s) excluída(s) com sucesso!'), backgroundColor: Colors.red),
+              );
+              cubit.resetStatus();
+            } else if (state.status == CobrancaAvulsaStatus.syncSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sincronização realizada com sucesso!'), backgroundColor: Color(0xFF0D3B66)),
+              );
+              cubit.resetStatus();
             } else if (state.status == CobrancaAvulsaStatus.error && state.errorMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(state.errorMessage!), 
+                  backgroundColor: Colors.red,
+                  action: SnackBarAction(
+                    label: 'Fechar',
+                    textColor: Colors.white,
+                    onPressed: () => cubit.limparErro(),
+                  ),
+                ),
               );
             }
           },

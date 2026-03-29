@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../cubit/cobranca_avulsa_cubit.dart';
 import '../cubit/cobranca_avulsa_state.dart';
 
@@ -27,12 +28,21 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
 
 
 
+  final _maskDataVencimento = MaskTextInputFormatter(
+    mask: '##/##/####',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   @override
   void initState() {
     super.initState();
     _pesquisaController = TextEditingController();
     _descricaoController = TextEditingController();
-    _diaController = TextEditingController();
+    
+    // Pegar o valor inicial do estado para o campo de data
+    final cubit = context.read<CobrancaAvulsaCubit>();
+    _diaController = TextEditingController(text: cubit.state.dataVencimentoStr);
+    
     _qtdMesesController = TextEditingController();
     _linkController = TextEditingController();
   }
@@ -94,23 +104,6 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
         builder: (context, state) {
           final cubit = context.read<CobrancaAvulsaCubit>();
 
-          // Mostrar erro quando houver
-          if (state.errorMessage != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.errorMessage!),
-                  backgroundColor: Colors.red,
-                  action: SnackBarAction(
-                    label: 'Fechar',
-                    textColor: Colors.white,
-                    onPressed: () => cubit.limparErro(),
-                  ),
-                ),
-              );
-            });
-          }
-
           return Column(
             children: [
               Expanded(
@@ -143,12 +136,12 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                     icon: const Icon(Icons.arrow_drop_down),
                                     items: const [
                                       DropdownMenuItem(value: null, child: Text('Selecione', style: TextStyle(fontSize: 12))),
-                                      DropdownMenuItem(value: 'taxa_cond', child: Text('Taxa Condominial', style: TextStyle(fontSize: 12))),
+                                      DropdownMenuItem(value: 'taxa_condominal', child: Text('Taxa Condominial', style: TextStyle(fontSize: 12))),
                                       DropdownMenuItem(value: 'multa_infracao', child: Text('Multa por Infração', style: TextStyle(fontSize: 12))),
                                       DropdownMenuItem(value: 'advertencia', child: Text('Advertência', style: TextStyle(fontSize: 12))),
-                                      DropdownMenuItem(value: 'controle', child: Text('Controle/Tags', style: TextStyle(fontSize: 12))),
-                                      DropdownMenuItem(value: 'manutencao', child: Text('Manutenção/Serviços', style: TextStyle(fontSize: 12))),
-                                      DropdownMenuItem(value: 'salao', child: Text('Salão de Festa', style: TextStyle(fontSize: 12))),
+                                      DropdownMenuItem(value: 'controle_tags', child: Text('Controle/Tags', style: TextStyle(fontSize: 12))),
+                                      DropdownMenuItem(value: 'manutencao_servicos', child: Text('Manutenção/Serviços', style: TextStyle(fontSize: 12))),
+                                      DropdownMenuItem(value: 'salao_festa', child: Text('Salão de Festa', style: TextStyle(fontSize: 12))),
                                       DropdownMenuItem(value: 'agua', child: Text('Água', style: TextStyle(fontSize: 12))),
                                       DropdownMenuItem(value: 'gas', child: Text('Gás', style: TextStyle(fontSize: 12))),
                                       DropdownMenuItem(value: 'sinistro', child: Text('Sinistro', style: TextStyle(fontSize: 12))),
@@ -163,7 +156,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                             Expanded(
                               flex: 2,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   border: Border.all(color: Colors.grey.shade300),
@@ -172,16 +165,29 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
+                                    InkWell(
+                                      onTap: () {
+                                        int novoMes = state.mesSelecionado - 1;
+                                        int novoAno = state.anoSelecionado;
+                                        if (novoMes < 1) {
+                                          novoMes = 12;
+                                          novoAno--;
+                                        }
+                                        context.read<CobrancaAvulsaCubit>().atualizarMes(novoMes);
+                                        context.read<CobrancaAvulsaCubit>().atualizarAno(novoAno);
+                                      },
+                                      child: const Icon(Icons.chevron_left, size: 18, color: Colors.grey),
+                                    ),
                                     Expanded(
                                       child: Text(
                                         '${state.mesSelecionado.toString().padLeft(2, '0')}/${state.anoSelecionado}',
                                         style: const TextStyle(fontSize: 12),
+                                        textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     InkWell(
                                       onTap: () {
-                                        // TODO: seletor de mes/ano customizado, por hora usar botoes
                                         int novoMes = state.mesSelecionado + 1;
                                         int novoAno = state.anoSelecionado;
                                         if (novoMes > 12) {
@@ -191,7 +197,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                         context.read<CobrancaAvulsaCubit>().atualizarMes(novoMes);
                                         context.read<CobrancaAvulsaCubit>().atualizarAno(novoAno);
                                       },
-                                      child: const Icon(Icons.arrow_drop_down),
+                                      child: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
                                     ),
                                   ],
                                 ),
@@ -284,30 +290,19 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                         
                         if (state.tipoCobranca == 'Boleto Avulso') ...[
                           const SizedBox(height: 8),
-                          RichText(
-                            text: TextSpan(
-                              text: '★ Boleto Avulso: ',
-                              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey.shade700, fontWeight: FontWeight.bold),
-                              children: const [
-                                TextSpan(
-                                  text: 'mostra campo de dia do vencimento e botão "Gerar Boleto"',
-                                  style: TextStyle(fontWeight: FontWeight.normal),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Text('Dia de vencimento: ', style: TextStyle(fontSize: 12)),
-                              SizedBox(
-                                width: 80,
+                              const Text('Data de vencimento: ', style: TextStyle(fontSize: 12)),
+                              const Text('*', style: TextStyle(color: Colors.red, fontSize: 12)),
+                              const SizedBox(width: 8),
+                              Expanded(
                                 child: TextFormField(
                                   controller: _diaController,
                                   style: const TextStyle(fontSize: 13),
                                   textAlign: TextAlign.center,
+                                  inputFormatters: [_maskDataVencimento],
                                   decoration: InputDecoration(
-                                    hintText: '__',
+                                    hintText: 'DD/MM/AAAA',
                                     fillColor: Colors.white,
                                     filled: true,
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -323,8 +318,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                   ),
                                   keyboardType: TextInputType.number,
                                   onChanged: (val) {
-                                    final dia = int.tryParse(val);
-                                    cubit.atualizarDia(dia);
+                                    cubit.atualizarDataVencimento(val);
                                   },
                                 ),
                               ),
@@ -393,51 +387,57 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100, // var(--color-background-secondary)
+                              color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
                               children: [
+                                // Início
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Início', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE6F1FB),
-                                          borderRadius: BorderRadius.circular(4),
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final now = DateTime.now();
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: state.dataInicio ?? DateTime(now.year, now.month + 1),
+                                        firstDate: DateTime(now.year - 1),
+                                        lastDate: DateTime(now.year + 5),
+                                        initialDatePickerMode: DatePickerMode.year,
+                                        helpText: 'Selecionar mês de início',
+                                      );
+                                      if (picked != null) {
+                                        cubit.atualizarDataInicio(DateTime(picked.year, picked.month, 1));
+                                      }
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Início', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE6F1FB),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                state.dataInicio != null ? DateFormat('MM/yyyy').format(state.dataInicio!) : 'MM/AAAA',
+                                                style: const TextStyle(color: Color(0xFF185FA5), fontSize: 12, fontWeight: FontWeight.w500),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(Icons.edit, size: 10, color: Color(0xFF185FA5)),
+                                            ],
+                                          ),
                                         ),
-                                        child: Text(
-                                          state.dataInicio != null ? DateFormat('MM/yyyy').format(state.dataInicio!) : 'MM/AAAA',
-                                          style: const TextStyle(color: Color(0xFF185FA5), fontSize: 12, fontWeight: FontWeight.w500),
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Fim', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE6F1FB),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          state.dataFim != null ? DateFormat('MM/yyyy').format(state.dataFim!) : 'MM/AAAA',
-                                          style: const TextStyle(color: Color(0xFF185FA5), fontSize: 12, fontWeight: FontWeight.w500),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                const SizedBox(width: 8),
+                                // Qtd. Meses (stepper)
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +445,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                       const Text('Qtd. Meses', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                       const SizedBox(height: 4),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFFAEEDA),
                                           borderRadius: BorderRadius.circular(4),
@@ -453,13 +453,32 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              state.qtdMeses?.toString() ?? '0',
-                                              style: const TextStyle(color: Color(0xFF854F0B), fontSize: 12, fontWeight: FontWeight.w500),
+                                            InkWell(
+                                              onTap: () {
+                                                final atual = state.qtdMeses ?? 1;
+                                                if (atual > 2) cubit.atualizarQtdMesesERecalcular(atual - 1);
+                                              },
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(2),
+                                                child: Icon(Icons.remove, size: 14, color: Color(0xFF854F0B)),
+                                              ),
                                             ),
-                                            const Text(
-                                              ' meses',
-                                              style: TextStyle(color: Color(0xFF854F0B), fontSize: 12),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                                              child: Text(
+                                                '${state.qtdMeses ?? 2}',
+                                                style: const TextStyle(color: Color(0xFF854F0B), fontSize: 13, fontWeight: FontWeight.w600),
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () {
+                                                final atual = state.qtdMeses ?? 2;
+                                                if (atual < 24) cubit.atualizarQtdMesesERecalcular(atual + 1);
+                                              },
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(2),
+                                                child: Icon(Icons.add, size: 14, color: Color(0xFF854F0B)),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -467,13 +486,30 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                     ],
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                // Fim (calculado automaticamente)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Fim (calculado)', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          state.dataFim != null ? DateFormat('MM/yyyy').format(state.dataFim!) : 'MM/AAAA',
+                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '↑ visível apenas quando Recorrente = Sim',
-                            style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
                           ),
                         ],
 
@@ -524,12 +560,29 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                   border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 0.5)),
                                 ),
                                 child: Row(
-                                  children: const [
-                                    SizedBox(width: 32), // space for checkbox
-                                    Expanded(flex: 3, child: Text('Unidade', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey))),
-                                    Expanded(flex: 3, child: Text('Proprietário', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey))),
-                                    SizedBox(width: 80, child: Text('Valor (R\$)', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey))),
-                                    SizedBox(width: 8),
+                                  children: [
+                                    const SizedBox(width: 32), // space for checkbox
+                                    Expanded(
+                                      flex: 3,
+                                      child: Row(
+                                        children: const [
+                                          Text('Unidade', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey)),
+                                          Text(' *', style: TextStyle(color: Colors.red, fontSize: 10)),
+                                        ],
+                                      ),
+                                    ),
+                                    const Expanded(flex: 3, child: Text('Proprietário', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey))),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: const [
+                                          Text('Valor (R\$)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey)),
+                                          Text(' *', style: TextStyle(color: Colors.red, fontSize: 10)),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                   ],
                                 ),
                               ),
@@ -590,7 +643,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                             Expanded(
                                               flex: 3,
                                               child: Text(
-                                                'Proprietário',
+                                                state.nomeProprietarioPorUnidade[unidade.id] ?? '—',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   color: Colors.grey.shade600,
@@ -649,12 +702,6 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                             ],
                           ),
 
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Valor editável inline por unidade após selecionar',
-                          style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
-                        ),
-
                         const SizedBox(height: 24),
                         // ============ BOTÕES DE AÇÃO ============
                         if (state.tipoCobranca == null || state.tipoCobranca == 'Junto a Taxa Cond.') ...[
@@ -662,14 +709,22 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF185FA5),
+                                backgroundColor: Colors.grey.shade400,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 elevation: 0,
                               ),
-                              onPressed: () => cubit.adicionarAoCarrinho(),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('"Junto à Taxa Condominial" será implementado em breve.'),
+                                    backgroundColor: Color(0xFF185FA5),
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
+                              },
                               child: const Text(
-                                'Gerar Composição',
+                                'Gerar Composição (em breve)',
                                 style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
                               ),
                             ),
@@ -684,11 +739,27 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 elevation: 0,
                               ),
-                              onPressed: () => cubit.adicionarAoCarrinho(), // ou outra action para "Gerar Boleto"
-                              child: const Text(
-                                'Gerar Boleto',
-                                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
+                              onPressed: state.isSaving
+                                  ? null
+                                  : () async {
+                                      cubit.adicionarAoCarrinho();
+                                      if (cubit.state.itemsCarrinho.isNotEmpty) {
+                                        await cubit.salvarCobrancas();
+                                      }
+                                    },
+                              child: state.isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Gerar Boleto',
+                                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -697,9 +768,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                             children: [
                               Checkbox(
                                 value: state.enviarParaRegistro,
-                                onChanged: (val) {
-                                  // TODO: adicionar método no cubit se necessário, ou mock
-                                },
+                                onChanged: (val) => cubit.atualizarEnviarRegistro(val ?? false),
                                 activeColor: const Color(0xFF185FA5),
                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 visualDensity: VisualDensity.compact,
@@ -708,9 +777,7 @@ class _CadastrarCobrancaTabState extends State<CadastrarCobrancaTab> {
                               const SizedBox(width: 16),
                               Checkbox(
                                 value: state.enviarPorEmail,
-                                onChanged: (val) {
-                                  // TODO: adicionar método no cubit se necessário
-                                },
+                                onChanged: (val) => cubit.atualizarEnviarEmail(val ?? false),
                                 activeColor: const Color(0xFF185FA5),
                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 visualDensity: VisualDensity.compact,
