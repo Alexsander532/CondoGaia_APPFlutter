@@ -9,6 +9,7 @@ import '../widgets/boleto_list_widget.dart';
 import '../widgets/boleto_acoes_widget.dart';
 import '../widgets/gerar_cobranca_mensal_dialog.dart';
 import '../../cobranca_avulsa/ui/screens/cobranca_avulsa_screen.dart';
+import '../../despesa_receita/screens/despesa_receita_screen.dart';
 
 class BoletoScreen extends StatefulWidget {
   final String condominioId;
@@ -176,7 +177,12 @@ class _BoletoScreenState extends State<BoletoScreen> {
               _buildActionCard(
                 icon: Icons.iso,
                 onTap: () {
-                  // Ação: Desp/Receita Manual
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DespesaReceitaScreen(condominioId: widget.condominioId),
+                    ),
+                  );
                 },
               ),
               _buildActionCard(
@@ -220,7 +226,14 @@ class _BoletoScreenState extends State<BoletoScreen> {
                 context,
                 icon: Icons.iso,
                 label: "Desp/ Receita Manual",
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DespesaReceitaScreen(condominioId: widget.condominioId),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
               _buildExpandedActionItem(
