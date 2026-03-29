@@ -11,6 +11,8 @@ import '../services/leitura_service.dart';
 import '../widgets/leitura_table_widget.dart';
 
 import 'leitura_configuracao_screen.dart';
+import 'leitura_relatorio_screen.dart';
+import '../../../../services/photo_picker_service.dart';
 
 class LeituraScreen extends StatefulWidget {
   final String condominioId;
@@ -63,12 +65,21 @@ class _LeituraScreenState extends State<LeituraScreen> {
     );
     if (source == null) return;
 
-    final picker = ImagePicker();
-    final x = await picker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      imageQuality: 85,
-    );
+    final photoPickerService = PhotoPickerService();
+    XFile? x;
+    
+    if (source == ImageSource.camera) {
+      x = await photoPickerService.pickImageFromCamera(
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
+    } else {
+      x = await photoPickerService.pickImage(
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
+    }
+
     if (x != null) {
       setState(() => _selectedImage = File(x.path));
     }
@@ -167,8 +178,9 @@ class _LeituraScreenState extends State<LeituraScreen> {
                 // Tabs
                 Row(
                   children: [
-                    Expanded(child: _buildTab('Cadastrar', 0)), // Index 0
-                    Expanded(child: _buildTab('Configurar', 1)), // Index 1
+                    Expanded(child: _buildTab('Cadastrar', 0)),
+                    Expanded(child: _buildTab('Relatório', 1)),
+                    Expanded(child: _buildTab('Configurar', 2)),
                   ],
                 ),
                 Expanded(
@@ -565,15 +577,20 @@ class _LeituraScreenState extends State<LeituraScreen> {
                             ],
                           ),
                         )
-                      : LeituraConfiguracaoScreen(
-                          condominioId: widget.condominioId,
-                          tipoInicial: state.selectedTipo,
-                          service: widget.service,
-                          onConfigSaved: () {
-                            // Recarregar dados após salvar configuração
-                            cubit.loadLeituras();
-                          },
-                        ),
+                      : _selectedTabIndex == 1
+                          ? LeituraRelatorioScreen(
+                              condominioId: widget.condominioId,
+                              service: widget.service ?? cubit.service,
+                            )
+                          : LeituraConfiguracaoScreen(
+                              condominioId: widget.condominioId,
+                              tipoInicial: state.selectedTipo,
+                              service: widget.service,
+                              onConfigSaved: () {
+                                // Recarregar dados após salvar configuração
+                                cubit.loadLeituras();
+                              },
+                            ),
                 ),
               ],
             );

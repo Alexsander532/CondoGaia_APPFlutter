@@ -333,4 +333,33 @@ class LeituraService {
     final cacheKey = 'cached_config_${condominioId}_$tipo';
     await _cache.clearCache(cacheKey);
   }
+
+  Future<List<LeituraModel>> getHistoricoConsumo({
+    required String condominioId,
+    required String tipo,
+    String? unidadeId,
+    int limit = 12,
+  }) async {
+    try {
+      var query = _supabase
+          .from('leituras')
+          .select()
+          .eq('condominio_id', condominioId)
+          .eq('tipo', tipo);
+
+      if (unidadeId != null && unidadeId.isNotEmpty) {
+        query = query.eq('unidade_id', unidadeId);
+      }
+      
+      final response = await query.order('data_leitura', ascending: false).limit(limit);
+
+      return (response as List)
+          .map((e) => LeituraModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (e) {
+      print('Erro ao buscar histórico de leituras: $e');
+      return [];
+    }
+  }
 }
+
