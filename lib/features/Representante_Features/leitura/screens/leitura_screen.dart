@@ -81,7 +81,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
     }
 
     if (x != null) {
-      setState(() => _selectedImage = File(x.path));
+      setState(() => _selectedImage = File(x!.path));
     }
   }
 
@@ -580,7 +580,7 @@ class _LeituraScreenState extends State<LeituraScreen> {
                       : _selectedTabIndex == 1
                           ? LeituraRelatorioScreen(
                               condominioId: widget.condominioId,
-                              service: widget.service ?? cubit.service,
+                              service: widget.service ?? LeituraService(),
                             )
                           : LeituraConfiguracaoScreen(
                               condominioId: widget.condominioId,

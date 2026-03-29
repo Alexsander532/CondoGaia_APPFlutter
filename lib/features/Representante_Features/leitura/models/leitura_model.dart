@@ -13,6 +13,8 @@ class LeituraModel extends Equatable {
   final String? imagemUrl;
   final bool isSelected;
 
+  double get consumo => leituraAtual - leituraAnterior;
+
   const LeituraModel({
     required this.id,
     required this.unidadeId,

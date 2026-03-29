@@ -196,14 +196,13 @@ class _LeituraRelatorioScreenState extends State<LeituraRelatorioScreen> {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipRoundedRadius: 8,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${rod.toY.toStringAsFixed(1)} m³\n',
                   const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   children: [
                     TextSpan(
-                      text: 'R\$ ${_historico[group.x].valorCalculado.toStringAsFixed(2)}',
+                      text: 'R\$ ${_historico[group.x].valor.toStringAsFixed(2)}',
                       style: const TextStyle(color: Colors.greenAccent, fontSize: 12),
                     ),
                   ],
