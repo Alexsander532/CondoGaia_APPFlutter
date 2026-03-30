@@ -49,7 +49,7 @@ class BoletoState extends Equatable {
     this.pesquisa,
     this.filtroRapido = 'Todos',
     this.itensSelecionados = const {},
-    this.filtroExpandido = true,
+    this.filtroExpandido = false,
     this.detalharComposicao = false,
     this.isSaving = false,
     this.errorMessage,

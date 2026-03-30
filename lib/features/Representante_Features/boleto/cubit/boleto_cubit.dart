@@ -265,6 +265,33 @@ class BoletoCubit extends Cubit<BoletoState> {
   }
 
   // ============================================================
+  // EDITAR BOLETO
+  // ============================================================
+
+  Future<void> editarBoleto({
+    required String boletoId,
+    required double novoValor,
+    required DateTime novaDataVencimento,
+    required String novaReferencia,
+  }) async {
+    emit(state.copyWith(status: BoletoStatus.loading));
+    try {
+      await _service.editarBoleto(
+        boletoId: boletoId,
+        novoValor: novoValor,
+        novaDataVencimento: novaDataVencimento,
+        novaReferencia: novaReferencia,
+      );
+      emit(state.copyWith(successMessage: 'Boleto atualizado com sucesso!', errorMessage: ''));
+      await carregarDados(); // atualiza a lista e retira o loading
+    } catch (e) {
+      emit(
+        state.copyWith(status: BoletoStatus.error, errorMessage: e.toString(), successMessage: ''),
+      );
+    }
+  }
+
+  // ============================================================
   // GERAR COBRANÇA MENSAL
   // ============================================================
 

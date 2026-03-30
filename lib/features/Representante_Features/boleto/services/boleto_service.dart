@@ -177,6 +177,25 @@ class BoletoService {
     }
   }
 
+  Future<void> editarBoleto({
+    required String boletoId,
+    required double novoValor,
+    required DateTime novaDataVencimento,
+    required String novaReferencia,
+  }) async {
+    try {
+      await _supabase.from('boletos').update({
+        'valor': novoValor,
+        'valor_total': novoValor, // Como não temos o detalhamento para o update, atualizamos o valor total com o valor formatado
+        'data_vencimento': novaDataVencimento.toIso8601String().split('T').first,
+        'referencia': novaReferencia,
+      }).eq('id', boletoId);
+    } catch (e) {
+      print('⚠️ [BoletoService] Erro ao editar boleto: $e');
+      throw Exception('Erro ao editar boleto.');
+    }
+  }
+
   Future<void> excluirBoletosMultiplos(List<String> ids) async {
     try {
       await _supabase.from('boletos').delete().inFilter('id', ids);

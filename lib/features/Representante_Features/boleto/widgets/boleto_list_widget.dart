@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../cubit/boleto_cubit.dart';
 import '../cubit/boleto_state.dart';
 import '../models/boleto_model.dart';
+import 'detalhes_boleto_dialog.dart';
 
 class BoletoListWidget extends StatelessWidget {
   const BoletoListWidget({super.key});
@@ -182,76 +183,87 @@ class BoletoListWidget extends StatelessWidget {
         regIcon = const SizedBox(width: 14);
     }
 
-    return Container(
-      color: isSelected ? const Color(0xFFE3EDF7) : bgColor,
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 32,
-            child: Checkbox(
-              value: isSelected,
-              onChanged: (_) {
-                if (boleto.id != null) cubit.toggleItemSelecionado(boleto.id!);
-              },
-              activeColor: _primaryColor,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (_) => BlocProvider.value(
+            value: cubit,
+            child: DetalhesBoletoDialog(boleto: boleto),
           ),
-          SizedBox(
-            width: 30,
-            child: InkWell(
-              onTap: (boleto.boletoRegistrado == 'NAO' || boleto.boletoRegistrado == 'ERRO') && boleto.id != null
-                ? () => cubit.registrarBoletoNoAsaas(boleto.id!)
-                : null,
-              child: Center(child: regIcon),
-            ),
-          ),
-          _dataCell(boleto.blocoUnidade ?? '', 2),
-          _dataCell(boleto.sacadoNome ?? '', 7),
-          _dataCell(boleto.referencia ?? '', 2),
-          _dataCell(
-            boleto.dataVencimento != null
-                ? dateFormatter.format(boleto.dataVencimento!)
-                : '',
-            3,
-          ),
-          _dataCell(formatter.format(boleto.valor), 3),
-          _statusCell(boleto.status, 3), // Vou precisar ajustar o statusCell também
-          _dataCell(boleto.pgto ?? '-', 2),
-          _dataCell(boleto.classe ?? boleto.tipo, 3),
-          _dataCell(boleto.baixa, 3),
-          _dataCell(boleto.nossoNumero ?? '', 5),
-          SizedBox(
-            width: 30,
-            child: GestureDetector(
-              onTap: () async {
-                if (boleto.bankSlipUrl != null && boleto.bankSlipUrl!.isNotEmpty) {
-                  final uri = Uri.parse(boleto.bankSlipUrl!);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Não foi possível abrir o link do boleto.')),
-                      );
-                    }
-                  }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Este boleto ainda não possui link de pagamento.')),
-                  );
-                }
-              },
-              child: Icon(
-                Icons.qr_code,
-                size: 16,
-                color: boleto.bankSlipUrl != null ? _primaryColor : Colors.grey,
+        );
+      },
+      child: Container(
+        color: isSelected ? const Color(0xFFE3EDF7) : bgColor,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 32,
+              child: Checkbox(
+                value: isSelected,
+                onChanged: (_) {
+                  if (boleto.id != null) cubit.toggleItemSelecionado(boleto.id!);
+                },
+                activeColor: _primaryColor,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
               ),
             ),
-          ),
-        ],
+            SizedBox(
+              width: 30,
+              child: InkWell(
+                onTap: (boleto.boletoRegistrado == 'NAO' || boleto.boletoRegistrado == 'ERRO') && boleto.id != null
+                  ? () => cubit.registrarBoletoNoAsaas(boleto.id!)
+                  : null,
+                child: Center(child: regIcon),
+              ),
+            ),
+            _dataCell(boleto.blocoUnidade ?? '', 2),
+            _dataCell(boleto.sacadoNome ?? '', 7),
+            _dataCell(boleto.referencia ?? '', 2),
+            _dataCell(
+              boleto.dataVencimento != null
+                  ? dateFormatter.format(boleto.dataVencimento!)
+                  : '',
+              3,
+            ),
+            _dataCell(formatter.format(boleto.valor), 3),
+            _statusCell(boleto.status, 3), // Vou precisar ajustar o statusCell também
+            _dataCell(boleto.pgto ?? '-', 2),
+            _dataCell(boleto.classe ?? boleto.tipo, 3),
+            _dataCell(boleto.baixa, 3),
+            _dataCell(boleto.nossoNumero ?? '', 5),
+            SizedBox(
+              width: 30,
+              child: GestureDetector(
+                onTap: () async {
+                  if (boleto.bankSlipUrl != null && boleto.bankSlipUrl!.isNotEmpty) {
+                    final uri = Uri.parse(boleto.bankSlipUrl!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Não foi possível abrir o link do boleto.')),
+                        );
+                      }
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Este boleto ainda não possui link de pagamento.')),
+                    );
+                  }
+                },
+                child: Icon(
+                  Icons.qr_code,
+                  size: 16,
+                  color: boleto.bankSlipUrl != null ? _primaryColor : Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
